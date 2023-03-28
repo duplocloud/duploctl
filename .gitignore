@@ -1,7 +1,8 @@
-.direnv
-*.egg-info
 build
+dist
+*.egg-info
 .ruff_cache
 .pytest_cache
 .coverage
 __pycache__
+.direnv

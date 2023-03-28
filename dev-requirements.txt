@@ -5,3 +5,5 @@ pytest-isort
 pytest-cov 
 invoke
 setuptools_scm
+build
+twine
