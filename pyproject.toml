@@ -1,0 +1,14 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "twine"
+]
+build-backend = "setuptools.build_meta"
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--verbose --cov=src --cov-report term-missing"
+testpaths = [
+    "tests",
+    "integration",
+]

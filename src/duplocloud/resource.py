@@ -1,0 +1,22 @@
+from .client import DuploClient
+from .errors import DuploError
+
+class DuploResource():
+  
+  def __init__(self, duplo: DuploClient):
+    self.duplo = duplo
+    self.tenant = None
+  
+  def get_tenant(self):
+    if not self.tenant:
+      self.tenant_svc = self.duplo.service("tenant")
+      self.tenant = self.tenant_svc.find(self.duplo.tenant_name)
+    return self.tenant
+  
+  def exec(self, subcmd, args=[]):
+    if not (func := getattr(self, subcmd, None)):
+      raise ValueError(f"Invalid subcommand: {subcmd}")
+    try:
+      return print(func(*args))
+    except Exception as e:
+      raise DuploError(f"Error executing subcommand: {subcmd}") from e

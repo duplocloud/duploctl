@@ -1,0 +1,6 @@
+pytest
+ruff 
+pytest-black
+pytest-isort 
+pytest-cov 
+invoke

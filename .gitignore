@@ -1,0 +1,6 @@
+.direnv
+*.egg-info
+build
+.ruff_cache
+.pytest_cache
+.coverage
