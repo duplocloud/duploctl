@@ -1,0 +1,37 @@
+name: Python Publish
+
+on:
+  push:
+    tags:        
+    - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    # checkout code 
+    - uses: actions/checkout@v3
+    
+    # install python
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    # install the project
+    - name: Install dependencies
+      run: |
+        pip install -r dev-requirements.txt
+        pip install .
+    
+    - name: Run the Build
+      run: |
+        version=$(python -m setuptools_scm)
+        echo "Building Version: $version"
+        python -m build
+
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
