@@ -6,12 +6,13 @@ on:
     - '*'
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
 
     # checkout code 
-    - uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v3
     
     # install python
     - name: Set up Python 3.11
@@ -20,7 +21,7 @@ jobs:
         python-version: "3.11"
     
     # install the project
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         pip install -r dev-requirements.txt
         pip install .
@@ -31,7 +32,7 @@ jobs:
         echo "Building Version: $version"
         python -m build
 
-    - name: Publish package to PyPI
+    - name: Publish Package to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}

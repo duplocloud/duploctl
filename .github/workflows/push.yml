@@ -1,9 +1,9 @@
-name: Python package
+name: Python Test
 
 on: [push]
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
     strategy:
@@ -13,7 +13,8 @@ jobs:
     steps:
 
     # checkout code 
-    - uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v3
     
     # install python
     - name: Set up Python ${{ matrix.python-version }}
@@ -24,7 +25,7 @@ jobs:
     # install the project
     - name: Install dependencies
       run: |
-        pip install -r test-requirements.txt
+        pip install -r dev-requirements.txt
         pip install .
     
     # do linting
