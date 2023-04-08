@@ -8,7 +8,7 @@ class DuploUser(DuploResource):
     self.tenent_svc = duplo.service('tenant')
   
   def add_tenant(self, username, tenant):
-    """Retrieve a list of all tenants in the Duplo system."""
+    """Retrieve a list of all users in the Duplo system."""
     tenant_id = self.tenent_svc.find(tenant)["TenantId"]
     res = self.duplo.post("admin/UpdateUserAccess", {
       "Policy": { "IsReadOnly": None },
