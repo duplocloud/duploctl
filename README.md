@@ -14,16 +14,3 @@ From source:
 pip install .
 ```
 
-## Build  
-
-Build the package
-```
-python -m build
-```
-
-## Commands  
-
-Get the current version
-```
-python -m setuptools_scm
-```
