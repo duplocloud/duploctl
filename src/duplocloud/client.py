@@ -25,11 +25,11 @@ class DuploClient():
       ```
   """
     
-  def __init__(self, host, token, tenant="default", args=[]) -> None:
+  def __init__(self, host, token, tenant_name="default", args=[]) -> None:
     self.host = host
     self.timeout = 10
     self.args = args
-    self.tenant = tenant
+    self.tenant_name = tenant_name
     self.headers = {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {token}"

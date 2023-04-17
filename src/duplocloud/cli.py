@@ -7,7 +7,7 @@ def main():
   client = DuploClient(
     host=env.host,
     token=env.token,
-    tenant=env.tenant
+    tenant_name=env.tenant,
   )
   service = client.service(env.service)
   service.exec(env.subcmd, args)
