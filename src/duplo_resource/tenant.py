@@ -37,3 +37,22 @@ class DuploTenant(DuploResource):
       return f"Tenant '{tenant_name}' will shutdown on {schedule}"
     else:
       raise DuploError(f"Failed to expire tenant '{tenant_name}'", res.status_code)
+
+  def logging(self, tenant_name, enable=True):
+    """Enable or disable tenant logging."""
+    tenant = self.find(tenant_name)
+    tenant_id = tenant["TenantId"]
+    # add or update the tenant in the list of enabled tenants
+    log_tenants = self.duplo.get("admin/GetLoggingEnabledTenants")
+    for t in log_tenants:
+      if t["TenantId"] == tenant_id:
+        t["Enabled"] = enable
+        break
+    else:
+      log_tenants.append({"TenantId": tenant_id, "Enabled": enable})
+    # update the entire list
+    res = self.duplo.post("admin/UpdateLoggingEnabledTenants", log_tenants)
+    if res.status_code == 200:
+      return f"Tenant '{tenant_name}' logging {enable}"
+    else:
+      raise DuploError(f"Failed to {'enable' if enable else 'disable'} tenant '{tenant_name}'", res.status_code)
