@@ -17,6 +17,12 @@ class DuploResource():
     if not (func := getattr(self, subcmd, None)):
       raise ValueError(f"Invalid subcommand: {subcmd}")
     try:
-      return print(func(*args))
+      res = func(*args)
+      # if res is a dict or list, turn it into json
+      if isinstance(res, (dict, list)):
+        res = self.duplo.json(res)
+      return print(res)
     except Exception as e:
       raise DuploError(f"Error executing subcommand: {subcmd}") from e
+    
+  

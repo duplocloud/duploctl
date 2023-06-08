@@ -1,5 +1,6 @@
 
 import requests
+import json
 from cachetools import cached, TTLCache
 from importlib.metadata import entry_points
 
@@ -89,3 +90,13 @@ Client for Duplo at {self.host}
     e = [ep for ep in eps if ep.name == name][0]
     svc = e.load() 
     return svc(self)
+  
+  def json(self, data):
+    """Convert data to JSON.
+    
+    Args:
+      data: The data to convert.
+    Returns:
+      The data as a JSON object.
+    """
+    return json.dumps(data)
