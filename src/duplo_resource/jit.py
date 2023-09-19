@@ -7,6 +7,6 @@ class DuploJit(DuploResource):
     super().__init__(duplo)
     # self.tenent_svc = duplo.service('tenant')
     
-  def session(self):
+  def aws(self):
     """Retrieve a list of all users in the Duplo system."""
     return self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl")
