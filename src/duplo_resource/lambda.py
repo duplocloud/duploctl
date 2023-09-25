@@ -40,6 +40,4 @@ class DuploLambda(DuploResource):
       "FunctionName": lambda_name,
       "ImageUri": image
     }
-    print("posting " + str(data) + " to UpdateLambdaFunction")
-    print("subscriptions/"+tenant_id+"/UpdateLambdaFunction")
     return self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
