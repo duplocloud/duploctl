@@ -22,6 +22,8 @@ class DuploResource():
       if isinstance(res, (dict, list)):
         res = self.duplo.json(res)
       return print(res)
+    except DuploError as e:
+      raise e
     except Exception as e:
       raise DuploError(f"Error executing subcommand: {subcmd}") from e
     

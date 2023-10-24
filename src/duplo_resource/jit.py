@@ -9,4 +9,5 @@ class DuploJit(DuploResource):
     
   def aws(self):
     """Retrieve a list of all users in the Duplo system."""
-    return self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl")
+    sts = self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl")
+    return sts

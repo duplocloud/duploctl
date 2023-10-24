@@ -1,4 +1,5 @@
 from .client import DuploClient
+from .errors import DuploError
 import argparse
 import os
 
@@ -10,7 +11,11 @@ def main():
     tenant_name=env.tenant,
   )
   service = client.service(env.service)
-  service.exec(env.subcmd, args)
+  try:
+    service.exec(env.subcmd, args)
+  except DuploError as e:
+    print(e)
+    exit(e.code)
 
 def load_env():
   """Get the environment variables for the Duplo session."""
