@@ -43,7 +43,8 @@ class DuploService(DuploResource):
       "Image": image,
       "AllocationTags": allocation_tags
     }
-    return self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
+    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
+    return {"message": f"Successfully updated image for service '{service_name}'"}
   
   def restart(self, service_name):
     """Restart a service.

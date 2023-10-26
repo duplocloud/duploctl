@@ -120,8 +120,8 @@ Client for Duplo at {self.host}
     Returns:
       The response as a JSON object.
     """
-    contentType = contentType = response.headers['content-type']
-    if 200 < response.status_code < 300:
+    contentType = contentType = response.headers['content-type'].split(';')[0]
+    if 200 <= response.status_code < 300:
       if contentType == 'application/json':
         return response.json()
       elif contentType == 'text/plain':
