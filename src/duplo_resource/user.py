@@ -1,33 +1,45 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.errors import DuploError
+from duplocloud.commander import Command
+import duplocloud.args as args
 
 class DuploUser(DuploResource):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
     self.tenent_svc = duplo.service('tenant')
+
+  @Command()
+  def list(self):
+    """Retrieve a list of all users in the Duplo system."""
+    return self.duplo.get("admin/GetAllUserRoles")
   
-  def add_tenant(self, username, tenant):
+  @Command()
+  def find(self, 
+           name: args.NAME):
+    """Find a User by their username."""
+    try:
+      return [u for u in self.list() if u["Username"] == name][0]
+    except IndexError:
+      raise DuploError(f"User '{name}' not found", 404)
+  
+  @Command()
+  def add_tenant(self, 
+                 name: args.NAME, 
+                 tenant: args.TENANT):
     """Retrieve a list of all users in the Duplo system."""
     tenant_id = self.tenent_svc.find(tenant)["TenantId"]
     res = self.duplo.post("admin/UpdateUserAccess", {
       "Policy": { "IsReadOnly": None },
-      "Username": username,
+      "Username": name,
       "TenantId": tenant_id
     })
     # check http response is 204
     if res.status_code != 204:
-      raise DuploError(f"Failed to add user '{username}' to tenant '{tenant}'", res["status_code"])
+      raise DuploError(f"Failed to add user '{name}' to tenant '{tenant}'", res["status_code"])
     else:
-      return f"User '{username}' added to tenant '{tenant}'"
+      return f"User '{name}' added to tenant '{tenant}'"
 
-  def find(self, username):
-    """Find a User by their username."""
-    try:
-      return [u for u in self.list() if u["Username"] == username][0]
-    except IndexError:
-      raise DuploError(f"User '{username}' not found", 404)
+  
     
-  def list(self):
-    """Retrieve a list of all users in the Duplo system."""
-    return self.duplo.get("admin/GetAllUserRoles")
+  

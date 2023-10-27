@@ -1,5 +1,6 @@
 from .client import DuploClient
 from .errors import DuploError
+from .commander import exec
 
 class DuploResource():
   
@@ -13,11 +14,15 @@ class DuploResource():
       self.tenant = self.tenant_svc.find(self.duplo.tenant_name)
     return self.tenant
   
+  def command(self, name):
+    if not (cmd := getattr(self, name, None)):
+      raise DuploError(f"Invalid subcommand: {name}")
+    return cmd
+  
   def exec(self, subcmd, args=[]):
-    if not (func := getattr(self, subcmd, None)):
-      raise ValueError(f"Invalid subcommand: {subcmd}")
     try:
-      res = func(*args)
+      cmd = self.command(subcmd)
+      res = exec(cmd, args)
       # if res is a dict or list, turn it into json
       if isinstance(res, (dict, list)):
         res = self.duplo.json(res)

@@ -2,25 +2,33 @@ import datetime
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.errors import DuploError
+from duplocloud.commander import Command
+import duplocloud.args as args
 
 class DuploTenant(DuploResource):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
   
+  @Command()
   def list(self):
     """Retrieve a list of all tenants in the Duplo system."""
     return self.duplo.get("adminproxy/GetTenantNames")
 
-  def find(self, tenant_name):
+  @Command()
+  def find(self, 
+           name: args.NAME):
     """Find a tenant by name."""
     try:
-      return [t for t in self.list() if t["AccountName"] == tenant_name][0]
+      return [t for t in self.list() if t["AccountName"] == name][0]
     except IndexError:
-      raise DuploError(f"Tenant '{tenant_name}' not found", 404)
+      raise DuploError(f"Tenant '{name}' not found", 404)
     
-  def shutdown(self, tenant_name, schedule=None):
+  @Command()
+  def shutdown(self, 
+               name: args.NAME, 
+               schedule: args.SCHEDULE=None):
     """Expire a tenant."""
-    tenant = self.find(tenant_name)
+    tenant = self.find(name)
     tenant_id = tenant["TenantId"]
 
     # if the schedule not specified then set the date 5 minute from now
@@ -34,13 +42,16 @@ class DuploTenant(DuploResource):
     })
 
     if res.status_code == 200:
-      return f"Tenant '{tenant_name}' will shutdown on {schedule}"
+      return f"Tenant '{name}' will shutdown on {schedule}"
     else:
-      raise DuploError(f"Failed to expire tenant '{tenant_name}'", res.status_code)
+      raise DuploError(f"Failed to expire tenant '{name}'", res.status_code)
 
-  def logging(self, tenant_name, enable=True):
+  @Command()
+  def logging(self, 
+              name: args.NAME, 
+              enable: args.ENABLE=True):
     """Enable or disable tenant logging."""
-    tenant = self.find(tenant_name)
+    tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # add or update the tenant in the list of enabled tenants
     log_tenants = self.duplo.get("admin/GetLoggingEnabledTenants")
@@ -53,6 +64,6 @@ class DuploTenant(DuploResource):
     # update the entire list
     res = self.duplo.post("admin/UpdateLoggingEnabledTenants", log_tenants)
     if res.status_code == 200:
-      return f"Tenant '{tenant_name}' logging {enable}"
+      return f"Tenant '{name}' logging {enable}"
     else:
-      raise DuploError(f"Failed to {'enable' if enable else 'disable'} tenant '{tenant_name}'", res.status_code)
+      raise DuploError(f"Failed to {'enable' if enable else 'disable'} tenant '{name}'", res.status_code)

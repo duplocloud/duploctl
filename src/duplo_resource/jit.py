@@ -1,12 +1,14 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.errors import DuploError
+from duplocloud.commander import Command
+import duplocloud.args as args
 
 class DuploJit(DuploResource):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-    # self.tenent_svc = duplo.service('tenant')
     
+  @Command()
   def aws(self):
     """Retrieve a list of all users in the Duplo system."""
     sts = self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl")

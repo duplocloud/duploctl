@@ -1,6 +1,8 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.errors import DuploError
+from duplocloud.commander import Command
+import duplocloud.args as args
 
 class DuploService(DuploResource):
   
@@ -8,12 +10,15 @@ class DuploService(DuploResource):
     super().__init__(duplo)
     self.tenent_svc = duplo.service('tenant')
   
+  @Command()
   def list(self):
     """Retrieve a list of all services in a tenant."""
     tenant_id = self.get_tenant()["TenantId"]
     return self.duplo.get(f"subscriptions/{tenant_id}/GetReplicationControllers")
   
-  def find(self, service_name):
+  @Command()
+  def find(self, 
+           name: args.NAME):
     """Find a service by name.
     
     Args:
@@ -24,11 +29,14 @@ class DuploService(DuploResource):
       DuploError: If the service could not be found.
     """
     try:
-      return [s for s in self.list() if s["Name"] == service_name][0]
+      return [s for s in self.list() if s["Name"] == name][0]
     except IndexError:
-      raise DuploError(f"Service '{service_name}' not found", 404)
+      raise DuploError(f"Service '{name}' not found", 404)
 
-  def update_image(self, service_name, image):
+  @Command()
+  def update_image(self, 
+                   name: args.NAME, 
+                   image: args.IMAGE):
     """Update the image of a service.
     
     Args:
@@ -36,17 +44,19 @@ class DuploService(DuploResource):
       image (str): The new image to use for the service.
     """
     tenant_id = self.get_tenant()["TenantId"]
-    service = self.find(service_name)
+    service = self.find(name)
     allocation_tags = service["Template"]["AllocationTags"]
     data = {
-      "Name": service_name,
+      "Name": name,
       "Image": image,
       "AllocationTags": allocation_tags
     }
     self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
-    return {"message": f"Successfully updated image for service '{service_name}'"}
+    return {"message": f"Successfully updated image for service '{name}'"}
   
-  def restart(self, service_name):
+  @Command()
+  def restart(self, 
+              name: args.NAME):
     """Restart a service.
     
     Args:
@@ -57,9 +67,9 @@ class DuploService(DuploResource):
       DuploError: If the service could not be restarted.
     """
     tenant_id = self.get_tenant()["TenantId"]
-    res = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerReboot/{service_name}")
+    res = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerReboot/{name}")
     if res.status_code == 200:
-      return f"Successfully restarted service '{service_name}'"
+      return f"Successfully restarted service '{name}'"
     else:
-      raise DuploError(f"Failed to restart service '{service_name}'")
+      raise DuploError(f"Failed to restart service '{name}'")
   
