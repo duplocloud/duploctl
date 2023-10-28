@@ -1,14 +1,13 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploResource
+from duplocloud.resource import DuploTenantResource
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command
 import duplocloud.args as args
 
-class DuploLambda(DuploResource):
+class DuploLambda(DuploTenantResource):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-    self.tenent_svc = duplo.service('tenant')
   
   @Command()
   def list(self):

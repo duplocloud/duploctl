@@ -2,10 +2,9 @@
 import requests
 import json
 from cachetools import cached, TTLCache
-from importlib.metadata import entry_points
 from .errors import DuploError
-
-ENTRYPOINT="duplocloud.net"
+from .commander import load_service, Command
+from . import args as t
 
 class DuploClient():
   """Duplo Client
@@ -26,12 +25,17 @@ class DuploClient():
           self.tenent_svc = duplo.service('tenant')
       ```
   """
-    
-  def __init__(self, host, token, tenant_name="default", args=[]) -> None:
+  @Command()
+  def __init__(self, 
+               host: t.HOST, 
+               token: t.TOKEN, 
+               tenant: t.TENANT="default",
+               service: t.SERVICE=None,
+               command: t.COMMAND=None) -> None:
     self.host = host
     self.timeout = 10
-    self.args = args
-    self.tenant_name = tenant_name
+    self.tenant_name = tenant
+    self.entrypoint = [service, command]
     self.headers = {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {token}"
@@ -94,10 +98,7 @@ Client for Duplo at {self.host}
     Returns:
       The instantiated service with a reference to this client.
     """
-    eps = entry_points()[ENTRYPOINT]
-    # e = entry_points(group=group, name=kind)
-    e = [ep for ep in eps if ep.name == name][0]
-    svc = e.load() 
+    svc = load_service(name)
     return svc(self)
   
   def json(self, data):

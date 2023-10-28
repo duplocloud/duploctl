@@ -17,7 +17,6 @@ class Arg(NewType):
     metavar (str): The metavar to use for the argument.
     dest (str): The destination to use for the argument.
   """
-  attributes = {}
   def __init__(self, 
               name, 
               flag=None, 
@@ -32,6 +31,7 @@ class Arg(NewType):
               metavar=None, 
               dest=None):
     super().__init__(name, type)
+    self.attributes = {}
     self.flag = flag
     self._set_attribute("type", type)
     self._set_attribute("action", action)
