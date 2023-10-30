@@ -56,13 +56,13 @@ Client for Duplo at {self.host}
     Returns:
       The DuploClient.
     """
-    parser = get_parser(DuploClient.__init__.__qualname__)
+    parser = get_parser(DuploClient.__init__)
     env, args = parser.parse_known_args()
     return DuploClient(**vars(env), args=args)
 
 
   @cached(cache=TTLCache(maxsize=128, ttl=60))
-  def get(self, path):
+  def get(self, path: str):
     """Get a Duplo resource.
 
     This request is cached for 60 seconds.
@@ -86,7 +86,7 @@ Client for Duplo at {self.host}
       raise DuploError("Error connecting to Duplo with a request exception", 500) from e
     return self._validate_response(response)
   
-  def post(self, path, data={}):
+  def post(self, path: str, data: dict={}):
     """Post data to a Duplo resource.
     
     Args:
@@ -103,7 +103,7 @@ Client for Duplo at {self.host}
     )
     return self._validate_response(response)
   
-  def load(self, name=None):
+  def load(self, name: str=None):
     """Load Service
       
     Load a Service class from the entry points.
@@ -113,15 +113,17 @@ Client for Duplo at {self.host}
     Returns:
       The instantiated service with a reference to this client.
     """
+    # make sure we have a service to use
     if name is None and self.service is None:
       raise DuploError("No service name provided for client loader", 500)
     elif name is None and self.service is not None:
       name = self.service
+    # load and instantiate from the entry points
     svc = load_service(name)
     return svc(self)
 
   
-  def run(self, name=None, command=None, args=None):
+  def run(self, name: str=None, command: str=None, args: list=None):
     """Run a service command.
     
     Args:
@@ -143,7 +145,7 @@ Client for Duplo at {self.host}
     svc = self.load(name)
     return svc.exec(command, args)
   
-  def json(self, data):
+  def json(self, data: dict):
     """Convert data to JSON.
     
     Args:

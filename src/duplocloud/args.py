@@ -1,6 +1,7 @@
 from .types import Arg
 import os
 
+# the global args for the CLI
 HOST = Arg('host', '-H', 
             help='The tenant to be scope into',
             default=os.getenv('DUPLO_HOST', None))
@@ -13,6 +14,11 @@ TENANT = Arg("tenant", "-t",
              help='The tenant name',
              default=os.getenv('DUPLO_TENANT', None))
 
+OUTPUT = Arg("output", "-o",
+              help='The output format',
+              default=os.getenv('DUPLO_OUTPUT', 'json'))
+
+# The rest are resource level args for commands
 SERVICE = Arg('service', 
               help='The service to run')
 
@@ -29,4 +35,6 @@ SCHEDULE = Arg("schedule","-s",
                help='The schedule to use')
 
 ENABLE = Arg("enable","-y", 
-              help='Enable or disable the feature')
+              help='Enable or disable the feature',
+              type=bool,
+              action='store_true')

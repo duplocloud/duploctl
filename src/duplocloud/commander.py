@@ -31,8 +31,10 @@ def Command():
   def decorator(function):
     sig = inspect.signature(function)
     def arg_anno(name, param):
+      if not param.annotation.positional and name != param.annotation.__name__:
+        param.annotation.set_attribute("dest", name)
       if param.default is not inspect.Parameter.empty:
-        param.annotation.default = param.default
+        param.annotation.set_attribute("default", param.default)
       return param.annotation
     schema[function.__qualname__] = [
         arg_anno(k, v)
@@ -42,16 +44,17 @@ def Command():
     return function
   return decorator
 
-def get_parser(qualname):
+def get_parser(function):
+  qn = function.__qualname__
   parser = argparse.ArgumentParser(
     prog='duplocloud-cli',
     description='Duplo Cloud CLI',
   )
   try:
-    for arg in schema[qualname]:
+    for arg in schema[qn]:
       parser.add_argument(*arg.flags, **arg.attributes)
   except KeyError:
-    raise DuploError(f"Function named {qualname} not registered as a command.", 3)
+    raise DuploError(f"Function named {qn} not registered as a command.", 3)
   return parser
 
 def load_service(name):
@@ -64,8 +67,8 @@ def load_service(name):
   Returns:
     The instantiated service with a reference to this client.
   """
-  eps = entry_points()[ENTRYPOINT]
-  # e = entry_points(group=group, name=kind)
-  e = [ep for ep in eps if ep.name == name][0]
+  # eps = entry_points()[ENTRYPOINT]
+  # e = [ep for ep in eps if ep.name == name][0]
+  e = entry_points(group=ENTRYPOINT)[name]
   svc = e.load()
   return svc

@@ -15,7 +15,7 @@ class DuploResource():
   
   def exec(self, cmd, args=[]):
     command = self.command(cmd)
-    parser = get_parser(command.__qualname__)
+    parser = get_parser(command)
     parsed_args = parser.parse_args(args)
     res = command(**vars(parsed_args))
     # if res is a dict or list, turn it into json
