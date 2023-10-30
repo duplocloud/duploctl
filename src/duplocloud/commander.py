@@ -42,7 +42,7 @@ def Command():
     return function
   return decorator
 
-def get_parser(qualname, known=False):
+def get_parser(qualname):
   parser = argparse.ArgumentParser(
     prog='duplocloud-cli',
     description='Duplo Cloud CLI',
