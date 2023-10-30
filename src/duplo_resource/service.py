@@ -21,7 +21,7 @@ class DuploService(DuploTenantResource):
     """Find a service by name.
     
     Args:
-      service_name (str): The name of the service to find.
+      name (str): The name of the service to find.
     Returns: 
       The service object.
     Raises:
@@ -39,7 +39,7 @@ class DuploService(DuploTenantResource):
     """Update the image of a service.
     
     Args:
-      service_name (str): The name of the service to update.
+      name (str): The name of the service to update.
       image (str): The new image to use for the service.
     """
     tenant_id = self.get_tenant()["TenantId"]
@@ -59,7 +59,7 @@ class DuploService(DuploTenantResource):
     """Restart a service.
     
     Args:
-      service_name (str): The name of the service to restart.
+      name (str): The name of the service to restart.
     Returns: 
       A success message if the service was restarted successfully.
     Raises:
