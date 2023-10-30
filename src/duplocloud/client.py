@@ -3,7 +3,7 @@ import requests
 import json
 from cachetools import cached, TTLCache
 from .errors import DuploError
-from .commander import load_service, Command
+from .commander import load_service, Command, get_parser
 from . import args as t
 
 class DuploClient():
@@ -31,11 +31,14 @@ class DuploClient():
                token: t.TOKEN, 
                tenant: t.TENANT="default",
                service: t.SERVICE=None,
-               command: t.COMMAND=None) -> None:
+               command: t.COMMAND=None,
+               args=[]) -> None:
     self.host = host
     self.timeout = 10
-    self.tenant_name = tenant
-    self.entrypoint = [service, command]
+    self.tenant = tenant
+    self.service = service
+    self.command = command
+    self.args = args
     self.headers = {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {token}"
@@ -45,6 +48,18 @@ class DuploClient():
      return f"""
 Client for Duplo at {self.host}
 """
+  
+  @staticmethod
+  def from_env():
+    """Create a DuploClient from environment variables.
+    
+    Returns:
+      The DuploClient.
+    """
+    parser = get_parser(DuploClient.__init__.__qualname__)
+    env, args = parser.parse_known_args()
+    return DuploClient(**vars(env), args=args)
+
 
   @cached(cache=TTLCache(maxsize=128, ttl=60))
   def get(self, path):
@@ -88,7 +103,7 @@ Client for Duplo at {self.host}
     )
     return self._validate_response(response)
   
-  def service(self, name):
+  def load(self, name=None):
     """Load Service
       
     Load a Service class from the entry points.
@@ -98,8 +113,32 @@ Client for Duplo at {self.host}
     Returns:
       The instantiated service with a reference to this client.
     """
+    if name is None and self.service is not None:
+      name = self.service
+    else:
+      # raise DuploError("No service name provided for client loader", 500)
+      name = "tenant"
     svc = load_service(name)
     return svc(self)
+  
+  def run(self, name=None, command=None, args=None):
+    """Run a service command.
+    
+    Args:
+      name: The name of the service.
+      command: The command to run.
+      args: The arguments to the command.
+    Returns:
+      The result of the command.
+    """
+    if command is None and self.command is not None:
+      command = self.command
+    else:
+      raise DuploError("No command provided for client runner", 500)
+    if args is None and self.args is not None:
+      args = self.args # this defaults to empty list
+    svc = self.load(name)
+    return svc.exec(command, args)
   
   def json(self, data):
     """Convert data to JSON.
@@ -121,7 +160,7 @@ Client for Duplo at {self.host}
     Returns:
       The response as a JSON object.
     """
-    contentType = contentType = response.headers['content-type'].split(';')[0]
+    contentType = response.headers['content-type'].split(';')[0]
     if 200 <= response.status_code < 300:
       if contentType == 'application/json':
         return response.json()

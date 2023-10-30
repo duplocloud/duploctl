@@ -32,9 +32,8 @@ class DuploTenantResource(DuploResource):
   def __init__(self, duplo: DuploClient):
     self.duplo = duplo
     self.tenant = None
-    self.tenent_svc = duplo.service('tenant')
+    self.tenant_svc = duplo.load('tenant')
   def get_tenant(self):
     if not self.tenant:
-      self.tenant_svc = self.duplo.service("tenant")
-      self.tenant = self.tenant_svc.find(self.duplo.tenant_name)
+      self.tenant = self.tenant_svc.find(self.duplo.tenant)
     return self.tenant

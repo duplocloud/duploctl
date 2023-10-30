@@ -7,7 +7,7 @@ import duplocloud.args as args
 class DuploUser(DuploResource):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-    self.tenent_svc = duplo.service('tenant')
+    self.tenent_svc = duplo.load('tenant')
 
   @Command()
   def list(self):

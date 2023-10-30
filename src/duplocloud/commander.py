@@ -3,6 +3,7 @@ import argparse
 from importlib.metadata import entry_points
 from .errors import DuploError
 from . import args as t
+from .types import Arg
 
 ENTRYPOINT="duplocloud.net"
 schema = {}
@@ -28,19 +29,16 @@ def Command():
 
   """
   def decorator(function):
-    arguments = []
-    fx_args = inspect.signature(function)
-    anno = function.__annotations__
-    defaults = {
-        k: v.default
-        for k, v in fx_args.parameters.items()
-        if v.default is not inspect.Parameter.empty
-    }
-    for key, value in anno.items():
-      if key in defaults:
-        value.default = defaults[key]
-      arguments.append(value)
-    schema[function.__qualname__] = arguments
+    sig = inspect.signature(function)
+    def arg_anno(name, param):
+      if param.default is not inspect.Parameter.empty:
+        param.annotation.default = param.default
+      return param.annotation
+    schema[function.__qualname__] = [
+        arg_anno(k, v)
+        for k, v in sig.parameters.items()
+        if v.annotation is not inspect.Parameter.empty and isinstance(v.annotation, Arg)
+    ]
     return function
   return decorator
 
