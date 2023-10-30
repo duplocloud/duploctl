@@ -14,19 +14,14 @@ class DuploResource():
     return command
   
   def exec(self, cmd, args=[]):
-    try:
-      command = self.command(cmd)
-      parser = get_parser(command.__qualname__)
-      parsed_args = parser.parse_args(args)
-      res = command(**vars(parsed_args))
-      # if res is a dict or list, turn it into json
-      if isinstance(res, (dict, list)):
-        res = self.duplo.json(res)
-      return print(res)
-    except DuploError as e:
-      raise e
-    except Exception as e:
-      raise DuploError(f"Error executing subcommand: {cmd}") from e
+    command = self.command(cmd)
+    parser = get_parser(command.__qualname__)
+    parsed_args = parser.parse_args(args)
+    res = command(**vars(parsed_args))
+    # if res is a dict or list, turn it into json
+    if isinstance(res, (dict, list)):
+      res = self.duplo.json(res)
+    return print(res)
     
 class DuploTenantResource(DuploResource):
   def __init__(self, duplo: DuploClient):
