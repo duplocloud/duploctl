@@ -54,23 +54,6 @@ def get_parser(qualname, known=False):
     raise DuploError(f"Function named {qualname} not registered as a command.", 3)
   return parser
 
-def load_env():
-  """Get the environment variables for the Duplo session.
-  
-  Returns:
-    A tuple containing the enviorment variables and the remaining arguments for a command. 
-  """
-  parser = argparse.ArgumentParser(
-    prog='duplocloud-cli',
-    description='Duplo Cloud CLI',
-  )
-  parser.add_argument(*t.SERVICE.flags, **t.SERVICE.attributes)
-  parser.add_argument(*t.COMMAND.flags, **t.COMMAND.attributes)
-  parser.add_argument(*t.TENANT.flags, **t.TENANT.attributes)
-  parser.add_argument(*t.HOST.flags, **t.HOST.attributes)
-  parser.add_argument(*t.TOKEN.flags, **t.TOKEN.attributes)
-  return parser.parse_known_args()
-
 def load_service(name):
   """Load Service
     
