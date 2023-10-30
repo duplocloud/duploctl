@@ -113,13 +113,13 @@ Client for Duplo at {self.host}
     Returns:
       The instantiated service with a reference to this client.
     """
-    if name is None and self.service is not None:
+    if name is None and self.service is None:
+      raise DuploError("No service name provided for client loader", 500)
+    elif name is None and self.service is not None:
       name = self.service
-    else:
-      # raise DuploError("No service name provided for client loader", 500)
-      name = "tenant"
     svc = load_service(name)
     return svc(self)
+
   
   def run(self, name=None, command=None, args=None):
     """Run a service command.
@@ -131,12 +131,15 @@ Client for Duplo at {self.host}
     Returns:
       The result of the command.
     """
-    if command is None and self.command is not None:
-      command = self.command
-    else:
+    # make sure we have a command
+    if command is None and self.command is None:
       raise DuploError("No command provided for client runner", 500)
-    if args is None and self.args is not None:
-      args = self.args # this defaults to empty list
+    elif command is None and self.command is not None:
+      command = self.command
+    # make sure we have args to use
+    if args is None:
+      args = self.args # this already defaults to empty list
+    # load and execute
     svc = self.load(name)
     return svc.exec(command, args)
   
