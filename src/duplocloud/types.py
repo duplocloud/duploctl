@@ -33,7 +33,9 @@ class Arg(NewType):
     super().__init__(name, type)
     self.attributes = {}
     self._flags = flags
-    self.set_attribute("type", type)
+    # when actions is set then type param only needed for the NewType
+    if action == None: 
+      self.set_attribute("type", type)
     self.set_attribute("action", action)
     self.set_attribute("nargs", nargs)
     self.set_attribute("const", const)

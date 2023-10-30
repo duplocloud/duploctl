@@ -2,11 +2,20 @@ import inspect
 import argparse
 from importlib.metadata import entry_points
 from .errors import DuploError
-from . import args as t
 from .types import Arg
 
 ENTRYPOINT="duplocloud.net"
+ep = entry_points(group=ENTRYPOINT)
 schema = {}
+resources = {}
+
+def Resource(name: str):
+  def decorator(cls):
+    resources[name] = {
+      "class": cls.__qualname__
+    }
+    return cls
+  return decorator
 
 def Command():
   """Command decorator
@@ -69,6 +78,9 @@ def load_service(name):
   """
   # eps = entry_points()[ENTRYPOINT]
   # e = [ep for ep in eps if ep.name == name][0]
-  e = entry_points(group=ENTRYPOINT)[name]
+  e = ep[name]
   svc = e.load()
   return svc
+
+def available_resources():
+  return list(ep.names)

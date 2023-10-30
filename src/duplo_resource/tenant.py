@@ -2,9 +2,10 @@ import datetime
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.errors import DuploError
-from duplocloud.commander import Command
+from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
+@Resource("tenant")
 class DuploTenant(DuploResource):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)

@@ -1,5 +1,6 @@
 from .types import Arg
 import os
+from .commander import available_resources
 
 # the global args for the CLI
 HOST = Arg('host', '-H', 
@@ -20,7 +21,8 @@ OUTPUT = Arg("output", "-o",
 
 # The rest are resource level args for commands
 SERVICE = Arg('service', 
-              help='The service to run')
+              help='The service to run',
+              choices=available_resources())
 
 COMMAND = Arg('command', 
              help='The subcommand to run')
