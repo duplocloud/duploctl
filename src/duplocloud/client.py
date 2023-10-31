@@ -29,7 +29,7 @@ class DuploClient():
   def __init__(self, 
                host: t.HOST, 
                token: t.TOKEN, 
-               tenant: t.TENANT="default",
+               tenant: t.TENANT,
                service: t.SERVICE=None,
                command: t.COMMAND=None,
                args=[]) -> None:
