@@ -13,7 +13,7 @@ TOKEN = Arg('token', '-p',
 
 TENANT = Arg("tenant", "-t",
              help='The tenant name',
-             default=os.getenv('DUPLO_TENANT', None))
+             default=os.getenv('DUPLO_TENANT', "default"))
 
 OUTPUT = Arg("output", "-o",
               help='The output format',
