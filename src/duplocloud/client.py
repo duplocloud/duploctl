@@ -178,5 +178,5 @@ Client for Duplo at {self.host}
     if response.status_code == 401:
       raise DuploError(response.text, response.status_code)
 
-    raise DuploError(f"Duplo responded with an error", response.status_code)
+    raise DuploError("Duplo responded with an error", response.status_code)
     

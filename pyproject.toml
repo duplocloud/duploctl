@@ -64,6 +64,11 @@ omit = [
   "**/__*__.py"
 ]
 
+[tool.ruff]
+exclude = [
+  "**/*_test.py"
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
