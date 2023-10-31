@@ -16,10 +16,22 @@ git bump -v patch
 
 Doing this creates a proper semver which will trigger a new publish pipeline. 
 
+## Installation  
+
+Installs project locally
+```sh
+pip install .
+```
+
+Install dev dependencies
+```sh
+pip install .[dev]
+```
+
 ## Build  
 
 Build the package which creates the artifact in the dist folder. 
-```
+```sh
 python -m build
 ```
 
