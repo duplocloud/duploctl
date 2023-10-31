@@ -3,7 +3,7 @@ name = "duplocloud-client"
 description = "Generic DuploClient for Python apps."
 readme = "README.md"
 dynamic = ["version"]
-requires-python = ">=3.10.0"
+requires-python = ">=3.7.0"
 keywords = [
   "duplocloud",
   "duplo", 
