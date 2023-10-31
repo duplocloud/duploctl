@@ -23,8 +23,8 @@ jobs:
     # install the project
     - name: Install Dependencies
       run: |
-        pip install -r dev-requirements.txt
         pip install .
+        pip install .[dev]
     
     - name: Run the Build
       run: |
