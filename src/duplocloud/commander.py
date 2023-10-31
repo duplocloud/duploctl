@@ -66,7 +66,16 @@ def get_parser(function):
     raise DuploError(f"Function named {qn} not registered as a command.", 3)
   return parser
 
-def load_service(name):
+def apply_args(function, parser):
+  qn = function.__qualname__
+  try:
+    for arg in schema[qn]:
+      parser.add_argument(*arg.flags, **arg.attributes)
+  except KeyError:
+    raise DuploError(f"Function named {qn} not registered as a command.", 3)
+  return parser
+
+def load_service(name: str):
   """Load Service
     
   Load a Service class from the entry points.
@@ -79,4 +88,9 @@ def load_service(name):
   return ep[name].load()
 
 def available_resources():
+  """Available Resources
+
+  Returns:
+    A list of available resources names.
+  """
   return list(ep.names)
