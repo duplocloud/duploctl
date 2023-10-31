@@ -2,10 +2,9 @@
 import requests
 import json
 from cachetools import cached, TTLCache
-from importlib.metadata import entry_points
 from .errors import DuploError
-
-ENTRYPOINT="duplocloud.net"
+from .commander import load_service, Command, get_parser
+from . import args as t
 
 class DuploClient():
   """Duplo Client
@@ -26,12 +25,20 @@ class DuploClient():
           self.tenent_svc = duplo.service('tenant')
       ```
   """
-    
-  def __init__(self, host, token, tenant_name="default", args=[]) -> None:
+  @Command()
+  def __init__(self, 
+               host: t.HOST, 
+               token: t.TOKEN, 
+               tenant: t.TENANT="default",
+               service: t.SERVICE=None,
+               command: t.COMMAND=None,
+               args=[]) -> None:
     self.host = host
     self.timeout = 10
+    self.tenant = tenant
+    self.service = service
+    self.command = command
     self.args = args
-    self.tenant_name = tenant_name
     self.headers = {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {token}"
@@ -41,9 +48,21 @@ class DuploClient():
      return f"""
 Client for Duplo at {self.host}
 """
+  
+  @staticmethod
+  def from_env():
+    """Create a DuploClient from environment variables.
+    
+    Returns:
+      The DuploClient.
+    """
+    parser = get_parser(DuploClient.__init__)
+    env, args = parser.parse_known_args()
+    return DuploClient(**vars(env), args=args)
+
 
   @cached(cache=TTLCache(maxsize=128, ttl=60))
-  def get(self, path):
+  def get(self, path: str):
     """Get a Duplo resource.
 
     This request is cached for 60 seconds.
@@ -67,7 +86,7 @@ Client for Duplo at {self.host}
       raise DuploError("Error connecting to Duplo with a request exception", 500) from e
     return self._validate_response(response)
   
-  def post(self, path, data={}):
+  def post(self, path: str, data: dict={}):
     """Post data to a Duplo resource.
     
     Args:
@@ -84,7 +103,7 @@ Client for Duplo at {self.host}
     )
     return self._validate_response(response)
   
-  def service(self, name):
+  def load(self, name: str=None):
     """Load Service
       
     Load a Service class from the entry points.
@@ -94,13 +113,39 @@ Client for Duplo at {self.host}
     Returns:
       The instantiated service with a reference to this client.
     """
-    eps = entry_points()[ENTRYPOINT]
-    # e = entry_points(group=group, name=kind)
-    e = [ep for ep in eps if ep.name == name][0]
-    svc = e.load() 
+    # make sure we have a service to use
+    if name is None and self.service is None:
+      raise DuploError("No service name provided for client loader", 500)
+    elif name is None and self.service is not None:
+      name = self.service
+    # load and instantiate from the entry points
+    svc = load_service(name)
     return svc(self)
+
   
-  def json(self, data):
+  def run(self, name: str=None, command: str=None, args: list=None):
+    """Run a service command.
+    
+    Args:
+      name: The name of the service.
+      command: The command to run.
+      args: The arguments to the command.
+    Returns:
+      The result of the command.
+    """
+    # make sure we have a command
+    if command is None and self.command is None:
+      raise DuploError("No command provided for client runner", 500)
+    elif command is None and self.command is not None:
+      command = self.command
+    # make sure we have args to use
+    if args is None:
+      args = self.args # this already defaults to empty list
+    # load and execute
+    svc = self.load(name)
+    return svc.exec(command, args)
+  
+  def json(self, data: dict):
     """Convert data to JSON.
     
     Args:
@@ -120,7 +165,7 @@ Client for Duplo at {self.host}
     Returns:
       The response as a JSON object.
     """
-    contentType = contentType = response.headers['content-type'].split(';')[0]
+    contentType = response.headers['content-type'].split(';')[0]
     if 200 <= response.status_code < 300:
       if contentType == 'application/json':
         return response.json()
@@ -133,5 +178,5 @@ Client for Duplo at {self.host}
     if response.status_code == 401:
       raise DuploError(response.text, response.status_code)
 
-    raise DuploError(f"Duplo responded with an error", response.status_code)
+    raise DuploError("Duplo responded with an error", response.status_code)
     

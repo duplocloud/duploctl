@@ -1,9 +1,0 @@
-pytest
-ruff 
-pytest-black
-pytest-isort 
-pytest-cov 
-invoke
-setuptools_scm
-build
-twine
