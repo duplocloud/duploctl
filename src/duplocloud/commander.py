@@ -74,13 +74,9 @@ def load_service(name):
   Args:
     name: The name of the service.
   Returns:
-    The instantiated service with a reference to this client.
+    The class of the service.
   """
-  # eps = entry_points()[ENTRYPOINT]
-  # e = [ep for ep in eps if ep.name == name][0]
-  e = ep[name]
-  svc = e.load()
-  return svc
+  return ep[name].load()
 
 def available_resources():
   return list(ep.names)

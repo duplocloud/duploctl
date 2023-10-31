@@ -56,6 +56,14 @@ testpaths = [
 ]
 [tool.setuptools_scm]
 
+[tool.coverage.run]
+omit = [
+  "*_test.py",
+  "foo.py",
+  "src/conftest.py",
+  "**/__*__.py"
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
