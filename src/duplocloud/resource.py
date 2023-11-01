@@ -17,12 +17,8 @@ class DuploResource():
     command = self.command(cmd)
     parser = get_parser(command)
     parsed_args = parser.parse_args(args)
-    res = command(**vars(parsed_args))
-    # if res is a dict or list, turn it into json
-    if isinstance(res, (dict, list)):
-      res = self.duplo.json(res)
-    return print(res)
-    
+    return command(**vars(parsed_args))
+  
 class DuploTenantResource(DuploResource):
   def __init__(self, duplo: DuploClient):
     self.duplo = duplo

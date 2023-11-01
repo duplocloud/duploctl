@@ -1,6 +1,7 @@
 
 import requests
 import json
+import jmespath
 from cachetools import cached, TTLCache
 from .errors import DuploError
 from .commander import load_service, Command, get_parser
@@ -32,13 +33,17 @@ class DuploClient():
                tenant: t.TENANT,
                service: t.SERVICE=None,
                command: t.COMMAND=None,
+               query: t.QUERY=None,
+               output: t.OUTPUT="json",
                args=[]) -> None:
     self.host = host
-    self.timeout = 10
     self.tenant = tenant
     self.service = service
     self.command = command
+    self.query = query
+    self.output = output
     self.args = args
+    self.timeout = 10
     self.headers = {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {token}"
@@ -143,7 +148,14 @@ Client for Duplo at {self.host}
       args = self.args # this already defaults to empty list
     # load and execute
     svc = self.load(name)
-    return svc.exec(command, args)
+    res = svc.exec(command, args)
+    if self.query:
+      res = jmespath.search(self.query, res)
+    if self.output == 'json':
+      out = self.json(res)
+    else:
+      out = str(res)
+    return out
   
   def json(self, data: dict):
     """Convert data to JSON.

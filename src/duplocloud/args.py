@@ -16,8 +16,10 @@ TENANT = Arg("tenant", "-t",
              default=os.getenv('DUPLO_TENANT', "default"))
 
 OUTPUT = Arg("output", "-o",
-              help='The output format',
-              default=os.getenv('DUPLO_OUTPUT', 'json'))
+              help='The output format')
+
+QUERY = Arg("query", "-q",
+            help='The jmespath query to run on a result')
 
 # The rest are resource level args for commands
 SERVICE = Arg('service', 

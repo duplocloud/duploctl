@@ -23,7 +23,8 @@ maintainers = [
 ]
 dependencies = [
   "requests>=2.22.0",
-  "cachetools>=5.2.0"
+  "cachetools>=5.2.0",
+  "jmespath>=1.0.1"
 ]
 [project.optional-dependencies]
 dev = [
