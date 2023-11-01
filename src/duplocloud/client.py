@@ -150,7 +150,12 @@ Client for Duplo at {self.host}
     svc = self.load(name)
     res = svc.exec(command, args)
     if self.query:
-      res = jmespath.search(self.query, res)
+      try:
+        res = jmespath.search(self.query, res)
+      except jmespath.exceptions.ParseError as e:
+        raise DuploError("Invalid jmespath query", 500) from e
+      except jmespath.exceptions.JMESPathTypeError as e:
+        raise DuploError("Invalid jmespath query", 500) from e
     if self.output == 'json':
       out = self.json(res)
     else:
