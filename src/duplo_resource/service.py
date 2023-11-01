@@ -13,7 +13,7 @@ class DuploService(DuploTenantResource):
   @Command()
   def list(self):
     """Retrieve a list of all services in a tenant."""
-    tenant_id = self.get_tenant()["TenantId"]
+    tenant_id = self.tenant["TenantId"]
     return self.duplo.get(f"subscriptions/{tenant_id}/GetReplicationControllers")
   
   @Command()
@@ -43,7 +43,7 @@ class DuploService(DuploTenantResource):
       name (str): The name of the service to update.
       image (str): The new image to use for the service.
     """
-    tenant_id = self.get_tenant()["TenantId"]
+    tenant_id = self.tenant["TenantId"]
     service = self.find(name)
     allocation_tags = service["Template"]["AllocationTags"]
     data = {
@@ -66,7 +66,7 @@ class DuploService(DuploTenantResource):
     Raises:
       DuploError: If the service could not be restarted.
     """
-    tenant_id = self.get_tenant()["TenantId"]
+    tenant_id = self.tenant["TenantId"]
     res = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerReboot/{name}")
     if res.status_code == 200:
       return f"Successfully restarted service '{name}'"

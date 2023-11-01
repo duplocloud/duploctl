@@ -40,3 +40,11 @@ ENABLE = Arg("enable","-y",
               help='Enable or disable the feature',
               type=bool,
               action='store_true')
+
+MIN = Arg("min", "-m",
+          help='The minimum number of replicas',
+          type=int)
+
+MAX = Arg("max", "-M",
+          help='The maximum number of replicas',
+          type=int)

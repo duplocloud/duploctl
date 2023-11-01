@@ -26,9 +26,11 @@ class DuploResource():
 class DuploTenantResource(DuploResource):
   def __init__(self, duplo: DuploClient):
     self.duplo = duplo
-    self.tenant = None
+    self._tenant = None
     self.tenant_svc = duplo.load('tenant')
-  def get_tenant(self):
-    if not self.tenant:
-      self.tenant = self.tenant_svc.find(self.duplo.tenant)
-    return self.tenant
+  @property
+  def tenant(self):
+    if not self._tenant:
+      self._tenant = self.tenant_svc.find(self.duplo.tenant)
+    return self._tenant
+
