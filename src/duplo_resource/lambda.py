@@ -13,7 +13,7 @@ class DuploLambda(DuploTenantResource):
   @Command()
   def list(self):
     """Retrieve a list of all lambdas in a tenant."""
-    tenant_id = self.get_tenant()["TenantId"]
+    tenant_id = self.tenant["TenantId"]
     return self.duplo.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
   
   @Command()
@@ -43,7 +43,7 @@ class DuploLambda(DuploTenantResource):
       name (str): The name of the lambda to update.
       image (str): The new image to use for the lambda.
     """
-    tenant_id = self.get_tenant()["TenantId"]
+    tenant_id = self.tenant["TenantId"]
     data = {
       "FunctionName": name,
       "ImageUri": image

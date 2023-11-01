@@ -16,8 +16,10 @@ TENANT = Arg("tenant", "-t",
              default=os.getenv('DUPLO_TENANT', "default"))
 
 OUTPUT = Arg("output", "-o",
-              help='The output format',
-              default=os.getenv('DUPLO_OUTPUT', 'json'))
+              help='The output format')
+
+QUERY = Arg("query", "-q",
+            help='The jmespath query to run on a result')
 
 # The rest are resource level args for commands
 SERVICE = Arg('service', 
@@ -40,3 +42,11 @@ ENABLE = Arg("enable","-y",
               help='Enable or disable the feature',
               type=bool,
               action='store_true')
+
+MIN = Arg("min", "-m",
+          help='The minimum number of replicas',
+          type=int)
+
+MAX = Arg("max", "-M",
+          help='The maximum number of replicas',
+          type=int)

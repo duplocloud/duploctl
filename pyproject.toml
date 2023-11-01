@@ -23,7 +23,8 @@ maintainers = [
 ]
 dependencies = [
   "requests>=2.22.0",
-  "cachetools>=5.2.0"
+  "cachetools>=5.2.0",
+  "jmespath>=1.0.1"
 ]
 [project.optional-dependencies]
 dev = [
@@ -82,3 +83,4 @@ user = "duplo_resource.user:DuploUser"
 lambda = "duplo_resource.lambda:DuploLambda"
 jit = "duplo_resource.jit:DuploJit"
 system = "duplo_resource.system:DuploSystem"
+asg = "duplo_resource.asg:DuploAsg"
