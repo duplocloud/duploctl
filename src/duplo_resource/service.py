@@ -68,8 +68,4 @@ class DuploService(DuploTenantResource):
     """
     tenant_id = self.tenant["TenantId"]
     res = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerReboot/{name}")
-    if res.status_code == 200:
-      return f"Successfully restarted service '{name}'"
-    else:
-      raise DuploError(f"Failed to restart service '{name}'")
-  
+    return {"message": f"Successfully restarted service '{name}'"}
