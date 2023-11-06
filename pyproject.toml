@@ -87,8 +87,10 @@ lambda = "duplo_resource.lambda:DuploLambda"
 jit = "duplo_resource.jit:DuploJit"
 system = "duplo_resource.system:DuploSystem"
 asg = "duplo_resource.asg:DuploAsg"
+secret = "duplo_resource.secret:DuploSecret"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
 yaml = "duplocloud.formats:toyaml"
 string = "duplocloud.formats:tostring"
+env = "duplocloud.formats:toenv"
