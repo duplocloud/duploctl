@@ -6,3 +6,4 @@ dist
 .coverage
 __pycache__
 .direnv
+.mypy_cache

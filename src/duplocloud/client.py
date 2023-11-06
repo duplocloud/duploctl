@@ -4,7 +4,7 @@ import json
 import jmespath
 from cachetools import cached, TTLCache
 from .errors import DuploError
-from .commander import load_service, Command, get_parser
+from .commander import load_service,load_format, Command, get_parser
 from . import args as t
 
 class DuploClient():
@@ -156,11 +156,8 @@ Client for Duplo at {self.host}
         raise DuploError("Invalid jmespath query", 500) from e
       except jmespath.exceptions.JMESPathTypeError as e:
         raise DuploError("Invalid jmespath query", 500) from e
-    if self.output == 'json':
-      out = self.json(res)
-    else:
-      out = str(res)
-    return out
+    format = load_format(self.output)
+    return format(res)
   
   def json(self, data: dict):
     """Convert data to JSON.

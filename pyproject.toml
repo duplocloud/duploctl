@@ -38,6 +38,9 @@ dev = [
   "build",
   "twine"
 ]
+formats = [
+  "pyyaml"
+]
 [build-system]
 requires = [
   "setuptools>=42",
@@ -84,3 +87,8 @@ lambda = "duplo_resource.lambda:DuploLambda"
 jit = "duplo_resource.jit:DuploJit"
 system = "duplo_resource.system:DuploSystem"
 asg = "duplo_resource.asg:DuploAsg"
+
+[project.entry-points."formats.duplocloud.net"]
+json = "duplocloud.formats:tojson"
+yaml = "duplocloud.formats:toyaml"
+string = "duplocloud.formats:tostring"
