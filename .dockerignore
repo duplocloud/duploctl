@@ -1,0 +1,12 @@
+.*
+!.git
+*.sh
+*.md
+*.yaml
+*.yml
+build
+dist
+wiki
+*.md
+*.yaml 
+*.yml
