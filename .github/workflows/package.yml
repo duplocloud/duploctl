@@ -19,7 +19,8 @@ on:
         required: true
 
 jobs:
-  publish:
+  package:
+    name: Package
     runs-on: ubuntu-latest
     steps:
 
