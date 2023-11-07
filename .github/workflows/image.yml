@@ -12,7 +12,7 @@ on:
     inputs:
       push:
         description: Push the image to the registry
-        required: true
+        required: false
         default: true
         type: boolean
     outputs:
