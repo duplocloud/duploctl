@@ -27,16 +27,21 @@ dependencies = [
   "jmespath>=1.0.1"
 ]
 [project.optional-dependencies]
-dev = [
+build = [
+  "invoke",
+  "setuptools_scm",
+  "build",
+  "twine"
+]
+test = [
   "pytest",
   "ruff",
   "pytest-black",
   "pytest-isort",
   "pytest-cov",
-  "invoke",
-  "setuptools_scm",
-  "build",
-  "twine"
+]
+formats = [
+  "pyyaml"
 ]
 [build-system]
 requires = [
@@ -84,3 +89,11 @@ lambda = "duplo_resource.lambda:DuploLambda"
 jit = "duplo_resource.jit:DuploJit"
 system = "duplo_resource.system:DuploSystem"
 asg = "duplo_resource.asg:DuploAsg"
+secret = "duplo_resource.secret:DuploSecret"
+config = "duplo_resource.configmap:DuploConfigMap"
+
+[project.entry-points."formats.duplocloud.net"]
+json = "duplocloud.formats:tojson"
+yaml = "duplocloud.formats:toyaml"
+string = "duplocloud.formats:tostring"
+env = "duplocloud.formats:toenv"

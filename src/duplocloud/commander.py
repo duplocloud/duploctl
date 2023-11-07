@@ -5,7 +5,9 @@ from .errors import DuploError
 from .types import Arg
 
 ENTRYPOINT="duplocloud.net"
+FORMATS=f"formats.{ENTRYPOINT}"
 ep = entry_points(group=ENTRYPOINT)
+fep = entry_points(group=FORMATS)
 schema = {}
 resources = {}
 
@@ -56,7 +58,7 @@ def Command():
 def get_parser(function):
   qn = function.__qualname__
   parser = argparse.ArgumentParser(
-    prog='duplocloud-cli',
+    prog='duplocloud-client',
     description='Duplo Cloud CLI',
   )
   try:
@@ -86,6 +88,18 @@ def load_service(name: str):
     The class of the service.
   """
   return ep[name].load()
+
+def load_format(name: str="string"):
+  """Load Format
+    
+  Load a Formatter function from the entry points.
+
+  Args:
+    name: The name of the format.
+  Returns:
+    The class of the format.
+  """
+  return fep[name].load()
 
 def available_resources():
   """Available Resources

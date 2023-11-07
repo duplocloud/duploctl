@@ -13,19 +13,14 @@ e.g. a small patch do this:
 ```sh
 git bump -v patch
 ```
-
 Doing this creates a proper semver which will trigger a new publish pipeline. 
 
-## Installation  
 
-Installs project locally
+Install dependencies
 ```sh
+pip install .[build]
+pip install .[test]
 pip install .
-```
-
-Install dev dependencies
-```sh
-pip install .[dev]
 ```
 
 ## Build  

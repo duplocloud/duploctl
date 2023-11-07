@@ -1,6 +1,7 @@
 from .types import Arg
 import os
 from .commander import available_resources
+from importlib.metadata import version
 
 # the global args for the CLI
 HOST = Arg('host', '-H', 
@@ -20,6 +21,11 @@ OUTPUT = Arg("output", "-o",
 
 QUERY = Arg("query", "-q",
             help='The jmespath query to run on a result')
+
+VERSION = Arg("version", "-v",
+              action='version', 
+              version=f"%(prog)s {version('duplocloud-client')}",
+              type=bool)
 
 # The rest are resource level args for commands
 SERVICE = Arg('service', 
