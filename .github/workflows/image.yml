@@ -1,0 +1,35 @@
+name: Publish Image
+on:
+  workflow_dispatch: {}
+  workflow_call: 
+    outputs:
+      image:
+        description: The URI of the image
+        value: ${{ jobs.build_image.outputs.image }}
+    secrets:
+      DUPLO_TOKEN:
+        description: The token to use for Duplo API calls
+        required: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build_image:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+    outputs:
+      image: ${{ steps.build_image.outputs.uri }}
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Build and Push Docker Image
+      id: build_image
+      uses: duplocloud/actions/build-image@main
+      with:
+        platforms: linux/amd64 # ,linux/arm64 # makes it take longer
+        push: false
+        build-args: >
+          PY_VERSION=3.11
