@@ -29,7 +29,7 @@ class DuploConfigMap(DuploTenantResource):
       DuploError: If the configmap could not be found.
     """
     try:
-      return [s for s in self.list() if s["SecretName"] == name][0]
+      return [s for s in self.list() if s["metadata"]["name"] == name][0]
     except IndexError:
       raise DuploError(f"Secret '{name}' not found", 404)
 
