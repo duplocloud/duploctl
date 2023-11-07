@@ -10,3 +10,6 @@ wiki
 *.md
 *.yaml 
 *.yml
+*.egg-info
+__pycache__
+foo*
