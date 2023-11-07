@@ -58,7 +58,7 @@ def Command():
 def get_parser(function):
   qn = function.__qualname__
   parser = argparse.ArgumentParser(
-    prog='duplocloud-cli',
+    prog='duplocloud-client',
     description='Duplo Cloud CLI',
   )
   try:

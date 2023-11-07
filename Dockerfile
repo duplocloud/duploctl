@@ -26,7 +26,8 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist/
 
 # Install the package using pip
-RUN pip install --no-cache-dir ./dist/*.whl
+RUN pip install --no-cache-dir ./dist/*.whl && \
+    rm -rf ./dist
 
 # Set the entrypoint command for the container
 ENTRYPOINT ["duploctl"]

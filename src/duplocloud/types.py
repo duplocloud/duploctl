@@ -16,6 +16,7 @@ class Arg(NewType):
     help (str): The help text to use for the argument.
     metavar (str): The metavar to use for the argument.
     dest (str): The destination to use for the argument.
+    version (str): The version to use for the special version arg.
   """
   def __init__(self, 
               name, 
@@ -29,7 +30,8 @@ class Arg(NewType):
               required=None, 
               help=None, 
               metavar=None, 
-              dest=None):
+              dest=None,
+              version=None):
     super().__init__(name, type)
     self.attributes = {}
     self._flags = flags
@@ -45,6 +47,7 @@ class Arg(NewType):
     self.set_attribute("help", help)
     self.set_attribute("metavar", metavar)
     self.set_attribute("dest", dest)
+    self.set_attribute("version", version)
   def set_attribute(self, key, value):
     if value is not None:
       self.attributes[key] = value

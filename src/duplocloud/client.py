@@ -35,6 +35,7 @@ class DuploClient():
                command: t.COMMAND=None,
                query: t.QUERY=None,
                output: t.OUTPUT="json",
+               version: t.VERSION=None,
                args=[]) -> None:
     self.host = host
     self.tenant = tenant
@@ -44,6 +45,7 @@ class DuploClient():
     self.output = output
     self.args = args
     self.timeout = 10
+    self.version = version
     self.headers = {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {token}"
