@@ -1,9 +1,22 @@
-name: Python Publish
+name: Python Package
 
 on:
-  push:
-    tags:        
-    - '*'
+  workflow_dispatch: 
+    inputs:
+      push:
+        description: Push the image to the registry
+        default: false
+        type: boolean
+  workflow_call: 
+    inputs:
+      push:
+        description: Push the image to the registry
+        default: true
+        type: boolean
+    secrets:
+      PYPI_API_TOKEN:
+        description: PyPi token
+        required: true
 
 jobs:
   publish:
@@ -34,6 +47,7 @@ jobs:
         python -m build
 
     - name: Publish Package to PyPI
+      if: inputs.push == true
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
