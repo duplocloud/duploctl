@@ -6,17 +6,17 @@ FROM python:$PY_VERSION AS builder
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the source code and pyproject.toml file to the container
+# Copy the source code, pyproject.toml, .git file to the container
 COPY . .
 
-# Install build dependencies (optional, if needed)
+# Install build dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .[build]
 
-# Build the package without using version control information
+# Build the package
 RUN python -m build --no-isolation
 
-# Stage 2: Install the package
+# Stage 2: Install the package in a slimmer container
 FROM python:$PY_VERSION-slim
 
 # Set the working directory in the container
