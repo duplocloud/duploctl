@@ -1,0 +1,18 @@
+name: Publish Version
+
+on:
+  push:
+    tags:        
+    - '*'
+
+jobs:
+
+  package:
+    name: Publish
+    uses: ./.github/workflows/package.yml
+    secrets: inherit
+
+  image:
+    name: Publish
+    uses: ./.github/workflows/image.yml
+    secrets: inherit
