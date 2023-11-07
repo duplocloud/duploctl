@@ -10,3 +10,5 @@ services:
     command:
     - tenant
     - list
+    - -q
+    - '[].AccountName'
