@@ -9,6 +9,12 @@ on:
         default: false
         type: boolean
   workflow_call: 
+    inputs:
+      push:
+        description: Push the image to the registry
+        required: true
+        default: true
+        type: boolean
     outputs:
       image:
         description: The URI of the image
@@ -38,7 +44,7 @@ jobs:
       uses: duplocloud/actions/build-image@main
       with:
         platforms: linux/amd64 # ,linux/arm64 # makes it take longer
-        push: ${{ inputs.push || false }}
+        push: ${{ inputs.push }}
         docker-username: ${{ secrets.DOCKER_USERNAME }}
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
         build-args: >
