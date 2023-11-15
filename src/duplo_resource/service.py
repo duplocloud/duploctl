@@ -69,3 +69,35 @@ class DuploService(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerReboot/{name}")
     return {"message": f"Successfully restarted service '{name}'"}
+  
+  @Command()
+  def stop(self, 
+           name: args.NAME):
+    """Stop a service.
+    
+    Args:
+      name (str): The name of the service to stop.
+    Returns: 
+      A success message if the service was stopped successfully.
+    Raises:
+      DuploError: If the service could not be stopped.
+    """
+    tenant_id = self.tenant["TenantId"]
+    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerStop/{name}")
+    return {"message": f"Successfully stopped service '{name}'"}
+  
+  @Command()
+  def start(self, 
+            name: args.NAME):
+    """Start a service.
+    
+    Args:
+      name (str): The name of the service to start.
+    Returns: 
+      A success message if the service was started successfully.
+    Raises:
+      DuploError: If the service could not be started.
+    """
+    tenant_id = self.tenant["TenantId"]
+    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerstart/{name}")
+    return {"message": f"Successfully started service '{name}'"}

@@ -31,5 +31,5 @@ class DuploConfigMap(DuploTenantResource):
     try:
       return [s for s in self.list() if s["metadata"]["name"] == name][0]
     except IndexError:
-      raise DuploError(f"Secret '{name}' not found", 404)
+      raise DuploError(f"ConfigMap '{name}' not found", 404)
 
