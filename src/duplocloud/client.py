@@ -128,13 +128,12 @@ Client for Duplo at {self.host}
     # load and instantiate from the entry points
     svc = load_service(name)
     return svc(self)
-
   
   def run(self, name: str=None, command: str=None, args: list=None):
     """Run a service command.
     
     Args:
-      name: The name of the service.
+      name: The name of the resource.
       command: The command to run.
       args: The arguments to the command.
     Returns:
@@ -148,9 +147,12 @@ Client for Duplo at {self.host}
     # make sure we have args to use
     if args is None:
       args = self.args # this already defaults to empty list
-    # load and execute
     svc = self.load(name)
-    res = svc.exec(command, args)
+    # if the class of the service is version, then we need to run it differently
+    if svc.__class__.__name__ == 'DuploVersion':
+      res = svc()
+    else:
+      res = svc.exec(command, args)
     if self.query:
       try:
         res = jmespath.search(self.query, res)
@@ -181,7 +183,7 @@ Client for Duplo at {self.host}
     Returns:
       The response as a JSON object.
     """
-    contentType = response.headers['content-type'].split(';')[0]
+    contentType = response.headers.get('content-type', 'application/json').split(';')[0]
     if 200 <= response.status_code < 300:
       if contentType == 'application/json':
         return response.json()
