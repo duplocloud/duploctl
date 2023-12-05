@@ -1,6 +1,5 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResource
-from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
