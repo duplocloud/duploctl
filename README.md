@@ -1,6 +1,6 @@
 # Duplocloud Py Client  
 
-![Tests](https://github.com/duplocloud/duploctl/actions/workflows/test.yml/badge.svg) ![PyPI - Version](https://img.shields.io/pypi/v/duplocloud-client)
+[![Tests](https://github.com/duplocloud/duploctl/actions/workflows/test.yml/badge.svg)](https://github.com/duplocloud/duploctl/actions/workflows/test.yml) [![PyPI - Version](https://img.shields.io/pypi/v/duplocloud-client)](https://pypi.org/project/duplocloud-client/)
 
 
 A package to spawn service clients for working with Duplocloud. This is a cli for interacting with duplocloud resources. This is great within cli pipelines. Built to be as extensible as possible and can be used as normal python module as well as cli. 
