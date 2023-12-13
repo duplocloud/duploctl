@@ -3,7 +3,7 @@
 [![Tests](https://github.com/duplocloud/duploctl/actions/workflows/test.yml/badge.svg)](https://github.com/duplocloud/duploctl/actions/workflows/test.yml) [![PyPI - Version](https://img.shields.io/pypi/v/duplocloud-client)](https://pypi.org/project/duplocloud-client/)
 
 
-A package to spawn service clients for working with Duplocloud. This is a cli for interacting with duplocloud resources. This is great within cli pipelines. Built to be as extensible as possible and can be used as normal python module as well as cli. 
+```duploctl``` is a package that spawns service clients that work with Duplocloud. It is a CLI for interacting with Duplocloud resources, such as Tenants, and is designed to work seamlessly within CLI-based CI/CD pipelines. It is a fully extensible package and can be used as both a Python module and a CLI. 
 
 ## Installation  
 
@@ -14,11 +14,11 @@ pip install duplocloud-client
 
 ## Usage 
 
-This project may bes used as a cli or as a python module in your own unique script. 
+Use ```duploctl``` as a CLI or as a standalone Python module called by your custom script. 
 
 ### Configuration  
 
-The following inputs are global:  
+Use the following syntax for these global arguments:  
 | Arg | Env Var | Description | Default | Required |  
 | --- | --- | --- | --- | --- |
 | --host, -H | DUPLO_HOST | The host to connect to |  | Yes |
@@ -27,7 +27,7 @@ The following inputs are global:
 
 ### CLI  
 
-Here is a quick template on how the cli breaks down. 
+CLI command syntax for invoking ```duploctl``` 
 
 ```sh
 duploctl <resource> <command> <args...>
@@ -35,14 +35,14 @@ duploctl <resource> <command> <args...>
 
 ### Python Module
 
-Here is how to spawn your own client the quick way from args and env. 
+Spawn your client from a Python script using the ```DuploClient.from_env()``` method and arguments. 
 
 ```python
 duplo = DuploClient.from_env()
 out = duplo.run("tenant", "list")
 ```
 
-Here we show how to spawn a client with a custom host and token. 
+Spawn a client with a custom host and token from a Python script. 
 
 ```python
 duplo = DuploClient(host="https://example.duplocloud.com", token="mytoken")
