@@ -46,4 +46,20 @@ class DuploCronJob(DuploTenantResource):
     self.duplo.put(f"v3/subscriptions/{tenant_id}/k8s/cronJob/{name}", cronjob)
     return {"message": f"Successfully updated image for cronjob '{name}'"}
   
+  @Command()
+  def update_schedule(self, 
+                      name: args.NAME, 
+                      cronschedule: args.CRONSCHEDULE):
+    """Update the schedule of a cronjob.
+    
+    Args:
+      name (str): The name of the cronjob to update.
+      schedule (str): The new schedule to use for the cronjob.
+    """
+    tenant_id = self.tenant["TenantId"]
+    cronjob = self.find(name)
+    cronjob["spec"]["schedule"] = cronschedule
+    self.duplo.put(f"v3/subscriptions/{tenant_id}/k8s/cronJob/{name}", cronjob)
+    return {"message": f"Successfully updated cron-schedule for cronjob '{name}'"}
+  
   
