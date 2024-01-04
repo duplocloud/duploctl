@@ -42,7 +42,7 @@ IMAGE = Arg("image",
             help='The image to use')
 
 SERVICEIMAGE = Arg("serviceimage", "-S",
-            help='takes two arguments, a service name and a image:tag',
+            help='takes two arguments, a service name and an image:tag',
             action='append',
             nargs=2,
             metavar=('service', 'image'))
