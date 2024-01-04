@@ -53,7 +53,35 @@ class DuploService(DuploTenantResource):
     }
     self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
     return {"message": f"Successfully updated image for service '{name}'"}
-  
+ 
+  @Command()
+  def bulk_update_image(self, 
+                  serviceimage: args.SERVICEIMAGE):
+    """Update multiple services.
+    
+    Args:
+      serviceimage/-S (string): takes n sets of two arguments, service name and image name. e.g -S service1 image1:tag -S service2 image2:tag
+    """
+    tenant_id = self.tenant["TenantId"]
+    payload = []
+    for args in serviceimage:
+      servicepair = dict([args])
+      for name, image in servicepair.items():
+        payloaditem = {}
+        # Continue if service is not found.
+        try:
+          service = self.find(name)
+          allocation_tags = service["Template"]["AllocationTags"]
+        except Exception as err: 
+          print(err)
+          continue
+        payloaditem["Name"] = name
+        payloaditem["Image"] = image
+        payloaditem["AllocationTags"] = allocation_tags
+        payload.append(payloaditem)
+    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerBulkChangeAll", payload)
+    return {"message": f"Successfully updated images for services"}
+
   @Command()
   def restart(self, 
               name: args.NAME):

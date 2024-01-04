@@ -41,6 +41,12 @@ NAME = Arg("name",
 IMAGE = Arg("image", 
             help='The image to use')
 
+SERVICEIMAGE = Arg("serviceimage", "-S",
+            help='takes two arguments, a service name and a image:tag',
+            action='append',
+            nargs=2,
+            metavar=('service', 'image'))
+
 SCHEDULE = Arg("schedule","-s", 
                help='The schedule to use')
 
