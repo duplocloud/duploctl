@@ -87,7 +87,15 @@ def load_service(name: str):
   Returns:
     The class of the service.
   """
-  return ep[name].load()
+  try:
+    return ep[name].load()
+  except KeyError:
+    avail = available_resources()
+    raise DuploError(f"""
+Resource named {name} not found.
+Available resources are:
+  {", ".join(avail)}
+""", 500)
 
 def load_format(name: str="string"):
   """Load Format
