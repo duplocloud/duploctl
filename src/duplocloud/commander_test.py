@@ -50,25 +50,30 @@ def test_command_registration():
       assert isinstance(arg(True), bool)
 
 def test_using_parser():
+  
   # first make sure the proper error is raised when the function is not registered
   try:
     get_parser(SomeResource.not_a_command)
   except DuploError as e:
     assert e.code == 3
     assert e.message == "Function named SomeResource.not_a_command not registered as a command."
+  
   # now make sure the proper parser is returned
   assert (p := get_parser(SomeResource.tester))
   assert isinstance(p, argparse.ArgumentParser)
+  
   # test with no args and get defaults
   args = ["foo"]
   parsed_args = p.parse_args(args)
   assert parsed_args.name == "foo"
   assert parsed_args.image_name == "ubuntu"
+  
   # test with image set
   args = ["bar", "--img", "alpine"]
   parsed_args = p.parse_args(args)
   assert parsed_args.name == "bar"
   assert parsed_args.image_name == "alpine"
+  
   # one more time with --image
   args = ["baz", "--image", "splunz:latest"]
   parsed_args = p.parse_args(args)
