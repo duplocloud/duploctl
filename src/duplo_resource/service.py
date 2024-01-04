@@ -63,6 +63,10 @@ class DuploService(DuploTenantResource):
       serviceimage/-S (string): takes n sets of two arguments, service name and image name. e.g -S service1 image1:tag -S service2 image2:tag
     """
     tenant_id = self.tenant["TenantId"]
+    # Check that all services exist before updating
+    servicelist = [item[0] for item in serviceimage]
+    for name in servicelist:
+      service = self.find(name)
     payload = []
     for args in serviceimage:
       servicepair = dict([args])
