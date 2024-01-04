@@ -68,13 +68,8 @@ class DuploService(DuploTenantResource):
       servicepair = dict([args])
       for name, image in servicepair.items():
         payloaditem = {}
-        # Continue if service is not found.
-        try:
-          service = self.find(name)
-          allocation_tags = service["Template"]["AllocationTags"]
-        except Exception as err: 
-          print(err)
-          continue
+        service = self.find(name)
+        allocation_tags = service["Template"]["AllocationTags"]
         payloaditem["Name"] = name
         payloaditem["Image"] = image
         payloaditem["AllocationTags"] = allocation_tags
