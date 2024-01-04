@@ -110,6 +110,23 @@ Client for Duplo at {self.host}
     )
     return self._validate_response(response)
   
+  def put(self, path: str, data: dict={}):
+    """Put data to a Duplo resource.
+    
+    Args:
+      path: The path to the resource.
+      data: The data to post.
+    Returns:
+      The response as a JSON object.
+    """
+    response = requests.put(
+      url = f"{self.host}/{path}",
+      headers = self.headers,
+      timeout = self.timeout,
+      json = data
+    )
+    return self._validate_response(response)
+  
   def load(self, name: str=None):
     """Load Service
       

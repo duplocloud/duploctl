@@ -2,7 +2,7 @@ import inspect
 import argparse
 from importlib.metadata import entry_points
 from .errors import DuploError
-from .types import Arg
+from .argtype import Arg
 
 ENTRYPOINT="duplocloud.net"
 FORMATS=f"formats.{ENTRYPOINT}"
