@@ -1,4 +1,4 @@
-from .types import Arg
+from .argtype import Arg
 import os
 from .commander import available_resources
 from importlib.metadata import version
@@ -42,6 +42,9 @@ IMAGE = Arg("image",
             help='The image to use')
 
 SCHEDULE = Arg("schedule","-s", 
+               help='The schedule to use')
+
+CRONSCHEDULE = Arg("cronschedule", 
                help='The schedule to use')
 
 ENABLE = Arg("enable","-y", 

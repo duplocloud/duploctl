@@ -4,7 +4,7 @@ import unittest
 import argparse
 
 from .commander import schema, resources, Command, get_parser, load_service, available_resources
-from .types import Arg
+from .argtype import Arg
 from .errors import DuploError
 from duplo_resource.service import DuploService
 from .resource import DuploResource
