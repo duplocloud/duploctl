@@ -35,10 +35,10 @@ duploctl <resource> <command> <args...>
 
 ### Python Module
 
-Spawn your client from a Python script using the ```DuploClient.from_env()``` method and arguments. 
+Spawn your client from a Python script using the ```DuploClient.from_env()``` method and arguments. The second return value are the unparsed arguments from the command line. 
 
 ```python
-duplo = DuploClient.from_env()
+duplo, args = DuploClient.from_env()
 out = duplo.run("tenant", "list")
 ```
 
@@ -46,7 +46,7 @@ Spawn a client with a custom host and token from a Python script.
 
 ```python
 duplo = DuploClient(host="https://example.duplocloud.com", token="mytoken")
-svc = duplo.load("tenant")
-t = svc.find("mytenant")
+tenants = duplo.load("tenant")
+t = tenants.find("mytenant")
 print(t)
 ```
