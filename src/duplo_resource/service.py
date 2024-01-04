@@ -46,12 +46,20 @@ class DuploService(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     service = self.find(name)
     allocation_tags = service["Template"]["AllocationTags"]
+    matching_containers = []
+    for container in service["Template"]["Containers"]:
+        if container["Name"] == name:
+            matching_containers.append(container)
+    current_image = matching_containers[0]["Image"]
     data = {
       "Name": name,
       "Image": image,
       "AllocationTags": allocation_tags
     }
-    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
+    if(current_image == image):
+      self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerReboot/{name}")
+    else:
+      self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
     return {"message": f"Successfully updated image for service '{name}'"}
   
   @Command()
