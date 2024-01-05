@@ -50,7 +50,7 @@ class DuploClient():
 Client for Duplo at {self.host}
 """
   
-  def __call__(self, resource, *args):
+  def __call__(self, resource: str, *args):
     """Run a service command.
     
     Args:
@@ -60,8 +60,8 @@ Client for Duplo at {self.host}
     Returns:
       The result of the command.
     """
-    svc = self.load(resource)
-    data = svc(*args)
+    res = self.load(resource)
+    data = res(*args)
     data = self.filter(data)
     return self.format(data)
   
@@ -149,7 +149,7 @@ Client for Duplo at {self.host}
     svc = load_service(resource)
     return svc(self)
   
-  def filter(self, data):
+  def filter(self, data: dict):
     """Query data
 
     Uses the jmespath library to query data.
@@ -180,17 +180,7 @@ Client for Duplo at {self.host}
     fmt = load_format(self.output)
     return fmt(data)
   
-  def json(self, data: dict):
-    """Convert data to JSON.
-    
-    Args:
-      data: The data to convert.
-    Returns:
-      The data as a JSON object.
-    """
-    return json.dumps(data)
-  
-  def _validate_response(self, response):
+  def _validate_response(self, response: dict):
     """Validate a response from Duplo.
     
     Args:

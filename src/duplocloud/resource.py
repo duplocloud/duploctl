@@ -9,21 +9,21 @@ class DuploCommand():
   def __call__(self, *args):
     pass
 
-class DuploResource(DuploCommand):
+class DuploResource():
   
   def __init__(self, duplo: DuploClient):
     self.duplo = duplo
-  
-  def command(self, name):
-    if not (command := getattr(self, name, None)):
-      raise DuploError(f"Invalid command: {name}")
-    return command
   
   def __call__(self, cmd, *args):
     command = self.command(cmd)
     parser = get_parser(command)
     parsed_args = parser.parse_args(args)
     return command(**vars(parsed_args))
+  
+  def command(self, name):
+    if not (command := getattr(self, name, None)):
+      raise DuploError(f"Invalid command: {name}")
+    return command
   
 class DuploTenantResource(DuploResource):
   def __init__(self, duplo: DuploClient):
