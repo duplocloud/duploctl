@@ -82,6 +82,7 @@ where = ["src"]
 duploctl = "duplocloud.cli:main"
 
 [project.entry-points."duplocloud.net"]
+version = "duplo_resource.version:DuploVersion"
 service = "duplo_resource.service:DuploService"
 cronjob = "duplo_resource.cronjob:DuploCronJob"
 tenant = "duplo_resource.tenant:DuploTenant"

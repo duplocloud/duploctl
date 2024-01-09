@@ -1,6 +1,5 @@
 
 import requests
-import json
 import jmespath
 from cachetools import cached, TTLCache
 from .errors import DuploError
@@ -31,19 +30,13 @@ class DuploClient():
                host: t.HOST, 
                token: t.TOKEN, 
                tenant: t.TENANT,
-               service: t.SERVICE=None,
-               command: t.COMMAND=None,
                query: t.QUERY=None,
                output: t.OUTPUT="json",
-               version: t.VERSION=None,
-               args=[]) -> None:
+               version: t.VERSION=None) -> None:
     self.host = host
     self.tenant = tenant
-    self.service = service
-    self.command = command
     self.query = query
     self.output = output
-    self.args = args
     self.timeout = 10
     self.version = version
     self.headers = {
@@ -56,6 +49,21 @@ class DuploClient():
 Client for Duplo at {self.host}
 """
   
+  def __call__(self, resource: str, *args):
+    """Run a service command.
+    
+    Args:
+      resource: The name of the resource.
+      command: The command to run.
+      args: The arguments to the command.
+    Returns:
+      The result of the command.
+    """
+    res = self.load(resource)
+    data = res(*args)
+    data = self.filter(data)
+    return self.format(data)
+  
   @staticmethod
   def from_env():
     """Create a DuploClient from environment variables.
@@ -65,8 +73,7 @@ Client for Duplo at {self.host}
     """
     parser = get_parser(DuploClient.__init__)
     env, args = parser.parse_known_args()
-    return DuploClient(**vars(env), args=args)
-
+    return DuploClient(**vars(env)), args
 
   @cached(cache=TTLCache(maxsize=128, ttl=60))
   def get(self, path: str):
@@ -127,7 +134,7 @@ Client for Duplo at {self.host}
     )
     return self._validate_response(response)
   
-  def load(self, name: str=None):
+  def load(self, resource: str):
     """Load Service
       
     Load a Service class from the entry points.
@@ -137,58 +144,42 @@ Client for Duplo at {self.host}
     Returns:
       The instantiated service with a reference to this client.
     """
-    # make sure we have a service to use
-    if name is None and self.service is None:
-      raise DuploError("No service name provided for client loader", 500)
-    elif name is None and self.service is not None:
-      name = self.service
     # load and instantiate from the entry points
-    svc = load_service(name)
+    svc = load_service(resource)
     return svc(self)
+  
+  def filter(self, data: dict):
+    """Query data
 
-  
-  def run(self, name: str=None, command: str=None, args: list=None):
-    """Run a service command.
+    Uses the jmespath library to query data.
+    Set the query to use on the property. 
     
     Args:
-      name: The name of the service.
-      command: The command to run.
-      args: The arguments to the command.
+      data: The data to query.
     Returns:
-      The result of the command.
+      The queried data.
     """
-    # make sure we have a command
-    if command is None and self.command is None:
-      raise DuploError("No command provided for client runner", 500)
-    elif command is None and self.command is not None:
-      command = self.command
-    # make sure we have args to use
-    if args is None:
-      args = self.args # this already defaults to empty list
-    # load and execute
-    svc = self.load(name)
-    res = svc.exec(command, args)
-    if self.query:
-      try:
-        res = jmespath.search(self.query, res)
-      except jmespath.exceptions.ParseError as e:
-        raise DuploError("Invalid jmespath query", 500) from e
-      except jmespath.exceptions.JMESPathTypeError as e:
-        raise DuploError("Invalid jmespath query", 500) from e
-    format = load_format(self.output)
-    return format(res)
+    if not self.query:
+      return data
+    try:
+      return jmespath.search(self.query, data)
+    except jmespath.exceptions.ParseError as e:
+      raise DuploError("Invalid jmespath query", 500) from e
+    except jmespath.exceptions.JMESPathTypeError as e:
+      raise DuploError("Invalid jmespath query", 500) from e
   
-  def json(self, data: dict):
-    """Convert data to JSON.
+  def format(self, data: dict):
+    """Format data.
     
     Args:
-      data: The data to convert.
+      data: The data to format.
     Returns:
-      The data as a JSON object.
+      The data as a string.
     """
-    return json.dumps(data)
+    fmt = load_format(self.output)
+    return fmt(data)
   
-  def _validate_response(self, response):
+  def _validate_response(self, response: dict):
     """Validate a response from Duplo.
     
     Args:
@@ -198,7 +189,7 @@ Client for Duplo at {self.host}
     Returns:
       The response as a JSON object.
     """
-    contentType = response.headers['content-type'].split(';')[0]
+    contentType = response.headers.get('content-type', 'application/json').split(';')[0]
     if 200 <= response.status_code < 300:
       if contentType == 'application/json':
         return response.json()

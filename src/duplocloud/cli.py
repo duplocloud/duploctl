@@ -3,8 +3,8 @@ from duplocloud.errors import DuploError
 
 def main():
   try:
-    duplo = DuploClient.from_env()
-    out = duplo.run()
+    duplo, args = DuploClient.from_env()
+    out = duplo(*args)
     print(out)
   except DuploError as e:
     print(e)
