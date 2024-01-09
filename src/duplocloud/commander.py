@@ -56,20 +56,18 @@ def Command():
   return decorator
 
 def get_parser(function):
+  """Get Parser
+  
+  Args:
+    function: The function to get the parser for.
+  Returns:
+    An argparse.ArgumentParser object with args from function.
+  """
   qn = function.__qualname__
   parser = argparse.ArgumentParser(
     prog='duplocloud-client',
     description='Duplo Cloud CLI',
   )
-  try:
-    for arg in schema[qn]:
-      parser.add_argument(*arg.flags, **arg.attributes)
-  except KeyError:
-    raise DuploError(f"Function named {qn} not registered as a command.", 3)
-  return parser
-
-def apply_args(function, parser):
-  qn = function.__qualname__
   try:
     for arg in schema[qn]:
       parser.add_argument(*arg.flags, **arg.attributes)
@@ -87,7 +85,15 @@ def load_service(name: str):
   Returns:
     The class of the service.
   """
-  return ep[name].load()
+  try:
+    return ep[name].load()
+  except KeyError:
+    avail = available_resources()
+    raise DuploError(f"""
+Resource named {name} not found.
+Available resources are:
+  {", ".join(avail)}
+""", 500)
 
 def load_format(name: str="string"):
   """Load Format

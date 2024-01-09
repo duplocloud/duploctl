@@ -22,7 +22,7 @@ OUTPUT = Arg("output", "-o",
 QUERY = Arg("query", "-q",
             help='The jmespath query to run on a result')
 
-VERSION = Arg("version", "-v",
+VERSION = Arg("version", "--version",
               action='version', 
               version=f"%(prog)s {version('duplocloud-client')}",
               type=bool)
