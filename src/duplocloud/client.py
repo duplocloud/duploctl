@@ -1,6 +1,5 @@
 
 import requests
-import json
 import jmespath
 from cachetools import cached, TTLCache
 from .errors import DuploError
