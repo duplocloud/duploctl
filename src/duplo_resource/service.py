@@ -64,7 +64,7 @@ class DuploService(DuploTenantResource):
     """
     tenant_id = self.tenant["TenantId"]
     payload = []
-    for args in serviceimage:
+    for i in serviceimage:
       servicepair = dict([args])
       for name, image in servicepair.items():
         payloaditem = {}
@@ -75,7 +75,7 @@ class DuploService(DuploTenantResource):
         payloaditem["AllocationTags"] = allocation_tags
         payload.append(payloaditem)
     self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerBulkChangeAll", payload)
-    return {"message": f"Successfully updated images for services"}
+    return {"message": "Successfully updated images for services"}
 
   @Command()
   def restart(self, 
