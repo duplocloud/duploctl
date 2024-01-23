@@ -93,6 +93,7 @@ system = "duplo_resource.system:DuploSystem"
 asg = "duplo_resource.asg:DuploAsg"
 secret = "duplo_resource.secret:DuploSecret"
 config = "duplo_resource.configmap:DuploConfigMap"
+ingress = "duplo_resource.ingress:DuploIngress"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
