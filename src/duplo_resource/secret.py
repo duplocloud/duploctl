@@ -14,7 +14,12 @@ class DuploSecret(DuploTenantResource):
   def list(self):
     """Retrieve a list of all services in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    return self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/secret")
+    tenant_name = self.tenant["AccountName"]
+    response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/secret")
+    if not response.json():
+      raise DuploError(f"No secrets found in tenant '{tenant_name}'", 404)
+    else:
+      return response.json()
   
   @Command()
   def find(self, 

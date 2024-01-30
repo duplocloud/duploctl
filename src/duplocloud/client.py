@@ -37,7 +37,7 @@ class DuploClient():
     self.tenant = tenant
     self.query = query
     self.output = output
-    self.timeout = 10
+    self.timeout = 30
     self.version = version
     self.headers = {
       'Content-Type': 'application/json',
@@ -192,7 +192,7 @@ Client for Duplo at {self.host}
     contentType = response.headers.get('content-type', 'application/json').split(';')[0]
     if 200 <= response.status_code < 300:
       if contentType == 'application/json':
-        return response.json()
+        return response
       elif contentType == 'text/plain':
         return {"message": response.text}
     

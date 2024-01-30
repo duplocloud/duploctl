@@ -8,6 +8,6 @@ class DuploJit(DuploResource):
     
   @Command()
   def aws(self):
-    """Retrieve a list of all users in the Duplo system."""
+    """Retrieve aws session credentials for current user."""
     sts = self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl")
-    return sts
+    return sts.json()

@@ -71,7 +71,7 @@ class DuploService(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     payload = []
     for i in serviceimage:
-      servicepair = dict([args])
+      servicepair = dict([i])
       for name, image in servicepair.items():
         payloaditem = {}
         service = self.find(name)

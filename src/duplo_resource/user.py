@@ -13,7 +13,8 @@ class DuploUser(DuploResource):
   @Command()
   def list(self):
     """Retrieve a list of all users in the Duplo system."""
-    return self.duplo.get("admin/GetAllUserRoles")
+    response = self.duplo.get("admin/GetAllUserRoles")
+    return response.json()
   
   @Command()
   def find(self, 
@@ -25,7 +26,7 @@ class DuploUser(DuploResource):
       raise DuploError(f"User '{name}' not found", 404)
   
   @Command()
-  def add_tenant(self, 
+  def add_user_to_tenant(self, 
                  name: args.NAME, 
                  tenant: args.TENANT):
     """Retrieve a list of all users in the Duplo system."""

@@ -92,7 +92,8 @@ jit = "duplo_resource.jit:DuploJit"
 system = "duplo_resource.system:DuploSystem"
 asg = "duplo_resource.asg:DuploAsg"
 secret = "duplo_resource.secret:DuploSecret"
-config = "duplo_resource.configmap:DuploConfigMap"
+configmap = "duplo_resource.configmap:DuploConfigMap"
+hosts = "duplo_resource.hosts:DuploHosts"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
