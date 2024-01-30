@@ -55,7 +55,7 @@ class DuploLambda(DuploTenantResource):
                    name: args.NAME, 
                    bucket: args.S3BUCKET,
                    key: args.S3KEY):
-    """Update the image of a lambda.
+    """Update the s3 bucket and key of a lambda.
     
     Args:
       name (str): The name of the lambda to update.
