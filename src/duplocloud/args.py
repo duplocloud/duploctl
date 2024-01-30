@@ -41,6 +41,12 @@ NAME = Arg("name",
 IMAGE = Arg("image", 
             help='The image to use')
 
+S3BUCKET = Arg("bucket",
+               help='The s3 bucket to use')
+
+S3KEY = Arg("key",
+               help='The s3 key to use')
+
 SERVICEIMAGE = Arg("serviceimage", "-S",
             help='takes two arguments, a service name and an image:tag',
             action='append',
