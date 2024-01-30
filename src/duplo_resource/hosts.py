@@ -14,7 +14,6 @@ class DuploHosts(DuploTenantResource):
   def list(self):
     """Retrieve a list of all hosts in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    tenant_name = self.tenant["AccountName"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetNativeHosts")
     return response.json()
   

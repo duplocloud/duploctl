@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 import datetime
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
@@ -33,7 +33,6 @@ class DuploTenant(DuploResource):
     """Expire a tenant."""
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-    print("schedule=", schedule)
     # if the schedule not specified then set the date 5 minute from now
     if schedule is None:
       now = datetime.datetime.now() + datetime.timedelta(minutes=5)
