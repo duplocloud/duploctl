@@ -55,3 +55,24 @@ class DuploLambda(DuploTenantResource):
     }
     response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
     return response.json()
+
+  @Command()
+  def update_s3(self, 
+                   name: args.NAME, 
+                   bucket: args.S3BUCKET,
+                   key: args.S3KEY):
+    """Update the s3 bucket and key of a lambda.
+    
+    Args:
+      name (str): The name of the lambda to update.
+      s3bucket (str): The s3 bucket to use for the lambda.
+      s3key (str): The s3 key (file path) to use for the lambda.
+    """
+    tenant_id = self.tenant["TenantId"]
+    data = {
+      "FunctionName": name,
+      "S3Bucket": bucket,
+      "S3Key": key
+    }
+    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    return response.json()
