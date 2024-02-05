@@ -25,6 +25,15 @@ class DuploTenant(DuploResource):
       return [t for t in self.list() if t["AccountName"] == name][0]
     except IndexError:
       raise DuploError(f"Tenant '{name}' not found", 404)
+  
+  @Command()
+  def create(self, 
+             tenant: args.CLI_INPUT):
+    """Create a new tenant."""
+    self.duplo.post("admin/AddTenant", tenant)
+    return {
+      "message": f"Tenant '{tenant['AccountName']}' created"
+    }
     
   @Command()
   def shutdown(self, 
