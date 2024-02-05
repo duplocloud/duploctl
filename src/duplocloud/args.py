@@ -10,13 +10,17 @@ HOST = Arg('host', '-H',
             help='The tenant to be scope into',
             default=os.getenv('DUPLO_HOST', None))
 
-TOKEN = Arg('token', '-p', 
+TOKEN = Arg('token', '-t', 
             help='The token/password to authenticate with',
             default=os.getenv('DUPLO_TOKEN', None))
 
-TENANT = Arg("tenant", "-t",
+TENANT = Arg("tenant", "-T",
              help='The tenant name',
              default=os.getenv('DUPLO_TENANT', "default"))
+
+PLAN = Arg("plan", "-P",
+            help='The plan name',
+            default=os.getenv('DUPLO_PLAN', "nonprod"))
 
 OUTPUT = Arg("output", "-o",
               help='The output format')
