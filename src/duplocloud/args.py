@@ -1,5 +1,7 @@
 from .argtype import Arg
+from .argaction import YamlAction
 import os
+import argparse
 from .commander import available_resources
 from importlib.metadata import version
 
@@ -75,3 +77,8 @@ MIN = Arg("min", "-m",
 MAX = Arg("max", "-M",
           help='The maximum number of replicas',
           type=int)
+
+CLI_INPUT = Arg("cli-input", "-I",
+            help='A file to read the input from',
+            type=argparse.FileType('r'),
+            action=YamlAction)
