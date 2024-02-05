@@ -16,10 +16,10 @@ class DuploLambda(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     tenant_name = self.tenant["AccountName"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
-    if not response.json():
-      raise DuploError(f"No lambda functions found in tenant '{tenant_name}'", 404)
+    if (data := response.json()):
+      return data
     else:
-      return response.json()
+      raise DuploError(f"No lambda functions found in tenant '{tenant_name}'", 404)
   
   @Command()
   def find(self, 
