@@ -10,5 +10,5 @@ class DuploSystem(DuploResource):
   @Command()
   def info(self):
     """Retrieve all of the system information."""
-    return self.duplo.get("v3/features/system")
+    return self.duplo.get("v3/features/system").json()
   
