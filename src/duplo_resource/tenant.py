@@ -1,3 +1,4 @@
+from datetime import timedelta
 import datetime
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
@@ -13,7 +14,8 @@ class DuploTenant(DuploResource):
   @Command()
   def list(self):
     """Retrieve a list of all tenants in the Duplo system."""
-    return self.duplo.get("adminproxy/GetTenantNames")
+    response = self.duplo.get("adminproxy/GetTenantNames")
+    return response.json()
 
   @Command()
   def find(self, 
@@ -31,11 +33,27 @@ class DuploTenant(DuploResource):
     """Expire a tenant."""
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-
     # if the schedule not specified then set the date 5 minute from now
     if schedule is None:
       now = datetime.datetime.now() + datetime.timedelta(minutes=5)
       schedule = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    else:
+      interval, unit = int(schedule[:-1]), schedule[-1]
+      # Calculate the timedelta based on the specified time interval
+      if unit == 'm':
+        delta = timedelta(minutes=interval)
+      elif unit == 'h':
+        delta = timedelta(hours=interval)
+      elif unit == 'd':
+        delta = timedelta(days=interval)
+      else:
+          raise ValueError("Invalid time unit specified. Please use 'm' for minutes, 'h' for hours, or 'd' for days.")
+
+      current_time = datetime.datetime.utcnow()
+      # Calculate the future time after adding the timedelta
+      future_time = current_time + delta
+      # Format the future time in the desired string format
+      schedule = future_time.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     res = self.duplo.post("adminproxy/UpdateTenantCleanupTimers", {
       "TenantId": tenant_id,
@@ -55,13 +73,15 @@ class DuploTenant(DuploResource):
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # add or update the tenant in the list of enabled tenants
-    log_tenants = self.duplo.get("admin/GetLoggingEnabledTenants")
+    response = self.duplo.get("admin/GetLoggingEnabledTenants")
+    log_tenants = response.json()
     for t in log_tenants:
       if t["TenantId"] == tenant_id:
         t["Enabled"] = enable
         break
     else:
       log_tenants.append({"TenantId": tenant_id, "Enabled": enable})
+    print(log_tenants)
     # update the entire list
     res = self.duplo.post("admin/UpdateLoggingEnabledTenants", log_tenants)
     if res.status_code == 200:

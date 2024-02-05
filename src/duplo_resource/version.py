@@ -17,6 +17,6 @@ class DuploVersion():
     cli = version('duplocloud-client')
     return {
       "cli": cli,
-      "ui": server
+      "ui": server.json()
     }
 

@@ -14,7 +14,8 @@ class DuploAsg(DuploTenantResource):
   def list(self):
     """Retrieve a list of all services in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    return self.duplo.get(f"subscriptions/{tenant_id}/GetTenantAsgProfiles")
+    response = self.duplo.get(f"subscriptions/{tenant_id}/GetTenantAsgProfiles")
+    return response.json()
   
   @Command()
   def find(self, 
@@ -56,6 +57,6 @@ class DuploAsg(DuploTenantResource):
     res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", data)
     return {
       "message": f"Successfully updated asg '{name}'",
-      "data": res
+      "data": res.json()
     }
   

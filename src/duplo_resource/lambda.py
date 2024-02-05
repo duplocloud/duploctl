@@ -14,7 +14,12 @@ class DuploLambda(DuploTenantResource):
   def list(self):
     """Retrieve a list of all lambdas in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    return self.duplo.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
+    tenant_name = self.tenant["AccountName"]
+    response = self.duplo.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
+    if (data := response.json()):
+      return data
+    else:
+      raise DuploError(f"No lambda functions found in tenant '{tenant_name}'", 404)
   
   @Command()
   def find(self, 
@@ -48,7 +53,8 @@ class DuploLambda(DuploTenantResource):
       "FunctionName": name,
       "ImageUri": image
     }
-    return self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    return response.json()
 
   @Command()
   def update_s3(self, 
@@ -68,4 +74,5 @@ class DuploLambda(DuploTenantResource):
       "S3Bucket": bucket,
       "S3Key": key
     }
-    return self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    return response.json()
