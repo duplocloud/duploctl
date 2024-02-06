@@ -28,7 +28,7 @@ class DuploTenant(DuploResource):
   
   @Command()
   def create(self, 
-             tenant: args.CLI_INPUT):
+             tenant: args.BODY):
     """Create a new tenant."""
     self.duplo.post("admin/AddTenant", tenant)
     return {
