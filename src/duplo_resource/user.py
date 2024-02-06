@@ -17,7 +17,7 @@ class DuploUser(DuploResource):
     if (data := response.json()):
       return data
     else:
-      raise DuploError(f"No users found.", 404)
+      raise DuploError("No users found.", 404)
   
   @Command()
   def find(self, 

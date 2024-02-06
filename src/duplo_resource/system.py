@@ -1,6 +1,7 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
+from duplocloud.errors import DuploError
 
 @Resource("system")
 class DuploSystem(DuploResource):
