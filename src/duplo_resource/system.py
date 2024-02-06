@@ -10,5 +10,9 @@ class DuploSystem(DuploResource):
   @Command()
   def info(self):
     """Retrieve all of the system information."""
-    return self.duplo.get("v3/features/system")
+    response = self.duplo.get("v3/features/system")
+    if (data := response.json()):
+      return data
+    else:
+      raise DuploError("Failed to get system information. Please connect to Adminatrator.", 404)
   

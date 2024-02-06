@@ -14,7 +14,12 @@ class DuploService(DuploTenantResource):
   def list(self):
     """Retrieve a list of all services in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    return self.duplo.get(f"subscriptions/{tenant_id}/GetReplicationControllers")
+    tenant_name = self.tenant["AccountName"]
+    response = self.duplo.get(f"subscriptions/{tenant_id}/GetReplicationControllers")
+    if (data := response.json()):
+      return data
+    else:
+      raise DuploError(f"No service found in tenant '{tenant_name}'", 404)
   
   @Command()
   def find(self, 
