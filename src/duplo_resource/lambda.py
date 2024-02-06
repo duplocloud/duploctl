@@ -59,12 +59,16 @@ class DuploLambda(DuploTenantResource):
       image (str): The new image to use for the lambda.
     """
     tenant_id = self.tenant["TenantId"]
+    tenant_name = self.tenant["AccountName"]
     data = {
       "FunctionName": name,
       "ImageUri": image
     }
     response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
-    return response.json()
+    if (data := response.json()):
+      return data
+    else:
+      raise DuploError(f"No Lambda Function found in tenant '{tenant_name}'", 404)
 
   @Command()
   def update_s3(self, 
@@ -79,10 +83,14 @@ class DuploLambda(DuploTenantResource):
       s3key (str): The s3 key (file path) to use for the lambda.
     """
     tenant_id = self.tenant["TenantId"]
+    tenant_name = self.tenant["AccountName"]
     data = {
       "FunctionName": name,
       "S3Bucket": bucket,
       "S3Key": key
     }
     response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
-    return response.json()
+    if (data := response.json()):
+      return data
+    else:
+      raise DuploError(f"No Lambda Function {name} found in tenant '{tenant_name}'", 404)

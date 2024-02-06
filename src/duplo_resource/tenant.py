@@ -15,7 +15,10 @@ class DuploTenant(DuploResource):
   def list(self):
     """Retrieve a list of all tenants in the Duplo system."""
     response = self.duplo.get("adminproxy/GetTenantNames")
-    return response.json()
+    if (data := response.json()):
+      return data
+    else:
+      raise DuploError(f"No tenants found.", 404)
 
   @Command()
   def find(self, 
