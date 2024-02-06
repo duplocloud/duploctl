@@ -40,7 +40,7 @@ class DuploLambda(DuploTenantResource):
     
   @Command()
   def create(self, 
-             lambda_fx: args.CLI_INPUT):
+             lambda_fx: args.BODY):
     """Create a new tenant."""
     tenant_id = self.tenant["TenantId"]
     self.duplo.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", lambda_fx)
