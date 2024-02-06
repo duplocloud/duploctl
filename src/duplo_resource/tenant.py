@@ -18,7 +18,7 @@ class DuploTenant(DuploResource):
     if (data := response.json()):
       return data
     else:
-      raise DuploError(f"No tenants found.", 404)
+      raise DuploError("No tenants found.", 404)
 
   @Command()
   def find(self, 
@@ -93,7 +93,6 @@ class DuploTenant(DuploResource):
         break
     else:
       log_tenants.append({"TenantId": tenant_id, "Enabled": enable})
-    print(log_tenants)
     # update the entire list
     res = self.duplo.post("admin/UpdateLoggingEnabledTenants", log_tenants)
     if res.status_code == 200:
