@@ -124,10 +124,12 @@ def get_config_context():
   Get the current context from the Duplo config.
   """
   config_path = os.environ.get("DUPLO_CONFIG", f"{Path.home()}/.duplo/config")
-  if not os.path.exists(config_path): raise DuploError("Duplo config not found", 500)
+  if not os.path.exists(config_path): 
+    raise DuploError("Duplo config not found", 500)
   conf = yaml.safe_load(open(config_path, "r"))
   ctx = conf.get("current-context", None)
-  if not ctx: raise DuploError("Duplo context not set, please set context to a portals name", 500)
+  if not ctx: 
+    raise DuploError("Duplo context not set, please set context to a portals name", 500)
   try:
     return [p for p in conf["contexts"] if p["name"] == ctx][0]
   except IndexError:
