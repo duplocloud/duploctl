@@ -37,6 +37,16 @@ class DuploLambda(DuploTenantResource):
       return [s for s in self.list() if s["FunctionName"] == name][0]
     except IndexError:
       raise DuploError(f"Lambda '{name}' not found", 404)
+    
+  @Command()
+  def create(self, 
+             lambda_fx: args.BODY):
+    """Create a new tenant."""
+    tenant_id = self.tenant["TenantId"]
+    self.duplo.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", lambda_fx)
+    return {
+      "message": f"Lambda {lambda_fx["FunctionName"]} created"
+    }
 
   @Command()
   def update_image(self, 

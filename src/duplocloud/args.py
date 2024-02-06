@@ -78,7 +78,7 @@ MAX = Arg("max", "-M",
           help='The maximum number of replicas',
           type=int)
 
-CLI_INPUT = Arg("cli-input", "-I",
+BODY = Arg("file", "-f", "--cli-input",
             help='A file to read the input from',
             type=argparse.FileType('r'),
             action=YamlAction)
