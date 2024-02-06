@@ -3,7 +3,7 @@ import requests
 import jmespath
 from cachetools import cached, TTLCache
 from .errors import DuploError
-from .commander import load_service,load_format, Command, get_parser
+from .commander import load_service,load_format, Command, get_parser, get_config_context
 from . import args as t
 
 class DuploClient():
@@ -73,6 +73,12 @@ Client for Duplo at {self.host}
     """
     parser = get_parser(DuploClient.__init__)
     env, args = parser.parse_known_args()
+    # use the duplo config if host or token are not set
+    if not env.host or not env.token:
+      ctx = get_config_context()
+      env.host = ctx.get("host", None)
+      env.token = ctx.get("token", None)
+      env.tenant = ctx.get("tenant", env.tenant)
     return DuploClient(**vars(env)), args
 
   @cached(cache=TTLCache(maxsize=128, ttl=60))
