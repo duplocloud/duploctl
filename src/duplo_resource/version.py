@@ -19,4 +19,3 @@ class DuploVersion():
       "cli": cli,
       "ui": server.json()
     }
-

@@ -14,7 +14,8 @@ class DuploService(DuploTenantResource):
   def list(self):
     """Retrieve a list of all services in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    return self.duplo.get(f"subscriptions/{tenant_id}/GetReplicationControllers")
+    response = self.duplo.get(f"subscriptions/{tenant_id}/GetReplicationControllers")
+    return response.json()
   
   @Command()
   def find(self, 

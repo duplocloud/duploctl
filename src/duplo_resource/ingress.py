@@ -14,7 +14,8 @@ class DuploIngress(DuploTenantResource):
   def list(self):
     """Retrieve a list of all ingress in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    return self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/ingress")
+    response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/ingress")
+    return response.json()
   
   @Command()
   def find(self, 

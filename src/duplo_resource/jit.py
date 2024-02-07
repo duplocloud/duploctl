@@ -22,8 +22,8 @@ class DuploJit(DuploResource):
   def k8s(self,
           planId: args.PLAN = None):
     """Retrieve k8s session credentials for current user."""
-    creds = self.duplo.get(f"v3/admin/plans/{planId}/k8sConfig")
-    return self.__k8s_exec_credential(creds.json())
+    response = self.duplo.get(f"v3/admin/plans/{planId}/k8sConfig")
+    return self.__k8s_exec_credential(response.json())
   
   @Command()
   def update_kubeconfig(self,
