@@ -1,6 +1,5 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResource
-from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -14,12 +13,8 @@ class DuploCronJob(DuploTenantResource):
   def list(self):
     """Retrieve a list of all cronjob in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    tenant_name = self.tenant["AccountName"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/cronJob")
-    if (data := response.json()):
-      return data
-    else:
-      raise DuploError(f"No CronJobs found in tenant '{tenant_name}'", 404)
+    return response.json()
   
   @Command()
   def find(self, 
