@@ -33,6 +33,29 @@ CLI command syntax for invoking ```duploctl```
 duploctl <resource> <command> <args...>
 ```
 
+### Example Usages
+Configure `duploctl` access with environment variables:
+```sh
+export DUPLO_HOST=https://example.duplocloud.net
+export DUPLO_TOKEN=AQAAA...
+export DUPLO_TENANT=dev01
+```
+
+List the services in a tenant:
+```sh
+duploctl service list
+```
+
+Get AWS Console URL:
+```sh
+duploctl jit aws
+```
+
+Get Kubernetes config:
+```sh
+duploctl jit k8s
+```
+
 ### Python Module
 
 Spawn your client from a Python script using the ```DuploClient.from_env()``` method and arguments. The second return value are the unparsed arguments from the command line. 
