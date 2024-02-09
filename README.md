@@ -53,7 +53,7 @@ duploctl jit aws
 
 Get Kubernetes config:
 ```sh
-duploctl jit k8s
+duploctl jit update_kubeconfig myinfra
 ```
 
 ### Python Module
