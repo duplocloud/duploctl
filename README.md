@@ -35,7 +35,7 @@ duploctl <resource> <command> <args...>
 
 ### Example Usages
 
-Full documentation is in the [[duploctl wiki on GitHub|Home]].
+Full documentation is in the Wiki section.
 
 Configure `duploctl` access with environment variables:
 ```sh
