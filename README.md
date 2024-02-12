@@ -34,6 +34,9 @@ duploctl <resource> <command> <args...>
 ```
 
 ### Example Usages
+
+Full documentation is in the [[duploctl wiki on GitHub|Home]].
+
 Configure `duploctl` access with environment variables:
 ```sh
 export DUPLO_HOST=https://example.duplocloud.net
