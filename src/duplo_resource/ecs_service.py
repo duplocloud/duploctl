@@ -6,7 +6,7 @@ import duplocloud.args as args
 
 
 @Resource("ecs_service")
-class DuploService(DuploTenantResource):
+class DuplEcsService(DuploTenantResource):
 
     def __init__(self, duplo: DuploClient):
         super().__init__(duplo)
