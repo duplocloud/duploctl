@@ -94,6 +94,7 @@ secret = "duplo_resource.secret:DuploSecret"
 configmap = "duplo_resource.configmap:DuploConfigMap"
 hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
+ecs_service= "duplo_resource.ecs_service:DuploEcsService"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
