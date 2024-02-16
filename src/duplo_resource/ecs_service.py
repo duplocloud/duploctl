@@ -15,7 +15,7 @@ class DuploEcsService(DuploTenantResource):
     def list(self):
         """Retrieve a list of all ECS services in a tenant."""
         tenant_id = self.tenant["TenantId"]
-        response = self.duplo.get(f"subscriptions/{tenant_id}/aws/ecs/service")
+        response = self.duplo.get(f"v3/subscriptions/{tenant_id}/aws/ecs/service")
         return response.json()
 
     @Command()
