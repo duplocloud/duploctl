@@ -65,7 +65,7 @@ Spawn your client from a Python script using the ```DuploClient.from_env()``` me
 
 ```python
 duplo, args = DuploClient.from_env()
-out = duplo.run("tenant", "list")
+out = duplo("tenant", "list")
 ```
 
 Spawn a client with a custom host and token from a Python script. 
