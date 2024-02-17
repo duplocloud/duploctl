@@ -20,6 +20,7 @@ authors = [
 ]
 maintainers = [
 { name = "Kelly", email = "kelly@duplocloud.net" }
+{ name = "Mick", email ="mick@duplocloud.net" }
 ]
 dependencies = [
   "requests>=2.22.0",
