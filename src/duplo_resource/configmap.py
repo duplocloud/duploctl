@@ -16,11 +16,8 @@ class DuploConfigMap(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     tenant_name = self.tenant["AccountName"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/configmap")
-    if (data := response.json()):
-      return data
-    else:
-      raise DuploError(f"No Configmaps found in tenant '{tenant_name}'", 404)
-  
+    return response.json()
+
   @Command()
   def find(self, 
            name: args.NAME):

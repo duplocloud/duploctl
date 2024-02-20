@@ -15,10 +15,7 @@ class DuploUser(DuploResource):
     """Retrieve a list of all users in the Duplo system."""
     response = self.duplo.get("admin/GetAllUserRoles")
     tenant_name = self.tenant["AccountName"]
-    if (data := response.json()):
-      return data
-    else:
-      raise DuploError(f"No users found in tenant '{tenant_name}'", 404)
+    return response.json()
   
   @Command()
   def find(self, 

@@ -16,11 +16,8 @@ class DuploHosts(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     tenant_name = self.tenant["AccountName"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetNativeHosts")
-    if (data := response.json()):
-      return data
-    else:
-      raise DuploError(f"No hosts found in tenant '{tenant_name}'", 404)
-  
+    return response.json()
+
   @Command()
   def find(self, 
            name: args.NAME):
