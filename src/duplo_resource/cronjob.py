@@ -29,7 +29,6 @@ class DuploCronJob(DuploTenantResource):
       DuploError: If the cronjob could not be found.
     """
     tenant_id = self.tenant["TenantId"]
-    tenant_name = self.tenant["AccountName"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/cronJob/{name}")
     return response.json()
 

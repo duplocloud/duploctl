@@ -14,7 +14,6 @@ class DuploUser(DuploResource):
   def list(self):
     """Retrieve a list of all users in the Duplo system."""
     response = self.duplo.get("admin/GetAllUserRoles")
-    tenant_name = self.tenant["AccountName"]
     return response.json()
   
   @Command()

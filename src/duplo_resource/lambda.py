@@ -59,7 +59,6 @@ class DuploLambda(DuploTenantResource):
       image (str): The new image to use for the lambda.
     """
     tenant_id = self.tenant["TenantId"]
-    tenant_name = self.tenant["AccountName"]
     data = {
       "FunctionName": name,
       "ImageUri": image
