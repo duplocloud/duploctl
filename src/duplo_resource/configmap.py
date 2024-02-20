@@ -14,7 +14,6 @@ class DuploConfigMap(DuploTenantResource):
   def list(self):
     """Retrieve a list of all configmaps in a tenant."""
     tenant_id = self.tenant["TenantId"]
-    tenant_name = self.tenant["AccountName"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/configmap")
     return response.json()
 
