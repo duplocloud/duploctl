@@ -56,7 +56,7 @@ class DuploService(DuploTenantResource):
       data = {
         "Name": name,
         "Image": image,
-        "AllocationTags": service["Template"].get("AllocationTags", [])
+        "AllocationTags": service["Template"].get("AllocationTags", "")
       }
       self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
     return {"message": f"Successfully updated image for service '{name}'"}
