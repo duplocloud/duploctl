@@ -35,10 +35,10 @@ class DuploClient():
                version: t.VERSION=None) -> None:
     self.host = host.strip()
     self.tenant = tenant.strip()
-    self.query = query.strip()
+    self.query = query.strip() if query else query
     self.output = output.strip()
     self.timeout = 30
-    self.version = version.strip()
+    self.version = version
     self.headers = {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {token}"
@@ -195,12 +195,9 @@ Client for Duplo at {self.host}
     Returns:
       The response as a JSON object.
     """
-    contentType = response.headers.get('content-type', 'application/json').split(';')[0]
+    # contentType = response.headers.get('content-type', 'application/json').split(';')[0]
     if 200 <= response.status_code < 300:
-      if contentType == 'application/json':
-        return response
-      elif contentType == 'text/plain':
-        return {"message": response.text}
+      return response
     
     if response.status_code == 404:
       raise DuploError("Resource not found", response.status_code)
