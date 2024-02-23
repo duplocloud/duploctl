@@ -1,0 +1,18 @@
+name: Notifications
+
+on:
+  workflow_call:
+
+
+jobs:
+  slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+            channel-id: 'C06B3H23Z1N'
+            slack-message: "duploctl ${{ github.event.release.tag_name }} is out! Check it out at ${{ github.event.release.html_url }}."
+        env:
+            SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
