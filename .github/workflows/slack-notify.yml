@@ -12,7 +12,7 @@ jobs:
         id: slack
         uses: slackapi/slack-github-action@v1.25.0
         with:
-            channel-id: 'C06B3H23Z1N'
+            channel-id: ${{ vars.SLACK_CHANNEL_ID }}
             slack-message: "duploctl ${{ github.event.release.tag_name }} is out! Check it out at ${{ github.event.release.html_url }}."
         env:
             SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
