@@ -33,10 +33,10 @@ class DuploClient():
                query: t.QUERY=None,
                output: t.OUTPUT="json",
                version: t.VERSION=None) -> None:
-    self.host = host
-    self.tenant = tenant
-    self.query = query
-    self.output = output
+    self.host = host.strip()
+    self.tenant = tenant.strip()
+    self.query = query.strip() if query else query
+    self.output = output.strip()
     self.timeout = 30
     self.version = version
     self.headers = {
@@ -104,7 +104,7 @@ Client for Duplo at {self.host}
       raise DuploError("A conntection error occured with Duplo", 500) from e
     except requests.exceptions.RequestException as e:
       raise DuploError("Error connecting to Duplo with a request exception", 500) from e
-    return self._validate_response(response)
+    return self.__validate_response(response)
   
   def post(self, path: str, data: dict={}):
     """Post data to a Duplo resource.
@@ -121,7 +121,7 @@ Client for Duplo at {self.host}
       timeout = self.timeout,
       json = data
     )
-    return self._validate_response(response)
+    return self.__validate_response(response)
   
   def put(self, path: str, data: dict={}):
     """Put data to a Duplo resource.
@@ -138,7 +138,7 @@ Client for Duplo at {self.host}
       timeout = self.timeout,
       json = data
     )
-    return self._validate_response(response)
+    return self.__validate_response(response)
   
   def load(self, resource: str):
     """Load Service
@@ -153,7 +153,7 @@ Client for Duplo at {self.host}
     # load and instantiate from the entry points
     svc = load_service(resource)
     return svc(self)
-  
+
   def filter(self, data: dict):
     """Query data
 
@@ -185,7 +185,7 @@ Client for Duplo at {self.host}
     fmt = load_format(self.output)
     return fmt(data)
   
-  def _validate_response(self, response: dict):
+  def __validate_response(self, response: dict):
     """Validate a response from Duplo.
     
     Args:
@@ -195,12 +195,9 @@ Client for Duplo at {self.host}
     Returns:
       The response as a JSON object.
     """
-    contentType = response.headers.get('content-type', 'application/json').split(';')[0]
+    # contentType = response.headers.get('content-type', 'application/json').split(';')[0]
     if 200 <= response.status_code < 300:
-      if contentType == 'application/json':
-        return response
-      elif contentType == 'text/plain':
-        return {"message": response.text}
+      return response
     
     if response.status_code == 404:
       raise DuploError("Resource not found", response.status_code)

@@ -16,7 +16,7 @@ class DuploHosts(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetNativeHosts")
     return response.json()
-  
+
   @Command()
   def find(self, 
            name: args.NAME):
