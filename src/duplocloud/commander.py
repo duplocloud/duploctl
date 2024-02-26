@@ -3,9 +3,6 @@ import argparse
 from importlib.metadata import entry_points
 from .errors import DuploError
 from .argtype import Arg
-import os
-from pathlib import Path
-import yaml
 
 ENTRYPOINT="duplocloud.net"
 FORMATS=f"formats.{ENTRYPOINT}"
@@ -96,7 +93,7 @@ def load_service(name: str):
 Resource named {name} not found.
 Available resources are:
   {", ".join(avail)}
-""", 500)
+""", 404)
 
 def load_format(name: str="string"):
   """Load Format
@@ -118,19 +115,3 @@ def available_resources():
   """
   return list(ep.names)
 
-def get_config_context():
-  """Get Config Context
-  
-  Get the current context from the Duplo config.
-  """
-  config_path = os.environ.get("DUPLO_CONFIG", f"{Path.home()}/.duplo/config")
-  if not os.path.exists(config_path): 
-    raise DuploError("Duplo config not found", 500)
-  conf = yaml.safe_load(open(config_path, "r"))
-  ctx = conf.get("current-context", None)
-  if not ctx: 
-    raise DuploError("Duplo context not set, please set context to a portals name", 500)
-  try:
-    return [p for p in conf["contexts"] if p["name"] == ctx][0]
-  except IndexError:
-    raise DuploError(f"Portal '{ctx}' not found in config", 500)

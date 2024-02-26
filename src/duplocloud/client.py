@@ -3,7 +3,8 @@ import requests
 import jmespath
 from cachetools import cached, TTLCache
 from .errors import DuploError
-from .commander import load_service,load_format, Command, get_parser, get_config_context
+from .commander import load_service,load_format, Command, get_parser
+from .auth import get_config_context
 from . import args as t
 
 class DuploClient():
