@@ -4,7 +4,7 @@ import jmespath
 from cachetools import cached, TTLCache
 from .errors import DuploError
 from .commander import load_service,load_format, Command, get_parser
-from .auth import get_config_context
+from .auth import discover_credentials
 from . import args as t
 
 class DuploClient():
@@ -33,13 +33,15 @@ class DuploClient():
                tenant: t.TENANT,
                query: t.QUERY=None,
                output: t.OUTPUT="json",
-               version: t.VERSION=None) -> None:
+               version: t.VERSION=None,
+               interactive: t.INTERACTIVE=False) -> None:
     self.host = host.strip()
     self.tenant = tenant.strip()
     self.query = query.strip() if query else query
     self.output = output.strip()
     self.timeout = 30
     self.version = version
+    self.interactive = interactive
     self.headers = {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {token}"
@@ -75,11 +77,7 @@ Client for Duplo at {self.host}
     parser = get_parser(DuploClient.__init__)
     env, args = parser.parse_known_args()
     # use the duplo config if host or token are not set
-    if not env.host or not env.token:
-      ctx = get_config_context()
-      env.host = ctx.get("host", None)
-      env.token = ctx.get("token", None)
-      env.tenant = ctx.get("tenant", env.tenant)
+    env = discover_credentials(env)
     return DuploClient(**vars(env)), args
 
   @cached(cache=TTLCache(maxsize=128, ttl=60))

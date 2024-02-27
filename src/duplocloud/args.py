@@ -14,6 +14,11 @@ TOKEN = Arg('token', '-t',
             help='The token/password to authenticate with',
             default=os.getenv('DUPLO_TOKEN', None))
 
+INTERACTIVE = Arg("interactive","-I", 
+              help='Interactive Login mode',
+              type=bool,
+              action='store_true')
+
 TENANT = Arg("tenant", "-T",
              help='The tenant name',
              default=os.getenv('DUPLO_TENANT', "default"))
