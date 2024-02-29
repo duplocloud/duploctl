@@ -2,9 +2,10 @@
 import requests
 import jmespath
 from cachetools import cached, TTLCache
+
+from .config import DuploConfig
 from .errors import DuploError
 from .commander import load_service,load_format, Command, get_parser
-from .auth import discover_credentials
 from . import args as t
 
 class DuploClient():
@@ -74,10 +75,18 @@ Client for Duplo at {self.host}
     Returns:
       The DuploClient.
     """
-    parser = get_parser(DuploClient.__init__)
-    env, args = parser.parse_known_args()
+    dc = DuploConfig.from_env()
+    p = get_parser(DuploClient.__init__)
+    env, args = p.parse_known_args()
     # use the duplo config if host or token are not set
-    env = discover_credentials(env)
+    if not env.host:
+      ctx = dc.context
+      env.host = ctx.get("host", None)
+      env.token = ctx.get("token", env.token)
+      env.tenant = ctx.get("tenant", env.tenant)
+      env.interactive = ctx.get("interactive", env.interactive)
+    if not env.token and env.interactive:
+      env.token = dc.discover_token(env.host)
     return DuploClient(**vars(env)), args
 
   @cached(cache=TTLCache(maxsize=128, ttl=60))

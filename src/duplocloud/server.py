@@ -1,57 +1,7 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler
-import os
-from pathlib import Path
-import yaml
-import webbrowser
 from .errors import DuploError
 import threading
 import time
-
-def discover_credentials(env):
-  if not env.host:
-    ctx = get_config_context()
-    env.host = ctx.get("host", None)
-    env.token = ctx.get("token", env.token)
-    env.tenant = ctx.get("tenant", env.tenant)
-    env.interactive = ctx.get("interactive", env.interactive)
-  if not env.token and env.interactive:
-    env.token = interactive_token(env.host)
-  return env
-
-def get_config_context():
-  """Get Config Context
-  
-  Get the current context from the Duplo config.
-  """
-  config_path = os.environ.get("DUPLO_CONFIG", f"{Path.home()}/.duplo/config")
-  if not os.path.exists(config_path): 
-    raise DuploError("Duplo config not found", 500)
-  conf = yaml.safe_load(open(config_path, "r"))
-  ctx = conf.get("current-context", None)
-  if not ctx: 
-    raise DuploError("Duplo context not set, please set context to a portals name", 500)
-  try:
-    return [p for p in conf["contexts"] if p["name"] == ctx][0]
-  except IndexError:
-    raise DuploError(f"Portal '{ctx}' not found in config", 500)
-
-def interactive_token(host: str):
-  """Interactive Login
-  
-  Perform an interactive login to the specified host.
-
-  Args:
-    host: The host to login to.
-  """
-  port = 56022
-  url = f"{host}/app/user/verify-token?localAppName=duploctl&localPort={port}&isAdmin=true"
-  webbrowser.open(url, new=0, autoraise=True)
-  with TokenServer(port, 20) as server:
-    try:
-      return server.token_server()
-    except KeyboardInterrupt:
-      server.shutdown()
-      pass
 
 class InteractiveLogin(SimpleHTTPRequestHandler):
 
@@ -85,7 +35,7 @@ class InteractiveLogin(SimpleHTTPRequestHandler):
     pass
 
 class TokenServer(HTTPServer):
-  def __init__(self, port, timeout=20):
+  def __init__(self, port, timeout=60):
     self.token = None
     self.timeout = timeout
     super().__init__(('', port), InteractiveLogin, True)
