@@ -1,5 +1,5 @@
-from duplocloud.client import DuploClient
-from duplocloud.errors import DuploError
+from .client import DuploClient
+from .errors import DuploError
 
 def main():
   try:

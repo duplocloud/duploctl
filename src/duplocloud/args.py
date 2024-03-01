@@ -1,9 +1,8 @@
-from .argtype import Arg
-from .argaction import YamlAction
 import os
 import argparse
-from .commander import available_resources
 from importlib.metadata import version
+from .argtype import Arg, YamlAction
+from .commander import available_resources
 
 # the global args for the CLI
 
