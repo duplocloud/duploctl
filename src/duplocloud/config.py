@@ -47,10 +47,10 @@ class DuploConfig():
       An instance of DuploConfig.
     """
     p = get_parser(DuploConfig.__init__)
-    env, args = p.parse_known_args()
-    c = DuploConfig(**vars(env))
+    args, xtra = p.parse_known_args()
+    c = DuploConfig(**vars(args))
     c.setup()
-    return c, args
+    return c, xtra
   
   @property
   def settings(self):
