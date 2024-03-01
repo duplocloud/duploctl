@@ -12,7 +12,7 @@ class InteractiveLogin(SimpleHTTPRequestHandler):
     # Send response back to client
     self.send_response(200)
     self.end_headers()
-    self.wfile.write(b'done')
+    self.wfile.write(b'"done"')
     token = post_data.decode('utf-8')
     self.server.token = token
 

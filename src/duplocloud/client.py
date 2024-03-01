@@ -157,6 +157,20 @@ Client for Duplo at {self.config.host}
       raise DuploError("Invalid jmespath query", 500) from e
     except jmespath.exceptions.JMESPathTypeError as e:
       raise DuploError("Invalid jmespath query", 500) from e
+    
+  def load(self, resource: str):
+    """Load Service
+      
+    Load a resource class from the entry points.
+
+    Args:
+      name: The name of the service.
+    Returns:
+      The instantiated service with a reference to this client.
+    """
+    # load and instantiate from the entry points
+    svc = load_resource(resource)
+    return svc(self)
   
   def format(self, data: dict):
     """Format data.
