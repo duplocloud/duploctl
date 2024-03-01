@@ -21,8 +21,8 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     self.end_headers()
 
   def end_headers(self):
-    self.send_header('Access-Control-Allow-Origin', '*')
-    self.send_header('Access-Control-Allow-Methods', '*')
+    self.send_header('Access-Control-Allow-Origin', self.server.host)
+    self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
     self.send_header('Access-Control-Allow-Headers', '*')
     self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
     return super(TokenCallbackHandler, self).end_headers()
@@ -32,8 +32,9 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     pass
 
 class TokenServer(HTTPServer):
-  def __init__(self, timeout=60):
+  def __init__(self, host: str, timeout=60):
     self.token = None
+    self.host = host
     self.timeout = timeout
     super().__init__(('', 0), TokenCallbackHandler, True)
 

@@ -190,7 +190,7 @@ class DuploConfig():
     Returns:
       The token as a string.
     """
-    with TokenServer() as server:
+    with TokenServer(self.host) as server:
       try:
         isadmin = "true" if self.isadmin else "false"
         params = f"localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}"
