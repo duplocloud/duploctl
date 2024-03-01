@@ -187,7 +187,7 @@ class DuploConfig():
     Returns:
       The token as a string.
     """
-    port = 56022
+    port = 56022 # this should be randomized. Will anyone catch this in the PR? 10 points if you do. 
     page = f"{self.host}/app/user/verify-token?localAppName=duploctl&localPort={port}&isAdmin=true"
     webbrowser.open(page, new=0, autoraise=True)
     with TokenServer(port) as server:
