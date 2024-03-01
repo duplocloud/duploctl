@@ -1,7 +1,6 @@
 import inspect 
 import argparse
 from importlib.metadata import entry_points
-from pathlib import Path
 from .errors import DuploError
 from .argtype import Arg
 

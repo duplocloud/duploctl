@@ -2,7 +2,6 @@
 import requests
 import jmespath
 from cachetools import cached, TTLCache
-from importlib.metadata import entry_points
 from .config import DuploConfig
 from .errors import DuploError
 from .commander import load_resource,load_format
