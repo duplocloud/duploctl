@@ -40,7 +40,7 @@ class TokenServer(HTTPServer):
     self.timeout = timeout
     super().__init__(('', port), InteractiveLogin, True)
 
-  def token_server(self):
+  def serve_token(self):
     st = threading.Thread(target=self.serve_forever)
     wt = threading.Thread(target=self.wait_for_token)
     st.start()

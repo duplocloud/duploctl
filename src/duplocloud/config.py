@@ -192,7 +192,7 @@ class DuploConfig():
     webbrowser.open(page, new=0, autoraise=True)
     with TokenServer(port, 20) as server:
       try:
-        return server.token_server()
+        return server.serve_token()
       except KeyboardInterrupt:
         server.shutdown()
         pass
