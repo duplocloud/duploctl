@@ -16,6 +16,9 @@ ENABLED = Arg("enabled", "-y",
               help='A test enabled arg',
               action="store_true",
               type=bool)
+              
+IMAGE = Arg("image", "-i", "--img",
+            help='A test image arg')
 
 class SomeResource():
   @Command()
@@ -23,8 +26,7 @@ class SomeResource():
              # use shared arg
              name: NAME,
              # inline an Arg definition with alt flag and new dest based on arg name
-             image_name: Arg("image", "-i", "--img",
-                        help='A test image arg')="ubuntu",
+             image_name: IMAGE="ubuntu",
             # a boolean arg too
             enabled: ENABLED=False,
              # foo should not be registered as an arg

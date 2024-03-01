@@ -14,7 +14,7 @@ class DuploConfig():
 
   @Command()
   def __init__(self, 
-               host: args.HOST, 
+               host: args.HOST=None, 
                token: args.TOKEN=None, 
                tenant: args.TENANT="default",
                home_dir: args.HOME_DIR = None, 
