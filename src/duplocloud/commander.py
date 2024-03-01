@@ -77,7 +77,7 @@ def get_parser(function):
     raise DuploError(f"Function named {qn} not registered as a command.", 3)
   return parser
 
-def load_service(name: str):
+def load_resource(name: str):
   """Load Service
     
   Load a Service class from the entry points.

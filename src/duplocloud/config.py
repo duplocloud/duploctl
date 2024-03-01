@@ -7,18 +7,35 @@ import json
 from duplocloud.errors import DuploError, DuploExpiredCache
 import webbrowser
 from .server import TokenServer
+from . import args
+from .commander import Command, get_parser
 
 class DuploConfig():
 
+  @Command()
   def __init__(self, 
-               home_dir: str = None, 
-               config_file: str = None,
-               cache_dir: str = None):
+               host: args.HOST, 
+               token: args.TOKEN=None, 
+               tenant: args.TENANT="default",
+               home_dir: args.HOME_DIR = None, 
+               config_file: args.CONFIG = None,
+               cache_dir: args.CACHE_DIR = None,
+               version: args.VERSION=False,
+               interactive: args.INTERACTIVE=False,
+               query: args.QUERY=None,
+               output: args.OUTPUT="json"):
     user_home = Path.home()
     self.home_dir = home_dir or f"{user_home}/.duplo"
     self.config_file = config_file or f"{self.home_dir}/config"
     self.cache_dir = cache_dir or f"{self.home_dir}/cache"
     self.__config = None
+    self.version = version
+    self.interactive = interactive
+    self.host = host.strip()
+    self.token = token.strip() if token else token
+    self.tenant = tenant.strip()
+    self.query = query.strip() if query else query
+    self.output = output.strip()
 
   @staticmethod
   def from_env():
@@ -29,13 +46,14 @@ class DuploConfig():
     Returns:
       An instance of DuploConfig.
     """
-    home_dir = os.getenv("DUPLO_HOME", None)
-    config_file = os.getenv("DUPLO_CONFIG", None)
-    cache_dir = os.getenv("DUPLO_CACHE", None)
-    return DuploConfig(home_dir, config_file, cache_dir)
+    p = get_parser(DuploConfig.__init__)
+    env, args = p.parse_known_args()
+    c = DuploConfig(**vars(env))
+    c.setup()
+    return c, args
   
   @property
-  def config(self):
+  def settings(self):
     """Get Config
 
     Get the Duplo config as a dict. This is accessed as a property.
@@ -59,7 +77,7 @@ class DuploConfig():
     Returns:
       The context as a dict.
     """
-    c = self.config
+    c = self.settings
     try:
       if (ctx := c.get("current-context", None)):
         return [p for p in c["contexts"] if p["name"] == ctx][0]
@@ -67,6 +85,16 @@ class DuploConfig():
         raise DuploError("Duplo context not set, please set 'current-context' to a portals name in your config", 500)
     except IndexError:
       raise DuploError(f"Portal '{ctx}' not found in config", 500)
+    
+  def setup(self):
+    if not self.host:
+      ctx = self.context
+      self.host = ctx.get("host", None)
+      self.token = ctx.get("token", self.token)
+      self.tenant = ctx.get("tenant", self.tenant)
+      self.interactive = ctx.get("interactive", self.interactive)
+    if not self.token and self.interactive:
+      self.token = self.discover_token()
     
   def get_cached_item(self, key: str):
     """Get Cached Item
@@ -106,7 +134,7 @@ class DuploConfig():
     with open(fn, "w") as f:
       json.dump(data, f)
 
-  def discover_token(self, host: str):
+  def discover_token(self):
     """Discover Token
     
     Discover a token for the specified host. This checks the cache for a token and raises a 404 if it does not exist.
@@ -118,18 +146,18 @@ class DuploConfig():
     Returns:
       The token as a string.
     """
-    h = host.split("://")[1]
+    h = self.host.split("://")[1]
     k = f"{h},duplo-creds"
     t = None
     try:
       t = self.cached_token(k)
     except DuploExpiredCache:
-      t = self.interactive_token(host)
-      c = self.__duplo_token_cache(t)
+      t = self.interactive_token()
+      c = self.__token_cache(t)
       self.set_cached_item(k, c)
     return t
   
-  def cached_token(self, k: str):
+  def cached_token(self, key: str):
     """Cached Token
     
     Get a cached token from the cache directory. This checks if the file exists and raises a 404 if it does not. 
@@ -142,23 +170,25 @@ class DuploConfig():
     Returns:
       The token as a string.
     """
-    c = self.get_cached_item(k)
+    c = self.get_cached_item(key)
     if (exp := c.get("Expiration", None)) and (t := c.get("DuploToken", None)):
       if exp > datetime.datetime.now().isoformat():
         return t
-    raise DuploExpiredCache(k)
-    
+    raise DuploExpiredCache(key)
   
-  def interactive_token(self, host: str):
+  def interactive_token(self):
     """Interactive Login
     
-    Perform an interactive login to the specified host.
+    Perform an interactive login to the specified host. Opens a temporary web browser to the login page and starts a local server to receive the token. When the user authorizes the request in the browser, the token is received and the server is shutdown.
 
     Args:
       host: The host to login to.
+
+    Returns:
+      The token as a string.
     """
     port = 56022
-    page = f"{host}/app/user/verify-token?localAppName=duploctl&localPort={port}&isAdmin=true"
+    page = f"{self.host}/app/user/verify-token?localAppName=duploctl&localPort={port}&isAdmin=true"
     webbrowser.open(page, new=0, autoraise=True)
     with TokenServer(port, 20) as server:
       try:
@@ -167,7 +197,7 @@ class DuploConfig():
         server.shutdown()
         pass
 
-  def __duplo_token_cache(self, token, otp=False):
+  def __token_cache(self, token, otp=False):
     return {
       "Version": "v1",
       "DuploToken": token,

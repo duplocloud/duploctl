@@ -6,6 +6,19 @@ from .commander import available_resources
 from importlib.metadata import version
 
 # the global args for the CLI
+
+HOME_DIR = Arg('homedir', '--home-dir', 
+            help='The home directory for duplo configurations',
+            default=os.getenv('DUPLO_HOME', None))
+
+CACHE_DIR = Arg('cachedir', '--cache-dir', 
+            help='The home directory for duplo configurations',
+            default=os.getenv('DUPLO_CACHE', None))
+
+CONFIG = Arg('configfile', '--config-file', 
+            help='The home directory for duplo configurations',
+            default=os.getenv('DUPLO_CONFIG', None))
+
 HOST = Arg('host', '-H', 
             help='The tenant to be scope into',
             default=os.getenv('DUPLO_HOST', None))
