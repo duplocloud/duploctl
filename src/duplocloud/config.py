@@ -190,7 +190,7 @@ class DuploConfig():
     port = 56022
     page = f"{self.host}/app/user/verify-token?localAppName=duploctl&localPort={port}&isAdmin=true"
     webbrowser.open(page, new=0, autoraise=True)
-    with TokenServer(port, 20) as server:
+    with TokenServer(port) as server:
       try:
         return server.serve_token()
       except KeyboardInterrupt:
