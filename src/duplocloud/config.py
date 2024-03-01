@@ -4,7 +4,7 @@ from pathlib import Path
 import os
 import yaml
 import json
-from duplocloud.errors import DuploError, DuploExpiredCache
+from .errors import DuploError, DuploExpiredCache
 import webbrowser
 from .server import TokenServer
 from . import args
@@ -33,7 +33,7 @@ class DuploConfig():
     self.version = version
     self.interactive = interactive
     self.isadmin = admin
-    self.host = host.strip()
+    self.host = host.strip() if host else host
     self.token = token.strip() if token else token
     self.tenant = tenant.strip()
     self.query = query.strip() if query else query
