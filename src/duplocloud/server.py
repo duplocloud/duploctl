@@ -27,9 +27,6 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
     return super(TokenCallbackHandler, self).end_headers()
 
-  def shutdown_server(self):
-    self.server.shutdown()
-
   def log_message(self, format, *args):
     # Override to prevent printing any log messages
     pass
