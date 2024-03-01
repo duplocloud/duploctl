@@ -95,6 +95,7 @@ class DuploConfig():
       self.token = ctx.get("token", self.token)
       self.tenant = ctx.get("tenant", self.tenant)
       self.interactive = ctx.get("interactive", self.interactive)
+      self.isadmin = ctx.get("admin", self.isadmin)
     if not self.token and self.interactive:
       self.token = self.interactive_token()
     
