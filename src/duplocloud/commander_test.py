@@ -3,7 +3,7 @@ import unittest
 
 import argparse
 
-from .commander import schema, resources, Command, get_parser, load_service, available_resources
+from .commander import schema, resources, Command, get_parser, load_resource, available_resources
 from .argtype import Arg
 from .errors import DuploError
 from duplo_resource.service import DuploService
@@ -76,7 +76,7 @@ def test_using_parser():
   assert parsed_args.image_name == "splunz:latest"
 
 def test_loading_service():
-  assert (svc := load_service("service"))
+  assert (svc := load_resource("service"))
   assert "service" in resources
   svcs = available_resources()
   assert "service" in svcs
