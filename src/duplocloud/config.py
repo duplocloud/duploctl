@@ -177,7 +177,7 @@ class DuploConfig():
     raise DuploExpiredCache(key)
   
   def request_token(self):
-    """Interactive Login
+    """Request Token from Browser
     
     Perform an interactive login to the specified host. Opens a temporary web browser to the login page and starts a local server to receive the token. When the user authorizes the request in the browser, the token is received and the server is shutdown.
 
