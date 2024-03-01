@@ -94,7 +94,7 @@ class DuploConfig():
       self.tenant = ctx.get("tenant", self.tenant)
       self.interactive = ctx.get("interactive", self.interactive)
     if not self.token and self.interactive:
-      self.token = self.discover_token()
+      self.token = self.interactive_token()
     
   def get_cached_item(self, key: str):
     """Get Cached Item
@@ -134,7 +134,7 @@ class DuploConfig():
     with open(fn, "w") as f:
       json.dump(data, f)
 
-  def discover_token(self):
+  def interactive_token(self):
     """Discover Token
     
     Discover a token for the specified host. This checks the cache for a token and raises a 404 if it does not exist.
@@ -152,7 +152,7 @@ class DuploConfig():
     try:
       t = self.cached_token(k)
     except DuploExpiredCache:
-      t = self.interactive_token()
+      t = self.request_token()
       c = self.__token_cache(t)
       self.set_cached_item(k, c)
     return t
@@ -176,7 +176,7 @@ class DuploConfig():
         return t
     raise DuploExpiredCache(key)
   
-  def interactive_token(self):
+  def request_token(self):
     """Interactive Login
     
     Perform an interactive login to the specified host. Opens a temporary web browser to the login page and starts a local server to receive the token. When the user authorizes the request in the browser, the token is received and the server is shutdown.
