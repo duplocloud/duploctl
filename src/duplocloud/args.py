@@ -31,6 +31,11 @@ INTERACTIVE = Arg("interactive","-I",
               type=bool,
               action='store_true')
 
+ISADMIN = Arg("isadmin","--admin", 
+              help='Request admin access when using interactive login.',
+              type=bool,
+              action='store_true')
+
 TENANT = Arg("tenant", "-T",
              help='The tenant name',
              default=os.getenv('DUPLO_TENANT', "default"))

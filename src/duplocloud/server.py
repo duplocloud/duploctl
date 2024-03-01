@@ -32,10 +32,10 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     pass
 
 class TokenServer(HTTPServer):
-  def __init__(self, port, timeout=60):
+  def __init__(self, timeout=60):
     self.token = None
     self.timeout = timeout
-    super().__init__(('', port), TokenCallbackHandler, True)
+    super().__init__(('', 0), TokenCallbackHandler, True)
 
   def serve_token(self):
     st = threading.Thread(target=self.serve_forever)

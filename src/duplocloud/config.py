@@ -22,6 +22,7 @@ class DuploConfig():
                cache_dir: args.CACHE_DIR = None,
                version: args.VERSION=False,
                interactive: args.INTERACTIVE=False,
+               admin: args.ISADMIN=False,
                query: args.QUERY=None,
                output: args.OUTPUT="json"):
     user_home = Path.home()
@@ -31,6 +32,7 @@ class DuploConfig():
     self.__config = None
     self.version = version
     self.interactive = interactive
+    self.isadmin = admin
     self.host = host.strip()
     self.token = token.strip() if token else token
     self.tenant = tenant.strip()
@@ -187,11 +189,12 @@ class DuploConfig():
     Returns:
       The token as a string.
     """
-    port = 56022 # this should be randomized. Will anyone catch this in the PR? 10 points if you do. 
-    page = f"{self.host}/app/user/verify-token?localAppName=duploctl&localPort={port}&isAdmin=true"
-    webbrowser.open(page, new=0, autoraise=True)
-    with TokenServer(port) as server:
+    with TokenServer() as server:
       try:
+        isadmin = "true" if self.isadmin else "false"
+        params = f"localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}"
+        page = f"{self.host}/app/user/verify-token?{params}"
+        webbrowser.open(page, new=0, autoraise=True)
         return server.serve_token()
       except KeyboardInterrupt:
         server.shutdown()
