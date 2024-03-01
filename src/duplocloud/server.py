@@ -3,7 +3,7 @@ from .errors import DuploError
 import threading
 import time
 
-class InteractiveLogin(SimpleHTTPRequestHandler):
+class TokenCallbackHandler(SimpleHTTPRequestHandler):
 
   def do_POST(self):
     content_length = int(self.headers['Content-Length'])
@@ -25,7 +25,7 @@ class InteractiveLogin(SimpleHTTPRequestHandler):
     self.send_header('Access-Control-Allow-Methods', '*')
     self.send_header('Access-Control-Allow-Headers', '*')
     self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
-    return super(InteractiveLogin, self).end_headers()
+    return super(TokenCallbackHandler, self).end_headers()
 
   def shutdown_server(self):
     self.server.shutdown()
@@ -38,7 +38,7 @@ class TokenServer(HTTPServer):
   def __init__(self, port, timeout=60):
     self.token = None
     self.timeout = timeout
-    super().__init__(('', port), InteractiveLogin, True)
+    super().__init__(('', port), TokenCallbackHandler, True)
 
   def serve_token(self):
     st = threading.Thread(target=self.serve_forever)
