@@ -18,13 +18,14 @@ class DuploJit(DuploResource):
     """Retrieve aws session credentials for current user."""
     sts = None
     k = self.duplo.config.cache_key_for("aws-creds")
+    path = "adminproxy/GetJITAwsConsoleAccessUrl"
     try:
       if self.duplo.config.nocache:
-        sts = self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl").json()
+        sts = self.duplo.get(path).json()
       else:
         sts = self.duplo.config.get_cached_item(k)
     except DuploExpiredCache:
-      sts = self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl").json()
+      sts = self.duplo.get(path).json()
       self.duplo.config.set_cached_item(k, sts)
     return sts
 
@@ -32,8 +33,20 @@ class DuploJit(DuploResource):
   def k8s(self,
           planId: args.PLAN = None):
     """Retrieve k8s session credentials for current user."""
-    response = self.duplo.get(f"v3/admin/plans/{planId}/k8sConfig")
-    return self.__k8s_exec_credential(response.json())
+    creds = None
+    k = self.duplo.config.cache_key_for("k8s-creds")
+    path = f"v3/admin/plans/{planId}/k8sConfig"
+    try:
+      if self.duplo.config.nocache:
+        response = self.duplo.get(path)
+        creds = self.__k8s_exec_credential(response.json())
+      else:
+        creds = self.duplo.config.get_cached_item(k)
+    except DuploExpiredCache:
+      response = self.duplo.get(path)
+      creds = self.__k8s_exec_credential(response.json())
+      self.duplo.config.set_cached_item(k, creds)
+    return creds
   
   @Command()
   def update_kubeconfig(self,
@@ -104,7 +117,7 @@ https://github.com/duplocloud/duploctl
             "value": self.duplo.host
           },{
             "name": "DUPLO_TOKEN",
-            "value": self.duplo.headers["Authorization"].split(" ")[1]
+            "value": self.duplo.config.token
           }],
           "args": [
             "jit",
