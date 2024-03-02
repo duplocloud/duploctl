@@ -5,7 +5,6 @@ import os
 import yaml
 import json
 from .errors import DuploError, DuploExpiredCache
-import webbrowser
 from .server import TokenServer
 from . import args
 from .commander import Command, get_parser
@@ -22,20 +21,35 @@ class DuploConfig():
                cache_dir: args.CACHE_DIR = None,
                version: args.VERSION=False,
                interactive: args.INTERACTIVE=False,
-               admin: args.ISADMIN=False,
+               ctx: args.CONTEXT=None,
+               nocache: args.NOCACHE=False,
+               browser: args.BROWSER=None,
+               isadmin: args.ISADMIN=False,
                query: args.QUERY=None,
                output: args.OUTPUT="json"):
+    
+    # forces the given context to be used
+    if ctx: 
+      host = None
+      token = None
+    # ignore the given token with interactive mode
+    if token and interactive: 
+      token = None
+
     user_home = Path.home()
     self.home_dir = home_dir or f"{user_home}/.duplo"
     self.config_file = config_file or f"{self.home_dir}/config"
     self.cache_dir = cache_dir or f"{self.home_dir}/cache"
     self.__config = None
+    self.__context = ctx
+    self.__host = host.strip() if host else host
+    self.__token = token.strip() if token else token
     self.version = version
     self.interactive = interactive
-    self.isadmin = admin
-    self.host = host.strip() if host else host
-    self.token = token.strip() if token else token
-    self.tenant = tenant.strip()
+    self.nocache = nocache
+    self.browser = browser
+    self.isadmin = isadmin
+    self.tenant = tenant.strip().lower()
     self.query = query.strip() if query else query
     self.output = output.strip()
 
@@ -51,7 +65,6 @@ class DuploConfig():
     p = get_parser(DuploConfig.__init__)
     args, xtra = p.parse_known_args()
     c = DuploConfig(**vars(args))
-    c.setup()
     return c, xtra
   
   @property
@@ -79,25 +92,69 @@ class DuploConfig():
     Returns:
       The context as a dict.
     """
-    c = self.settings
+    s = self.settings
+    ctx = self.__context if self.__context else s.get("current-context", None)
+    if ctx is None:
+      raise DuploError(
+        "Duplo context not set, please set 'current-context' to a portals name in your config", 500)
     try:
-      if (ctx := c.get("current-context", None)):
-        return [p for p in c["contexts"] if p["name"] == ctx][0]
-      else:
-        raise DuploError("Duplo context not set, please set 'current-context' to a portals name in your config", 500)
+      return [p for p in s["contexts"] if p["name"] == ctx][0]
     except IndexError:
       raise DuploError(f"Portal '{ctx}' not found in config", 500)
     
-  def setup(self):
+  @property
+  def host(self):
+    """Get Host
+    
+    Get the host from the Duplo config. This is accessed as a property. 
+    If the host is some kind of falsey value, it will attempt to use the context.
+
+    Returns:
+      The host as a string.
+    """
+    if not self.__host:
+      self.use_context()
+    return self.__host
+  
+  @property 
+  def token(self):
+    """Get Token
+    
+    Returns the configured token. If interactive mode is enabled, an attempt will be made to get the token interactively. Ultimately, the token is required and if it is not set, an error will be raised.
+
+    Returns:
+      The token as a string.
+    """
     if not self.host:
-      ctx = self.context
-      self.host = ctx.get("host", None)
-      self.token = ctx.get("token", self.token)
-      self.tenant = ctx.get("tenant", self.tenant)
-      self.interactive = ctx.get("interactive", self.interactive)
-      self.isadmin = ctx.get("admin", self.isadmin)
-    if not self.token and self.interactive:
-      self.token = self.interactive_token()
+      raise DuploError("Host for Duplo portal is required", 500)
+    if not self.__token and self.interactive:
+      self.__token = self.interactive_token()
+    if not self.__token:
+      raise DuploError("Token for Duplo portal is required", 500)
+    return self.__token
+
+  def use_context(self, name: str = None):
+    """Use Context
+    
+    Use the specified context from the Duplo config.
+
+    Args:
+      name: The name of the context to use.
+    """
+
+    # Get the right context
+    if name:
+      self.__context = name
+    ctx = self.context
+
+    # set the context into this config
+    self.__host = ctx.get("host", None)
+    self.__token = ctx.get("token", None)
+    self.interactive = ctx.get("interactive", False)
+    self.isadmin = ctx.get("admin", False)
+    self.nocache = ctx.get("nocache", False)
+    # only tenant can be overridden by the args/env
+    self.tenant = ctx.get("tenant", self.tenant)
     
   def get_cached_item(self, key: str):
     """Get Cached Item
@@ -138,22 +195,20 @@ class DuploConfig():
       json.dump(data, f)
 
   def interactive_token(self):
-    """Discover Token
+    """Interactive Token
     
-    Discover a token for the specified host. This checks the cache for a token and raises a 404 if it does not exist.
-    If the token is expired, it will perform an interactive login and cache the token.
-
-    Args:
-      host: The host to get the token for.
+    Performs an interactive login for the configured host. The cache will be checked for a token and if it is expired, it will perform an interactive login and cache the token. The cache may be disabled by setting the nocache flag. 
     
     Returns:
       The token as a string.
     """
-    h = self.host.split("://")[1]
-    k = f"{h},duplo-creds"
     t = None
+    k = self.cache_key_for("duplo-creds")
     try:
-      t = self.cached_token(k)
+      if self.nocache:
+        t = self.request_token()
+      else:
+        t = self.cached_token(k)
     except DuploExpiredCache:
       t = self.request_token()
       c = self.__token_cache(t)
@@ -190,16 +245,33 @@ class DuploConfig():
     Returns:
       The token as a string.
     """
+    isadmin = "true" if self.isadmin else "false"
+    path = "app/user/verify-token"
     with TokenServer(self.host) as server:
       try:
-        isadmin = "true" if self.isadmin else "false"
-        params = f"localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}"
-        page = f"{self.host}/app/user/verify-token?{params}"
-        webbrowser.open(page, new=0, autoraise=True)
+        page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}"
+        server.open_callback(page, self.browser)
         return server.serve_token()
       except KeyboardInterrupt:
         server.shutdown()
         pass
+
+  def cache_key_for(self, name: str):
+    """Cache Key For
+    
+    Get the cache key for the given name. This is a simple string concatenation of the host and the name.
+
+    Args:
+      name: The name to get the cache key for.
+
+    Returns:
+      The cache key as a string.
+    """
+    h = self.host.split("://")[1]
+    k = f"{h},{name}"
+    if self.isadmin:
+      k = f"{k},admin"
+    return k
 
   def __token_cache(self, token, otp=False):
     return {

@@ -29,10 +29,6 @@ class DuploClient():
                config: DuploConfig) -> None:
     self.config = config
     self.timeout = 30
-    self.headers = {
-      'Content-Type': 'application/json',
-      'Authorization': f"Bearer {self.config.token}"
-    }
   
   def __str__(self) -> str:
      return f"""
@@ -92,7 +88,7 @@ Client for Duplo at {self.config.host}
     try:
       response = requests.get(
         url = f"{self.config.host}/{path}",
-        headers = self.headers,
+        headers = self.__headers(),
         timeout = self.timeout
       )
     except requests.exceptions.Timeout as e:
@@ -114,7 +110,7 @@ Client for Duplo at {self.config.host}
     """
     response = requests.post(
       url = f"{self.config.host}/{path}",
-      headers = self.headers,
+      headers = self.__headers(),
       timeout = self.timeout,
       json = data
     )
@@ -131,7 +127,7 @@ Client for Duplo at {self.config.host}
     """
     response = requests.put(
       url = f"{self.config.host}/{path}",
-      headers = self.headers,
+      headers = self.__headers(),
       timeout = self.timeout,
       json = data
     )
@@ -181,6 +177,13 @@ Client for Duplo at {self.config.host}
     """
     fmt = load_format(self.config.output)
     return fmt(data)
+  
+  def __headers(self):
+    t = self.config.token
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': f"Bearer {t}"
+    }
   
   def __validate_response(self, response: dict):
     """Validate a response from Duplo.

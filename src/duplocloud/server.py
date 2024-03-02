@@ -2,6 +2,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from .errors import DuploError
 import threading
 import time
+import webbrowser
 
 class TokenCallbackHandler(SimpleHTTPRequestHandler):
 
@@ -55,3 +56,8 @@ class TokenServer(HTTPServer):
       time.sleep(1)
       i += 1
     self.shutdown()
+
+  def open_callback(self, page: str, browser=None):
+    url = f"{self.host}/{page}"
+    wb = webbrowser if not browser else webbrowser.get(browser)
+    wb.open(url, new=0, autoraise=True)

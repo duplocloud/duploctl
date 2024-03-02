@@ -1,4 +1,5 @@
 from duplocloud.client import DuploClient
+from duplocloud.errors import DuploExpiredCache
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -15,8 +16,17 @@ class DuploJit(DuploResource):
   @Command()
   def aws(self):
     """Retrieve aws session credentials for current user."""
-    sts = self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl")
-    return sts.json()
+    sts = None
+    k = self.duplo.config.cache_key_for("aws-creds")
+    try:
+      if self.duplo.config.nocache:
+        sts = self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl").json()
+      else:
+        sts = self.duplo.config.get_cached_item(k)
+    except DuploExpiredCache:
+      sts = self.duplo.get("adminproxy/GetJITAwsConsoleAccessUrl").json()
+      self.duplo.config.set_cached_item(k, sts)
+    return sts
 
   @Command()
   def k8s(self,
