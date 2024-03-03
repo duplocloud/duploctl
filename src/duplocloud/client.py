@@ -27,6 +27,10 @@ class DuploClient():
   """
   def __init__(self, 
                config: DuploConfig) -> None:
+    """DuploClient
+    
+    Creates an instance of a duplocloud client configured for a certain portal. All of the specific configuration is done in the DuploConfig class.
+    """
     self.config = config
     self.timeout = 30
   

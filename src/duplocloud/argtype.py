@@ -3,23 +3,6 @@ import argparse
 import yaml
 
 class Arg(NewType):
-  """Command Argument Type
-
-  Args:
-    name (str): The name of the argument.
-    type (type): The type of the argument.
-    flag (str): The flag to use for the argument.
-    action (str): The action to use for the argument.
-    nargs (int): The number of arguments to use for the argument.
-    const (str): The constant to use for the argument.
-    default (str): The default value to use for the argument. This can be overriden by the default value of the arg in the function definition.
-    choices (list): The choices to use for the argument.
-    required (bool): Whether the argument is required.
-    help (str): The help text to use for the argument.
-    metavar (str): The metavar to use for the argument.
-    dest (str): The destination to use for the argument.
-    version (str): The version to use for the special version arg.
-  """
   def __init__(self, 
               name, 
               *flags, 
@@ -34,6 +17,23 @@ class Arg(NewType):
               metavar=None, 
               dest=None,
               version=None):
+    """Command Argument Type
+
+    Args:
+      name (str): The name of the argument.
+      type (type): The type of the argument.
+      flag (str): The flag to use for the argument.
+      action (str): The action to use for the argument.
+      nargs (int): The number of arguments to use for the argument.
+      const (str): The constant to use for the argument.
+      default (str): The default value to use for the argument. This can be overriden by the default value of the arg in the function definition.
+      choices (list): The choices to use for the argument.
+      required (bool): Whether the argument is required.
+      help (str): The help text to use for the argument.
+      metavar (str): The metavar to use for the argument.
+      dest (str): The destination to use for the argument.
+      version (str): The version to use for the special version arg.
+    """
     super().__init__(name, type)
     self.attributes = {}
     self._flags = flags

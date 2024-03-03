@@ -27,6 +27,10 @@ class DuploConfig():
                isadmin: args.ISADMIN=False,
                query: args.QUERY=None,
                output: args.OUTPUT="json"):
+    """DuploConfig
+    
+    An instance of a configuration for a certain duplo portal. This also includes any confiugration for the cache and the home directory so different portals can be used with different configurations.
+    """
     
     # forces the given context to be used
     if ctx: 
@@ -71,7 +75,7 @@ class DuploConfig():
   def settings(self):
     """Get Config
 
-    Get the Duplo config as a dict. This is accessed as a property.
+    Get the Duplo config as a dict. This is accessed as a lazy loaded property.
 
     Returns:
       The config as a dict.
@@ -87,7 +91,7 @@ class DuploConfig():
   def context(self):
     """Get Config Context
     
-    Get the current context from the Duplo config. This is accessed as a property. 
+    Get the current context from the Duplo config. This is accessed as a lazy loaded property. 
 
     Returns:
       The context as a dict.
@@ -98,7 +102,7 @@ class DuploConfig():
       raise DuploError(
         "Duplo context not set, please set 'current-context' to a portals name in your config", 500)
     try:
-      return [p for p in s["contexts"] if p["name"] == ctx][0]
+      return [c for c in s["contexts"] if c["name"] == ctx][0]
     except IndexError:
       raise DuploError(f"Portal '{ctx}' not found in config", 500)
     
@@ -106,7 +110,7 @@ class DuploConfig():
   def host(self):
     """Get Host
     
-    Get the host from the Duplo config. This is accessed as a property. 
+    Get the host from the Duplo config. This is accessed as a lazy loaded property. 
     If the host is some kind of falsey value, it will attempt to use the context.
 
     Returns:
@@ -121,6 +125,7 @@ class DuploConfig():
     """Get Token
     
     Returns the configured token. If interactive mode is enabled, an attempt will be made to get the token interactively. Ultimately, the token is required and if it is not set, an error will be raised.
+    This is accessed as a lazy loaded property.
 
     Returns:
       The token as a string.
@@ -160,8 +165,8 @@ class DuploConfig():
     """Get Cached Item
     
     Get a cached item from the cache directory. The files are all json. 
-    This checks if the file exists and raises a 404 if it does not. 
-    Finally the file is read and returned as a JSON object.
+    This checks if the file exists and raises an expired cache if it does not. 
+    Finally the file is read and returned as a JSON object. If anything goes wrong, an expired cache is raised because it's easy enough to rebuild it than to try and fix it.
 
     Args:
       name: The name of the item to get.
@@ -254,7 +259,6 @@ class DuploConfig():
         return server.serve_token()
       except KeyboardInterrupt:
         server.shutdown()
-        pass
 
   def cache_key_for(self, name: str):
     """Cache Key For
