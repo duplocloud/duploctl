@@ -33,6 +33,6 @@ class DuploTenantResource(DuploResource):
   @property
   def tenant(self):
     if not self._tenant:
-      self._tenant = self.tenant_svc.find(self.duplo.tenant)
+      self._tenant = self.tenant_svc.find(self.duplo.config.tenant)
     return self._tenant
 

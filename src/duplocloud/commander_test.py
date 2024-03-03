@@ -3,7 +3,7 @@ import unittest
 
 import argparse
 
-from .commander import schema, resources, Command, get_parser, load_service, available_resources
+from .commander import schema, resources, Command, get_parser, load_resource, available_resources
 from .argtype import Arg
 from .errors import DuploError
 from duplo_resource.service import DuploService
@@ -16,6 +16,9 @@ ENABLED = Arg("enabled", "-y",
               help='A test enabled arg',
               action="store_true",
               type=bool)
+              
+IMAGE = Arg("image", "-i", "--img",
+            help='A test image arg')
 
 class SomeResource():
   @Command()
@@ -23,8 +26,7 @@ class SomeResource():
              # use shared arg
              name: NAME,
              # inline an Arg definition with alt flag and new dest based on arg name
-             image_name: Arg("image", "-i", "--img",
-                        help='A test image arg')="ubuntu",
+             image_name: IMAGE="ubuntu",
             # a boolean arg too
             enabled: ENABLED=False,
              # foo should not be registered as an arg
@@ -76,7 +78,7 @@ def test_using_parser():
   assert parsed_args.image_name == "splunz:latest"
 
 def test_loading_service():
-  assert (svc := load_service("service"))
+  assert (svc := load_resource("service"))
   assert "service" in resources
   svcs = available_resources()
   assert "service" in svcs

@@ -1,25 +1,60 @@
-from .argtype import Arg
-from .argaction import YamlAction
 import os
 import argparse
-from .commander import available_resources
 from importlib.metadata import version
+from .argtype import Arg, YamlAction
+from .commander import available_resources
 
 # the global args for the CLI
+
+HOME_DIR = Arg('homedir', '--home-dir', 
+            help='The home directory for duplo configurations',
+            default=os.getenv('DUPLO_HOME', None))
+
+CACHE_DIR = Arg('cachedir', '--cache-dir', 
+            help='The cache directory for saved credentials.',
+            default=os.getenv('DUPLO_CACHE', None))
+
+CONFIG = Arg('configfile', '--config-file', 
+            help='The path to the duploctl configuration file.',
+            default=os.getenv('DUPLO_CONFIG', None))
+
 HOST = Arg('host', '-H', 
-            help='The tenant to be scope into',
+            help='The url to specified duplo portal.',
             default=os.getenv('DUPLO_HOST', None))
 
 TOKEN = Arg('token', '-t', 
-            help='The token/password to authenticate with',
+            help='The token to authenticate with duplocloud portal api.',
             default=os.getenv('DUPLO_TOKEN', None))
+
+INTERACTIVE = Arg("interactive","-I", 
+              help='Use interactive Login mode for temporary tokens. Do not use with --token.',
+              type=bool,
+              action='store_true')
+
+ISADMIN = Arg("admin","--isadmin", 
+              help='Request admin access when using interactive login.',
+              type=bool,
+              action='store_true')
+
+CONTEXT = Arg("context", "--ctx",
+              help='Use the specified context from the config file.',
+              default=os.getenv('DUPLO_CONTEXT', None))
+
+NOCACHE = Arg("no-cache","--nocache", 
+              help='Do not use cache credentials.',
+              type=bool,
+              action='store_true')
+
+BROWSER = Arg("web-browser","--browser", 
+              help='The desired web browser to use for interactive login',
+              default=os.getenv('DUPLO_BROWSER', None))
 
 TENANT = Arg("tenant", "-T",
              help='The tenant name',
              default=os.getenv('DUPLO_TENANT', "default"))
 
 PLAN = Arg("plan", "-P",
-            help='The plan name',
+            help='The plan name.',
             default=os.getenv('DUPLO_PLAN', "nonprod"))
 
 OUTPUT = Arg("output", "-o",

@@ -4,8 +4,8 @@ from duplocloud.errors import DuploError
 def main():
   try:
     duplo, args = DuploClient.from_env()
-    out = duplo(*args)
-    print(out)
+    o = duplo(*args)
+    print(o)
   except DuploError as e:
     print(e)
     exit(e.code)

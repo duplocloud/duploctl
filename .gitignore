@@ -1,5 +1,6 @@
 build
 dist
+.tmp
 *.egg-info
 .ruff_cache
 .pytest_cache
