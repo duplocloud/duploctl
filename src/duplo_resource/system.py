@@ -12,3 +12,11 @@ class DuploSystem(DuploResource):
     """Retrieve all of the system information."""
     return self.duplo.get("v3/features/system").json()
   
+  @Command()
+  def billing(self):
+    """Account
+    
+    Get the account spend for the portal. 
+    """
+    response = self.duplo.get(f"v3/billing/admin/aws/billing")
+    return response.json()
