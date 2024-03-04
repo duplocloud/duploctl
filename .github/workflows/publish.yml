@@ -21,3 +21,4 @@ jobs:
     name: Slack notify
     uses: ./.github/workflows/slack-notify.yml
     secrets: inherit
+    needs: [package, image]
