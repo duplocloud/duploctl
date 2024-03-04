@@ -12,7 +12,7 @@ class DuploBilling(DuploResource):
   def spend(self):
     """Spend
     
-    Get the spend for the tenant. 
+    Get the spend for the portal. 
     """
     tenant_id = self.tenant["TenantId"]
     response = self.duplo.get(f"v3/billing/subscriptions/{tenant_id}/aws/billing")
