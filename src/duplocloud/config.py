@@ -53,7 +53,7 @@ class DuploConfig():
     self.nocache = nocache
     self.browser = browser
     self.isadmin = isadmin
-    self.tenant = tenant.strip().lower()
+    self.tenant = tenant.strip().lower() if tenant else tenant
     self.query = query.strip() if query else query
     self.output = output.strip()
 
