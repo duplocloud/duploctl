@@ -15,7 +15,7 @@ class DuploConfig():
   def __init__(self, 
                host: args.HOST=None, 
                token: args.TOKEN=None, 
-               tenant: args.TENANT="default",
+               tenant: args.TENANT=None,
                home_dir: args.HOME_DIR = None, 
                config_file: args.CONFIG = None,
                cache_dir: args.CACHE_DIR = None,
@@ -53,7 +53,7 @@ class DuploConfig():
     self.nocache = nocache
     self.browser = browser
     self.isadmin = isadmin
-    self.tenant = tenant.strip().lower()
+    self.tenant = tenant.strip().lower() if tenant else tenant
     self.query = query.strip() if query else query
     self.output = output.strip()
 
