@@ -18,5 +18,5 @@ class DuploSystem(DuploResource):
     
     Get the account spend for the portal. 
     """
-    response = self.duplo.get(f"v3/billing/admin/aws/billing")
+    response = self.duplo.get("v3/billing/admin/aws/billing")
     return response.json()
