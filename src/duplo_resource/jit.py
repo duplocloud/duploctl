@@ -24,8 +24,11 @@ class DuploJit(DuploResource):
         sts = self.duplo.get(path).json()
       else:
         sts = self.duplo.config.get_cached_item(k)
+        if self.duplo.config.expired(sts.get("Expiration", None)):
+          raise DuploExpiredCache(k)
     except DuploExpiredCache:
       sts = self.duplo.get(path).json()
+      sts["Expiration"] = self.duplo.config.expiration()
       self.duplo.config.set_cached_item(k, sts)
     return sts
 
@@ -34,7 +37,7 @@ class DuploJit(DuploResource):
           planId: args.PLAN = None):
     """Retrieve k8s session credentials for current user."""
     creds = None
-    k = self.duplo.config.cache_key_for("k8s-creds")
+    k = self.duplo.config.cache_key_for(f"plan,{planId},k8s-creds")
     path = f"v3/admin/plans/{planId}/k8sConfig"
     try:
       if self.duplo.config.nocache:
@@ -42,6 +45,9 @@ class DuploJit(DuploResource):
         creds = self.__k8s_exec_credential(response.json())
       else:
         creds = self.duplo.config.get_cached_item(k)
+        exp = creds.get("status", {}).get("expirationTimestamp", None)
+        if self.duplo.config.expired(exp):
+          raise DuploExpiredCache(k)
     except DuploExpiredCache:
       response = self.duplo.get(path)
       creds = self.__k8s_exec_credential(response.json())
@@ -72,7 +78,6 @@ class DuploJit(DuploResource):
     return {"message": f"kubeconfig updated successfully to {kubeconfig_path}"}
   
   def __k8s_exec_credential(self, creds):
-    expiration = creds.get("LastTokenRefreshTime", datetime.now() + timedelta(seconds=60*55))
     return {
       "kind": "ExecCredential",
       "apiVersion": "client.authentication.k8s.io/v1beta1",
@@ -82,11 +87,11 @@ class DuploJit(DuploResource):
           "certificate-authority-data": creds["CertificateAuthorityDataBase64"],
           "config": None
         },
-        "interactive": False
+        "interactive": self.duplo.config.interactive
       },
       "status": {
         "token": creds["Token"],
-        "expirationTimestamp": expiration
+        "expirationTimestamp": self.duplo.config.expiration()
       }
     }
   
@@ -153,3 +158,6 @@ https://github.com/duplocloud/duploctl
       "users": [],
       "contexts": []
     }
+  
+
+    
