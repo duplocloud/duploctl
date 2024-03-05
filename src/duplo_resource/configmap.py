@@ -16,7 +16,7 @@ class DuploConfigMap(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/configmap")
     return response.json()
-  
+
   @Command()
   def find(self, 
            name: args.NAME):
