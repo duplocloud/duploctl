@@ -28,7 +28,7 @@ TOKEN = Arg('token', '-t',
 
 TENANT = Arg("tenant", "-T",
              help='The tenant name',
-             default=os.getenv('DUPLO_TENANT', "default"))
+             default=os.getenv('DUPLO_TENANT', None))
 
 INTERACTIVE = Arg("interactive","-I", 
               help='Use interactive Login mode for temporary tokens. Do not use with --token.',
