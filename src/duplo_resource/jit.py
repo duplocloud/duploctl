@@ -3,7 +3,6 @@ from duplocloud.errors import DuploExpiredCache
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
-from datetime import datetime, timedelta
 import os
 from pathlib import Path
 import yaml
