@@ -208,6 +208,12 @@ Client for Duplo at {self.config.host}
     
     if response.status_code == 401:
       raise DuploError(response.text, response.status_code)
+    
+    if response.status_code == 403:
+      raise DuploError("Unauthorized", response.status_code)  
+    
+    if response.status_code == 400:
+      raise DuploError(response.text, response.status_code)
 
     raise DuploError("Duplo responded with an error", response.status_code)
     

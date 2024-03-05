@@ -48,12 +48,12 @@ class DuploConfig():
     self.__context = ctx
     self.__host = host.strip() if host else host
     self.__token = token.strip() if token else token
+    self.__tenant = tenant.strip().lower() if tenant else tenant
     self.version = version
     self.interactive = interactive
     self.nocache = nocache
     self.browser = browser
     self.isadmin = isadmin
-    self.tenant = tenant.strip().lower() if tenant else tenant
     self.query = query.strip() if query else query
     self.output = output.strip()
 
@@ -137,6 +137,20 @@ class DuploConfig():
     if not self.__token:
       raise DuploError("Token for Duplo portal is required", 500)
     return self.__token
+  
+  @property
+  def tenant(self):
+    """Get Tenant
+    
+    Get the tenant from the Duplo config. This is accessed as a lazy loaded property. 
+    If the tenant is some kind of falsey value, it will attempt to use the context.
+
+    Returns:
+      The tenant as a string.
+    """
+    if not self.host:
+      raise DuploError("Host for Duplo portal is required", 500)
+    return self.__tenant
 
   def use_context(self, name: str = None):
     """Use Context
@@ -155,11 +169,11 @@ class DuploConfig():
     # set the context into this config
     self.__host = ctx.get("host", None)
     self.__token = ctx.get("token", None)
+    self.__tenant = ctx.get("tenant", self.__tenant)
     self.interactive = ctx.get("interactive", False)
     self.isadmin = ctx.get("admin", False)
     self.nocache = ctx.get("nocache", False)
     # only tenant can be overridden by the args/env
-    self.tenant = ctx.get("tenant", self.tenant)
     
   def get_cached_item(self, key: str):
     """Get Cached Item

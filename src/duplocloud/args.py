@@ -30,6 +30,10 @@ TENANT = Arg("tenant", "-T",
              help='The tenant name',
              default=os.getenv('DUPLO_TENANT', None))
 
+ARN = Arg("aws-arn", "--arn",
+           help='The aws arn',
+           default=None)
+
 INTERACTIVE = Arg("interactive","-I", 
               help='Use interactive Login mode for temporary tokens. Do not use with --token.',
               type=bool,
