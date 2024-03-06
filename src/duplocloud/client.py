@@ -2,7 +2,6 @@
 import requests
 import jmespath
 from cachetools import cached, TTLCache
-from .errors import DuploError
 from .commander import load_resource,load_format
 import datetime
 from pathlib import Path
@@ -88,10 +87,24 @@ class DuploClient():
     Returns:
       An instance of DuploConfig.
     """
-    p = get_parser(DuploConfig.__init__)
-    args, xtra = p.parse_known_args()
-    duplo = DuploClient(**vars(args))
+    p = get_parser(DuploClient.__init__)
+    env, xtra = p.parse_known_args()
+    duplo = DuploClient(**vars(env))
     return duplo, xtra
+  
+  @staticmethod
+  def from_args(args):
+    """DuploClient from Environment
+
+    Create a DuploClient from environment variables.
+
+    Returns:
+      An instance of DuploConfig.
+    """
+    p = get_parser(DuploClient.__init__)
+    env = p.parse_args(args)
+    duplo = DuploClient(**vars(env))
+    return duplo
   
   @staticmethod
   def from_creds(host: str, token: str, tenant: str):
