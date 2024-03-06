@@ -97,3 +97,15 @@ class DuploTenant(DuploResource):
       return f"Tenant '{name}' logging {enable}"
     else:
       raise DuploError(f"Failed to {'enable' if enable else 'disable'} tenant '{name}'", res.status_code)
+
+  @Command()
+  def billing(self,
+           name: args.NAME):
+    """Spend
+    
+    Get the spend for the tenant. 
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"v3/billing/subscriptions/{tenant_id}/aws/billing")
+    return response.json()
