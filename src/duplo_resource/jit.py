@@ -1,5 +1,5 @@
 from duplocloud.client import DuploClient
-from duplocloud.errors import DuploExpiredCache
+from duplocloud.errors import DuploError, DuploExpiredCache
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -18,20 +18,20 @@ class DuploJit(DuploResource):
   def aws(self, nocache: bool = None):
     """Retrieve aws session credentials for current user."""
     sts = None
-    k = self.duplo.config.cache_key_for("aws-creds")
+    k = self.duplo.cache_key_for("aws-creds")
     path = "adminproxy/GetJITAwsConsoleAccessUrl"
-    nc = nocache if nocache is not None else self.duplo.config.nocache
+    nc = nocache if nocache is not None else self.duplo.nocache
     try:
       if nc:
         sts = self.duplo.get(path).json()
       else:
-        sts = self.duplo.config.get_cached_item(k)
-        if self.duplo.config.expired(sts.get("Expiration", None)):
+        sts = self.duplo.get_cached_item(k)
+        if self.duplo.expired(sts.get("Expiration", None)):
           raise DuploExpiredCache(k)
     except DuploExpiredCache:
       sts = self.duplo.get(path).json()
-      sts["Expiration"] = self.duplo.config.expiration()
-      self.duplo.config.set_cached_item(k, sts)
+      sts["Expiration"] = self.duplo.expiration()
+      self.duplo.set_cached_item(k, sts)
     sts["Version"] = 1
     # TODO: Make the exp correct for aws cli because aws cli really doesn't like this format
     if "Expiration" in sts:
@@ -42,22 +42,24 @@ class DuploJit(DuploResource):
   def k8s(self,
           planId: args.PLAN = None):
     """Retrieve k8s session credentials for current user."""
+    if planId is None:
+      raise DuploError("--plan is required")
     creds = None
-    k = self.duplo.config.cache_key_for(f"plan,{planId},k8s-creds")
+    k = self.duplo.cache_key_for(f"plan,{planId},k8s-creds")
     path = f"v3/admin/plans/{planId}/k8sConfig"
     try:
-      if self.duplo.config.nocache:
+      if self.duplo.nocache:
         response = self.duplo.get(path)
         creds = self.__k8s_exec_credential(response.json())
       else:
-        creds = self.duplo.config.get_cached_item(k)
+        creds = self.duplo.get_cached_item(k)
         exp = creds.get("status", {}).get("expirationTimestamp", None)
-        if self.duplo.config.expired(exp):
+        if self.duplo.expired(exp):
           raise DuploExpiredCache(k)
     except DuploExpiredCache:
       response = self.duplo.get(path)
       creds = self.__k8s_exec_credential(response.json())
-      self.duplo.config.set_cached_item(k, creds)
+      self.duplo.set_cached_item(k, creds)
     # TODO: sadly the expirationTimestamp is not in the right format for kubectl either
     if "status" in creds and "expirationTimestamp" in creds["status"]:
       del creds["status"]["expirationTimestamp"]
@@ -98,7 +100,7 @@ class DuploJit(DuploResource):
     try:
       cp[prf]
     except KeyError:
-      cmd = self.duplo.config.build_command("duploctl", "jit", "aws")
+      cmd = self.duplo.build_command("duploctl", "jit", "aws")
       cp.add_section(prf)
       cp.set(prf, 'region', os.getenv("AWS_DEFAULT_REGION", "us-west-2"))
       cp.set(prf, 'credential_process', " ".join(cmd))
@@ -109,7 +111,7 @@ class DuploJit(DuploResource):
 
   @Command()
   def web(self):
-    b = self.duplo.config.browser
+    b = self.duplo.browser
     wb = webbrowser if not b else webbrowser.get(b)
     sts = self.aws(nocache=True)
     wb.open(sts["ConsoleUrl"], new=0, autoraise=True)
@@ -131,7 +133,7 @@ class DuploJit(DuploResource):
       },
       "status": {
         "token": creds["Token"],
-        "expirationTimestamp": self.duplo.config.expiration()
+        "expirationTimestamp": self.duplo.expiration()
       }
     }
   
@@ -147,7 +149,7 @@ class DuploJit(DuploResource):
   
   def __user_config(self, config):
     """Build a kubeconfig user object"""
-    cmd = self.duplo.config.build_command("jit", "k8s", "--plan", config["Name"])
+    cmd = self.duplo.build_command("jit", "k8s", "--plan", config["Name"])
     return {
       "name": config["Name"],
       "user": {
