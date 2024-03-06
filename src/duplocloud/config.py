@@ -319,6 +319,31 @@ class DuploConfig():
     if exp is None:
       return True
     return datetime.datetime.now() > datetime.datetime.fromisoformat(exp)
+  
+  def build_command(self, *args):
+    """Context Args
+    
+    Build a comamnd using the current context. 
+
+    Returns:
+      The context args as a dict.
+    """
+    cmd = list(args)
+    cmd.append("--host")
+    cmd.append(self.host)
+    if self.interactive:
+      cmd.append("--interactive")
+      if self.isadmin:
+        cmd.append("--isadmin")
+      if self.nocache:
+        cmd.append("--nocache")
+      if self.browser:
+        cmd.append("--browser")
+        cmd.append(self.browser)
+    else:
+      cmd.append("--token")
+      cmd.append(self.token)
+    return cmd
 
   def __token_cache(self, token, otp=False):
     return {
