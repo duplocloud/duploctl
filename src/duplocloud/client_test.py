@@ -1,7 +1,7 @@
 import os
 import pytest 
 import unittest
-from .config import DuploConfig
+from .client import DuploClient
 from pathlib import Path
 
 # current working directory as variable
@@ -10,11 +10,11 @@ host = "http://example.duplocloud.net"
 cache_dir = f"{cwd}/.tmp/cache"
 
 def test_new_config():
-  c = DuploConfig(host=host)
+  c = DuploClient(host=host)
   assert c.host == host
 
 def test_cache_dir():
-  c = DuploConfig(
+  c = DuploClient(
     host=host,
     cache_dir=cache_dir)
   assert c.cache_dir == cache_dir
