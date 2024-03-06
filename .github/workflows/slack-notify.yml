@@ -21,4 +21,4 @@ jobs:
       with:
         channel-id: ${{ vars.SLACK_CHANNEL_ID }}
         slack-message: |
-          duploctl ${GIT_TAG} is out! Check it out at ${REPO_URL}.
+          duploctl ${{ env.GIT_TAG }} is out! Check it out at ${{ env.REPO_URL }}.
