@@ -16,8 +16,8 @@ def test_new_config():
   assert c.host == host
 
 def test_at_least_host():
+  """No Host Gets Error"""
   duplo = DuploClient()
-  # raises an error if host is not set
   with pytest.raises(DuploError) as e:
     duplo.token
     print(e)

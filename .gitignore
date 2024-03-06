@@ -11,3 +11,4 @@ __pycache__
 .envrc
 notebooks
 venv
+.idea
