@@ -26,6 +26,14 @@ TOKEN = Arg('token', '-t',
             help='The token to authenticate with duplocloud portal api.',
             default=os.getenv('DUPLO_TOKEN', None))
 
+TENANT = Arg("tenant", "-T",
+             help='The tenant name',
+             default=os.getenv('DUPLO_TENANT', None))
+
+ARN = Arg("aws-arn", "--arn",
+           help='The aws arn',
+           default=None)
+
 INTERACTIVE = Arg("interactive","-I", 
               help='Use interactive Login mode for temporary tokens. Do not use with --token.',
               type=bool,
@@ -48,10 +56,6 @@ NOCACHE = Arg("no-cache","--nocache",
 BROWSER = Arg("web-browser","--browser", 
               help='The desired web browser to use for interactive login',
               default=os.getenv('DUPLO_BROWSER', None))
-
-TENANT = Arg("tenant", "-T",
-             help='The tenant name',
-             default=os.getenv('DUPLO_TENANT', "default"))
 
 PLAN = Arg("plan", "-P",
             help='The plan name.',

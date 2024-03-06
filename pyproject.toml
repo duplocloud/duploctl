@@ -19,7 +19,8 @@ authors = [
 { name = "Kelly", email = "kelly@duplocloud.net" }
 ]
 maintainers = [
-{ name = "Kelly", email = "kelly@duplocloud.net" }
+{ name = "Kelly", email = "kelly@duplocloud.net" },
+{ name = "Mick", email ="mick@duplocloud.net" }
 ]
 dependencies = [
   "requests>=2.22.0",
@@ -94,6 +95,7 @@ secret = "duplo_resource.secret:DuploSecret"
 configmap = "duplo_resource.configmap:DuploConfigMap"
 hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
+ecs = "duplo_resource.ecs_service:DuploEcsService"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
