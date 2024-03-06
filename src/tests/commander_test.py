@@ -3,11 +3,11 @@ import unittest
 
 import argparse
 
-from .commander import schema, resources, Command, get_parser, load_resource, available_resources
-from .argtype import Arg
-from .errors import DuploError
+from duplocloud.commander import schema, resources, Command, get_parser, load_resource, available_resources
+from duplocloud.argtype import Arg
+from duplocloud.errors import DuploError
 from duplo_resource.service import DuploService
-from .resource import DuploResource
+from duplocloud.resource import DuploResource
 
 NAME = Arg("name", 
             help='A test name arg')

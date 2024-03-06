@@ -2,8 +2,8 @@ import os
 import pytest 
 import unittest
 
-from .errors import DuploError
-from .client import DuploClient
+from ..duplocloud.errors import DuploError
+from ..duplocloud.client import DuploClient
 from pathlib import Path
 
 # current working directory as variable

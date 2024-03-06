@@ -59,7 +59,8 @@ testpaths = [
   "src"
 ]
 pythonpath = [
-  "."
+  ".",
+  "src"
 ]
 [tool.setuptools_scm]
 
@@ -78,6 +79,7 @@ exclude = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["tests"]
 
 [project.scripts]
 duploctl = "duplocloud.cli:main"
