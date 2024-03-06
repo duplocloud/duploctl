@@ -1,6 +1,8 @@
 import os
 import pytest 
 import unittest
+
+from .errors import DuploError
 from .client import DuploClient
 from pathlib import Path
 
@@ -12,6 +14,13 @@ cache_dir = f"{cwd}/.tmp/cache"
 def test_new_config():
   c = DuploClient(host=host)
   assert c.host == host
+
+def test_at_least_host():
+  duplo = DuploClient()
+  # raises an error if host is not set
+  with pytest.raises(DuploError) as e:
+    duplo.token
+    print(e)
 
 def test_cache_dir():
   c = DuploClient(

@@ -56,8 +56,10 @@ build-backend = "setuptools.build_meta"
 minversion = "6.0"
 addopts = "--verbose --cov=src --cov-report term-missing"
 testpaths = [
-  "tests",
-  "integration",
+  "src"
+]
+pythonpath = [
+  "."
 ]
 [tool.setuptools_scm]
 
