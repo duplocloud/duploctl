@@ -1,13 +1,13 @@
 
 import requests
 import jmespath
-from cachetools import cached, TTLCache
-from .commander import load_resource,load_format
 import datetime
-from pathlib import Path
 import os
 import yaml
 import json
+from cachetools import cached, TTLCache
+from pathlib import Path
+from .commander import load_resource,load_format
 from .errors import DuploError, DuploExpiredCache
 from .server import TokenServer
 from . import args
@@ -34,10 +34,10 @@ class DuploClient():
   """
   @Command()
   def __init__(self, 
-               host: args.HOST=None, 
-               token: args.TOKEN=None, 
+               host: args.HOST=None,
+               token: args.TOKEN=None,
                tenant: args.TENANT=None,
-               home_dir: args.HOME_DIR = None, 
+               home_dir: args.HOME_DIR = None,
                config_file: args.CONFIG = None,
                cache_dir: args.CACHE_DIR = None,
                version: args.VERSION=False,
@@ -309,7 +309,6 @@ Client for Duplo at {self.host}
     Returns:
       The instantiated service with a reference to this client.
     """
-    # load and instantiate from the entry points
     svc = load_resource(resource)
     return svc(self)
   
