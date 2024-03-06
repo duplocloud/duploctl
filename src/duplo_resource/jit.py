@@ -6,6 +6,8 @@ import duplocloud.args as args
 import os
 from pathlib import Path
 import yaml
+import configparser
+import webbrowser
 
 @Resource("jit")
 class DuploJit(DuploResource):
@@ -13,13 +15,14 @@ class DuploJit(DuploResource):
     super().__init__(duplo)
     
   @Command()
-  def aws(self):
+  def aws(self, nocache: bool = None):
     """Retrieve aws session credentials for current user."""
     sts = None
     k = self.duplo.config.cache_key_for("aws-creds")
     path = "adminproxy/GetJITAwsConsoleAccessUrl"
+    nc = nocache if nocache is not None else self.duplo.config.nocache
     try:
-      if self.duplo.config.nocache:
+      if nc:
         sts = self.duplo.get(path).json()
       else:
         sts = self.duplo.config.get_cached_item(k)
@@ -29,6 +32,10 @@ class DuploJit(DuploResource):
       sts = self.duplo.get(path).json()
       sts["Expiration"] = self.duplo.config.expiration()
       self.duplo.config.set_cached_item(k, sts)
+    sts["Version"] = 1
+    # TODO: Make the exp correct for aws cli because aws cli really doesn't like this format
+    if "Expiration" in sts:
+      del sts["Expiration"]
     return sts
 
   @Command()
@@ -51,6 +58,9 @@ class DuploJit(DuploResource):
       response = self.duplo.get(path)
       creds = self.__k8s_exec_credential(response.json())
       self.duplo.config.set_cached_item(k, creds)
+    # TODO: sadly the expirationTimestamp is not in the right format for kubectl either
+    if "status" in creds and "expirationTimestamp" in creds["status"]:
+      del creds["status"]["expirationTimestamp"]
     return creds
   
   @Command()
@@ -76,6 +86,37 @@ class DuploJit(DuploResource):
       yaml.safe_dump(kubeconfig, f)
     return {"message": f"kubeconfig updated successfully to {kubeconfig_path}"}
   
+  @Command()
+  def update_aws_config(self,
+                        name: args.NAME):
+    """Update aws config"""
+    config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
+    cp = configparser.ConfigParser()
+    cp.read(config)
+    prf = f'profile {name}'
+    msg = f"aws profile named {name} already exists in {config}"
+    try:
+      cp[prf]
+    except KeyError:
+      cmd = self.duplo.config.build_command("duploctl", "jit", "aws")
+      cp.add_section(prf)
+      cp.set(prf, 'region', os.getenv("AWS_DEFAULT_REGION", "us-west-2"))
+      cp.set(prf, 'credential_process', " ".join(cmd))
+      with open(config, 'w') as configfile:
+        cp.write(configfile)
+      msg = f"aws profile named {name} was successfully added to {config}"
+    return {"message": msg}
+
+  @Command()
+  def web(self):
+    b = self.duplo.config.browser
+    wb = webbrowser if not b else webbrowser.get(b)
+    sts = self.aws(nocache=True)
+    wb.open(sts["ConsoleUrl"], new=0, autoraise=True)
+    return {
+      "message": "Opening AWS console in browser"
+    }
+  
   def __k8s_exec_credential(self, creds):
     return {
       "kind": "ExecCredential",
@@ -86,7 +127,7 @@ class DuploJit(DuploResource):
           "certificate-authority-data": creds["CertificateAuthorityDataBase64"],
           "config": None
         },
-        "interactive": self.duplo.config.interactive
+        "interactive": False
       },
       "status": {
         "token": creds["Token"],
@@ -106,6 +147,7 @@ class DuploJit(DuploResource):
   
   def __user_config(self, config):
     """Build a kubeconfig user object"""
+    cmd = self.duplo.config.build_command("jit", "k8s", "--plan", config["Name"])
     return {
       "name": config["Name"],
       "user": {
@@ -116,19 +158,7 @@ Install duploctl for use with kubectl by following
 https://github.com/duplocloud/duploctl
 """,
           "command": "duploctl",
-          "env": [{
-            "name": "DUPLO_HOST",
-            "value": self.duplo.host
-          },{
-            "name": "DUPLO_TOKEN",
-            "value": self.duplo.config.token
-          }],
-          "args": [
-            "jit",
-            "k8s",
-            "--plan",
-            config["Name"]
-          ]
+          "args": cmd
         }
       }
     }
