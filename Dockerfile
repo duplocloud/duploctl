@@ -1,4 +1,4 @@
-ARG PY_VERSION=3.11
+ARG PY_VERSION=3.12
 
 # Stage 1: Build the package
 FROM python:$PY_VERSION AS builder
