@@ -249,7 +249,7 @@ class DuploConfig():
     """
     c = self.get_cached_item(key)
     if (exp := c.get("Expiration", None)) and (t := c.get("DuploToken", None)):
-      if exp > datetime.datetime.now().isoformat():
+      if not self.expired(exp):
         return t
     raise DuploExpiredCache(key)
   
@@ -286,15 +286,44 @@ class DuploConfig():
       The cache key as a string.
     """
     h = self.host.split("://")[1]
-    k = f"{h},{name}"
+    parts = [h]
     if self.isadmin:
-      k = f"{k},admin"
-    return k
+      parts.append("admin")
+    parts.append(name)
+    return ",".join(parts)
+  
+  def expiration(self, hours: int = 6):
+    """Expiration
+    
+    Get the expiration time for the given number of hours. This is a simple calculation of the current time plus the number of hours.
+
+    Args:
+      hours: The number of seconds to add to the current time.
+
+    Returns:
+      The expiration time as a string.
+    """
+    return (datetime.datetime.now() + datetime.timedelta(hours=hours)).isoformat()
+  
+  def expired(self, exp: str = None):
+    """Expired
+    
+    Check if the given expiration time is expired. This is a simple comparison of the current time and the expiration time.
+
+    Args:
+      exp: The expiration time to check.
+
+    Returns:
+      True if the expiration time is in the past, False otherwise.
+    """
+    if exp is None:
+      return True
+    return datetime.datetime.now() > datetime.datetime.fromisoformat(exp)
 
   def __token_cache(self, token, otp=False):
     return {
       "Version": "v1",
       "DuploToken": token,
-      "Expiration": (datetime.datetime.now() + datetime.timedelta(hours=6)).isoformat(),
+      "Expiration": self.expiration(),
       "NeedOTP": otp
     }
