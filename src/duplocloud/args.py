@@ -97,7 +97,18 @@ SERVICEIMAGE = Arg("serviceimage", "-S",
             action='append',
             nargs=2,
             metavar=('service', 'image'))
-
+SETVAR = Arg("setvar", "-V",
+            help='a key and value to set as an environment variable',
+            action='append',
+            nargs=2,
+            metavar=('key', 'value'))
+STRATEGY = Arg("-strategy", "-strat",
+            help='The merge strategy to use for env vars. Valid options are \"merge\" or \"replace\".  Default is merge.',
+            choices=['merge', 'replace'],
+            default = 'merge')
+DELETEVAR = Arg("deletevar", "-D",
+                action='append',
+                help='a key to delete from the environment variables')
 SCHEDULE = Arg("schedule","-s", 
                help='The schedule to use')
 
