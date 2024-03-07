@@ -79,12 +79,10 @@ class DuploService(DuploTenantResource):
     tenant_id = self.tenant["TenantId"]
     service = self.find(name)
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
-    currentEnv = currentDockerconfig["Env"]
+    currentEnv = currentDockerconfig.get("Env", [])
     newEnv = []
     if setvar is not None:
       newEnv = [{"Name": i[0], "Value": i[1]} for i in setvar]
-    if currentEnv is None:
-      currentEnv = []
     if strategy == 'merge':
       d = {d['Name']: d for d in currentEnv + newEnv}
       mergedvars = list(d.values())
