@@ -1,13 +1,9 @@
-import pytest 
-import unittest
 
 import argparse
 
 from duplocloud.commander import schema, resources, Command, get_parser, load_resource, available_resources
 from duplocloud.argtype import Arg
 from duplocloud.errors import DuploError
-from duplo_resource.service import DuploService
-from duplocloud.resource import DuploResource
 
 NAME = Arg("name", 
             help='A test name arg')
@@ -48,7 +44,7 @@ def test_command_registration():
       assert arg.attributes["dest"] == "image_name"
     if arg.__name__ == "enabled":
       assert arg.attributes["action"] == "store_true"
-      assert arg.attributes["default"] == False
+      assert arg.attributes["default"] is False
       assert isinstance(arg(True), bool)
 
 def test_using_parser():
@@ -78,7 +74,7 @@ def test_using_parser():
   assert parsed_args.image_name == "splunz:latest"
 
 def test_loading_service():
-  assert (svc := load_resource("service"))
+  assert (svc := load_resource("service")) # noqa: F841
   assert "service" in resources
   svcs = available_resources()
   assert "service" in svcs

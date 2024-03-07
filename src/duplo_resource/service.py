@@ -2,6 +2,7 @@ from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResource
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
+from json import dumps, loads
 import duplocloud.args as args
 
 @Resource("service")
@@ -61,6 +62,45 @@ class DuploService(DuploTenantResource):
       self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
     return {"message": f"Successfully updated image for service '{name}'"}
  
+  @Command()
+  def update_env(self, 
+                 name: args.NAME,
+                 setvar: args.SETVAR, 
+                 strategy: args.STRATEGY,
+                 deletevar: args.DELETEVAR):
+    """Update the environment variables of a service.
+
+    Args:
+      name (str): The name of the service to update.
+      setvar/-V (list): A list of key value pairs to set as environment variables.
+      strategy/strat (str): The merge strategy to use for env vars. Valid options are "merge" or "replace".  Default is merge.
+      deletevar/-D (list): A list of keys to delete from the environment variables.
+    """
+    tenant_id = self.tenant["TenantId"]
+    service = self.find(name)
+    currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
+    currentEnv = currentDockerconfig.get("Env", [])
+    newEnv = []
+    if setvar is not None:
+      newEnv = [{"Name": i[0], "Value": i[1]} for i in setvar]
+    if strategy == 'merge':
+      d = {d['Name']: d for d in currentEnv + newEnv}
+      mergedvars = list(d.values())
+      currentDockerconfig['Env'] = mergedvars
+    else:
+      currentDockerconfig['Env'] = newEnv
+    if deletevar is not None:
+      for key in deletevar:
+        currentDockerconfig['Env'] = [d for d in currentDockerconfig['Env'] if d['Name'] != key]
+    payload = {
+      "Name": name,
+      "OtherDockerConfig": dumps(currentDockerconfig),
+      "allocationTags": service["Template"].get("AllocationTags", "")
+    }
+    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", payload)
+    return {"message": "Successfully updated environment variables for services"}
+    
+  
   @Command()
   def bulk_update_image(self, 
                   serviceimage: args.SERVICEIMAGE):

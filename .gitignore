@@ -12,3 +12,4 @@ __pycache__
 notebooks
 venv
 .idea
+.DS_Store
