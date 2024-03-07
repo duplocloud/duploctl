@@ -50,7 +50,7 @@ class DuploService(DuploTenantResource):
         "Name": name
       }
       response = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChangeAll", data)
-      if response.json() == None:
+      if response.json() is None:
         return {"message": f"Successfully updated replicas for service '{name}'"} 
     except IndexError:
       raise DuploError(f"Service '{name}' not found to set replica count.", 404)

@@ -1,10 +1,8 @@
 import os
-import pytest 
-import unittest
+import pytest
 
 from duplocloud.errors import DuploError
 from duplocloud.client import DuploClient
-from pathlib import Path
 
 # current working directory as variable
 cwd = os.getcwd()
