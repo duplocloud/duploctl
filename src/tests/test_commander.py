@@ -1,7 +1,7 @@
 
 import argparse
 
-from duplocloud.commander import schema, resources, Command, get_parser, available_resources
+from duplocloud.commander import schema, resources, Command, get_parser, load_resource, available_resources
 from duplocloud.argtype import Arg
 from duplocloud.errors import DuploError
 
@@ -74,6 +74,7 @@ def test_using_parser():
   assert parsed_args.image_name == "splunz:latest"
 
 def test_loading_service():
+  assert (svc := load_resource("service")) # noqa: F841
   assert "service" in resources
   svcs = available_resources()
   assert "service" in svcs
