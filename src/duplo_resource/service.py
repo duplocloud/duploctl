@@ -2,6 +2,7 @@ from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResource
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
+from json import dumps, loads
 import duplocloud.args as args
 
 @Resource("service")
@@ -77,7 +78,7 @@ class DuploService(DuploTenantResource):
     """
     tenant_id = self.tenant["TenantId"]
     service = self.find(name)
-    currentDockerconfig = json.loads(service["Template"]["OtherDockerConfig"])
+    currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
     currentEnv = currentDockerconfig["Env"]
     newEnv = []
     if setvar is not None:
@@ -95,11 +96,11 @@ class DuploService(DuploTenantResource):
         currentDockerconfig['Env'] = [d for d in currentDockerconfig['Env'] if d['Name'] != key]
     payload = {
       "Name": name,
-      "OtherDockerConfig": json.dumps(currentDockerconfig),
+      "OtherDockerConfig": dumps(currentDockerconfig),
       "allocationTags": service["Template"].get("AllocationTags", "")
     }
-      self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", payload)
-      return {"message": "Successfully updated environment variables for services"}
+    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", payload)
+    return {"message": "Successfully updated environment variables for services"}
     
   
   @Command()
