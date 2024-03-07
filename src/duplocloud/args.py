@@ -107,8 +107,8 @@ STRATEGY = Arg("-strategy", "-strat",
             choices=['merge', 'replace'],
             default = 'merge')
 DELETEVAR = Arg("deletevar", "-D",
-                action='append',
-                help='a key to delete from the environment variables')
+            action='append',
+            help='a key to delete from the environment variables')
 SCHEDULE = Arg("schedule","-s", 
                help='The schedule to use')
 
