@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push to github releases?
         required: false
         default: false
         type: boolean
@@ -31,6 +31,7 @@ jobs:
 
     - name: Get Tag Name
       id: set_tag
+      shell: bash
       env:
         OS: ${{ matrix.os }}
       run: |
@@ -62,7 +63,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.set_tag.outputs.NAME }}
+        name: duploctl-${{ matrix.os }}
         path: dist/cli/duploctl*
 
   releaser: 
