@@ -89,7 +89,10 @@ jobs:
       with:
         pattern: ${{ steps.set_tag.outputs.NAME }}-*
         path: dist
-        merge-multiple: true
+        merge-multiple: false
+
+    - name: Show Dist
+      run: ls dist
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
