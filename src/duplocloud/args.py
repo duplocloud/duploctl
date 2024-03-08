@@ -132,3 +132,6 @@ BODY = Arg("file", "-f", "--cli-input",
             help='A file to read the input from',
             type=argparse.FileType('r'),
             action=YamlAction)
+REPLICAS = Arg("replicas", "-r",
+            help = 'Number of replicas for service',
+            type = int)

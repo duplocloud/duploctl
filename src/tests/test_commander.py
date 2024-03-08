@@ -1,9 +1,11 @@
-
+# import pytest 
+# import unittest
 import argparse
-
-from duplocloud.commander import schema, resources, Command, get_parser, load_resource, available_resources
+from duplocloud.commander import schema, resources, Command, get_parser, available_resources, load_resource
 from duplocloud.argtype import Arg
 from duplocloud.errors import DuploError
+# from duplo_resource.service import DuploService
+# from duplocloud.resource import DuploResource
 
 NAME = Arg("name", 
             help='A test name arg')
@@ -44,7 +46,7 @@ def test_command_registration():
       assert arg.attributes["dest"] == "image_name"
     if arg.__name__ == "enabled":
       assert arg.attributes["action"] == "store_true"
-      assert arg.attributes["default"] is False
+      assert arg.attributes["default"] == False # noqa: E712
       assert isinstance(arg(True), bool)
 
 def test_using_parser():

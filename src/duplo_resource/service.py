@@ -36,6 +36,27 @@ class DuploService(DuploTenantResource):
       raise DuploError(f"Service '{name}' not found", 404)
 
   @Command()
+  def update_replicas(self, name: args.NAME,
+                      replica: args.REPLICAS):
+    """Update number of replicas for a service.
+
+    Args:
+        name (str): The name of the service to update.
+        replica (str): Number of replicas to set for service.
+    """
+    try:
+      tenant_id = self.tenant["TenantId"]
+      data = {
+        "Replicas": replica,
+        "Name": name
+      }
+      response = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChangeAll", data)
+      if response.json() is None:
+        return {"message": f"Successfully updated replicas for service '{name}'"} 
+    except IndexError:
+      raise DuploError(f"Service '{name}' not found to set replica count.", 404)
+  
+  @Command()
   def update_image(self, 
                    name: args.NAME, 
                    image: args.IMAGE):
