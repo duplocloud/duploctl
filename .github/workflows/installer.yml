@@ -1,4 +1,4 @@
-name: Publish Release
+name: Pyinstaller
 
 on:
   workflow_dispatch:
@@ -45,9 +45,9 @@ jobs:
       run: pyinstaller installer.spec
 
     - name: View Files
-      run: ls dist/duplocloud
+      run: ls dist
 
     - uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.set_tag.outputs.NAME }}
-        path: dist/duplocloud
+        path: dist
