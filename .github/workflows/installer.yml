@@ -74,7 +74,7 @@ jobs:
 
     - name: Dist Dir
       id: dist_dir
-      run: mkdir -p dist
+      run: mkdir -p dist artifacts
 
     - name: Get Tag Name
       id: set_tag
@@ -88,11 +88,20 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: ${{ steps.set_tag.outputs.NAME }}-*
-        path: dist
+        path: artifacts
         merge-multiple: false
 
     - name: Show Dist
-      run: ls dist
+      run: |
+        for d in dist/*; do
+          name=$(basename $d)
+          file=$(find $d -name "duploctl*")
+          if [[ $file == *.exe ]]; then
+            name="${name}.exe"
+          fi
+          echo "Processing $name"
+          ls $d
+        done
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
