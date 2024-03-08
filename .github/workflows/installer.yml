@@ -101,7 +101,7 @@ jobs:
             name="${name}.exe"
           fi
           dest="dist/${name}"
-          echo "Copying $file to $dest"
+          mv $file $dest
         done
         ls dist
 
