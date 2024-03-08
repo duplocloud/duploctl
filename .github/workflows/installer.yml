@@ -55,8 +55,8 @@ jobs:
 
     - name: View Files
       run: |
-        ls -la dist
-        ls -la dist/cli
+        ls dist
+        ls dist/cli
 
   
     
