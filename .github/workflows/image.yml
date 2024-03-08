@@ -49,3 +49,10 @@ jobs:
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
         build-args: >
           PY_VERSION=3.11
+
+    - name: Docker Hub Description
+      uses: peter-evans/dockerhub-description@v4
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: duplocloud/duploctl

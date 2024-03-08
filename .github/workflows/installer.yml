@@ -3,14 +3,14 @@ name: Publish Release
 on:
   workflow_dispatch:
     inputs:
-      push:
+      prerelease:
         description: Push to github releases?
         required: false
-        default: false
+        default: true
         type: boolean
   workflow_call:
     inputs:
-      push:
+      prerelease:
         description: Push the image to the registry
         required: false
         default: true
@@ -74,22 +74,38 @@ jobs:
 
     - name: Dist Dir
       id: dist_dir
-      run: mkdir -p dist
+      run: mkdir -p dist artifacts
 
     - name: Get Tag Name
       id: set_tag
       run: |
         GIT_TAG=${GITHUB_REF#refs/*/}
+        VERSION=$(echo $GIT_TAG | cut -d'v' -f2)
         NAME="duploctl-${GIT_TAG}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
     
     - name: Download Artifacts
       uses: actions/download-artifact@v4
       with:
         pattern: ${{ steps.set_tag.outputs.NAME }}-*
-        path: dist
-        merge-multiple: true
+        path: artifacts
+        merge-multiple: false
+
+    - name: Prep Release
+      shell: bash
+      run: |
+        for d in artifacts/*; do
+          name=$(basename $d)
+          file="$(find "$d" -type f -name "duploctl*")"
+          if [[ $file == *.exe ]]; then
+            name="${name}.exe"
+          fi
+          dest="dist/${name}"
+          mv $file $dest
+        done
+        ls dist
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
@@ -99,4 +115,17 @@ jobs:
           dist/*
         body: |
           duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out!. 
-        prerelease: true
+
+          PyPi: 
+          [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.set_tag.outputs.VERSION }}/)
+          ```sh
+          pip install duplocloud-client==${{ steps.set_tag.outputs.VERSION }}
+          ```
+
+          Dockerhub:  
+          [duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
+          ```sh
+          docker pull duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}
+          ```
+
+        prerelease: ${{ github.event.inputs.prerelease }}
