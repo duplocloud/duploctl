@@ -3,7 +3,7 @@ name: Publish Version
 on:
   push:
     tags:
-    - '*'
+    - 'v*'
 
 jobs:
 
@@ -22,8 +22,8 @@ jobs:
     uses: ./.github/workflows/installer.yml
     secrets: inherit
   
-  notify:
-    name: Slack notify
-    uses: ./.github/workflows/slack-notify.yml
+  release:
+    name: Release
+    uses: ./.github/workflows/release.yml
     secrets: inherit
     needs: [package, installer, image]

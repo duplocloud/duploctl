@@ -1,0 +1,90 @@
+name: Releaser
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  releaser:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Dist Dir
+      id: dist_dir
+      run: mkdir -p dist artifacts
+
+    - name: Get Tag Name
+      id: set_tag
+      run: |
+        GIT_TAG=${GITHUB_REF#refs/*/}
+        VERSION=$(echo $GIT_TAG | cut -d'v' -f2)
+        NAME="duploctl-${GIT_TAG}"
+        echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+        echo "NAME=${NAME}" >> $GITHUB_OUTPUT
+    
+    - name: Download Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ${{ steps.set_tag.outputs.NAME }}-*
+        path: artifacts
+        merge-multiple: false
+
+    - name: Compress Artifacts
+      shell: bash
+      run: |
+        for d in artifacts/*; do
+          name=$(basename $d)
+          dest="dist/${name}.tar.gz"
+          tar -czvf "$dest" -C $d .
+        done
+
+    - name: Create Release
+      id: release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          dist/*
+        body: |
+          duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out!. 
+
+          PyPi: 
+          [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.set_tag.outputs.VERSION }}/)
+          ```sh
+          pip install duplocloud-client==${{ steps.set_tag.outputs.VERSION }}
+          ```
+
+          Dockerhub:  
+          [duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
+          ```sh
+          docker pull duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}
+          ```
+          
+          Build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        prerelease: false
+
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.25.0
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      with:
+        channel-id: ${{ vars.SLACK_CHANNEL_ID }}
+        slack-message: |
+          duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out! 
+          ${{ steps.release.outputs.url }}
+
+    - name: Job Summary
+      env:
+        GIT_TAG: ${{ steps.set_tag.outputs.GIT_TAG }}
+        URL: ${{ steps.release.outputs.url }}
+        VERSION: ${{ steps.set_tag.outputs.VERSION }}
+      run: |
+        cat <<EOF >> $GITHUB_STEP_SUMMARY
+        Tag: $GIT_TAG
+        Release: $URL
+        Docker: duplocloud/duploctl:${GIT_TAG}
+        PyPi: duplocloud-client==${VERSION}
+        EOF
+    
