@@ -57,13 +57,11 @@ jobs:
       run: pyinstaller cli.spec
 
     - name: View Files
-      run: |
-        ls dist
-        ls dist/cli
+      run: ls dist/cli
 
     - uses: actions/upload-artifact@v4
       with:
-        name: duploctl-${{ matrix.os }}
+        name: ${{ steps.set_tag.outputs.NAME }}
         path: dist/cli/duploctl*
 
   releaser: 
@@ -86,7 +84,7 @@ jobs:
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
     
-    - name: Download Linux Artifact
+    - name: Download Artifacts
       uses: actions/download-artifact@v4
       with:
         pattern: ${{ steps.set_tag.outputs.NAME }}-*
