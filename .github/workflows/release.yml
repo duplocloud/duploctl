@@ -59,10 +59,9 @@ jobs:
           [duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
           ```sh
           docker pull duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}
-
-          Build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          
           ```
+          
+          Build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         prerelease: false
 
     - name: Post to a Slack channel
