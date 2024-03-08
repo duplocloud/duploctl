@@ -1,0 +1,36 @@
+name: Pyinstaller Executable
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  package:
+    name: Package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - windows-latest
+        - ubuntu-latest
+        - macos-latest
+    steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+    
+    - name: Install Dependencies
+      run: pip install .[build]
+    
+    - name: Pyinstaller
+      id: installer
+      run: pyinstaller cli.spec
+
+    

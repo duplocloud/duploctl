@@ -33,7 +33,8 @@ build = [
   "invoke",
   "setuptools_scm",
   "build",
-  "twine"
+  "twine",
+  "pyinstaller"
 ]
 test = [
   "pytest",
