@@ -96,7 +96,7 @@ jobs:
       run: |
         for d in artifacts/*; do
           name=$(basename $d)
-          file="$(find "$d" -type 'file' -name "duploctl*")"
+          file="$(find "$d" -type f -name "duploctl*")"
           if [[ $file == *.exe ]]; then
             name="${name}.exe"
           fi
