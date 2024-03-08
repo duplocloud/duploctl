@@ -36,10 +36,15 @@ pip3 install -e '.'
 
 ## Build
 
-Build the package which creates the artifact in the dist folder.
+Build the package which creates the artifact in the build folder.
 
 ```sh
 python -m build
+```
+
+Create a single binary build for the cli. 
+```sh
+pyinstaller cli.spec
 ```
 
 ## Semver with Setuptools SCM command

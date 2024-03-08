@@ -16,9 +16,14 @@ jobs:
     name: Publish
     uses: ./.github/workflows/image.yml
     secrets: inherit
+
+  installer:
+    name: Publish
+    uses: ./.github/workflows/installer.yml
+    secrets: inherit
   
   slack:
     name: Slack notify
     uses: ./.github/workflows/slack-notify.yml
     secrets: inherit
-    needs: [package, image]
+    needs: [package, installer, image]
