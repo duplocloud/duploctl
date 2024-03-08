@@ -95,14 +95,12 @@ jobs:
       run: |
         for d in artifacts/*; do
           name=$(basename $d)
-          file=$(find $d -name "duploctl*")
+          file=$(find $d -name "duploctl*" -type file)
           if [[ $file == *.exe ]]; then
             name="${name}.exe"
           fi
           dest="dist/${name}"
-          echo "File: $file"
-          echo "Name: $name"
-          echo "Dest: $dest"
+          mv $file $dest
         done
         ls dist
 
