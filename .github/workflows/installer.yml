@@ -1,4 +1,4 @@
-name: Publish Release
+name: Pyinstaller
 
 on:
   workflow_dispatch:
