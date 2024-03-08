@@ -93,7 +93,7 @@ jobs:
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
-      if: github.event.inputs.push
+      if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
           dist/*
