@@ -54,15 +54,15 @@ jobs:
     
     - name: Pyinstaller
       id: installer
-      run: pyinstaller cli.spec
+      run: pyinstaller installer.spec
 
     - name: View Files
-      run: ls dist/cli
+      run: ls dist/duplocloud
 
     - uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.set_tag.outputs.NAME }}
-        path: dist/cli/duploctl*
+        path: dist/duplocloud
 
   releaser: 
     name: Release
@@ -98,12 +98,10 @@ jobs:
       run: |
         for d in artifacts/*; do
           name=$(basename $d)
-          file="$(find "$d" -type f -name "duploctl*")"
-          if [[ $file == *.exe ]]; then
-            name="${name}.exe"
-          fi
-          dest="dist/${name}"
-          mv $file $dest
+          dest="dist/${name}.tar.gz"
+          tar -czvf "$dest" -C $d .
+          echo "Dir: $d"
+          ls $d
         done
         ls dist
 
