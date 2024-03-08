@@ -1,32 +1,24 @@
-name: Pyinstaller Executable
+name: Publish Release
 
 on:
   workflow_dispatch:
+    inputs:
+      push:
+        description: Push the image to the registry
+        required: false
+        default: false
+        type: boolean
   workflow_call:
+    inputs:
+      push:
+        description: Push the image to the registry
+        required: false
+        default: true
+        type: boolean
 
 jobs:
-  # start_release:
-  #   name: Start Release
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     release_id: ${{ steps.create_release.outputs.id }}
-  #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-  #   steps:
-  #   - name: Create release
-  #     id: create_release
-  #     uses: actions/create-release@v1
-  #     env:
-  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-  #     with:
-  #       tag_name: ${{ github.ref }}
-  #       release_name: Release ${{ github.ref }}
-  #       body: |
-  #         Duploctl Release
-  #       draft: true
-  #       prerelease: false
   installer:
     name: Pyinstaller
-    # needs: start_release
     runs-on: ${{ matrix.os }}-latest
     strategy:
       fail-fast: false
@@ -36,6 +28,16 @@ jobs:
         - ubuntu
         - macos
     steps:
+
+    - name: Get Tag Name
+      id: set_tag
+      env:
+        OS: ${{ matrix.os }}
+      run: |
+        GIT_TAG=${GITHUB_REF#refs/*/}
+        NAME="duploctl-${GIT_TAG}-${OS}"
+        echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "NAME=${NAME}" >> $GITHUB_OUTPUT
 
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -60,7 +62,42 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: duploctl-${{ matrix.os }}
+        name: ${{ steps.set_tag.outputs.NAME }}
         path: dist/cli/duploctl*
-  
+
+  releaser: 
+    name: Release
+    runs-on: ubuntu-latest
+    needs: installer
+    outputs:
+      name: ${{ steps.set_tag.outputs.NAME }}
+    steps:
+
+    - name: Dist Dir
+      id: dist_dir
+      run: mkdir -p dist
+
+    - name: Get Tag Name
+      id: set_tag
+      run: |
+        GIT_TAG=${GITHUB_REF#refs/*/}
+        NAME="duploctl-${GIT_TAG}"
+        echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "NAME=${NAME}" >> $GITHUB_OUTPUT
     
+    - name: Download Linux Artifact
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ${{ steps.set_tag.outputs.NAME }}-*
+        path: dist
+        merge-multiple: true
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: github.event.inputs.push
+      with:
+        files: |
+          dist/*
+        body: |
+          duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out!. 
+        prerelease: true
