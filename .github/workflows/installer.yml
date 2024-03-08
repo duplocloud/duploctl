@@ -99,8 +99,7 @@ jobs:
           if [[ $file == *.exe ]]; then
             name="${name}.exe"
           fi
-          echo "Processing $name"
-          mv "${d}/${file}" "dist/${name}"
+          mv "${file}" "dist/${name}"
         done
         ls dist
 
