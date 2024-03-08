@@ -22,7 +22,7 @@ jobs:
     uses: ./.github/workflows/installer.yml
     secrets: inherit
   
-  slack:
+  notify:
     name: Slack notify
     uses: ./.github/workflows/slack-notify.yml
     secrets: inherit
