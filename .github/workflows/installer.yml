@@ -3,14 +3,14 @@ name: Publish Release
 on:
   workflow_dispatch:
     inputs:
-      push:
+      prerelease:
         description: Push to github releases?
         required: false
-        default: false
+        default: true
         type: boolean
   workflow_call:
     inputs:
-      push:
+      prerelease:
         description: Push the image to the registry
         required: false
         default: true
@@ -91,7 +91,7 @@ jobs:
         path: artifacts
         merge-multiple: false
 
-    - name: Show Dist
+    - name: Prep Release
       shell: bash
       run: |
         for d in artifacts/*; do
@@ -113,4 +113,4 @@ jobs:
           dist/*
         body: |
           duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out!. 
-        prerelease: true
+        prerelease: ${{ github.event.inputs.prerelease }}
