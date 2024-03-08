@@ -100,8 +100,9 @@ jobs:
             name="${name}.exe"
           fi
           echo "Processing $name"
-          ls $d
+          mv "${d}/${file}" "dist/${name}
         done
+        ls dist
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
