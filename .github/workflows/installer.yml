@@ -92,15 +92,16 @@ jobs:
         merge-multiple: false
 
     - name: Show Dist
+      shell: bash
       run: |
         for d in artifacts/*; do
           name=$(basename $d)
-          file=$(find $d -name "duploctl*" -type file)
+          file="$(find "$d" -name "duploctl*" -type "file")"
           if [[ $file == *.exe ]]; then
             name="${name}.exe"
           fi
           dest="dist/${name}"
-          mv $file $dest
+          echo "Copying $file to $dest"
         done
         ls dist
 
