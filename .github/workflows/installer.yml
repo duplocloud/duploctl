@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push to github releases?
         required: false
         default: false
         type: boolean
@@ -31,6 +31,7 @@ jobs:
 
     - name: Get Tag Name
       id: set_tag
+      shell: bash
       env:
         OS: ${{ matrix.os }}
       run: |
@@ -56,9 +57,7 @@ jobs:
       run: pyinstaller cli.spec
 
     - name: View Files
-      run: |
-        ls dist
-        ls dist/cli
+      run: ls dist/cli
 
     - uses: actions/upload-artifact@v4
       with:
@@ -85,7 +84,7 @@ jobs:
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
     
-    - name: Download Linux Artifact
+    - name: Download Artifacts
       uses: actions/download-artifact@v4
       with:
         pattern: ${{ steps.set_tag.outputs.NAME }}-*
@@ -94,7 +93,7 @@ jobs:
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
-      if: github.event.inputs.push
+      if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
           dist/*
