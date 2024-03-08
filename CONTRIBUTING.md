@@ -44,7 +44,7 @@ python -m build
 
 Create a single binary build for the cli. 
 ```sh
-pyinstaller cli.spec
+pyinstaller installer.spec
 ```
 
 ## Semver with Setuptools SCM command
