@@ -80,8 +80,10 @@ jobs:
       id: set_tag
       run: |
         GIT_TAG=${GITHUB_REF#refs/*/}
+        VERSION=$(echo $GIT_TAG | cut -d'v' -f2)
         NAME="duploctl-${GIT_TAG}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
     
     - name: Download Artifacts
@@ -113,4 +115,17 @@ jobs:
           dist/*
         body: |
           duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out!. 
+
+          PyPi: 
+          [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.set_tag.outputs.VERSION }}/)
+          ```sh
+          pip install duplocloud-client==${{ steps.set_tag.outputs.VERSION }}
+          ```
+
+          Dockerhub:  
+          [duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
+          ```sh
+          docker pull duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}
+          ```
+
         prerelease: ${{ github.event.inputs.prerelease }}
