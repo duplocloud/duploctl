@@ -1,8 +1,6 @@
 # import pytest 
 # import unittest
-
 import argparse
-
 from duplocloud.commander import schema, resources, Command, get_parser, available_resources, load_resource
 from duplocloud.argtype import Arg
 from duplocloud.errors import DuploError

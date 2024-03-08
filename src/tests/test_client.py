@@ -1,5 +1,6 @@
 import os
-import pytest
+#import pytest
+#import pytest
 
 from duplocloud.errors import DuploError
 from duplocloud.client import DuploClient
