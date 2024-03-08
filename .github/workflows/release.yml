@@ -2,6 +2,7 @@ name: Releaser
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   releaser:
@@ -21,30 +22,6 @@ jobs:
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
-
-    - name: Build Release Message
-      id: message
-      env:
-        GIT_TAG: ${{ steps.set_tag.outputs.GIT_TAG }}
-        VERSION: ${{ steps.set_tag.outputs.VERSION }}
-      run: |
-        MESSAGE="$(cat <<EOF
-        duploctl ${GIT_TAG} is out!. 
-
-        PyPi: 
-        [duplocloud-client](https://pypi.org/project/duplocloud-client/${VERSION}/)
-        ```sh
-        pip install duplocloud-client==${VERSION}
-        ```
-
-        Dockerhub:  
-        [duplocloud/duploctl:${GIT_TAG}](https://hub.docker.com/r/duplocloud/duploctl)
-        ```sh
-        docker pull duplocloud/duploctl:${GIT_TAG}
-        ```
-        EOF
-        )"
-        echo "MESSAGE=${MESSAGE}" >> $GITHUB_OUTPUT
     
     - name: Download Artifacts
       uses: actions/download-artifact@v4
@@ -69,8 +46,21 @@ jobs:
       with:
         files: |
           dist/*
-        body: ${{ steps.message.outputs.MESSAGE }}
-        prerelease: ${{ github.event.inputs.prerelease }}
+        body: |
+          duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out!. 
+
+          PyPi: 
+          [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.set_tag.outputs.VERSION }}/)
+          ```sh
+          pip install duplocloud-client==${{ steps.set_tag.outputs.VERSION }}
+          ```
+
+          Dockerhub:  
+          [duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
+          ```sh
+          docker pull duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}
+          ```
+        prerelease: false
 
     - name: Post to a Slack channel
       id: slack
@@ -85,6 +75,14 @@ jobs:
 
     - name: Job Summary
       env:
-        MESSAGE: ${{ steps.message.outputs.MESSAGE }}
-      run: echo "$MESSAGE" >> $GITHUB_STEP_SUMMARY
+        GIT_TAG: ${{ steps.set_tag.outputs.GIT_TAG }}
+        URL: ${{ steps.release.outputs.url }}
+        VERSION: ${{ steps.set_tag.outputs.VERSION }}
+      run: |
+        cat <<EOF >> $GITHUB_STEP_SUMMARY
+        Tag: $GIT_TAG
+        Release: $URL
+        Docker: duplocloud/duploctl:${GIT_TAG}
+        PyPi: duplocloud-client==${VERSION}
+        EOF
     
