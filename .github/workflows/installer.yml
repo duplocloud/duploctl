@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       prerelease:
-        description: Push to github releases?
+        description: Is this a prerelease?
         required: false
         default: true
         type: boolean
   workflow_call:
     inputs:
       prerelease:
-        description: Push the image to the registry
+        description: Is this a prerelease?
         required: false
         default: true
         type: boolean
