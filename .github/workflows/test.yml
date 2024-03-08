@@ -3,7 +3,9 @@ name: Tests
 on:
   workflow_dispatch: {}
   workflow_call: {}
-  push: {}
+  push: 
+    paths:
+      - 'src/**'
 
 jobs:
   test:
