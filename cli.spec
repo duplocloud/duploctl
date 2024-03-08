@@ -12,6 +12,7 @@ a = Analysis(
         'duplo_resource.asg',
         'duplo_resource.configmap',
         'duplo_resource.cronjob',
+        'duplo_resource.job',
         'duplo_resource.ecs_service',
         'duplo_resource.hosts',
         'duplo_resource.infrastructure',
