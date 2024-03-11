@@ -120,17 +120,17 @@ class DuploJit(DuploResource):
     }
   
   def __k8s_exec_credential(self, creds):
-    c = {
+    cluster = {
       "server": creds["ApiServer"],
       "config": None
     }
     if creds["K8Provider"] == 0 and (ca := creds.get("CertificateAuthorityDataBase64", None)):
-      c["certificate-authority-data"] = ca
+      cluster["certificate-authority-data"] = ca
     return {
       "kind": "ExecCredential",
       "apiVersion": "client.authentication.k8s.io/v1beta1",
       "spec": {
-        "cluster": c,
+        "cluster": cluster,
         "interactive": False
       },
       "status": {
@@ -141,16 +141,16 @@ class DuploJit(DuploResource):
   
   def __cluster_config(self, config):
     """Build a kubeconfig cluster object"""
-    c = {
+    cluster = {
       "server": config["ApiServer"]
     }
     if config["K8Provider"] == 0 and (ca := config.get("CertificateAuthorityDataBase64", None)):
-      c["certificate-authority-data"] = ca
+      cluster["certificate-authority-data"] = ca
     elif config["K8Provider"] == 1:
-      c["insecure-skip-tls-verify"] = True
+      cluster["insecure-skip-tls-verify"] = True
     return {
       "name": config["Name"],
-      "cluster": c
+      "cluster": cluster
     }
   
   def __user_config(self, config):
