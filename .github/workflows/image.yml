@@ -43,7 +43,7 @@ jobs:
       id: build_image
       uses: duplocloud/actions/build-image@main
       with:
-        platforms: linux/amd64 # ,linux/arm64 # makes it take longer
+        platforms: linux/amd64,linux/arm64 # makes it take longer
         push: ${{ inputs.push }}
         docker-username: ${{ secrets.DOCKER_USERNAME }}
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
