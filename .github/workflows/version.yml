@@ -1,0 +1,33 @@
+name: New Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: patch
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+      push:
+        description: Push tags to remote
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  releaser:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Duplo Git Bump
+      uses: duplocloud/actions/git-bump@git-bump
+      with:
+        action: ${{ inputs.action }}
+        push: ${{ inputs.push }}
