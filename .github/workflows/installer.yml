@@ -7,24 +7,30 @@ on:
 jobs:
   installer:
     name: Pyinstaller
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         os:
-        - windows
-        - ubuntu
-        - macos
+        - name: windows
+          runs-on: windows-latest
+        - name: linux
+          runs-on: ubuntu-latest
+        - name: darwin
+          runs-on: macos-latest
+        arch:
+        - amd64
     steps:
 
     - name: Get Tag Name
       id: set_tag
       shell: bash
       env:
-        OS: ${{ matrix.os }}
+        OS: ${{ matrix.os.name }}
+        ARCH: ${{ matrix.arch }}
       run: |
         GIT_TAG=${GITHUB_REF#refs/*/}
-        NAME="duploctl-${GIT_TAG}-${OS}"
+        NAME="duploctl-${GIT_TAG}-${OS}-${ARCH}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
 

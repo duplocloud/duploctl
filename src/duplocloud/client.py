@@ -456,7 +456,7 @@ Client for Duplo at {self.host}
     Returns:
       The cache key as a string.
     """
-    h = self.host.split("://")[1]
+    h = self.host.split("://")[1].replace("/", "")
     parts = [h]
     if self.isadmin:
       parts.append("admin")

@@ -37,6 +37,7 @@ jobs:
           name=$(basename $d)
           dest="dist/${name}.tar.gz"
           tar -czvf "$dest" -C $d .
+          shasum -a 256 $dest >> dist/checksums.txt
         done
 
     - name: Create Release
