@@ -31,16 +31,18 @@ class DuploJob(DuploTenantResource):
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/job/{name}")  # Making GET request
     return response.json()  # Returning JSON response
 
-  # @Command()  # Decorator to define a command
-  # def update_image(self, name: args.NAME, image: args.IMAGE):  # Method to update the image of a job
-  #   """Update the image of a job.
+  @Command()  # Decorator to define a command
+  def create(self, job_config: args.BODY):  # Method to create a new job
+    """Create a new job.
     
-  #   Args:
-  #     name (str): The name of the job to update.
-  #     image (str): The new image to use for the job.
-  #   """
-  #   tenant_id = self.tenant["TenantId"]  # Getting tenant ID
-  #   job = self.find(name)  # Finding job
-  #   job["spec"]["template"]["spec"]["containers"][0]["image"] = image  # Updating image
-  #   self.duplo.put(f"v3/subscriptions/{tenant_id}/k8s/job/{name}", job)  # Making PUT request to update
-  #   return {"message": f"Successfully updated image for job '{name}'"}  # Returning success message
+    Args:
+      job_config (dict): The configuration for the new job.
+    Returns: 
+      A message indicating the successful creation of the job.
+    """
+    tenant_id = self.tenant["TenantId"]  # Getting tenant ID
+    job_name = job_config.get('JobName', 'Unnamed Job')  # Getting job name from job configuration
+    self.duplo.post(f"v3/subscriptions/{tenant_id}/k8s/job", job_config)  # Making POST request with job configuration
+    return {
+      "message": f"Job {job_name} created"  # Returning message with job name
+    }
