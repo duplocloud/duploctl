@@ -1,31 +1,23 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 
+# Add all the resources as hidden imports
+directory = 'src/duplo_resource'
+hi =[
+  'duplocloud.formats',
+  'duplo_resource'
+]
+for filename in os.listdir(directory):
+  if filename != '__init__.py' and not os.path.isdir(f"{directory}/{filename}"):
+    m = filename.split('.')[0]
+    hi.append(f'duplo_resource.{m}')
 
 a = Analysis(
     ['src/duplocloud/cli.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[
-        'duplocloud.formats',
-        'duplo_resource',
-        'duplo_resource.asg',
-        'duplo_resource.configmap',
-        'duplo_resource.cronjob',
-        'duplo_resource.job',
-        'duplo_resource.ecs_service',
-        'duplo_resource.hosts',
-        'duplo_resource.infrastructure',
-        'duplo_resource.ingress',
-        'duplo_resource.jit',
-        'duplo_resource.lambda',
-        'duplo_resource.secret',
-        'duplo_resource.service',
-        'duplo_resource.system',
-        'duplo_resource.tenant',
-        'duplo_resource.user',
-        'duplo_resource.version',
-    ],
+    hiddenimports=hi,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
