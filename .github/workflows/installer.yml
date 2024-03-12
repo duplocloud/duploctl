@@ -30,7 +30,8 @@ jobs:
         ARCH: ${{ matrix.arch }}
       run: |
         GIT_TAG=${GITHUB_REF#refs/*/}
-        NAME="duploctl-${GIT_TAG}-${OS}-${ARCH}"
+        VERSION="${GIT_TAG#v*}"
+        NAME="duploctl-${VERSION}-${OS}-${ARCH}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
 
