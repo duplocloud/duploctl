@@ -19,7 +19,7 @@ on:
         type: boolean
 
 jobs:
-  releaser:
+  version:
     runs-on: ubuntu-latest
     steps:
 
