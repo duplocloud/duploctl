@@ -23,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions: 
       actions: write
+      contents: write
+      deployments: write
     steps:
       
     - name: Duplo Git Bump
