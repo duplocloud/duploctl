@@ -21,15 +21,13 @@ on:
 jobs:
   version:
     runs-on: ubuntu-latest
+    permissions: 
+      actions: write
     steps:
-
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
       
     - name: Duplo Git Bump
       uses: duplocloud/actions/git-bump@git-bump
       with:
         action: ${{ inputs.action }}
         push: ${{ inputs.push }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
