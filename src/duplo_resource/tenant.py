@@ -28,11 +28,11 @@ class DuploTenant(DuploResource):
   
   @Command()
   def create(self, 
-             tenant: args.BODY):
+             body: args.BODY):
     """Create a new tenant."""
-    self.duplo.post("admin/AddTenant", tenant)
+    self.duplo.post("admin/AddTenant", body)
     return {
-      "message": f"Tenant '{tenant['AccountName']}' created"
+      "message": f"Tenant '{body['AccountName']}' created"
     }
     
   @Command()

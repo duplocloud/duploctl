@@ -32,7 +32,7 @@ class DuploJob(DuploTenantResource):
     return response.json()  # Returning JSON response
 
   @Command()  # Decorator to define a command
-  def create(self, job_config: args.BODY):  # Method to create a new job
+  def create(self, body: args.BODY):  # Method to create a new job
     """Create a new job.
     
     Args:
@@ -41,8 +41,8 @@ class DuploJob(DuploTenantResource):
       A message indicating the successful creation of the job.
     """
     tenant_id = self.tenant["TenantId"]  # Getting tenant ID
-    job_name = job_config.get('JobName', 'Unnamed Job')  # Getting job name from job configuration
-    self.duplo.post(f"v3/subscriptions/{tenant_id}/k8s/job", job_config)  # Making POST request with job configuration
+    job_name = body.get('JobName', 'Unnamed Job')  # Getting job name from job configuration
+    self.duplo.post(f"v3/subscriptions/{tenant_id}/k8s/job", body)  # Making POST request with job configuration
     return {
       "message": f"Job {job_name} created"  # Returning message with job name
     }
