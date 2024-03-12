@@ -6,9 +6,6 @@ on:
   pull_request:
     branches:
       - main
-  push: 
-    paths:
-      - 'src/**'
 
 jobs:
   test:
