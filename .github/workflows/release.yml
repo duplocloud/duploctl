@@ -89,6 +89,11 @@ jobs:
           ```sh
           docker pull duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}
           ```
+
+          Install CLI to Path:
+          ```sh
+          curl -s -L ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ steps.set_tag.outputs.GIT_TAG }}/duploctl-${{ steps.set_tag.outputs.VERSION }}-linux-amd64.tar.gz | tar xvz - -C /usr/local/bin
+          ```
           
           Build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         prerelease: false
