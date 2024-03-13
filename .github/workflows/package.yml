@@ -7,6 +7,10 @@ on:
         description: Push the image to the registry
         default: false
         type: boolean
+      tag:
+        description: Tag to push
+        required: true
+        type: string
   workflow_call: 
     inputs:
       push:

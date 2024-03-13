@@ -8,6 +8,10 @@ on:
         required: true
         default: false
         type: boolean
+      tag:
+        description: The git tag to build on
+        required: true
+        type: string
   workflow_call: 
     inputs:
       push:
