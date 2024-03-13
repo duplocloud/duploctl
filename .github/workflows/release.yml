@@ -63,6 +63,8 @@ jobs:
           tar -czvf "$dest" -C $d .
           shasum -a 256 $dest >> dist/checksums.txt
         done
+        echo "Created Release Artifacts"
+        ls -l dist
 
     - name: Create Release
       id: release
