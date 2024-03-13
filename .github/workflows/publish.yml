@@ -34,7 +34,7 @@ jobs:
     steps:
     - name: Duplo Git Bump
       id: bump
-      uses: duplocloud/actions/git-bump@git-bump
+      uses: duplocloud/actions/git-bump@main
       with:
         action: ${{ inputs.action }}
         push: ${{ inputs.push }}
