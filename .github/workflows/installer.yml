@@ -3,6 +3,16 @@ name: Pyinstaller
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      push:
+        description: Push the image to the registry
+        required: false
+        default: true
+        type: boolean
+      tag:
+        description: The git tag to build on
+        required: true
+        type: string
 
 jobs:
   installer:
@@ -28,8 +38,11 @@ jobs:
       env:
         OS: ${{ matrix.os.name }}
         ARCH: ${{ matrix.arch }}
+        GIT_TAG: ${{ inputs.tag }}
       run: |
-        GIT_TAG=${GITHUB_REF#refs/*/}
+        if [ -z "${GIT_TAG}" ]; then
+          GIT_TAG=${GITHUB_REF#refs/*/}
+        fi
         VERSION="${GIT_TAG#v*}"
         NAME="duploctl-${VERSION}-${OS}-${ARCH}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
@@ -37,6 +50,8 @@ jobs:
 
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        ref: ${{ steps.set_tag.outputs.GIT_TAG }}
     
     - name: Set up Python
       uses: actions/setup-python@v5
