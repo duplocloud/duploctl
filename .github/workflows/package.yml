@@ -13,6 +13,10 @@ on:
         description: Push the image to the registry
         default: true
         type: boolean
+      tag:
+        description: Tag to push
+        required: true
+        type: string
     secrets:
       PYPI_API_TOKEN:
         description: PyPi token
@@ -27,6 +31,8 @@ jobs:
     # checkout code 
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.tag }}
     
     # install python
     - name: Set up Python 3.11

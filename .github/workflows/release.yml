@@ -1,8 +1,28 @@
 name: Releaser
 
 on:
-  workflow_call:
   workflow_dispatch:
+    inputs:
+      push:
+        description: Should this push a new release? 
+        required: false
+        default: false
+        type: boolean
+      tag:
+        description: Tag to release
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      push:
+        description: Should this push a new release? 
+        required: false
+        default: false
+        type: boolean
+      tag:
+        description: Tag to release
+        required: false
+        type: string
 
 jobs:
   releaser:
@@ -15,8 +35,12 @@ jobs:
 
     - name: Get Tag Name
       id: set_tag
+      env:
+        GIT_TAG: ${{ inputs.tag }}
       run: |
-        GIT_TAG=${GITHUB_REF#refs/*/}
+        if [ -z "$GIT_TAG" ]; then
+          GIT_TAG=${GITHUB_REF#refs/*/}
+        fi
         VERSION=$(echo $GIT_TAG | cut -d'v' -f2)
         NAME="duploctl-${GIT_TAG}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
@@ -45,6 +69,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
+        name: ${{ steps.set_tag.outputs.GIT_TAG }}
+        tag_name: ${{ steps.set_tag.outputs.GIT_TAG }}
         files: |
           dist/*
         body: |
