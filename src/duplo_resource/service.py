@@ -46,11 +46,13 @@ class DuploService(DuploTenantResource):
     """
     try:
       tenant_id = self.tenant["TenantId"]
+      service = self.find(name)
       data = {
+        "Name": name,
         "Replicas": replica,
-        "Name": name
+        "AllocationTags": service["Template"].get("AllocationTags", "")
       }
-      response = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChangeAll", data)
+      response = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
       if response.json() is None:
         return {"message": f"Successfully updated replicas for service '{name}'"} 
     except IndexError:
