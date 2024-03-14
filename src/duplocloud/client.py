@@ -76,7 +76,7 @@ class DuploClient():
     self.isadmin = isadmin
     self.query = query.strip() if query else query
     self.output = output.strip()
-    self.timeout = 30
+    self.timeout = 40
 
   @staticmethod
   def from_env():

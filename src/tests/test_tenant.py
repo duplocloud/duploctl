@@ -36,23 +36,17 @@ def test_creating_tenants():
     t.create({
       "AccountName": name,
       "PlanID": "default",
-      "TenantBlueprint": None,
-    })
+      "TenantBlueprint": None
+    }, wait=True)
+    print(f"Tenant '{name}' created")
   except DuploError as e:
     pytest.fail(f"Failed to create tenant: {e}")
-  # for 20 seonds keep trying to find the tenant allowing to fail up to 20 seconds
-  for _ in range(60):
-    try:
-      print(f"Trying to find tenant {name}")
-      nt = t("find", name)
-      print(f"Tenant {name} found")
-      assert nt["AccountName"] == name
-      break
-    except DuploError as e:
-      print(f"Failed to find tenant {name}: {e}")
-      time.sleep(1)
-  else:
-    pytest.fail(f"Failed to find tenant {name}")
+  # now find it
+  try:
+    nt = t("find", name)
+    assert nt["AccountName"] == name
+  except DuploError as e:
+    pytest.fail(f"Failed to find tenant {name}: {e}")
   # now delete the tenant
   try:
     t("config", name, "-D", "delete_protection")

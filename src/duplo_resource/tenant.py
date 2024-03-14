@@ -1,5 +1,7 @@
 from datetime import timedelta
 import datetime
+import time
+import math
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.errors import DuploError
@@ -28,9 +30,12 @@ class DuploTenant(DuploResource):
   
   @Command()
   def create(self, 
-             body: args.BODY):
+             body: args.BODY,
+             wait: args.WAIT=False):
     """Create a new tenant."""
     self.duplo.post("admin/AddTenant", body)
+    if wait:
+      self.wait(body["AccountName"])
     return {
       "message": f"Tenant '{body['AccountName']}' created"
     }
@@ -160,7 +165,7 @@ class DuploTenant(DuploResource):
     for k in deletevar:
       if k in curr_keys:
         self.duplo.delete(f"v3/admin/tenant/{tenant_id}/metadata/{k}")
-        change = {"Key": s, "Operation": "delete"}
+        change = {"Key": k, "Operation": "delete"}
         changes.append(change)
     return {
       "message": f"Successfully updated settings for tenant '{name}'",

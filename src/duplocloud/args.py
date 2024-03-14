@@ -139,5 +139,10 @@ BODY = Arg("file", "-f", "--cli-input",
             action=YamlAction)
 
 REPLICAS = Arg("replicas", "-r",
-            help = 'Number of replicas for service',
-            type = int)
+               help = 'Number of replicas for service',
+               type = int)
+
+WAIT = Arg("wait", "-w",
+           help='Wait for the operation to complete',
+           type=bool,
+           action='store_true')

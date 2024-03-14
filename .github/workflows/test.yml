@@ -32,9 +32,7 @@ jobs:
     # install the project
     - name: Install dependencies
       run: |
-        pip install .[build]
-        pip install .[test]
-        pip install .
+        pip install .[build,test]
     
     # do linting
     - name: Lint with ruff
