@@ -9,10 +9,12 @@ cwd = os.getcwd()
 host = "http://example.duplocloud.net"
 cache_dir = f"{cwd}/.tmp/cache"
 
+@pytest.mark.unit
 def test_new_config():
   c = DuploClient(host=host)
   assert c.host == host
 
+@pytest.mark.unit
 def test_at_least_host():
   """No Host Gets Error"""
   duplo = DuploClient()
@@ -20,6 +22,7 @@ def test_at_least_host():
     duplo.token
     print(e)
 
+@pytest.mark.unit
 def test_cache_dir():
   c = DuploClient(
     host=host,

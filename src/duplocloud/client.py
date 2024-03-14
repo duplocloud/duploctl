@@ -93,7 +93,7 @@ class DuploClient():
     return duplo, xtra
   
   @staticmethod
-  def from_args(args):
+  def from_args(*args):
     """DuploClient from Environment
 
     Create a DuploClient from environment variables.
@@ -220,7 +220,7 @@ Client for Duplo at {self.host}
     d = self.filter(d)
     return self.format(d)
 
-  @cached(cache=TTLCache(maxsize=128, ttl=60))
+  @cached(cache=TTLCache(maxsize=128, ttl=10))
   def get(self, path: str):
     """Get a Duplo resource.
 
