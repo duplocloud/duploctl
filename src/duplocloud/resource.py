@@ -37,7 +37,7 @@ class DuploResource():
       except DuploError:
         time.sleep(poll)
     else:
-      raise DuploError(f"Failed waiting", 404)
+      raise DuploError("Timed out waiting", 404)
       
   
 class DuploTenantResource(DuploResource):
