@@ -16,8 +16,17 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Build the package
 RUN python -m build --no-isolation
 
+# build single file installer
+RUN pyinstaller installer.spec
+
+FROM alpine:latest as alpine 
+
+COPY --from=builder /app/dist/duploctl /usr/local/bin/duploctl
+
+ENTRYPOINT ["duploctl"]
+
 # Stage 2: Install the package in a slimmer container
-FROM python:$PY_VERSION-slim
+FROM python:$PY_VERSION-slim as runner
 
 # Set the working directory in the container
 WORKDIR /app

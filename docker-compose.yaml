@@ -1,7 +1,15 @@
 services:
-  duploctl:
-    build: .
+  duploctl: &base
     image: duplocloud/duploctl:latest
+    build: 
+      target: runner
+      context: .
+      platforms:
+      - limux/amd64
+      - linux/arm64
+      tags:
+      - duplocloud/duploctl:latest
+      - duplocloud/duploctl:$TAG
     container_name: duploctl
     environment:
       DUPLO_HOST: $DUPLO_HOST
@@ -12,3 +20,18 @@ services:
     - list
     - -q
     - '[].AccountName'
+  duploctl-alpine: 
+    <<: *base
+    image: duplocloud/duploctl:latest-alpine
+    container_name: duploctl-alpine
+    build: 
+      target: alpine
+      context: .
+      platforms:
+      - limux/amd64
+      - linux/arm64
+      tags:
+      - duplocloud/duploctl:latest-alpine
+      - duplocloud/duploctl:$TAG-alpine
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["tail -f /dev/null"]
