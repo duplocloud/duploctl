@@ -34,7 +34,7 @@ class DuploResource():
       try:
         self.find(name)
         break
-      except DuploError as e:
+      except DuploError:
         time.sleep(poll)
     else:
       raise DuploError(f"Failed waiting for {name}", 404)

@@ -1,7 +1,5 @@
 from datetime import timedelta
 import datetime
-import time
-import math
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.errors import DuploError
@@ -140,7 +138,7 @@ class DuploTenant(DuploResource):
     curr_settings = tenant.get("Metadata", [])
     curr_keys = [s["Key"] for s in curr_settings]
     # flatten k/v pair while dedupe and remove deleted keys
-    new_settings = {s[0]: s[1] for s in setvar if not s[0] in deletevar}
+    new_settings = {s[0]: s[1] for s in setvar if s[0] not in deletevar}
     # only update if the value is different and create if the key is not present
     for k, v in new_settings.items():
       s = {"Key": k, "Value": v}
