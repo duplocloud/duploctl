@@ -1,0 +1,58 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch: 
+    inputs:
+      environment:
+        required: false
+        description: 'The environment to run the tests in'
+        default: salesdemo
+        type: environment
+  workflow_call: 
+    inputs:
+      environment:
+        required: false
+        description: 'The environment to run the tests in'
+        default: salesdemo
+        type: string
+
+jobs:
+  integration_tests:
+    name: Integration
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ inputs.environment }}
+    env:
+      DUPLO_HOST: ${{ vars.DUPLO_HOST }}
+      DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
+    steps:
+  
+    # checkout code 
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    # install python
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+        cache: 'pip'
+    
+    # install the project
+    - name: Install dependencies
+      run: |
+        pip install .[build,test]
+    
+    # run the tests
+    - name: Test with pytest
+      run: |
+        pytest src --junit-xml=test-results.xml -m integration
+
+    - name: Surface failing tests
+      if: always()
+      uses: pmeier/pytest-results-action@main
+      with:
+        path: test-results.xml
+        summary: true
+        display-options: fEX
+        fail-on-empty: true

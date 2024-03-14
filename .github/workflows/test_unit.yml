@@ -1,4 +1,4 @@
-name: Tests
+name: Unit Tests
 
 on:
   workflow_dispatch: {}
@@ -8,14 +8,12 @@ on:
       - main
 
 jobs:
-  test:
-
+  unit_test:
+    name: Unit
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # was unable to biuld with: 3.7, 3.8, or 3.9
         python-version: ["3.10", "3.11", "3.12"]
-
     steps:
 
     # checkout code 
