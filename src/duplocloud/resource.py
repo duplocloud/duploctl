@@ -27,17 +27,17 @@ class DuploResource():
       raise DuploError(f"Invalid command: {name}")
     return command
   
-  def wait(self, name: str):
-    poll = 10
-    exp = math.ceil(self.duplo.timeout / poll)
+  def wait(self, wait_check: callable, timeout: int=None, poll: int=10):
+    timeout = timeout or self.duplo.timeout
+    exp = math.ceil(timeout / poll)
     for _ in range(exp):
       try:
-        self.find(name)
+        wait_check()
         break
       except DuploError:
         time.sleep(poll)
     else:
-      raise DuploError(f"Failed waiting for {name}", 404)
+      raise DuploError(f"Failed waiting", 404)
       
   
 class DuploTenantResource(DuploResource):

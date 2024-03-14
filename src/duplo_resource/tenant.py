@@ -32,8 +32,10 @@ class DuploTenant(DuploResource):
              wait: args.WAIT=False):
     """Create a new tenant."""
     self.duplo.post("admin/AddTenant", body)
+    def wait_check():
+      self.find(body["AccountName"])
     if wait:
-      self.wait(body["AccountName"])
+      self.wait(wait_check)
     return {
       "message": f"Tenant '{body['AccountName']}' created"
     }

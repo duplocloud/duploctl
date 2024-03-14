@@ -15,7 +15,7 @@ def test_listing_tenants():
   except DuploError as e:
     pytest.fail(f"Failed to list tenants: {e}")
   # there is at least one tenant
-  assert len(lot) > 1
+  assert len(lot) > 0
 
 @pytest.mark.integration
 def test_finding_tenants():

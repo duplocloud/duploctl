@@ -1,4 +1,5 @@
 from duplocloud.client import DuploClient
+from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -26,14 +27,21 @@ class DuploInfrastructure(DuploResource):
   def find(self, 
            name: args.NAME):
     """Find an infrastructure by name."""
-    response = self.duplo.get(f"adminproxy/GetInfrastructureConfigs/{name}")
+    response = self.duplo.get(f"adminproxy/GetInfrastructureConfig/{name}")
     return response.json()
   
   @Command()
   def create(self, 
-             body: args.BODY):
+             body: args.BODY,
+             wait: args.WAIT=False):
     """Create a new infrastructure."""
+    def wait_check():
+      i = self.find(body["Name"])
+      if i["ProvisioningStatus"] != "Complete":
+        raise DuploError(f"Infrastructure '{body['Name']}' not ready", 404)
     self.duplo.post("adminproxy/CreateInfrastructureConfig", body)
+    if wait:
+      self.wait(wait_check, 1800, 20)
     return {
       "message": f"Infrastructure '{body['Name']}' created"
     }
@@ -46,3 +54,4 @@ class DuploInfrastructure(DuploResource):
     return {
       "message": f"Infrastructure '{name}' deleted"
     }
+
