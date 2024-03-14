@@ -278,6 +278,21 @@ Client for Duplo at {self.host}
       json = data
     )
     return self.__validate_response(response)
+  
+  def delete(self, path: str):
+    """Delete a Duplo resource.
+    
+    Args:
+      path: The path to the resource.
+    Returns:
+      The response as a JSON object.
+    """
+    response = requests.delete(
+      url = f"{self.host}/{path}",
+      headers = self.__headers(),
+      timeout = self.timeout
+    )
+    return self.__validate_response(response)
 
   def filter(self, data: dict):
     """Query data

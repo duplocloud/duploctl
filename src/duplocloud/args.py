@@ -80,35 +80,40 @@ SERVICE = Arg('service',
 COMMAND = Arg('command', 
              help='The subcommand to run')
 
+# generic first positional arg for resource name
 NAME = Arg("name", 
-           help='The resource name')
+            help='The resource name')
 
 IMAGE = Arg("image", 
             help='The image to use')
 
 S3BUCKET = Arg("bucket",
-               help='The s3 bucket to use')
+            help='The s3 bucket to use')
 
 S3KEY = Arg("key",
-               help='The s3 key to use')
+            help='The s3 key to use')
 
 SERVICEIMAGE = Arg("serviceimage", "-S",
             help='takes two arguments, a service name and an image:tag',
             action='append',
             nargs=2,
             metavar=('service', 'image'))
+
 SETVAR = Arg("setvar", "-V",
             help='a key and value to set as an environment variable',
             action='append',
             nargs=2,
             metavar=('key', 'value'))
+
 STRATEGY = Arg("-strategy", "-strat",
             help='The merge strategy to use for env vars. Valid options are \"merge\" or \"replace\".  Default is merge.',
             choices=['merge', 'replace'],
             default = 'merge')
+
 DELETEVAR = Arg("deletevar", "-D",
             action='append',
             help='a key to delete from the environment variables')
+
 SCHEDULE = Arg("schedule","-s", 
                help='The schedule to use')
 
@@ -132,6 +137,7 @@ BODY = Arg("file", "-f", "--cli-input",
             help='A file to read the input from',
             type=argparse.FileType('r'),
             action=YamlAction)
+
 REPLICAS = Arg("replicas", "-r",
             help = 'Number of replicas for service',
             type = int)
