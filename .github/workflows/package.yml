@@ -4,7 +4,7 @@ on:
   workflow_dispatch: 
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push the artifact to PyPi?
         default: false
         type: boolean
       tag:
@@ -14,7 +14,7 @@ on:
   workflow_call: 
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push the artifact to PyPi?
         default: true
         type: boolean
       tag:

@@ -4,18 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push the formula to the tap repository?
         required: false
         default: true
         type: boolean
       tag:
-        description: The git tag to build on
+        description: The git tag for the formula
         required: true
         type: string
   workflow_call:
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push the formula to the tap repository?
         required: false
         default: true
         type: boolean
