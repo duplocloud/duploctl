@@ -1,0 +1,69 @@
+name: Homebrew Tap
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Push the image to the registry
+        required: false
+        default: true
+        type: boolean
+      tag:
+        description: The git tag to build on
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      push:
+        description: Push the image to the registry
+        required: false
+        default: true
+        type: boolean
+      tag:
+        description: The git tag to build on
+        required: true
+        type: string
+
+jobs:
+  update_tap:
+    name: Homebrew
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Checkout Tap
+      uses: actions/checkout@v4
+      if: inputs.push == true
+      with:
+        repository: 'duplocloud/homebrew-tap'
+        path: 'homebrew-tap'
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: pip install requests
+
+    - name: Gen Formula
+      run: ./scripts/formula.py ${{ inputs.tag }}
+
+    - name: Preview Formula
+      run: cat dist/duploctl.rb
+
+    - name: Copy Formula
+      if: inputs.push == true
+      run: cp dist/duploctl.rb homebrew-tap/Formula/duploctl.rb
+
+    - name: Commit Formula
+      if: inputs.push == true
+      working-directory: homebrew-tap
+      run: |
+        git add Formula/duploctl.rb
+        git commit -m "Update duploctl to ${{ inputs.tag }}"
+        git push
+      

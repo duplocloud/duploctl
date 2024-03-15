@@ -80,3 +80,12 @@ jobs:
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}
+
+  homebrew:
+    name: Release
+    uses: ./.github/workflows/homebrew.yml
+    secrets: inherit
+    needs: [version, release]
+    with:
+      tag: ${{ needs.version.outputs.tag }}
+      push: ${{ inputs.push }}
