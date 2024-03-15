@@ -76,7 +76,7 @@ class DuploClient():
     self.isadmin = isadmin
     self.query = query.strip() if query else query
     self.output = output.strip()
-    self.timeout = 30
+    self.timeout = 60
 
   @staticmethod
   def from_env():
@@ -93,7 +93,7 @@ class DuploClient():
     return duplo, xtra
   
   @staticmethod
-  def from_args(args):
+  def from_args(*args):
     """DuploClient from Environment
 
     Create a DuploClient from environment variables.
@@ -220,7 +220,7 @@ Client for Duplo at {self.host}
     d = self.filter(d)
     return self.format(d)
 
-  @cached(cache=TTLCache(maxsize=128, ttl=60))
+  @cached(cache=TTLCache(maxsize=128, ttl=10))
   def get(self, path: str):
     """Get a Duplo resource.
 
@@ -276,6 +276,21 @@ Client for Duplo at {self.host}
       headers = self.__headers(),
       timeout = self.timeout,
       json = data
+    )
+    return self.__validate_response(response)
+  
+  def delete(self, path: str):
+    """Delete a Duplo resource.
+    
+    Args:
+      path: The path to the resource.
+    Returns:
+      The response as a JSON object.
+    """
+    response = requests.delete(
+      url = f"{self.host}/{path}",
+      headers = self.__headers(),
+      timeout = self.timeout
     )
     return self.__validate_response(response)
 

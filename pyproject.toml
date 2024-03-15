@@ -42,6 +42,7 @@ test = [
   "pytest-black",
   "pytest-isort",
   "pytest-cov",
+  "pytest-dependency"
 ]
 [build-system]
 requires = [
@@ -63,20 +64,27 @@ pythonpath = [
   ".",
   "src"
 ]
-[tool.setuptools_scm]
+markers = [
+  "integration: mark a test as an integration test",
+  "unit: mark a test as a unit test"
+]
 
 [tool.coverage.run]
 omit = [
   "*_test.py",
   "foo.py",
-  "src/conftest.py",
+  "src/tests/*",
   "**/__*__.py"
 ]
 
 [tool.ruff]
 exclude = [
-  "**/*_test.py"
+  "**/*_test.py", 
+  "**/test_*.py",
+  "src/tests/*"
 ]
+
+[tool.setuptools_scm]
 
 [tool.setuptools.packages.find]
 where = ["src"]
