@@ -38,7 +38,7 @@ def test_creating_infrastructures():
       "AzCount": 2,
       "Vnet": { 
         "SubnetCidr": 22, 
-        "AddressPrefix": f"12.2{vnum}0.0.0/16"
+        "AddressPrefix": f"11.1{vnum}0.0.0/16"
       },
       "Cloud": 0,
       "OnPremConfig": None,
