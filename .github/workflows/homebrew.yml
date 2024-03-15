@@ -28,6 +28,7 @@ jobs:
   update_tap:
     name: Homebrew
     runs-on: ubuntu-latest
+    if: inputs.push == true
     steps:
 
     - name: Checkout
