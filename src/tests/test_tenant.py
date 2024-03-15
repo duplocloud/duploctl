@@ -7,12 +7,15 @@ from duplocloud.client import DuploClient
 
 duplo, _ = DuploClient.from_env()
 
-@pytest.fixture(scope="module")
-def tenant_name():
-  inc = random.randint(1, 100)
-  return f"duploctl{inc}"
-
 class TestTenant:
+
+  def setup_class(self):
+    inc = random.randint(1, 100)
+    self.tenant_name = f"duploctl{inc}"
+    print(f"setup_method called {self.tenant_name}")
+
+  def teardown_class(self):
+    print(f"teardown_method called {self.tenant_name}")
 
   @pytest.mark.integration
   def test_listing_tenants(self):
@@ -35,10 +38,10 @@ class TestTenant:
 
   @pytest.mark.integration
   @pytest.mark.dependency(name = "create_tenant")
-  def test_creating_tenants(self, tenant_name):
+  def test_creating_tenants(self):
     t = duplo.load("tenant")
     # create a random tenant and delete it from the default plan
-    name = tenant_name
+    name = self.tenant_name
     try:
       t.create({
         "AccountName": name,
@@ -51,10 +54,10 @@ class TestTenant:
 
   @pytest.mark.integration
   @pytest.mark.dependency(depends=["create_tenant"])
-  def test_find_delete_tenant(self, tenant_name):
+  def test_find_delete_tenant(self):
     # now find it
     t = duplo.load("tenant")
-    name = tenant_name
+    name = self.tenant_name
     print(f"Delete tenant '{name}'")
     try:
       nt = t("find", name)

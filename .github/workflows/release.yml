@@ -61,8 +61,8 @@ jobs:
           name=$(basename $d)
           dest="dist/${name}.tar.gz"
           tar -czvf "$dest" -C $d .
-          shasum -a 256 $dest >> dist/checksums.txt
         done
+        find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
         echo "Created Release Artifacts"
         ls -l dist
 
