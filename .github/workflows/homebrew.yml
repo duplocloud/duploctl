@@ -39,6 +39,7 @@ jobs:
       with:
         repository: 'duplocloud/homebrew-tap'
         path: 'homebrew-tap'
+        token: ${{ secrets.GHA_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
