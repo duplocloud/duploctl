@@ -1,5 +1,5 @@
 from duplocloud.client import DuploClient
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploFailedResource
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -38,6 +38,9 @@ class DuploInfrastructure(DuploResource):
     def wait_check():
       i = self.find(body["Name"])
       if i["ProvisioningStatus"] != "Complete":
+        # stop waiting if the status contains failed
+        if "Failed" in i["ProvisioningStatus"]:
+          raise DuploFailedResource(f"Infrastructure '{body['Name']}'")
         raise DuploError(f"Infrastructure '{body['Name']}' not ready", 404)
     self.duplo.post("adminproxy/CreateInfrastructureConfig", body)
     if wait:

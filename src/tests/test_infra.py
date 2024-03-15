@@ -1,9 +1,8 @@
 import math
 import pytest
-import time
 import random
 
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploFailedResource
 from duplocloud.client import DuploClient
 
 duplo, _ = DuploClient.from_env()
@@ -39,13 +38,15 @@ def test_creating_infrastructures():
       "AzCount": 2,
       "Vnet": { 
         "SubnetCidr": 22, 
-        "AddressPrefix": f"11.2{vnum}0.0.0/16"
+        "AddressPrefix": f"12.2{vnum}0.0.0/16"
       },
       "Cloud": 0,
       "OnPremConfig": None,
-      "Region": "us-west-2",
+      "Region": "us-east-1",
       "CustomData": [],
     }, wait=True)
+  except DuploFailedResource as e:
+    pytest.fail(f"Infrastructure is in a failed state: {e}")
   except DuploError as e:
     pytest.fail(f"Failed to create tenant: {e}")
   try:
