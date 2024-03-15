@@ -21,4 +21,4 @@ with open(tpl_path, 'r') as tpl_file:
   os.makedirs('dist', exist_ok=True)
   with open('dist/duploctl.rb', 'w') as formula_file:
     formula_file.write(formula)
-
+    print(formula)
