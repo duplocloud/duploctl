@@ -65,5 +65,12 @@ jobs:
         git config --global user.name "Duplo Bot"
         git add Formula/duploctl.rb
         git commit -m "Update duploctl to ${{ inputs.tag }}"
-        git push
+      
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GHA_TOKEN }}
+        branch: main
+        directory: homebrew-tap
+        repository: duplocloud/homebrew-tap
       
