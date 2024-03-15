@@ -29,6 +29,8 @@ jobs:
     name: Test
     uses: ./.github/workflows/test_integration.yml
     secrets: inherit
+    with:
+      environment: qa-aws
 
   version:
     name: Version
