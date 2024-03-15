@@ -14,3 +14,8 @@ class DuploExpiredCache(DuploError):
   def __init__(self, key: str):
     self.key = key
     super().__init__("Cache item {key} is expired", 404)
+
+class DuploFailedResource(DuploError):
+  """Raised when a Duplo resource is in a failed state."""
+  def __init__(self, name: str):
+    super().__init__(f"{name} is in a failed state", 412)

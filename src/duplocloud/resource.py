@@ -1,5 +1,5 @@
 from .client import DuploClient
-from .errors import DuploError
+from .errors import DuploError, DuploFailedResource
 from .commander import get_parser
 import math
 import time
@@ -34,6 +34,8 @@ class DuploResource():
       try:
         wait_check()
         break
+      except DuploFailedResource as e:
+        raise e
       except DuploError:
         time.sleep(poll)
     else:
