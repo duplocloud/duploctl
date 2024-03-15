@@ -61,6 +61,8 @@ jobs:
       if: inputs.push == true
       working-directory: homebrew-tap
       run: |
+        git config --global user.email "100788897+duplo-bot@users.noreply.github.com"
+        git config --global user.name "Duplo Bot"
         git add Formula/duploctl.rb
         git commit -m "Update duploctl to ${{ inputs.tag }}"
         git push
