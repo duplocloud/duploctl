@@ -2,7 +2,7 @@
 import os
 import requests
 
-tpl_path = 'scripts/formula.rb.tpl'
+tpl_path = 'scripts/formula.tpl.rb'
 version   = os.sys.argv[1].replace('v', '')
 url = f"https://github.com/duplocloud/duploctl/releases/download/v{version}/checksums.txt"
 response = requests.get(url)

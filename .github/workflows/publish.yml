@@ -17,6 +17,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_e2e:  
+        description: Run end to end tests
+        required: false
+        default: false
+        type: boolean
 
 jobs:
 
@@ -31,6 +36,7 @@ jobs:
     secrets: inherit
     with:
       environment: qa-aws
+      enabled: ${{ inputs.run_e2e }}
 
   version:
     name: Version

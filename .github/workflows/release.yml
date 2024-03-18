@@ -43,20 +43,30 @@ jobs:
         fi
         VERSION=$(echo $GIT_TAG | cut -d'v' -f2)
         NAME="duploctl-${VERSION}"
+        PACKAGE_NAME="duplocloud-client-${VERSION}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
+        echo "PACKAGE_NAME=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
     
-    - name: Download Artifacts
+    - name: Download Installer Artifacts
       uses: actions/download-artifact@v4
       with:
         pattern: ${{ steps.set_tag.outputs.NAME }}-*
         path: artifacts
         merge-multiple: false
+    
+    - name: Download Package Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
+        path: artifacts
 
     - name: Compress Artifacts
       shell: bash
       run: |
+        echo "Artifacts:"
+        ls -l artifacts
         for d in artifacts/*; do
           name=$(basename $d)
           dest="dist/${name}.tar.gz"
@@ -64,6 +74,7 @@ jobs:
         done
         find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
         echo "Created Release Artifacts"
+        echo "Final Artifacts:"
         ls -l dist
 
     - name: Create Release

@@ -62,3 +62,9 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
+
+    - name: Github Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: duplocloud-client-${{ inputs.tag }}
+        path: dist/duplocloud-client-${{ inputs.tag }}.tar.gz
