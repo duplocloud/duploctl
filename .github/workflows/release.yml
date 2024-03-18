@@ -37,6 +37,7 @@ jobs:
       id: set_tag
       env:
         GIT_TAG: ${{ inputs.tag }}
+        DOWNLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download
       run: |
         if [ -z "$GIT_TAG" ]; then
           GIT_TAG=${GITHUB_REF#refs/*/}
@@ -48,6 +49,7 @@ jobs:
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
         echo "PACKAGE_NAME=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+        echo "RELEASE_URL=${DOWNLOAD_URL}/${GIT_TAG}" >> $GITHUB_OUTPUT
     
     - name: Download Installer Artifacts
       uses: actions/download-artifact@v4
@@ -62,20 +64,18 @@ jobs:
         pattern: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
         path: artifacts
 
-    - name: Compress Artifacts
+    - name: Stage Release Artifacts
       shell: bash
       env:
         PACKAGE_NAME: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
       run: |
-        echo "Artifacts:"
-        ls -l artifacts/${PACKAGE_NAME}
         for d in artifacts/*; do
           name=$(basename $d)
           dest="dist/${name}.tar.gz"
           tar -czvf "$dest" -C $d .
         done
-        find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
         cp -a artifacts/${PACKAGE_NAME}/. dist/
+        find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
         echo "Created Release Artifacts"
         ls -l dist
 
@@ -97,6 +97,12 @@ jobs:
           pip install duplocloud-client==${{ steps.set_tag.outputs.VERSION }}
           ```
 
+          PIP Release:
+          The dowload below named `duplocloud-client-${{ steps.set_tag.outputs.VERSION }}.tar.gz` is the pip distribution of the package. 
+          ```sh
+          pip install ${{ steps.set_tag.outputs.RELEASE_URL }}/duplocloud-client-${{ steps.set_tag.outputs.VERSION }}.tar.gz
+          ```
+
           Dockerhub:  
           [duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
           ```sh
@@ -105,7 +111,12 @@ jobs:
 
           Install CLI to Path:
           ```sh
-          curl -s -L ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ steps.set_tag.outputs.GIT_TAG }}/duploctl-${{ steps.set_tag.outputs.VERSION }}-linux-amd64.tar.gz | tar xvz - -C /usr/local/bin
+          curl -s -L ${{ steps.set_tag.outputs.RELEASE_URL }}/duploctl-${{ steps.set_tag.outputs.VERSION }}-linux-amd64.tar.gz | tar xvz - -C /usr/local/bin
+          ```
+
+          Homebrew:
+          ```sh
+          brew install duplocloud/tap/duploctl
           ```
           
           Build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
