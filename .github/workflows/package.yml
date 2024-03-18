@@ -67,4 +67,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: duplocloud-client-${{ inputs.tag }}
-        path: dist/duplocloud-client-${{ inputs.tag }}.tar.gz
+        path: dist/duplocloud-client-*.tar.gz
