@@ -64,17 +64,19 @@ jobs:
 
     - name: Compress Artifacts
       shell: bash
+      env:
+        PACKAGE_NAME: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
       run: |
         echo "Artifacts:"
-        ls -l artifacts/${{ steps.set_tag.outputs.PACKAGE_NAME }}
+        ls -l artifacts/${PACKAGE_NAME}
         for d in artifacts/*; do
           name=$(basename $d)
           dest="dist/${name}.tar.gz"
           tar -czvf "$dest" -C $d .
         done
         find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
+        cp -a artifacts/${PACKAGE_NAME}/. dist/
         echo "Created Release Artifacts"
-        echo "Final Artifacts:"
         ls -l dist
 
     - name: Create Release
