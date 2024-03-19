@@ -13,8 +13,7 @@ pip install duplocloud-client
 
 From Homebrew:  
 ```sh
-brew tap duplocloud/homebrew-tap
-brew install duploctl
+brew install duplocloud/tap/duploctl
 ```
 
 ## Usage 
