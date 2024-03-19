@@ -86,6 +86,7 @@ jobs:
       with:
         name: ${{ steps.set_tag.outputs.GIT_TAG }}
         tag_name: ${{ steps.set_tag.outputs.GIT_TAG }}
+        prerelease: false
         files: |
           dist/*
         body: |
@@ -120,7 +121,6 @@ jobs:
           ```
           
           Build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        prerelease: false
 
     - name: Post to a Slack channel
       id: slack
