@@ -1,5 +1,6 @@
 import inspect 
 import argparse
+from copy import deepcopy
 from importlib.metadata import entry_points
 from .errors import DuploError
 from .argtype import Arg
@@ -43,11 +44,12 @@ def Command():
   def decorator(function):
     sig = inspect.signature(function)
     def arg_anno(name, param):
-      if not param.annotation.positional and name != param.annotation.__name__:
-        param.annotation.set_attribute("dest", name)
+      a = deepcopy(param.annotation)
+      if not a.positional and name != a.__name__:
+        a.set_attribute("dest", name)
       if param.default is not inspect.Parameter.empty:
-        param.annotation.set_attribute("default", param.default)
-      return param.annotation
+        a.set_attribute("default", param.default)
+      return a
     schema[function.__qualname__] = [
         arg_anno(k, v)
         for k, v in sig.parameters.items()
