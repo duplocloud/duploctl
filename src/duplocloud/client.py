@@ -585,7 +585,7 @@ Client for Duplo at {self.host}
     Returns:
       The sanitized host with scheme.
     """
-    if host is None:
-      return host
+    if not host:
+      return None
     url = urlparse(host)
     return f"https://{url.netloc}"
