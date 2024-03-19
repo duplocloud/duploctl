@@ -11,14 +11,14 @@ class Testportal:
   def test_system_info(self):
     r = duplo.load("system")
     try:
-      lot = r("info")
-      assert lot["DefaultAwsPartition"] == "aws"
+      info = r("info")
+      assert info["DefaultAwsPartition"] == "aws"
       # Check is EnabledFlags has atleast 1 value.
-      assert len(lot["EnabledFlags"]) > 0
+      assert len(info["EnabledFlags"]) > 0
       # Check is AppConfigs has atleast 1 value.
-      assert len(lot["AppConfigs"]) > 0
+      assert len(info["AppConfigs"]) > 0
     except DuploError as e:
       pytest.fail(f"Failed to grab system info: {e}")
     # there is at least some information returned.
-    assert len(lot) > 0
+    assert len(info) > 0
 
