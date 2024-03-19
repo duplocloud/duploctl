@@ -9,9 +9,9 @@ duplo, _ = DuploClient.from_env()
 
 class TestInfra:
 
-  def setup_class(self):
-    inc = random.randint(1, 100)
-    self.infra_name = f"duploctl{inc}"
+  # def setup_class(self):
+  #   inc = random.randint(1, 100)
+  #   self.infra_name = f"duploctl{inc}"
 
   @pytest.mark.integration
   def test_listing_infrastructures(self):
@@ -31,11 +31,12 @@ class TestInfra:
     assert t["AccountName"] == "default"
 
   @pytest.mark.integration
-  @pytest.mark.dependency(name = "create_infra")
-  def test_creating_infrastructures(self):
+  @pytest.mark.dependency(name = "create_infra", scope='session')
+  def test_creating_infrastructures(self, infra_name):
     r = duplo.load("infrastructure")
     vnum = math.ceil(random.randint(1, 9))
-    name = self.infra_name
+    # name = self.infra_name
+    name = infra_name
     print(f"Creating infra '{name}'")
     try:
       r.create({
@@ -58,10 +59,11 @@ class TestInfra:
       pytest.fail(f"Failed to create tenant: {e}")
     
   @pytest.mark.integration
-  @pytest.mark.dependency(depends=["create_infra"])
-  def test_find_delete_infra(self):
+  @pytest.mark.dependency(depends=["delete_tenant"], scope='session')
+  def test_find_delete_infra(self, infra_name):
     r = duplo.load("infrastructure")
-    name = self.infra_name
+    # name = self.infra_name
+    name = infra_name
     print(f"Deleting infra '{name}'")
     try:
       i = r.find(name)
