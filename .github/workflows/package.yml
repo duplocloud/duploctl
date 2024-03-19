@@ -32,6 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: Variables
+      id: vars
+      run: |
+        VERSION=$(echo ${{ inputs.tag }} | cut -d'v' -f2)
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
     # checkout code 
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -66,5 +72,5 @@ jobs:
     - name: Github Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: duplocloud-client-${{ inputs.tag }}
+        name: duplocloud-client-${{ steps.vars.outputs.VERSION }}
         path: dist/duplocloud-client-*.tar.gz
