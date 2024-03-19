@@ -5,6 +5,7 @@ import datetime
 import os
 import yaml
 import json
+from urllib.parse import urlparse
 from cachetools import cached, TTLCache
 from pathlib import Path
 from .commander import load_resource,load_format
@@ -66,7 +67,7 @@ class DuploClient():
     self.cache_dir = cache_dir or f"{self.home_dir}/cache"
     self.__config = None
     self.__context = ctx
-    self.__host = host.strip() if host else host
+    self.__host = self.__sanitize_host(host)
     self.__token = token.strip() if token else token
     self.__tenant = tenant.strip().lower() if tenant else tenant
     self.version = version
@@ -353,7 +354,7 @@ Client for Duplo at {self.host}
     ctx = self.context
 
     # set the context into this config
-    self.__host = ctx.get("host", None)
+    self.__host = self.__sanitize_host(ctx.get("host", None))
     self.__token = ctx.get("token", None)
     self.__tenant = ctx.get("tenant", self.__tenant)
     self.interactive = ctx.get("interactive", False)
@@ -574,3 +575,17 @@ Client for Duplo at {self.host}
 
     raise DuploError("Duplo responded with an error", response.status_code)
     
+  def __sanitize_host(self, host: str):
+    """Sanitize Host
+    
+    Sanitize the host using urlparse. This will ensure that the host is a valid URL and that it is using HTTPS.
+
+    Args:
+      host: The host to sanitize.
+    Returns:
+      The sanitized host with scheme.
+    """
+    if host is None:
+      return host
+    url = urlparse(host)
+    return f"https://{url.netloc}"
