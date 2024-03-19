@@ -66,6 +66,7 @@ jobs:
         git config --global user.name "Duplo Bot"
         git add Formula/duploctl.rb
         git commit -m "Update duploctl to ${{ inputs.tag }}"
+        git tag duploctl-${{ inputs.tag }}
       
     - name: Push changes
       uses: ad-m/github-push-action@master
