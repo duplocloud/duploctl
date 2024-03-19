@@ -2,16 +2,18 @@
 
 [![Tests](https://github.com/duplocloud/duploctl/actions/workflows/test.yml/badge.svg)](https://github.com/duplocloud/duploctl/actions/workflows/test.yml) [![PyPI - Version](https://img.shields.io/pypi/v/duplocloud-client)](https://pypi.org/project/duplocloud-client/) ![Docker Image Version](https://img.shields.io/docker/v/duplocloud/duploctl?sort=semver&logo=Docker&label=docker&color=blue&link=https%3A%2F%2Fhub.docker.com%2Fr%2Fduplocloud%2Fduploctl)
 
-
-
-
-```duploctl``` is a package that spawns service clients that work with Duplocloud. It is a CLI for interacting with Duplocloud resources, such as Tenants, and is designed to work seamlessly within CLI-based CI/CD pipelines. It is a fully extensible package and can be used as both a Python module and a CLI. 
+```duploctl``` is a cli and package to work with a Duplocloud portal. It is a CLI for interacting with Duplocloud resources, such as Tenants, and is designed to work seamlessly within CLI-based CI/CD pipelines. It is a fully extensible package and can be used as both a Python module and a CLI. 
 
 ## Installation  
 
 From PyPi:
 ```
 pip install duplocloud-client
+```
+
+From Homebrew:  
+```sh
+brew install duplocloud/tap/duploctl
 ```
 
 ## Usage 
@@ -51,9 +53,14 @@ List the services in a tenant:
 duploctl service list
 ```
 
-Get AWS Console URL:
+Register Profile for AWS:
 ```sh
-duploctl jit aws
+duploctl jit update_aws_config myportal
+```
+
+Open AWS Web Console:
+```sh
+duploctl jit web
 ```
 
 Get Kubernetes config:

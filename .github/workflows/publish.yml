@@ -17,6 +17,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_e2e:  
+        description: Run end to end tests
+        required: false
+        default: false
+        type: boolean
 
 jobs:
 
@@ -29,6 +34,9 @@ jobs:
     name: Test
     uses: ./.github/workflows/test_integration.yml
     secrets: inherit
+    with:
+      environment: qa-aws
+      enabled: ${{ inputs.run_e2e }}
 
   version:
     name: Version
@@ -77,6 +85,15 @@ jobs:
     uses: ./.github/workflows/release.yml
     secrets: inherit
     needs: [version, package, installer, image]
+    with:
+      tag: ${{ needs.version.outputs.tag }}
+      push: ${{ inputs.push }}
+
+  homebrew:
+    name: Release
+    uses: ./.github/workflows/homebrew.yml
+    secrets: inherit
+    needs: [version, release]
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}

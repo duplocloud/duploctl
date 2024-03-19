@@ -4,17 +4,25 @@ on:
   workflow_dispatch: 
     inputs:
       environment:
-        required: false
+        required: true
         description: 'The environment to run the tests in'
-        default: salesdemo
         type: environment
+      enabled:
+        required: false
+        description: 'Whether to run the tests'
+        type: boolean
+        default: true
   workflow_call: 
     inputs:
       environment:
-        required: false
+        required: true
         description: 'The environment to run the tests in'
-        default: salesdemo
         type: string
+      enabled:
+        required: false
+        description: 'Whether to run the tests'
+        type: boolean
+        default: true
 
 jobs:
   integration_tests:
@@ -30,26 +38,30 @@ jobs:
     # checkout code 
     - name: Checkout Code
       uses: actions/checkout@v4
+      if: inputs.enabled
     
     # install python
     - name: Set up Python
       uses: actions/setup-python@v5
+      if: inputs.enabled
       with:
         python-version: 3.12
         cache: 'pip'
     
     # install the project
     - name: Install dependencies
+      if: inputs.enabled
       run: |
         pip install .[build,test]
     
     # run the tests
     - name: Test with pytest
+      if: inputs.enabled
       run: |
         pytest src --junit-xml=test-results.xml -m integration
 
     - name: Surface failing tests
-      if: always()
+      if: always() && inputs.enabled 
       uses: pmeier/pytest-results-action@main
       with:
         path: test-results.xml
