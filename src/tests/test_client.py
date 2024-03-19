@@ -6,13 +6,13 @@ from duplocloud.client import DuploClient
 
 # current working directory as variable
 cwd = os.getcwd()
-host = "http://example.duplocloud.net"
+host = "http://example.duplocloud.net/nothing/?foo=bar"
 cache_dir = f"{cwd}/.tmp/cache"
 
 @pytest.mark.unit
 def test_new_config():
   c = DuploClient(host=host)
-  assert c.host == host
+  assert c.host == "https://example.duplocloud.net"
 
 @pytest.mark.unit
 def test_at_least_host():
