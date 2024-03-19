@@ -18,9 +18,19 @@ class DuploJit(DuploResource):
   def aws(self, nocache: bool = None):
     """Retrieve aws session credentials for current user."""
     sts = None
+    path = None
     k = self.duplo.cache_key_for("aws-creds")
-    path = "adminproxy/GetJITAwsConsoleAccessUrl"
     nc = nocache if nocache is not None else self.duplo.nocache
+
+    # check if admin or choose tenant
+    if self.duplo.isadmin:
+      path = "adminproxy/GetJITAwsConsoleAccessUrl"
+    else:
+      t = self.duplo.load("tenant")
+      tenant = t.find(self.duplo.tenant)
+      path = f"subscriptions/{tenant['TenantId']}/GetAwsConsoleTokenUrl"
+    
+    # try and get those creds
     try:
       if nc:
         sts = self.duplo.get(path).json()
