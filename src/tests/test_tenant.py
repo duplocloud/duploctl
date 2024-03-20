@@ -1,5 +1,4 @@
 import pytest
-import time
 import random
 
 from duplocloud.errors import DuploError
@@ -9,13 +8,13 @@ duplo, _ = DuploClient.from_env()
 
 class TestTenant:
 
-  def setup_class(self):
-    inc = random.randint(1, 100)
-    self.tenant_name = f"duploctl{inc}"
-    print(f"setup_method called {self.tenant_name}")
+  # def setup_class(self):
+  #   inc = random.randint(1, 100)
+  #   self.tenant_name = f"duploctl{inc}"
+  #   print(f"setup_method called {self.tenant_name}")
 
-  def teardown_class(self):
-    print(f"teardown_method called {self.tenant_name}")
+  # def teardown_class(self):
+  #   print(f"teardown_method called {self.tenant_name}")
 
   @pytest.mark.integration
   def test_listing_tenants(self):
@@ -37,15 +36,17 @@ class TestTenant:
     assert t["AccountName"] == "default"
 
   @pytest.mark.integration
-  @pytest.mark.dependency(name = "create_tenant")
-  def test_creating_tenants(self):
+  @pytest.mark.dependency(name="create_tenant", depends=["create_infra"], scope='session')
+  @pytest.mark.order(2)
+  def test_creating_tenants(self, infra_name):
     t = duplo.load("tenant")
     # create a random tenant and delete it from the default plan
-    name = self.tenant_name
+    # name = self.tenant_name
+    name = infra_name
     try:
       t.create({
         "AccountName": name,
-        "PlanID": "default",
+        "PlanID": infra_name,
         "TenantBlueprint": None
       }, wait=True)
       print(f"Tenant '{name}' created")
@@ -53,11 +54,13 @@ class TestTenant:
       pytest.fail(f"Failed to create tenant: {e}")
 
   @pytest.mark.integration
-  @pytest.mark.dependency(depends=["create_tenant"])
-  def test_find_delete_tenant(self):
+  @pytest.mark.dependency(name="delete_tenant", depends=["create_tenant"], scope='session')
+  @pytest.mark.order(3)
+  def test_find_delete_tenant(self, infra_name):
     # now find it
     t = duplo.load("tenant")
-    name = self.tenant_name
+    # name = self.tenant_name
+    name = infra_name
     print(f"Delete tenant '{name}'")
     try:
       nt = t("find", name)

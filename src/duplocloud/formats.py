@@ -47,3 +47,24 @@ def toenv(obj):
   """
   envs = [f"{k}={v}" for k, v in obj.items()]
   return "\n".join(envs)
+
+def tocsv(obj):
+  """Converts a python object to a CSV string.
+
+  Args:
+    obj: The python object to convert.
+
+  Returns:
+    A CSV string representing the object.
+  """
+  import csv
+  from io import StringIO
+  if not isinstance(obj, list):
+    obj = [obj]
+  headers = obj[0].keys()
+  output = StringIO()
+  writer = csv.writer(output)
+  writer.writerow(headers)
+  for row in obj:
+    writer.writerow(row.values())
+  return output.getvalue()

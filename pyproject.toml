@@ -49,8 +49,7 @@ requires = [
   "setuptools>=42",
   "setuptools_scm[toml]>=6.2",
   "wheel",
-  "build",
-  "twine"
+  "build"
 ]
 build-backend = "setuptools.build_meta"
 
@@ -58,10 +57,9 @@ build-backend = "setuptools.build_meta"
 minversion = "6.0"
 addopts = "--verbose --cov=src --cov-report term-missing"
 testpaths = [
-  "src"
+  "src/tests"
 ]
 pythonpath = [
-  ".",
   "src"
 ]
 markers = [
@@ -116,3 +114,4 @@ json = "duplocloud.formats:tojson"
 yaml = "duplocloud.formats:toyaml"
 string = "duplocloud.formats:tostring"
 env = "duplocloud.formats:toenv"
+csv = "duplocloud.formats:tocsv"

@@ -115,9 +115,14 @@ jobs:
           curl -s -L ${{ steps.set_tag.outputs.RELEASE_URL }}/duploctl-${{ steps.set_tag.outputs.VERSION }}-linux-amd64.tar.gz | tar xvz - -C /usr/local/bin
           ```
 
-          Homebrew:
+          Homebrew single binary:
           ```sh
           brew install duplocloud/tap/duploctl
+          ```
+
+          Homebrew with PIP:
+          ```sh
+          brew install duplocloud/tap/duploctl --with-pip
           ```
           
           Build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
