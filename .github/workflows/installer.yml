@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push the artifact to github. 
         required: false
         default: true
         type: boolean
@@ -15,7 +15,7 @@ on:
   workflow_call:
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push the artifact to github. 
         required: false
         default: true
         type: boolean

@@ -107,8 +107,8 @@ class DuploEcsService(DuploTenantResource):
     return response.json()
   
   @Command()
-  def update(self, body: 
-             args.BODY):
+  def update(self, 
+             body: args.BODY):
     """Update an ECS service.
 
     Args:

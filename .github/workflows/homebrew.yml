@@ -1,0 +1,79 @@
+name: Homebrew Tap
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Push the formula to the tap repository?
+        required: false
+        default: true
+        type: boolean
+      tag:
+        description: The git tag for the formula
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      push:
+        description: Push the formula to the tap repository?
+        required: false
+        default: true
+        type: boolean
+      tag:
+        description: The git tag to build on
+        required: true
+        type: string
+
+jobs:
+  update_tap:
+    name: Homebrew
+    runs-on: ubuntu-latest
+    if: inputs.push == true
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Checkout Tap
+      uses: actions/checkout@v4
+      if: inputs.push == true
+      with:
+        repository: 'duplocloud/homebrew-tap'
+        path: 'homebrew-tap'
+        token: ${{ secrets.GHA_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+
+    - name: Install dependencies
+      run: pip install requests
+
+    - name: Gen Formula
+      run: ./scripts/formula.py ${{ inputs.tag }}
+
+    - name: Copy Formula
+      if: inputs.push == true
+      run: cp dist/duploctl.rb homebrew-tap/Formula/duploctl.rb
+
+    - name: Commit Formula
+      if: inputs.push == true
+      working-directory: homebrew-tap
+      run: |
+        git config --global user.email "100788897+duplo-bot@users.noreply.github.com"
+        git config --global user.name "Duplo Bot"
+        git add Formula/duploctl.rb
+        git commit -m "Update duploctl to ${{ inputs.tag }}"
+        git tag duploctl-${{ inputs.tag }}
+      
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GHA_TOKEN }}
+        branch: main
+        directory: homebrew-tap
+        repository: duplocloud/homebrew-tap
+        tags: true
+      

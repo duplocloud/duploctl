@@ -5,6 +5,7 @@ import datetime
 import os
 import yaml
 import json
+from urllib.parse import urlparse
 from cachetools import cached, TTLCache
 from pathlib import Path
 from .commander import load_resource,load_format
@@ -66,7 +67,7 @@ class DuploClient():
     self.cache_dir = cache_dir or f"{self.home_dir}/cache"
     self.__config = None
     self.__context = ctx
-    self.__host = host.strip() if host else host
+    self.__host = self.__sanitize_host(host)
     self.__token = token.strip() if token else token
     self.__tenant = tenant.strip().lower() if tenant else tenant
     self.version = version
@@ -76,7 +77,7 @@ class DuploClient():
     self.isadmin = isadmin
     self.query = query.strip() if query else query
     self.output = output.strip()
-    self.timeout = 30
+    self.timeout = 60
 
   @staticmethod
   def from_env():
@@ -93,7 +94,7 @@ class DuploClient():
     return duplo, xtra
   
   @staticmethod
-  def from_args(args):
+  def from_args(*args):
     """DuploClient from Environment
 
     Create a DuploClient from environment variables.
@@ -220,7 +221,7 @@ Client for Duplo at {self.host}
     d = self.filter(d)
     return self.format(d)
 
-  @cached(cache=TTLCache(maxsize=128, ttl=60))
+  @cached(cache=TTLCache(maxsize=128, ttl=10))
   def get(self, path: str):
     """Get a Duplo resource.
 
@@ -276,6 +277,21 @@ Client for Duplo at {self.host}
       headers = self.__headers(),
       timeout = self.timeout,
       json = data
+    )
+    return self.__validate_response(response)
+  
+  def delete(self, path: str):
+    """Delete a Duplo resource.
+    
+    Args:
+      path: The path to the resource.
+    Returns:
+      The response as a JSON object.
+    """
+    response = requests.delete(
+      url = f"{self.host}/{path}",
+      headers = self.__headers(),
+      timeout = self.timeout
     )
     return self.__validate_response(response)
 
@@ -338,7 +354,7 @@ Client for Duplo at {self.host}
     ctx = self.context
 
     # set the context into this config
-    self.__host = ctx.get("host", None)
+    self.__host = self.__sanitize_host(ctx.get("host", None))
     self.__token = ctx.get("token", None)
     self.__tenant = ctx.get("tenant", self.__tenant)
     self.interactive = ctx.get("interactive", False)
@@ -559,3 +575,17 @@ Client for Duplo at {self.host}
 
     raise DuploError("Duplo responded with an error", response.status_code)
     
+  def __sanitize_host(self, host: str):
+    """Sanitize Host
+    
+    Sanitize the host using urlparse. This will ensure that the host is a valid URL and that it is using HTTPS.
+
+    Args:
+      host: The host to sanitize.
+    Returns:
+      The sanitized host with scheme.
+    """
+    if not host:
+      return None
+    url = urlparse(host)
+    return f"https://{url.netloc}"

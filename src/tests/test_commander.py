@@ -1,4 +1,4 @@
-# import pytest 
+import pytest 
 # import unittest
 import argparse
 from duplocloud.commander import schema, resources, Command, get_parser, available_resources, load_resource
@@ -33,6 +33,7 @@ class SomeResource():
   def not_a_command(self):
     pass
 
+@pytest.mark.unit
 def test_command_registration():
   qn = SomeResource.tester.__qualname__
   # assert qn is a key in schema
@@ -49,6 +50,7 @@ def test_command_registration():
       assert arg.attributes["default"] == False # noqa: E712
       assert isinstance(arg(True), bool)
 
+@pytest.mark.unit
 def test_using_parser():
   # first make sure the proper error is raised when the function is not registered
   try:
@@ -75,12 +77,14 @@ def test_using_parser():
   assert parsed_args.name == "baz"
   assert parsed_args.image_name == "splunz:latest"
 
+@pytest.mark.unit
 def test_loading_service():
   assert (svc := load_resource("service")) # noqa: F841
   assert "service" in resources
   svcs = available_resources()
   assert "service" in svcs
 
+@pytest.mark.unit
 def test_arg_type():
   assert isinstance(NAME, Arg)
   name = NAME("foo")

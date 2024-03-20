@@ -4,7 +4,7 @@ on:
   workflow_dispatch: 
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push the artifact to PyPi?
         default: false
         type: boolean
       tag:
@@ -14,7 +14,7 @@ on:
   workflow_call: 
     inputs:
       push:
-        description: Push the image to the registry
+        description: Push the artifact to PyPi?
         default: true
         type: boolean
       tag:
@@ -31,6 +31,12 @@ jobs:
     name: Package
     runs-on: ubuntu-latest
     steps:
+
+    - name: Variables
+      id: vars
+      run: |
+        VERSION=$(echo ${{ inputs.tag }} | cut -d'v' -f2)
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
     # checkout code 
     - name: Checkout Code
@@ -62,3 +68,9 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
+
+    - name: Github Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: duplocloud-client-${{ steps.vars.outputs.VERSION }}
+        path: dist/duplocloud-client-*.tar.gz

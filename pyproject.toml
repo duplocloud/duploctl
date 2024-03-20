@@ -42,14 +42,14 @@ test = [
   "pytest-black",
   "pytest-isort",
   "pytest-cov",
+  "pytest-dependency"
 ]
 [build-system]
 requires = [
   "setuptools>=42",
   "setuptools_scm[toml]>=6.2",
   "wheel",
-  "build",
-  "twine"
+  "build"
 ]
 build-backend = "setuptools.build_meta"
 
@@ -57,26 +57,32 @@ build-backend = "setuptools.build_meta"
 minversion = "6.0"
 addopts = "--verbose --cov=src --cov-report term-missing"
 testpaths = [
-  "src"
+  "src/tests"
 ]
 pythonpath = [
-  ".",
   "src"
 ]
-[tool.setuptools_scm]
+markers = [
+  "integration: mark a test as an integration test",
+  "unit: mark a test as a unit test"
+]
 
 [tool.coverage.run]
 omit = [
   "*_test.py",
   "foo.py",
-  "src/conftest.py",
+  "src/tests/*",
   "**/__*__.py"
 ]
 
 [tool.ruff]
 exclude = [
-  "**/*_test.py"
+  "**/*_test.py", 
+  "**/test_*.py",
+  "src/tests/*"
 ]
+
+[tool.setuptools_scm]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -108,3 +114,4 @@ json = "duplocloud.formats:tojson"
 yaml = "duplocloud.formats:toyaml"
 string = "duplocloud.formats:tostring"
 env = "duplocloud.formats:toenv"
+csv = "duplocloud.formats:tocsv"
