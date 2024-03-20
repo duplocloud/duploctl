@@ -32,6 +32,7 @@ class TestInfra:
 
   @pytest.mark.integration
   @pytest.mark.dependency(name = "create_infra", scope='session')
+  @pytest.mark.order(1)
   def test_creating_infrastructures(self, infra_name):
     r = duplo.load("infrastructure")
     vnum = math.ceil(random.randint(1, 9))
@@ -60,6 +61,7 @@ class TestInfra:
     
   @pytest.mark.integration
   @pytest.mark.dependency(depends=["delete_tenant"], scope='session')
+  @pytest.mark.order(4)
   def test_find_delete_infra(self, infra_name):
     r = duplo.load("infrastructure")
     # name = self.infra_name

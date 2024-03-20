@@ -37,6 +37,7 @@ class TestTenant:
 
   @pytest.mark.integration
   @pytest.mark.dependency(name="create_tenant", depends=["create_infra"], scope='session')
+  @pytest.mark.order(2)
   def test_creating_tenants(self, infra_name):
     t = duplo.load("tenant")
     # create a random tenant and delete it from the default plan
@@ -54,6 +55,7 @@ class TestTenant:
 
   @pytest.mark.integration
   @pytest.mark.dependency(name="delete_tenant", depends=["create_tenant"], scope='session')
+  @pytest.mark.order(3)
   def test_find_delete_tenant(self, infra_name):
     # now find it
     t = duplo.load("tenant")
