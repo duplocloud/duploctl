@@ -14,7 +14,7 @@ def get_dependency(name):
       url "{sdist['url']}"
       sha256 "{sdist['digests']['sha256']}"
     end
-"""
+  """
 
 tpl_path = 'scripts/formula.tpl.rb'
 v   = os.sys.argv[1].replace('v', '')
