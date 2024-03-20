@@ -106,7 +106,8 @@ class DuploTenantResourceV3(DuploResource):
   
   @Command()
   def create(self, 
-             body: args.BODY):
+             body: args.BODY,
+             wait: args.WAIT=False):
     """Create a V3 resource by name.
     
     Args:
@@ -116,7 +117,10 @@ class DuploTenantResourceV3(DuploResource):
     Raises:
       DuploError: If the resource could not be created.
     """
+    name = self.name_from_body(body)
     response = self.duplo.post(self.__endpoint(), body)
+    if wait:
+      self.wait(lambda: self.find(name))
     return response.json()
   
   @Command()
