@@ -1,0 +1,31 @@
+AllocationTags: ''
+metadata:
+  name: duploctl
+spec:
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 3
+  suspend: false
+  schedule: 0 0 * * 0
+  jobTemplate:
+    metadata: {}
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          dnsPolicy: ClusterFirst
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          restartPolicy: Never
+          initContainers: []
+          containers:
+          - imagePullPolicy: Always
+            resources: {}
+            terminationMessagePath: "/dev/termination-log"
+            terminationMessagePolicy: File
+            name: app
+            image: alpine:latest
+            command:
+            - echo
+            - hello

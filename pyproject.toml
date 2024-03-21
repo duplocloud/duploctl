@@ -42,7 +42,8 @@ test = [
   "pytest-black",
   "pytest-isort",
   "pytest-cov",
-  "pytest-dependency"
+  "pytest-dependency",
+  "pytest-order"
 ]
 [build-system]
 requires = [
@@ -64,7 +65,15 @@ pythonpath = [
 ]
 markers = [
   "integration: mark a test as an integration test",
-  "unit: mark a test as a unit test"
+  "unit: mark a test as a unit test",
+
+  "aws: mark a test as an aws test",
+  "gcp: mark a test as a gcp test",
+  "azure: mark a test as an azure test",
+
+  "k8s: mark a test as a k8s test",
+  "ecs: mark a test as an ecs test",
+  "native: mark a test as a native test"
 ]
 
 [tool.coverage.run]
