@@ -30,10 +30,18 @@ class TestInfra:
   @pytest.mark.integration
   @pytest.mark.dependency(name = "create_infra", scope='session')
   @pytest.mark.order(1)
-  def test_creating_infrastructures(self, duplo, infra_name):
+  def test_creating_infrastructures(self, duplo, infra_name, e2e):
     r = duplo.load("infrastructure")
     vnum = math.ceil(random.randint(1, 9))
-    # name = self.infra_name
+    if e2e:
+      duplo.tenant = infra_name
+    # check if the infra already exists
+    try:
+      i = r.find(infra_name)
+      if i:
+        pytest.skip(f"Infrastructure '{infra_name}' already exists")
+    except DuploError as e:
+      pass
     name = infra_name
     print(f"Creating infra '{name}'")
     try:
@@ -57,7 +65,7 @@ class TestInfra:
       pytest.fail(f"Failed to create tenant: {e}")
     
   @pytest.mark.integration
-  @pytest.mark.dependency(depends=["delete_tenant"], scope='session')
+  @pytest.mark.dependency(depends=["create_infra"], scope='session')
   @pytest.mark.order(999)
   def test_find_delete_infra(self, duplo, infra_name):
     r = duplo.load("infrastructure")

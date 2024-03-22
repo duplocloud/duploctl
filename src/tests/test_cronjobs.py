@@ -11,19 +11,19 @@ def cronjob():
 class TestCronjobs:
 
   @pytest.mark.integration
-  @pytest.mark.order(4)
+  @pytest.mark.order(5)
   @pytest.mark.dependency(name="create_cronjob")
   def test_creating_cronjobs(self, duplo, cronjob):
     name = cronjob["metadata"]["name"]
     r = duplo.load("cronjob")
     try:
       r.create(cronjob, wait=True)
-      print(f"Cronjob '{name}' created")
+      print(f"Cronjob '{name}' created in '{duplo.tenant}'")
     except DuploError as e:
-      pytest.fail(f"Failed to create tenant: {e}")
+      pytest.fail(f"Failed to create cronjob: {e}")
 
   @pytest.mark.integration
-  @pytest.mark.order(5)
+  @pytest.mark.order(6)
   @pytest.mark.dependency(name="find_cronjob", depends=["create_cronjob"])
   def test_find_cronjob(self, duplo):
     name = "duploctl"
@@ -36,7 +36,7 @@ class TestCronjobs:
       pytest.fail(f"Failed to find cronjob {name}: {e}")
   
   @pytest.mark.integration
-  @pytest.mark.order(6)
+  @pytest.mark.order(7)
   @pytest.mark.dependency(name="update_cronjob_image", depends=["find_cronjob"])
   def test_update_image(self, duplo):
     name = "duploctl"
