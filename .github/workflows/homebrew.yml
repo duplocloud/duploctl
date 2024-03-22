@@ -28,7 +28,6 @@ jobs:
   update_tap:
     name: Homebrew
     runs-on: ubuntu-latest
-    if: inputs.push == true
     steps:
 
     - name: Checkout
@@ -70,6 +69,7 @@ jobs:
       
     - name: Push changes
       uses: ad-m/github-push-action@master
+      if: inputs.push == true
       with:
         github_token: ${{ secrets.GHA_TOKEN }}
         branch: main
