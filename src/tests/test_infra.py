@@ -3,9 +3,6 @@ import pytest
 import random
 
 from duplocloud.errors import DuploError, DuploFailedResource
-from duplocloud.client import DuploClient
-
-duplo, _ = DuploClient.from_env()
 
 class TestInfra:
 
@@ -14,7 +11,7 @@ class TestInfra:
   #   self.infra_name = f"duploctl{inc}"
 
   @pytest.mark.integration
-  def test_listing_infrastructures(self):
+  def test_listing_infrastructures(self, duplo):
     r = duplo.load("infrastructure")
     try:
       lot = r("list")
@@ -22,7 +19,7 @@ class TestInfra:
       pytest.fail(f"Failed to list infrastructures: {e}")
 
   @pytest.mark.integration
-  def test_finding_infra(self):
+  def test_finding_infra(self, duplo):
     r = duplo.load("tenant")
     try:
       t = r("find", "default")
@@ -33,7 +30,7 @@ class TestInfra:
   @pytest.mark.integration
   @pytest.mark.dependency(name = "create_infra", scope='session')
   @pytest.mark.order(1)
-  def test_creating_infrastructures(self, infra_name):
+  def test_creating_infrastructures(self, duplo, infra_name):
     r = duplo.load("infrastructure")
     vnum = math.ceil(random.randint(1, 9))
     # name = self.infra_name
@@ -43,7 +40,7 @@ class TestInfra:
       r.create({
         "Name": name,
         "Accountid": "",
-        "EnableK8Cluster": False,
+        "EnableK8Cluster": True,
         "AzCount": 2,
         "Vnet": { 
           "SubnetCidr": 22, 
@@ -61,8 +58,8 @@ class TestInfra:
     
   @pytest.mark.integration
   @pytest.mark.dependency(depends=["delete_tenant"], scope='session')
-  @pytest.mark.order(4)
-  def test_find_delete_infra(self, infra_name):
+  @pytest.mark.order(999)
+  def test_find_delete_infra(self, duplo, infra_name):
     r = duplo.load("infrastructure")
     # name = self.infra_name
     name = infra_name

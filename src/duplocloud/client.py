@@ -6,7 +6,7 @@ import os
 import yaml
 import json
 from urllib.parse import urlparse
-from cachetools import cached, TTLCache
+from cachetools import cachedmethod, TTLCache
 from pathlib import Path
 from .commander import load_resource,load_format
 from .errors import DuploError, DuploExpiredCache
@@ -78,6 +78,7 @@ class DuploClient():
     self.query = query.strip() if query else query
     self.output = output.strip()
     self.timeout = 60
+    self.__ttl_cache = TTLCache(maxsize=128, ttl=10)
 
   @staticmethod
   def from_env():
@@ -201,6 +202,17 @@ class DuploClient():
       raise DuploError("Host for Duplo portal is required", 500)
     return self.__tenant
   
+  @tenant.setter
+  def tenant(self, value: str):
+    """Set Tenant
+    
+    Set the tenant for this Duplo client. This will override the tenant in the config.
+
+    Args:
+      value: The tenant to set.
+    """
+    self.__tenant = value
+  
   def __str__(self) -> str:
      return f"""
 Client for Duplo at {self.host}
@@ -221,7 +233,7 @@ Client for Duplo at {self.host}
     d = self.filter(d)
     return self.format(d)
 
-  @cached(cache=TTLCache(maxsize=128, ttl=10))
+  @cachedmethod(lambda self: self.__ttl_cache)
   def get(self, path: str):
     """Get a Duplo resource.
 
@@ -518,10 +530,10 @@ Client for Duplo at {self.host}
     cmd = list(args)
     cmd.append("--host")
     cmd.append(self.host)
+    if self.isadmin:
+      cmd.append("--admin")
     if self.interactive:
       cmd.append("--interactive")
-      if self.isadmin:
-        cmd.append("--isadmin")
       if self.nocache:
         cmd.append("--nocache")
       if self.browser:
@@ -531,6 +543,14 @@ Client for Duplo at {self.host}
       cmd.append("--token")
       cmd.append(self.token)
     return cmd
+  
+  def disable_get_cache(self):
+    """Disable Get Cache
+    
+    Disable the get cache for this client. This is useful for testing.
+    Disable by setting the __ttl_cache to None.
+    """
+    self.__ttl_cache = None
 
   def __token_cache(self, token, otp=False):
     return {

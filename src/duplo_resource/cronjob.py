@@ -1,36 +1,13 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResource
+from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 @Resource("cronjob")
-class DuploCronJob(DuploTenantResource):
+class DuploCronJob(DuploTenantResourceV3):
   
   def __init__(self, duplo: DuploClient):
-    super().__init__(duplo)
-  
-  @Command()
-  def list(self):
-    """Retrieve a list of all cronjob in a tenant."""
-    tenant_id = self.tenant["TenantId"]
-    response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/cronJob")
-    return response.json()
-  
-  @Command()
-  def find(self, 
-           name: args.NAME):
-    """Find a cronjob by name.
-    
-    Args:
-      name (str): The name of the cronjob to find.
-    Returns: 
-      The cronjob object.
-    Raises:
-      DuploError: If the cronjob could not be found.
-    """
-    tenant_id = self.tenant["TenantId"]
-    response = self.duplo.get(f"v3/subscriptions/{tenant_id}/k8s/cronJob/{name}")
-    return response.json()
+    super().__init__(duplo, "k8s/cronJob")
 
   @Command()
   def update_image(self, 
@@ -42,10 +19,9 @@ class DuploCronJob(DuploTenantResource):
       name (str): The name of the cronjob to update.
       image (str): The new image to use for the cronjob.
     """
-    tenant_id = self.tenant["TenantId"]
     cronjob = self.find(name)
     cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]["image"] = image
-    self.duplo.put(f"v3/subscriptions/{tenant_id}/k8s/cronJob/{name}", cronjob)
+    self.update(cronjob)
     return {"message": f"Successfully updated image for cronjob '{name}'"}
   
   @Command()
@@ -58,10 +34,10 @@ class DuploCronJob(DuploTenantResource):
       name (str): The name of the cronjob to update.
       schedule (str): The new schedule to use for the cronjob.
     """
-    tenant_id = self.tenant["TenantId"]
     cronjob = self.find(name)
     cronjob["spec"]["schedule"] = cronschedule
-    self.duplo.put(f"v3/subscriptions/{tenant_id}/k8s/cronJob/{name}", cronjob)
+    self.update(cronjob)
     return {"message": f"Successfully updated cron-schedule for cronjob '{name}'"}
   
-  
+  def name_from_body(self, body):
+    return body["metadata"]["name"]
