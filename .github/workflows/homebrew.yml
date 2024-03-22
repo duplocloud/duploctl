@@ -49,7 +49,7 @@ jobs:
         cache: pip
 
     - name: Install dependencies
-      run: pip install requests
+      run: pip install .
 
     - name: Gen Formula
       run: ./scripts/formula.py ${{ inputs.tag }}
