@@ -530,10 +530,10 @@ Client for Duplo at {self.host}
     cmd = list(args)
     cmd.append("--host")
     cmd.append(self.host)
+    if self.isadmin:
+      cmd.append("--admin")
     if self.interactive:
       cmd.append("--interactive")
-      if self.isadmin:
-        cmd.append("--isadmin")
       if self.nocache:
         cmd.append("--nocache")
       if self.browser:

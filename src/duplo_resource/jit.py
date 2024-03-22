@@ -52,23 +52,22 @@ class DuploJit(DuploResource):
   def k8s(self,
           planId: args.PLAN = None):
     """Retrieve k8s session credentials for current user."""
-    if planId is None:
-      raise DuploError("--plan is required")
+    # either plan or tenant in cache key
+    pt = planId if planId else self.duplo.tenant
+    k = self.duplo.cache_key_for(f"plan,{pt},k8s-creds")
     creds = None
-    k = self.duplo.cache_key_for(f"plan,{planId},k8s-creds")
-    path = f"v3/admin/plans/{planId}/k8sConfig"
     try:
       if self.duplo.nocache:
-        response = self.duplo.get(path)
-        creds = self.__k8s_exec_credential(response.json())
+        ctx = self.k8s_context(planId)
+        creds = self.__k8s_exec_credential(ctx)
       else:
         creds = self.duplo.get_cached_item(k)
         exp = creds.get("status", {}).get("expirationTimestamp", None)
         if self.duplo.expired(exp):
           raise DuploExpiredCache(k)
     except DuploExpiredCache:
-      response = self.duplo.get(path)
-      creds = self.__k8s_exec_credential(response.json())
+      ctx = self.k8s_context(planId)
+      creds = self.__k8s_exec_credential(ctx)
       self.duplo.set_cached_item(k, creds)
     # TODO: sadly the expirationTimestamp is not in the right format for kubectl either
     if "status" in creds and "expirationTimestamp" in creds["status"]:
@@ -85,14 +84,18 @@ class DuploJit(DuploResource):
                   if os.path.exists(kubeconfig_path) 
                   else self.__empty_kubeconfig())
     # load the cluster config info
-    infra = self.duplo.load("infrastructure")
-    conf = infra.eks_config(planId)
-    conf["Name"] = conf["Name"].removeprefix("duploinfra-")
+    ctx = self.k8s_context(planId)
+    if self.duplo.isadmin:
+      ctx["Name"] = ctx["Name"].removeprefix("duploinfra-")
+      ctx["cmd_arg"] = "--plan"
+    else:
+      ctx["Name"] = self.duplo.tenant
+      ctx["cmd_arg"] = "--tenant"
     # add the cluster, user, and context to the kubeconfig
-    self.__add_to_kubeconfig("clusters", self.__cluster_config(conf), kubeconfig)
-    self.__add_to_kubeconfig("users", self.__user_config(conf), kubeconfig)
-    self.__add_to_kubeconfig("contexts", self.__context_config(conf), kubeconfig)
-    kubeconfig["current-context"] = conf["Name"]
+    self.__add_to_kubeconfig("clusters", self.__cluster_config(ctx), kubeconfig)
+    self.__add_to_kubeconfig("users", self.__user_config(ctx), kubeconfig)
+    self.__add_to_kubeconfig("contexts", self.__context_config(ctx), kubeconfig)
+    kubeconfig["current-context"] = ctx["Name"]
     # write the kubeconfig back to the file
     with open(kubeconfig_path, "w") as f:
       yaml.safe_dump(kubeconfig, f)
@@ -129,12 +132,49 @@ class DuploJit(DuploResource):
       "message": "Opening AWS console in browser"
     }
   
-  def __k8s_exec_credential(self, creds):
+  @Command()
+  def k8s_context(self, 
+                  planId: args.PLAN = None):
+    """Get k8s context
+    
+    Gets context based on planId or tenant name or admin or nonadmin. 
+
+    Args:
+      planId (str): The planId of the infrastructure.
+    
+    Returns:
+      dict: The k8s context.
+    """
+    tenant = None
+    tenant_id = None
+    tenant_name = self.duplo.tenant
+
+    # don't even like try sometimes
+    if not self.duplo.isadmin and not tenant_name:
+      raise DuploError("--tenant is required", 300)
+    if planId is None and not tenant_name:
+      raise DuploError("--plan or --tenant is required", 300)
+    
+    # discover the infra/plan name
+    if (planId is None and tenant_name) or not self.duplo.isadmin:
+      tenant_svc = self.duplo.load("tenant")
+      tenant = tenant_svc.find(tenant_name)
+      planId = tenant.get("PlanID") if not planId else planId
+      tenant_id = tenant.get("TenantId")
+
+    # choose the correct path
+    path = (f"v3/admin/plans/{planId}/k8sConfig"
+            if self.duplo.isadmin
+            else f"/v3/subscriptions/{tenant_id}/k8s/jitAccess")
+    response = self.duplo.get(path)
+    return response.json()
+  
+  def __k8s_exec_credential(self, ctx):
     cluster = {
-      "server": creds["ApiServer"],
+      "server": ctx["ApiServer"],
       "config": None
     }
-    if creds["K8Provider"] == 0 and (ca := creds.get("CertificateAuthorityDataBase64", None)):
+    if ctx["K8Provider"] == 0 and (ca := ctx.get("CertificateAuthorityDataBase64", None)):
       cluster["certificate-authority-data"] = ca
     return {
       "kind": "ExecCredential",
@@ -144,30 +184,30 @@ class DuploJit(DuploResource):
         "interactive": False
       },
       "status": {
-        "token": creds["Token"],
+        "token": ctx["Token"],
         "expirationTimestamp": self.duplo.expiration()
       }
     }
   
-  def __cluster_config(self, config):
+  def __cluster_config(self, ctx):
     """Build a kubeconfig cluster object"""
     cluster = {
-      "server": config["ApiServer"]
+      "server": ctx["ApiServer"]
     }
-    if config["K8Provider"] == 0 and (ca := config.get("CertificateAuthorityDataBase64", None)):
+    if ctx["K8Provider"] == 0 and (ca := ctx.get("CertificateAuthorityDataBase64", None)):
       cluster["certificate-authority-data"] = ca
-    elif config["K8Provider"] == 1:
+    elif ctx["K8Provider"] == 1:
       cluster["insecure-skip-tls-verify"] = True
     return {
-      "name": config["Name"],
+      "name": ctx["Name"],
       "cluster": cluster
     }
   
-  def __user_config(self, config):
+  def __user_config(self, ctx):
     """Build a kubeconfig user object"""
-    cmd = self.duplo.build_command("jit", "k8s", "--plan", config["Name"])
+    cmd = self.duplo.build_command("jit", "k8s", ctx["cmd_arg"], ctx["Name"])
     return {
-      "name": config["Name"],
+      "name": ctx["Name"],
       "user": {
         "exec": {
           "apiVersion": "client.authentication.k8s.io/v1beta1",
@@ -181,13 +221,14 @@ https://github.com/duplocloud/duploctl
       }
     }
   
-  def __context_config(self, config):
+  def __context_config(self, ctx):
     """Build a kubeconfig context object"""
     return {
-      "name": config["Name"],
+      "name": ctx["Name"],
       "context": {
-        "cluster": config["Name"],
-        "user": config["Name"]
+        "cluster": ctx["Name"],
+        "user": ctx["Name"],
+        "namespace": ctx["DefaultNamespace"]
       }
     }
   

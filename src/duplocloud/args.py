@@ -59,7 +59,7 @@ BROWSER = Arg("web-browser","--browser",
 
 PLAN = Arg("plan", "-P",
             help='The plan name.',
-            default=os.getenv('DUPLO_PLAN', "nonprod"))
+            default=os.getenv('DUPLO_PLAN', None))
 
 OUTPUT = Arg("output", "-o",
               help='The output format')
