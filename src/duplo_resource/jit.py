@@ -155,7 +155,7 @@ class DuploJit(DuploResource):
     if planId is None and not tenant_name:
       raise DuploError("--plan or --tenant is required", 300)
     
-    # discover the infra/plan name
+    # if we need to discover the planId or you are not admin, then we get the tenant
     if (planId is None and tenant_name) or not self.duplo.isadmin:
       tenant_svc = self.duplo.load("tenant")
       tenant = tenant_svc.find(tenant_name)
