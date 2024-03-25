@@ -30,7 +30,9 @@ for dep in data['project']['dependencies']:
 
 # get the checksums from the github release
 v   = os.sys.argv[1].replace('v', '')
-url = f"https://github.com/duplocloud/duploctl/releases/download/v{v}/checksums.txt"
+repo_url = data['project']['urls']['Repository']
+# url = f"https://github.com/duplocloud/duploctl/releases/download/v{v}/checksums.txt"
+url = f"{repo_url}/releases/download/v{v}/checksums.txt"
 response = requests.get(url)
 checksums = response.text.splitlines()
 linux_sha = None 
