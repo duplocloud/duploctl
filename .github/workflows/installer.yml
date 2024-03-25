@@ -10,7 +10,7 @@ on:
         type: boolean
       tag:
         description: The git tag to build on
-        required: true
+        required: false
         type: string
   workflow_call:
     inputs:
@@ -21,7 +21,7 @@ on:
         type: boolean
       tag:
         description: The git tag to build on
-        required: true
+        required: false
         type: string
 
 jobs:
