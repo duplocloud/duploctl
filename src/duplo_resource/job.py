@@ -1,7 +1,6 @@
 from duplocloud.client import DuploClient  # Importing necessary modules
 from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Resource
-import duplocloud.args as args  # Importing necessary modules
 
 @Resource("job")  # Decorator to define a resource
 class DuploJob(DuploTenantResourceV3):
