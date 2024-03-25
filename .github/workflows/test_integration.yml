@@ -12,6 +12,15 @@ on:
         description: 'Whether to run the tests'
         type: boolean
         default: true
+      infra:
+        required: false
+        description: An infra to use. Empty creates one.
+        type: string
+      logs:
+        required: false
+        description: 'Whether to log the tests'
+        type: boolean
+        default: false
   workflow_call: 
     inputs:
       environment:
@@ -23,6 +32,15 @@ on:
         description: 'Whether to run the tests'
         type: boolean
         default: true
+      infra:
+        required: false
+        description: An infra to use. Empty creates one.
+        type: string
+      logs:
+        required: false
+        description: 'Whether to log the tests'
+        type: boolean
+        default: false
 
 jobs:
   integration_tests:
@@ -53,12 +71,32 @@ jobs:
       if: inputs.enabled
       run: |
         pip install .[build,test]
+
+    - name: Setup Args
+      id: pytest_args
+      env:
+        INFRA: ${{ inputs.infra }}
+        LOGS: ${{ inputs.logs }}
+      run: |
+        ARGS=(
+          "src"
+          "--junit-xml=test-results.xml"
+          "-m integration"
+        )
+        # if infra is set, add it to the args
+        if [ -n "$INFRA" ]; then
+          ARGS+=("--infra" "$INFRA")
+        fi
+        # if the logs are set, add it to the args
+        if [ "$LOGS" = "true" ]; then
+          ARGS+=("-s")
+        fi
+        echo "PYTEST_ARGS=${ARGS[*]}" >> $GITHUB_OUTPUT
     
     # run the tests
     - name: Test with pytest
       if: inputs.enabled
-      run: |
-        pytest src --junit-xml=test-results.xml -m integration
+      run: pytest ${{ steps.pytest_args.outputs.PYTEST_ARGS }}
 
     - name: Surface failing tests
       if: always() && inputs.enabled 
