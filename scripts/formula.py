@@ -18,8 +18,11 @@ def make_resource(name):
     end
   """
 
-# Build the homebrew pip resources from the project dependencies
+# get started
 f = open('pyproject.toml')
+v   = os.sys.argv[1].replace('v', '')
+
+# Build the homebrew pip resources from the project dependencies
 data = toml.load(f)
 pattern = '|'.join(map(re.escape, ['>=', '<=', '==', '!=']))
 resources = []
@@ -29,7 +32,6 @@ for dep in data['project']['dependencies']:
   resources.append(res)
 
 # get the checksums from the github release
-v   = os.sys.argv[1].replace('v', '')
 repo_url = data['project']['urls']['Repository']
 url = f"{repo_url}/releases/download/v{v}/checksums.txt"
 response = requests.get(url)
