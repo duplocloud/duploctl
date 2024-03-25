@@ -31,7 +31,6 @@ for dep in data['project']['dependencies']:
 # get the checksums from the github release
 v   = os.sys.argv[1].replace('v', '')
 repo_url = data['project']['urls']['Repository']
-# url = f"https://github.com/duplocloud/duploctl/releases/download/v{v}/checksums.txt"
 url = f"{repo_url}/releases/download/v{v}/checksums.txt"
 response = requests.get(url)
 checksums = response.text.splitlines()
@@ -51,6 +50,7 @@ for line in checksums:
 with open('scripts/formula.tpl.rb', 'r') as tpl_file:
   tpl = tpl_file.read()
   formula = tpl.format(
+    repo_url=repo_url,
     version=v, 
     linux_sha=linux_sha, 
     macos_sha=macos_sha,

@@ -2,7 +2,7 @@
 class Duploctl < Formula
 
   desc "Command-line tools for Duplocloud"
-  homepage "https://github.com/duplocloud/duploctl"
+  homepage "{repo_url}"
   version "{version}"
   license "MIT"
   base_url = "#{{homepage}}/releases/download/v#{{version}}"
