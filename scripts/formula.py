@@ -33,6 +33,7 @@ for dep in data['project']['dependencies']:
 
 # get the checksums from the github release
 repo_url = data['project']['urls']['Repository']
+description = data['project']['description']
 url = f"{repo_url}/releases/download/v{v}/checksums.txt"
 response = requests.get(url)
 checksums = response.text.splitlines()
@@ -53,6 +54,7 @@ with open('scripts/formula.tpl.rb', 'r') as tpl_file:
   tpl = tpl_file.read()
   formula = tpl.format(
     repo_url=repo_url,
+    description=description,
     version=v, 
     linux_sha=linux_sha, 
     macos_sha=macos_sha,
