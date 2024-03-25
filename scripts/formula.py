@@ -5,7 +5,7 @@ import toml
 import re
 from importlib.metadata import version
 
-def get_dependency(name):
+def make_resource(name):
   v = version(name)
   url = f"https://pypi.org/pypi/{name}/{v}/json"
   response = requests.get(url)
@@ -21,14 +21,12 @@ def get_dependency(name):
 # Build the homebrew pip resources from the project dependencies
 f = open('pyproject.toml')
 data = toml.load(f)
-dependencies = data['project']['dependencies']
-operators = ['>=', '<=', '==', '!=']
-pattern = '|'.join(map(re.escape, operators))
-deps = []
-for dep in dependencies:
+pattern = '|'.join(map(re.escape, ['>=', '<=', '==', '!=']))
+resources = []
+for dep in data['project']['dependencies']:
   name, _ = re.split(pattern, dep, 1)
-  deps.append(name)
-resources = "".join([get_dependency(dep) for dep in deps])
+  res = make_resource(name)
+  resources.append(res)
 
 # get the checksums from the github release
 v   = os.sys.argv[1].replace('v', '')
@@ -55,7 +53,7 @@ with open('scripts/formula.tpl.rb', 'r') as tpl_file:
     linux_sha=linux_sha, 
     macos_sha=macos_sha,
     pip_sha=pip_sha,
-    resources=resources
+    resources="".join(resources)
   )
   os.makedirs('dist', exist_ok=True)
   with open('dist/duploctl.rb', 'w') as formula_file:
