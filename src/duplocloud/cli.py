@@ -1,5 +1,6 @@
 from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
+from sys import exit
 
 def main():
   try:

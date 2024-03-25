@@ -37,7 +37,7 @@ jobs:
       id: set_tag
       env:
         GIT_TAG: ${{ inputs.tag }}
-        DOWNLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download
+        REPO_URL: ${{ github.server_url }}/${{ github.repository }}
       run: |
         if [ -z "$GIT_TAG" ]; then
           GIT_TAG=${GITHUB_REF#refs/*/}
@@ -45,11 +45,13 @@ jobs:
         VERSION=$(echo $GIT_TAG | cut -d'v' -f2)
         NAME="duploctl-${VERSION}"
         PACKAGE_NAME="duplocloud-client-${VERSION}"
+        RELEASE_URL="${REPO_URL}/releases/download/${GIT_TAG}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
         echo "PACKAGE_NAME=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
-        echo "RELEASE_URL=${DOWNLOAD_URL}/${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "RELEASE_URL=${RELEASE_URL}" >> $GITHUB_OUTPUT
+        echo "REPO_URL=${REPO_URL}" >> $GITHUB_OUTPUT
     
     - name: Download Installer Artifacts
       uses: actions/download-artifact@v4
@@ -92,16 +94,22 @@ jobs:
         body: |
           duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out!. 
 
-          PyPi: 
+          PIP PyPi: 
           [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.set_tag.outputs.VERSION }}/)
           ```sh
           pip install duplocloud-client==${{ steps.set_tag.outputs.VERSION }}
           ```
 
-          PIP Release:
-          The dowload below named `duplocloud-client-${{ steps.set_tag.outputs.VERSION }}.tar.gz` is the pip distribution of the package. 
+          PIP Sdist:
+          The dowload below named `duplocloud-client-${{ steps.set_tag.outputs.VERSION }}.tar.gz` is the sdist of the package. 
           ```sh
           pip install ${{ steps.set_tag.outputs.RELEASE_URL }}/duplocloud-client-${{ steps.set_tag.outputs.VERSION }}.tar.gz
+          ```
+          
+          PIP From Source:  
+          Install directly from the version tag on GitHub. 
+          ```sh
+          pip install git+${{ steps.set_tag.outputs.REPO_URL }}.git@${{ steps.set_tag.outputs.GIT_TAG }}
           ```
 
           Dockerhub:  
@@ -110,7 +118,7 @@ jobs:
           docker pull duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}
           ```
 
-          Install CLI to Path:
+          Install CLI to Path Linux:
           ```sh
           curl -s -L ${{ steps.set_tag.outputs.RELEASE_URL }}/duploctl-${{ steps.set_tag.outputs.VERSION }}-linux-amd64.tar.gz | tar xvz - -C /usr/local/bin
           ```

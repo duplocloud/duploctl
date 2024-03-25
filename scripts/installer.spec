@@ -1,3 +1,4 @@
+#!/usr/bin/env pyinstaller
 # -*- mode: python ; coding: utf-8 -*-
 import os
 
@@ -13,7 +14,7 @@ for filename in os.listdir(directory):
     hi.append(f'duplo_resource.{m}')
 
 a = Analysis(
-    ['src/duplocloud/cli.py'],
+    ['../src/duplocloud/cli.py'],
     pathex=[],
     binaries=[],
     datas=[],

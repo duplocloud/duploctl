@@ -32,6 +32,8 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.tag }}
 
     - name: Checkout Tap
       uses: actions/checkout@v4
@@ -48,7 +50,7 @@ jobs:
         cache: pip
 
     - name: Install dependencies
-      run: pip install .
+      run: pip install .[build]
 
     - name: Gen Formula
       run: ./scripts/formula.py ${{ inputs.tag }}

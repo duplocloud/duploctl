@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
-rm -rf dist build *.egg-info .coverage .pytest_cache .tmp
-find src -type d -name __pycache__ -exec rm -rf {} \;
-find src -type d -name "*.egg-info" -exec rm -rf {} \;
+rm -rf \
+  dist build \
+  .coverage .pytest_cache .tmp \
+  *.egg-info src/*.egg-info **/__pycache__ \
+  .direnv
+
+find . | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf

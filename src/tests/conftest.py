@@ -1,5 +1,7 @@
 import pytest
 import random
+import yaml
+import pathlib
 from duplocloud.client import DuploClient
 
 def pytest_addoption(parser):
@@ -33,3 +35,11 @@ def cleanup(request):
   def kill_infra():
     print(f"Totally cleaning up dude.")
   request.addfinalizer(kill_infra)
+
+@pytest.fixture
+def test_data(request):
+  name = request.param
+  dir = pathlib.Path(__file__).parent.resolve()
+  f = f"{dir}/data/{name}.yaml"
+  with open(f, 'r') as stream:
+    return (name, yaml.safe_load(stream))

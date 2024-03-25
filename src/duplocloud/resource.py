@@ -138,6 +138,9 @@ class DuploTenantResourceV3(DuploResource):
     name = self.name_from_body(body)
     response = self.duplo.put(self.__endpoint(name), body)
     return response.json()
+  
+  def name_from_body(self, body):
+    return body["metadata"]["name"]
 
   def __endpoint(self, name: str=None):
     tenant_id = self.tenant["TenantId"]

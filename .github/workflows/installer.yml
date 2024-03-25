@@ -74,7 +74,7 @@ jobs:
     
     - name: Pyinstaller
       id: installer
-      run: pyinstaller installer.spec
+      run: ./scripts/installer.spec
 
     - name: View Files
       run: ls dist
