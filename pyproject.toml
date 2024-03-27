@@ -65,7 +65,7 @@ LatestRelease = "https://github.com/duplocloud/duploctl/releases"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "src --verbose --cov=src --cov-report term-missing --infra nonprod --tenant app01"
+addopts = "src --verbose --cov=src --cov-report term-missing"
 testpaths = [
   "src/tests"
 ]

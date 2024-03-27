@@ -39,7 +39,12 @@ def cleanup(request):
 @pytest.fixture
 def test_data(request):
   name = request.param
+  data = get_test_data(name)
+  return (name, data)
+
+def get_test_data(name):
+  # get the directory this file is in
   dir = pathlib.Path(__file__).parent.resolve()
   f = f"{dir}/data/{name}.yaml"
   with open(f, 'r') as stream:
-    return (name, yaml.safe_load(stream))
+    return yaml.safe_load(stream)

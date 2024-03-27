@@ -7,5 +7,3 @@ class DuploJob(DuploTenantResourceV3):
   
   def __init__(self, duplo: DuploClient):  # Constructor method
     super().__init__(duplo, "k8s/job")  # Calling superclass constructor
-    
-  
