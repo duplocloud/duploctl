@@ -38,6 +38,3 @@ class DuploCronJob(DuploTenantResourceV3):
     cronjob["spec"]["schedule"] = cronschedule
     self.update(cronjob)
     return {"message": f"Successfully updated cron-schedule for cronjob '{name}'"}
-  
-  def name_from_body(self, body):
-    return body["metadata"]["name"]

@@ -1,0 +1,14 @@
+metadata:
+  name: duploctl
+spec:
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: app
+        image: alpine:latest
+        command:
+        - echo
+        - hello
+      initContainers: []

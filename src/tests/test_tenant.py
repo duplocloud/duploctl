@@ -1,3 +1,4 @@
+import random
 import pytest
 
 from duplocloud.errors import DuploError
@@ -24,13 +25,24 @@ class TestTenant:
     assert t["AccountName"] == "default"
 
   @pytest.mark.integration
-  @pytest.mark.dependency(name="create_tenant", depends=["create_infra"], scope='session')
+  @pytest.mark.dependency(name="create_tenant", scope='session')
   @pytest.mark.order(2)
-  def test_creating_tenants(self, duplo, infra_name):
+  def test_creating_tenants(self, duplo, infra_name, e2e):
     t = duplo.load("tenant")
-    # create a random tenant and delete it from the default plan
-    # name = self.tenant_name
-    name = infra_name
+    name = duplo.tenant
+    if not name:
+      inc = random.randint(1, 100)
+      name = f"duploctl{inc}"
+      duplo.tenant = name
+    # check if the tenant already exists
+    try:
+      print(f"Processing tenant '{name}'")
+      i = t("find", name)
+      print(f"Tenant '{name}' already exists")
+      if i:
+        pytest.skip(f"Tenant '{name}' already exists")
+    except DuploError as e:
+      pass
     try:
       t.create({
         "AccountName": name,
@@ -43,22 +55,21 @@ class TestTenant:
 
   @pytest.mark.integration
   @pytest.mark.dependency(name="delete_tenant", depends=["create_tenant"], scope='session')
-  @pytest.mark.order(3)
-  def test_find_delete_tenant(self, duplo, infra_name):
+  @pytest.mark.order(998)
+  def test_find_delete_tenant(self, duplo):
     # now find it
-    t = duplo.load("tenant")
-    # name = self.tenant_name
-    name = infra_name
+    r = duplo.load("tenant")
+    name = duplo.tenant
     print(f"Delete tenant '{name}'")
     try:
-      nt = t("find", name)
+      nt = r("find", name)
       assert nt["AccountName"] == name
     except DuploError as e:
       pytest.fail(f"Failed to find tenant {name}: {e}")
     # now delete the tenant
     try:
-      t("config", name, "-D", "delete_protection")
-      t("delete", name)
+      r("config", name, "-D", "delete_protection")
+      r("delete", name)
     except DuploError as e:
       pytest.fail(f"Failed to delete tenant: {e}")
 

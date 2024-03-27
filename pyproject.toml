@@ -1,6 +1,6 @@
 [project]
 name = "duplocloud-client"
-description = "Generic DuploClient for Python apps."
+description = "Command line Client for interacting with Duplocloud portals."
 readme = "README.md"
 dynamic = ["version"]
 requires-python = ">=3.10.0"
@@ -34,7 +34,8 @@ build = [
   "setuptools_scm",
   "build",
   "twine",
-  "pyinstaller"
+  "pyinstaller",
+  "toml"
 ]
 test = [
   "pytest",
@@ -54,9 +55,17 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[project.urls]
+Homepage = "https://github.com/duplocloud/duploctl"
+Documentation = "https://github.com/duplocloud/duploctl/wiki"
+Repository = "https://github.com/duplocloud/duploctl"
+Issues = "https://github.com/duplocloud/duploctl/issues"
+Changelog = "https://github.com/duplocloud/duploctl"
+LatestRelease = "https://github.com/duplocloud/duploctl/releases"
+
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--verbose --cov=src --cov-report term-missing"
+addopts = "src --verbose --cov=src --cov-report term-missing"
 testpaths = [
   "src/tests"
 ]
