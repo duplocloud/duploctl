@@ -40,9 +40,12 @@ class DuploAsg(DuploTenantResource):
              wait: args.WAIT=False):
     """Create an ASG."""
     tenant_id = self.tenant["TenantId"]
+    name = self.name_from_body(body)
+    if body.get("ImageId", None) is None:
+      body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
     res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     def wait_check():
-      return self.find(body["FriendlyName"])
+      return self.find(name)
     if wait:
       self.wait(wait_check)
     return {
@@ -98,4 +101,16 @@ class DuploAsg(DuploTenantResource):
     return self.update(data)
   
   def name_from_body(self, body):
-    return body["FriendlyName"]
+    prefix = f"duploservices-{self.duplo.tenant}"
+    name =  body["FriendlyName"]
+    if not name.startswith(prefix):
+      name = f"{prefix}-{name}"
+    return name
+
+  def discover_image(self, agent, arch="amd64"):
+    imgs = self.tenant_svc.host_images(self.duplo.tenant)
+    try:
+      img = [i for i in imgs if i["Agent"] == agent and i["Arch"] == arch][0]
+      return img.get("ImageId")
+    except IndexError:
+      raise DuploError(f"Image for agent '{agent}' not found", 404)

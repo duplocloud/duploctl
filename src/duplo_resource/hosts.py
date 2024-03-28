@@ -22,8 +22,6 @@ class DuploHosts(DuploTenantResource):
              body: args.BODY,
              wait: args.WAIT=False):
     """Create a host."""
-    tenant_id = self.tenant["TenantId"]
-    res = self.duplo.post(f"subscriptions/{tenant_id}/CreateNativeHost", body)
     def wait_check():
       name = self.name_from_body(body)
       h = self.find(name)
@@ -31,6 +29,11 @@ class DuploHosts(DuploTenantResource):
         if h["Status"] != "pending":
           raise DuploFailedResource(f"Host '{name}' failed to create.")
         raise DuploError(f"Host '{name}' not ready", 404)
+    # let's get started
+    tenant_id = self.tenant["TenantId"]
+    if body.get("ImageId", None) is None:
+      body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
+    res = self.duplo.post(f"subscriptions/{tenant_id}/CreateNativeHost", body)
     if wait:
       self.wait(wait_check)
     return {
@@ -88,3 +91,11 @@ class DuploHosts(DuploTenantResource):
     if not name.startswith(prefix):
       name = f"{prefix}-{name}"
     return name
+  
+  def discover_image(self, agent, arch="amd64"):
+    imgs = self.tenant_svc.host_images(self.duplo.tenant)
+    try:
+      img = [i for i in imgs if i["Agent"] == agent and i["Arch"] == arch][0]
+      return img.get("ImageId")
+    except IndexError:
+      raise DuploError(f"Image for agent '{agent}' not found", 404)

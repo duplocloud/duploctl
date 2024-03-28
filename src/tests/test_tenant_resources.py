@@ -3,12 +3,12 @@ from duplocloud.errors import DuploError
 import time
 
 resources = [
+  "hosts",
+  "asg",
   "cronjob", 
   "job",
   "secret",
   "configmap",
-  # "asg",
-  # "hosts",
   "lambda"
 ]
 

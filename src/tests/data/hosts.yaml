@@ -1,5 +1,4 @@
-FriendlyName: duploctlhost
-ImageId: ami-0bc8cfaaadb998eff
+FriendlyName: duplohost
 Zone: 0
 IsEbsOptimized: false
 DesiredCapacity: 0

@@ -1,5 +1,4 @@
 FriendlyName: duploctl
-ImageId: ami-0bc8cfaaadb998eff
 Zone: 1
 IsEbsOptimized: false
 DesiredCapacity: 1
