@@ -102,6 +102,9 @@ exclude = [
 
 [tool.setuptools_scm]
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.packages.find]
 where = ["src"]
 exclude = ["tests"]
