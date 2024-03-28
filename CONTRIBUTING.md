@@ -20,13 +20,13 @@ export DUPLO_CACHE="config/cache"
 
 ## Dependencies  
 
-Install dependencies
+Install dependencies in editable mode so you can use step through debugging. 
 
 ```sh
-pip install .[build,test]
+pip install --editable .[build,test]
 ```
 
-If you are suing zsh Run following to install dependencies:
+If you are using zsh Run following to install dependencies:
 
 ```sh
 pip3 install -e '.[build,test]'
