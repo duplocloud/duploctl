@@ -40,12 +40,28 @@ class DuploLambda(DuploTenantResource):
     
   @Command()
   def create(self, 
-             body: args.BODY):
+             body: args.BODY,
+             wait: args.WAIT = False):
     """Create a new tenant."""
+    def wait_check():
+      name = self.name_from_body(body)
+      self.find(name)
     tenant_id = self.tenant["TenantId"]
     self.duplo.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", body)
+    if wait:
+      self.wait(wait_check, 200)
     return {
       "message": f"Lambda {body['FunctionName']} created"
+    }
+  
+  @Command()
+  def delete(self, 
+             name: args.NAME):
+    """Delete a lambda."""
+    tenant_id = self.tenant["TenantId"]
+    self.duplo.post(f"subscriptions/{tenant_id}/DeleteLambdaFunction/{name}")
+    return {
+      "message": f"Lambda {name} deleted"
     }
 
   @Command()
@@ -86,3 +102,10 @@ class DuploLambda(DuploTenantResource):
     }
     response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
     return response.json()
+
+  def name_from_body(self, body):
+    prefix = f"duploservices-{self.duplo.tenant}"
+    name =  body["FunctionName"]
+    if not name.startswith(prefix):
+      name = f"{prefix}-{name}"
+    return name
