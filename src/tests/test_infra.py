@@ -2,6 +2,7 @@ import math
 import pytest
 import random
 
+from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError, DuploFailedResource
 
 class TestInfra:
@@ -11,7 +12,7 @@ class TestInfra:
   #   self.infra_name = f"duploctl{inc}"
 
   @pytest.mark.integration
-  def test_listing_infrastructures(self, duplo):
+  def test_listing_infrastructures(self, duplo: DuploClient):
     r = duplo.load("infrastructure")
     try:
       lot = r("list")
@@ -19,7 +20,7 @@ class TestInfra:
       pytest.fail(f"Failed to list infrastructures: {e}")
 
   @pytest.mark.integration
-  def test_finding_infra(self, duplo):
+  def test_finding_infra(self, duplo: DuploClient):
     r = duplo.load("tenant")
     try:
       t = r("find", "default")
@@ -30,7 +31,7 @@ class TestInfra:
   @pytest.mark.integration
   @pytest.mark.dependency(name = "create_infra", scope='session')
   @pytest.mark.order(1)
-  def test_creating_infrastructures(self, duplo, infra_name, e2e):
+  def test_creating_infrastructures(self, duplo: DuploClient, infra_name: str, e2e: bool):
     r = duplo.load("infrastructure")
     vnum = math.ceil(random.randint(1, 9))
     if e2e:
@@ -67,7 +68,7 @@ class TestInfra:
   @pytest.mark.integration
   @pytest.mark.dependency(depends=["create_infra"], scope='session')
   @pytest.mark.order(999)
-  def test_find_delete_infra(self, duplo, infra_name):
+  def test_find_delete_infra(self, duplo: DuploClient, infra_name: str):
     r = duplo.load("infrastructure")
     # name = self.infra_name
     name = infra_name

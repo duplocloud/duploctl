@@ -116,7 +116,7 @@ class DuploTenant(DuploResource):
 
   @Command()
   def billing(self,
-           name: args.NAME):
+              name: args.NAME):
     """Spend
     
     Get the spend for the tenant. 
@@ -172,3 +172,11 @@ class DuploTenant(DuploResource):
       "changes": changes
     }
     
+  @Command()
+  def host_images(self,
+                  name: args.NAME):
+    """Get the list of host images."""
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"v3/subscriptions/{tenant_id}/nativeHostImages")
+    return response.json()

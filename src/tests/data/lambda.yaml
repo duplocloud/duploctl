@@ -1,0 +1,12 @@
+FunctionName: duploctl-img
+PackageType: Image
+Description: My cool image lambda
+Timeout: 2
+MemorySize: 128
+Tags: {}
+Environment:
+  Variables: {}
+Code:
+  ImageUri: 884446924812.dkr.ecr.us-east-2.amazonaws.com/numpy-lambda-container-automation:latest
+Layers: []
+ImageConfig: {}

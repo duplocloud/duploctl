@@ -20,7 +20,7 @@ def make_resource(name):
 
 # get started
 f = open('pyproject.toml')
-v   = os.sys.argv[1].replace('v', '')
+v = os.sys.argv[1].replace('v', '')
 
 # Build the homebrew pip resources from the project dependencies
 data = toml.load(f)
