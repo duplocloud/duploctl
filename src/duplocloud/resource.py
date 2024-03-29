@@ -23,12 +23,13 @@ class DuploResource():
     parser = get_parser(command)
     parsed_args = parser.parse_args(args)
     return command(**vars(parsed_args))
-  
-  @property
-  def logger(self):
-    if not self.__logger:
-      self.__logger = self.duplo.logger_for(self.__class__.__name__)
-    return self.__logger
+
+  # something is off and the logs will duplicate if we do this  
+  # @property
+  # def logger(self):
+  #   if not self.__logger:
+  #     self.__logger = self.duplo.logger_for(self.__class__.__name__)
+  #   return self.__logger
   
   def command(self, name: str):
     if not (command := getattr(self, name, None)):

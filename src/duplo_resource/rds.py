@@ -26,7 +26,7 @@ class DuploRDS(DuploTenantResourceV3):
       i = self.find(name)
       status = i.get("InstanceStatus", None)
       if status != "available":
-        self.logger.debug(f"DB instance {name} is still creating")
+        self.duplo.logger.info(f"DB instance {name} is still creating")
         raise DuploError(f"Still creating")
     super().create(body, wait, wait_check)
 
@@ -43,7 +43,6 @@ class DuploRDS(DuploTenantResourceV3):
       DuploError: If the DB instance could not be found.
     """
     response = self.duplo.get(self.endpoint(name, "groupDetails"))
-    self.logger.info(f"DB instance {name} is still creating")
     return response.json()
   
   @Command()

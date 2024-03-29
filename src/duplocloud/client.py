@@ -82,8 +82,6 @@ class DuploClient():
     self.timeout = 60
     self.__ttl_cache = TTLCache(maxsize=128, ttl=10)
     self.loglevel = loglevel
-    lvl = logging.getLevelName(loglevel)
-    logging.basicConfig(level=lvl)
     self.logger = self.logger_for()
 
   @staticmethod
@@ -250,11 +248,17 @@ Client for Duplo at {self.host}
       The logger.
     """
     n = "duplo"
+    title = n
     if name:
       n += f".{name}"
+      title = name
     logger = logging.getLogger(name)
-    ConsoleOutputHandler = logging.StreamHandler()
-    logger.addHandler(ConsoleOutputHandler)
+    lvl = logging.getLevelName(self.loglevel)
+    logger.setLevel(lvl)
+    formatter = logging.Formatter(f"%(levelname)s %(message)s")
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
     return logger
 
   @cachedmethod(lambda self: self.__ttl_cache)
