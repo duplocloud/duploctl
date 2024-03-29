@@ -37,7 +37,7 @@ def cleanup(request):
   request.addfinalizer(kill_infra)
 
 @pytest.fixture
-def test_data(request):
+def test_data(request) -> tuple[str, dict]:
   """Fixture to load test data from a yaml file.
   
   Splits like this: kind::file
