@@ -2,29 +2,31 @@
 
 Follow these steps to be proper.
 
-## Version Bump
+## Direnv Setup  
 
-Make sure you have the duplo git-bump installed and then run
-
-```sh
-git bump -v '[patch, major, minor]'
-```
-
-e.g. a small patch do this:
+Here is a good start for a decent `.envrc` file.  
 
 ```sh
-git bump -v patch
+source_up .envrc
+layout python3
+PATH_add ./scripts
+
+export KUBECONFIG=config/kubeconfig.yaml
+export AWS_CONFIG_FILE=config/aws
+export DUPLO_HOME="config"
+export DUPLO_CONFIG="config/duploconfig.yaml"
+export DUPLO_CACHE="config/cache"
 ```
 
-Doing this creates a proper semver which will trigger a new publish pipeline.
+## Dependencies  
 
-Install dependencies
+Install dependencies in editable mode so you can use step through debugging. 
 
 ```sh
-pip install .[build,test]
+pip install --editable .[build,test]
 ```
 
-If you are suing zsh Run following to install dependencies:
+If you are using zsh Run following to install dependencies:
 
 ```sh
 pip3 install -e '.[build,test]'
@@ -47,12 +49,25 @@ Build the Homebrew formula from a tagged release. Normally only the pipeline wil
 ./scripts/formula.py v0.2.15
 ```
 
+## Version Bump
 
-## Semver with Setuptools SCM command
+Make sure you have the duplo git-bump installed and then run
 
-Get the current version
-
+```sh
+git bump -v '[patch, major, minor]'
 ```
+
+e.g. a small patch do this:
+
+```sh
+git bump -v patch
+```
+
+Doing this creates a proper semver which will trigger a new publish pipeline which in the background uses setuptools_scm to determine the version.
+
+Get the current version:
+
+```sh
 python -m setuptools_scm
 ```
 

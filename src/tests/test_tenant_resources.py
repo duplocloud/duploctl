@@ -3,10 +3,13 @@ from duplocloud.errors import DuploError
 import time
 
 resources = [
+  "hosts",
+  "asg",
   "cronjob", 
   "job",
   "secret",
-  "configmap"
+  "configmap",
+  "lambda"
 ]
 
 @pytest.mark.parametrize("test_data", resources, indirect=True)
@@ -36,7 +39,6 @@ class TestTenantResources:
         else:
           print(f"Attempt failed: {e}. Retrying in 5 seconds...")
           time.sleep(5)
-
 
   @pytest.mark.integration
   @pytest.mark.order(6)

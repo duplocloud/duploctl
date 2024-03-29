@@ -33,6 +33,51 @@ class DuploAsg(DuploTenantResource):
       return [s for s in self.list() if s["FriendlyName"] == name][0]
     except IndexError:
       raise DuploError(f"ASG Profile '{name}' not found", 404)
+    
+  @Command()
+  def create(self,
+             body: args.BODY,
+             wait: args.WAIT=False):
+    """Create an ASG."""
+    tenant_id = self.tenant["TenantId"]
+    name = self.name_from_body(body)
+    if body.get("ImageId", None) is None:
+      body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
+    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    def wait_check():
+      return self.find(name)
+    if wait:
+      self.wait(wait_check)
+    return {
+      "message": f"Successfully created asg '{body['FriendlyName']}'",
+      "data": res.json()
+    }
+  
+  @Command()
+  def update(self,
+             body: args.BODY):
+    """Update an ASG."""
+    tenant_id = self.tenant["TenantId"]
+    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    return {
+      "message": f"Successfully updated asg '{body['FriendlyName']}'",
+      "data": res.json()
+    }
+  
+  @Command()
+  def delete(self,
+             name: args.NAME):
+    """Delete an ASG."""
+    tenant_id = self.tenant["TenantId"]
+    body = { 
+      "FriendlyName": name,
+      "State": "delete"
+    }
+    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    return {
+      "message": f"Successfully deleted asg '{name}'",
+      "data": res.json()
+    }
 
   @Command()
   def scale(self,
@@ -42,7 +87,6 @@ class DuploAsg(DuploTenantResource):
     """Scale an ASG."""
     if not min and not max:
       raise DuploError("Must provide either min or max")
-    tenant_id = self.tenant["TenantId"]
     asg = self.find(name)
     data = {
       "FriendlyName": name,
@@ -54,9 +98,19 @@ class DuploAsg(DuploTenantResource):
       data["MinSize"] = str(min)
     if max:
       data["MaxSize"] = max
-    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", data)
-    return {
-      "message": f"Successfully updated asg '{name}'",
-      "data": res.json()
-    }
+    return self.update(data)
   
+  def name_from_body(self, body):
+    prefix = f"duploservices-{self.duplo.tenant}"
+    name =  body["FriendlyName"]
+    if not name.startswith(prefix):
+      name = f"{prefix}-{name}"
+    return name
+
+  def discover_image(self, agent, arch="amd64"):
+    imgs = self.tenant_svc.host_images(self.duplo.tenant)
+    try:
+      img = [i for i in imgs if i["Agent"] == agent and i["Arch"] == arch][0]
+      return img.get("ImageId")
+    except IndexError:
+      raise DuploError(f"Image for agent '{agent}' not found", 404)
