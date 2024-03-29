@@ -485,9 +485,6 @@ Client for Duplo at {self.host}
     
     Perform an interactive login to the specified host. Opens a temporary web browser to the login page and starts a local server to receive the token. When the user authorizes the request in the browser, the token is received and the server is shutdown.
 
-    Args:
-      host: The host to login to.
-
     Returns:
       The token as a string.
     """

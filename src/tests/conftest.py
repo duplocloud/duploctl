@@ -10,7 +10,7 @@ def pytest_addoption(parser):
   parser.addoption("--tenant", action="store", default=None, help="Choose existing tenant to use")
 
 @pytest.fixture(scope='session', autouse=True)
-def infra_name(pytestconfig):
+def infra_name(pytestconfig) -> str:
   existing = pytestconfig.getoption("infra")
   if existing:
     return existing
@@ -18,11 +18,11 @@ def infra_name(pytestconfig):
   return f"duploctl{inc}"
 
 @pytest.fixture(scope='session', autouse=True)
-def e2e(pytestconfig):
+def e2e(pytestconfig) -> bool:
   return pytestconfig.getoption("e2e")
 
 @pytest.fixture(scope='session', autouse=True)
-def duplo(infra_name, e2e):
+def duplo(infra_name: str, e2e: bool) -> DuploClient:
   d, _ = DuploClient.from_env()
   d.disable_get_cache()
   if e2e:
@@ -50,7 +50,7 @@ def test_data(request):
   data = get_test_data(file)
   return (kind, data)
 
-def get_test_data(name):
+def get_test_data(name) -> dict:
   # get the directory this file is in
   dir = pathlib.Path(__file__).parent.resolve()
   f = f"{dir}/data/{name}.yaml"

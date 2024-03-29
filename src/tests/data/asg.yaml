@@ -1,0 +1,21 @@
+FriendlyName: duploctl
+Zone: 1
+IsEbsOptimized: false
+DesiredCapacity: 1
+MinSize: 1
+MaxSize: 2
+MetaData:
+- Key: OsDiskSize
+  Value: 30
+- Key: MetadataServiceOption
+  Value: enabled_v2_only
+UseLaunchTemplate: true
+CanScaleFromZero: false
+IsUserDataCombined: true
+KeyPairType: 
+Capacity: t3.small
+Base64UserData: ''
+TagsCsv: ''
+AgentPlatform: 7
+IsClusterAutoscaled: true
+IsMinion: true

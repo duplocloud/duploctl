@@ -1,0 +1,20 @@
+FriendlyName: duplohost
+Zone: 0
+IsEbsOptimized: false
+DesiredCapacity: 0
+MinSize: 
+MaxSize: 
+MetaData:
+- Key: OsDiskSize
+  Value: 30
+- Key: MetadataServiceOption
+  Value: enabled_v2_only
+UseLaunchTemplate: true
+CanScaleFromZero: false
+IsUserDataCombined: true
+KeyPairType: 
+Capacity: t3.small
+Base64UserData: ''
+TagsCsv: ''
+AgentPlatform: 7
+IsMinion: true
