@@ -5,6 +5,7 @@ import datetime
 import os
 import yaml
 import json
+import logging
 from urllib.parse import urlparse
 from cachetools import cachedmethod, TTLCache
 from pathlib import Path
@@ -48,7 +49,8 @@ class DuploClient():
                browser: args.BROWSER=None,
                isadmin: args.ISADMIN=False,
                query: args.QUERY=None,
-               output: args.OUTPUT="json"):
+               output: args.OUTPUT="json",
+               loglevel: args.LOGLEVEL="INFO"):
     """DuploClient
     
     Creates an instance of a duplocloud client configured for a certain portal. All of the specific configuration is done in the DuploConfig class.
@@ -79,6 +81,10 @@ class DuploClient():
     self.output = output.strip()
     self.timeout = 60
     self.__ttl_cache = TTLCache(maxsize=128, ttl=10)
+    self.loglevel = loglevel
+    lvl = logging.getLevelName(loglevel)
+    logging.basicConfig(level=lvl)
+    self.logger = self.logger_for()
 
   @staticmethod
   def from_env():
@@ -232,6 +238,24 @@ Client for Duplo at {self.host}
     d = r(*args)
     d = self.filter(d)
     return self.format(d)
+  
+  def logger_for(self, name: str=None) -> logging.Logger:
+    """Create a Default Logger
+    
+    Create a default logger for the given name. This will create a logger with the name 'duplo' and add a console output handler.
+
+    Args:
+      name: The name of the logger.
+    Returns:
+      The logger.
+    """
+    n = "duplo"
+    if name:
+      n += f".{name}"
+    logger = logging.getLogger(name)
+    ConsoleOutputHandler = logging.StreamHandler()
+    logger.addHandler(ConsoleOutputHandler)
+    return logger
 
   @cachedmethod(lambda self: self.__ttl_cache)
   def get(self, path: str):
@@ -340,7 +364,7 @@ Client for Duplo at {self.host}
     svc = load_resource(resource)
     return svc(self)
   
-  def format(self, data: dict):
+  def format(self, data: dict) -> str:
     """Format data.
     
     Args:
@@ -351,7 +375,7 @@ Client for Duplo at {self.host}
     fmt = load_format(self.output)
     return fmt(data)
   
-  def use_context(self, name: str = None):
+  def use_context(self, name: str = None) -> None:
     """Use Context
     
     Use the specified context from the Duplo config.
@@ -374,7 +398,7 @@ Client for Duplo at {self.host}
     self.nocache = ctx.get("nocache", False)
     # only tenant can be overridden by the args/env
     
-  def get_cached_item(self, key: str):
+  def get_cached_item(self, key: str) -> dict:
     """Get Cached Item
     
     Get a cached item from the cache directory. The files are all json. 
@@ -396,7 +420,7 @@ Client for Duplo at {self.host}
     except json.JSONDecodeError:
       raise DuploExpiredCache(key)
     
-  def set_cached_item(self, key: str, data: dict):
+  def set_cached_item(self, key: str, data: dict) -> None:
     """Set Cached Item
     
     Set a cached item in the cache directory. The files are all json. 
@@ -412,7 +436,7 @@ Client for Duplo at {self.host}
     with open(fn, "w") as f:
       json.dump(data, f)
 
-  def interactive_token(self):
+  def interactive_token(self) -> str:
     """Interactive Token
     
     Performs an interactive login for the configured host. The cache will be checked for a token and if it is expired, it will perform an interactive login and cache the token. The cache may be disabled by setting the nocache flag. 
@@ -433,7 +457,7 @@ Client for Duplo at {self.host}
       self.set_cached_item(k, c)
     return t
   
-  def cached_token(self, key: str):
+  def cached_token(self, key: str) -> str:
     """Cached Token
     
     Get a cached token from the cache directory. This checks if the file exists and raises a 404 if it does not. 
@@ -452,7 +476,7 @@ Client for Duplo at {self.host}
         return t
     raise DuploExpiredCache(key)
   
-  def request_token(self):
+  def request_token(self) -> str:
     """Request Token from Browser
     
     Perform an interactive login to the specified host. Opens a temporary web browser to the login page and starts a local server to receive the token. When the user authorizes the request in the browser, the token is received and the server is shutdown.
@@ -473,7 +497,7 @@ Client for Duplo at {self.host}
       except KeyboardInterrupt:
         server.shutdown()
 
-  def cache_key_for(self, name: str):
+  def cache_key_for(self, name: str) -> str:
     """Cache Key For
     
     Get the cache key for the given name. This is a simple string concatenation of the host and the name.
@@ -491,7 +515,7 @@ Client for Duplo at {self.host}
     parts.append(name)
     return ",".join(parts)
   
-  def expiration(self, hours: int = 6):
+  def expiration(self, hours: int = 6) -> str:
     """Expiration
     
     Get the expiration time for the given number of hours. This is a simple calculation of the current time plus the number of hours.
@@ -504,7 +528,7 @@ Client for Duplo at {self.host}
     """
     return (datetime.datetime.now() + datetime.timedelta(hours=hours)).isoformat()
   
-  def expired(self, exp: str = None):
+  def expired(self, exp: str = None) -> bool:
     """Expired
     
     Check if the given expiration time is expired. This is a simple comparison of the current time and the expiration time.
@@ -519,7 +543,7 @@ Client for Duplo at {self.host}
       return True
     return datetime.datetime.now() > datetime.datetime.fromisoformat(exp)
   
-  def build_command(self, *args):
+  def build_command(self, *args) -> list[str]:
     """Context Args
     
     Build a comamnd using the current context. 
@@ -544,7 +568,7 @@ Client for Duplo at {self.host}
       cmd.append(self.token)
     return cmd
   
-  def disable_get_cache(self):
+  def disable_get_cache(self) -> None:
     """Disable Get Cache
     
     Disable the get cache for this client. This is useful for testing.
@@ -552,7 +576,7 @@ Client for Duplo at {self.host}
     """
     self.__ttl_cache = None
 
-  def __token_cache(self, token, otp=False):
+  def __token_cache(self, token, otp=False) -> dict:
     return {
       "Version": "v1",
       "DuploToken": token,
@@ -560,14 +584,14 @@ Client for Duplo at {self.host}
       "NeedOTP": otp
     }
   
-  def __headers(self):
+  def __headers(self) -> dict:
     t = self.token
     return {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {t}"
     }
   
-  def __validate_response(self, response: dict):
+  def __validate_response(self, response: requests.Response) -> requests.Response:
     """Validate a response from Duplo.
     
     Args:
@@ -595,7 +619,7 @@ Client for Duplo at {self.host}
 
     raise DuploError("Duplo responded with an error", response.status_code)
     
-  def __sanitize_host(self, host: str):
+  def __sanitize_host(self, host: str) -> str:
     """Sanitize Host
     
     Sanitize the host using urlparse. This will ensure that the host is a valid URL and that it is using HTTPS.
@@ -609,3 +633,5 @@ Client for Duplo at {self.host}
       return None
     url = urlparse(host)
     return f"https://{url.netloc}"
+  
+  

@@ -38,9 +38,17 @@ def cleanup(request):
 
 @pytest.fixture
 def test_data(request):
-  name = request.param
-  data = get_test_data(name)
-  return (name, data)
+  """Fixture to load test data from a yaml file.
+  
+  Splits like this: kind::file
+  example with a data file named big_host with host data would be: host::big_host
+  """
+  test_id = request.param.split("::")
+  kind = test_id[0]
+  file = test_id[-1]
+  print(f"Loading test data for {kind} from {file}")
+  data = get_test_data(file)
+  return (kind, data)
 
 def get_test_data(name):
   # get the directory this file is in

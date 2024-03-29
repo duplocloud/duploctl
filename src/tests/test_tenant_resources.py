@@ -6,7 +6,9 @@ resources = [
   "cronjob", 
   "job",
   "secret",
-  "configmap"
+  "configmap",
+  "rds",
+  "rds::rds-read"
 ]
 
 @pytest.mark.parametrize("test_data", resources, indirect=True)
