@@ -42,9 +42,8 @@ LatestRelease = "https://github.com/duplocloud/duploctl/releases"
 
 [tool.setuptools]
 include-package-data = false
-
-[tool.setuptools.packages.find]
-include = ["duploaws"]
+packages = ["duploctl_aws"]
+package-dir={'duploctl_aws' = '.'}
 
 [project.entry-points."duplocloud.net"]
-aws = "plugins.aws.duploaws:DuploAWS"
+aws = "duploctl_aws.duploaws:DuploAWS"
