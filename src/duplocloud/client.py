@@ -248,14 +248,13 @@ Client for Duplo at {self.host}
       The logger.
     """
     n = "duplo"
-    title = n
     if name:
       n += f".{name}"
       title = name
     logger = logging.getLogger(name)
     lvl = logging.getLevelName(self.loglevel)
     logger.setLevel(lvl)
-    formatter = logging.Formatter(f"%(levelname)s %(message)s")
+    formatter = logging.Formatter("%(levelname)s %(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.addHandler(handler)

@@ -27,7 +27,7 @@ class DuploRDS(DuploTenantResourceV3):
       status = i.get("InstanceStatus", None)
       if status != "available":
         self.duplo.logger.info(f"DB instance {name} is still creating")
-        raise DuploError(f"Still creating")
+        raise DuploError("Still creating")
     super().create(body, wait, wait_check)
 
   @Command()
