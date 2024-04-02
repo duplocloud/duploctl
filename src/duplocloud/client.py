@@ -250,7 +250,6 @@ Client for Duplo at {self.host}
     n = "duplo"
     if name:
       n += f".{name}"
-      title = name
     logger = logging.getLogger(name)
     lvl = logging.getLevelName(self.loglevel)
     logger.setLevel(lvl)
