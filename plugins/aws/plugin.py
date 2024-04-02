@@ -2,7 +2,7 @@ from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Resource
 
-@Resource("configmap")
+@Resource("aws")
 class DuploAWS(DuploResource):
   
   def __init__(self, duplo: DuploClient):
@@ -12,4 +12,7 @@ class DuploAWS(DuploResource):
     return {
       "message": "Hello from AWS plugin!"
     }
+  
+def foo():
+  print("Hello from foo!")
 

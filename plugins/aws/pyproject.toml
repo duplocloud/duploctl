@@ -46,4 +46,7 @@ packages = ["duploctl_aws"]
 package-dir={'duploctl_aws' = '.'}
 
 [project.entry-points."duplocloud.net"]
-aws = "duploctl_aws.duploaws:DuploAWS"
+aws = "duploctl_aws.plugin:DuploAWS"
+
+[project.entry-points."egg_info.writers"]
+"foo.txt" = "duploctl_aws.foo:foo"
