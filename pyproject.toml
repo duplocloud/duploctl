@@ -129,6 +129,7 @@ configmap = "duplo_resource.configmap:DuploConfigMap"
 hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
 ecs = "duplo_resource.ecs_service:DuploEcsService"
+rds = "duplo_resource.rds:DuploRDS"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
