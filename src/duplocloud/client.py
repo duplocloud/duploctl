@@ -5,6 +5,7 @@ import datetime
 import os
 import yaml
 import json
+import jsonpatch
 import logging
 from urllib.parse import urlparse
 from cachetools import cachedmethod, TTLCache
@@ -332,6 +333,18 @@ Client for Duplo at {self.host}
       timeout = self.timeout
     )
     return self.__validate_response(response)
+  
+  def jsonpatch(self, data, patches):
+    """Json Patch
+    
+    Apply a json patch to a resource.
+
+    Args:
+      patches: The patches to apply.
+    Returns:
+      The patched resource as a JSON object.
+    """
+    return jsonpatch.apply_patch(data, patches)
 
   def filter(self, data: dict):
     """Query data

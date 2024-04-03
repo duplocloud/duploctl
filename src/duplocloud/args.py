@@ -2,7 +2,7 @@ import os
 import argparse
 import logging
 from importlib.metadata import version
-from .argtype import Arg, YamlAction
+from .argtype import Arg, YamlAction, JsonPatchAction
 from .commander import available_resources
 
 # the global args for the CLI
@@ -73,6 +73,10 @@ OUTPUT = Arg("output", "-o",
 QUERY = Arg("query", "-q",
             help='The jmespath query to run on a result')
 
+PATCHES = Arg("patches", '-p',
+              help='The json patch to apply',
+              action=JsonPatchAction)
+
 VERSION = Arg("version", "--version",
               action='version', 
               version=f"%(prog)s {version('duplocloud-client')}",
@@ -88,6 +92,7 @@ COMMAND = Arg('command',
 
 # generic first positional arg for resource name
 NAME = Arg("name", 
+            nargs='?',
             help='The resource name')
 
 IMAGE = Arg("image", 

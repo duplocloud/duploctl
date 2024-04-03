@@ -1,6 +1,7 @@
 from typing import NewType
 import argparse
 import yaml
+import json 
 
 class Arg(NewType):
   def __init__(self, 
@@ -69,3 +70,23 @@ class YamlAction(argparse.Action):
   def __call__(self, parser, namespace, value, option_string=None):
     data = yaml.load(value, Loader=yaml.FullLoader)
     setattr(namespace, self.dest, data)
+
+class JsonPatchAction(argparse._AppendAction):
+  def __init__(self, option_strings, dest, nargs='+', metavar=('key', 'value'), **kwargs):
+    opts = ["--add", "--remove", "--copy", "--replace", "--test", "--move"]
+    super().__init__(opts, dest, nargs=nargs, metavar=metavar, **kwargs)
+  def __call__(self, parser, namespace, value, option_string=None):
+    def validate_key(key):
+      key = key.replace(".", "/").replace("[", "/").replace("]", "")
+      key = "/" + key if key[0] != "/" else key
+      return key
+    patch = None
+    key = validate_key(value[0])
+    op = option_string[2:]
+    if op in ["add", "replace", "test"]:
+      patch = {"op": op, "path": key, "value": json.loads(value[1])}
+    elif op in ["remove"]:
+      patch = {"op": op, "path": key}
+    elif op in ["copy", "move"]:
+      patch = {"op": op, "from": key, "path": validate_key(value[1])}
+    super().__call__(parser, namespace, patch, option_string)

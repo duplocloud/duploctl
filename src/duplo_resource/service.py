@@ -34,6 +34,24 @@ class DuploService(DuploTenantResource):
       return [s for s in self.list() if s["Name"] == name][0]
     except IndexError:
       raise DuploError(f"Service '{name}' not found", 404)
+    
+  @Command()
+  def update(self, 
+             name: args.NAME,
+             body: args.BODY = None,
+             patches: args.PATCHES = None):
+    """Update a service."""
+    if (name is None and body is None):
+      raise DuploError("No arguments provided to update service", 400)
+    tenant_id = self.tenant["TenantId"]
+    if name and body:
+      body["Name"] = name
+    if body is None:
+      body = self.find(name)
+    if patches:
+      body = self.duplo.jsonpatch(body, patches)
+    response = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", body)
+    return response.json()
 
   @Command()
   def update_replicas(self, name: args.NAME,
