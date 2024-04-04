@@ -1,21 +1,17 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResource
+from duplocloud.resource import DuploTenantResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 @Resource("hosts")
-class DuploHosts(DuploTenantResource):
+class DuploHosts(DuploTenantResourceV2):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-  
-  @Command()
-  def list(self):
-    """Retrieve a list of all hosts in a tenant."""
-    tenant_id = self.tenant["TenantId"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetNativeHosts")
-    return response.json()
+    self.paths = {
+      "list": "GetNativeHosts"
+    }
   
   @Command()
   def create(self,
@@ -30,10 +26,9 @@ class DuploHosts(DuploTenantResource):
           raise DuploFailedResource(f"Host '{name}' failed to create.")
         raise DuploError(f"Host '{name}' not ready", 404)
     # let's get started
-    tenant_id = self.tenant["TenantId"]
     if body.get("ImageId", None) is None:
       body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
-    res = self.duplo.post(f"subscriptions/{tenant_id}/CreateNativeHost", body)
+    res = self.duplo.post(self.endpoint("CreateNativeHost"), body)
     if wait:
       self.wait(wait_check)
     return {
@@ -46,10 +41,9 @@ class DuploHosts(DuploTenantResource):
              name: args.NAME,
              wait: args.WAIT=False):
     """Delete a host."""
-    tenant_id = self.tenant["TenantId"]
     host = self.find(name)
     inst_id = host["InstanceId"]
-    res = self.duplo.post(f"subscriptions/{tenant_id}/TerminateNativeHost/{inst_id}", host)
+    res = self.duplo.post(self.endpoint(f"TerminateNativeHost/{inst_id}"), host)
     def wait_check():
       h = None 
       try:
@@ -67,23 +61,6 @@ class DuploHosts(DuploTenantResource):
       "message": f"Successfully deleted host '{name}'",
       "data": res.json()
     }
-
-  @Command()
-  def find(self, 
-           name: args.NAME):
-    """Find a host by name.
-    
-    Args:
-      name (str): The name of the host to find.
-    Returns: 
-      The host object.
-    Raises:
-      DuploError: If the host could not be found.
-    """
-    try:
-        return [s for s in self.list() if s["FriendlyName"] == name][0]
-    except IndexError:
-      raise DuploError(f"Host '{name}' not found", 404)
     
   def name_from_body(self, body):
     prefix = f"duploservices-{self.duplo.tenant}"

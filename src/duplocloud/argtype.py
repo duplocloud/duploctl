@@ -2,6 +2,7 @@ from typing import NewType
 import argparse
 import yaml
 import json 
+from .errors import DuploError
 
 class Arg(NewType):
   def __init__(self, 
@@ -80,11 +81,19 @@ class JsonPatchAction(argparse._AppendAction):
       key = key.replace(".", "/").replace("[", "/").replace("]", "")
       key = "/" + key if key[0] != "/" else key
       return key
+    def validate_value(v):
+      try:
+        return json.loads(v)
+      except json.JSONDecodeError as e:
+        try: # attempt to load again with literal double quotes
+          return json.loads('"' + v + '"')
+        except json.JSONDecodeError as e: # still not so error
+          raise DuploError(f"Invalid JSON value for {op} operation.")
     patch = None
     key = validate_key(value[0])
     op = option_string[2:]
     if op in ["add", "replace", "test"]:
-      patch = {"op": op, "path": key, "value": json.loads(value[1])}
+      patch = {"op": op, "path": key, "value": validate_value(value[1])}
     elif op in ["remove"]:
       patch = {"op": op, "path": key}
     elif op in ["copy", "move"]:

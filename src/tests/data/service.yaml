@@ -1,0 +1,12 @@
+Replicas: 1
+Cloud: 0
+IsLBSyncedDeployment: true
+AgentPlatform: 7
+Name: duploctl
+DockerImage: 'nginx:latest'
+ReplicasMatchingAsgName: null
+HPASpecs: null
+IsDaemonset: false
+OtherDockerHostConfig: ''
+OtherDockerConfig: '{"Env":null}'
+NetworkId: default

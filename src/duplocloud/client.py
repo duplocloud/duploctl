@@ -344,7 +344,12 @@ Client for Duplo at {self.host}
     Returns:
       The patched resource as a JSON object.
     """
-    return jsonpatch.apply_patch(data, patches)
+    try:
+      return jsonpatch.apply_patch(data, patches)
+    except jsonpatch.JsonPatchTestFailed as e:
+      raise DuploError("JsonPatch test failed", 500) from e
+    except jsonpatch.JsonPatchConflict as e:
+      raise DuploError(f"JsonPatch conflict:\n {e}", 500)
 
   def filter(self, data: dict):
     """Query data

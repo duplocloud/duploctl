@@ -1,39 +1,18 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResource
+from duplocloud.resource import DuploTenantResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 from json import dumps, loads
 import duplocloud.args as args
 
 @Resource("service")
-class DuploService(DuploTenantResource):
+class DuploService(DuploTenantResourceV2):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-  
-  @Command()
-  def list(self):
-    """Retrieve a list of all services in a tenant."""
-    tenant_id = self.tenant["TenantId"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetReplicationControllers")
-    return response.json()
-  
-  @Command()
-  def find(self, 
-           name: args.NAME):
-    """Find a service by name.
-    
-    Args:
-      name (str): The name of the service to find.
-    Returns: 
-      The service object.
-    Raises:
-      DuploError: If the service could not be found.
-    """
-    try:
-      return [s for s in self.list() if s["Name"] == name][0]
-    except IndexError:
-      raise DuploError(f"Service '{name}' not found", 404)
+    self.paths = {
+      "list": "GetReplicationControllers"
+    }
     
   @Command()
   def update(self, 
@@ -43,15 +22,44 @@ class DuploService(DuploTenantResource):
     """Update a service."""
     if (name is None and body is None):
       raise DuploError("No arguments provided to update service", 400)
-    tenant_id = self.tenant["TenantId"]
     if name and body:
       body["Name"] = name
     if body is None:
       body = self.find(name)
     if patches:
       body = self.duplo.jsonpatch(body, patches)
-    response = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", body)
-    return response.json()
+    if ((ttags := body["Template"].get("AllocationTags", None))
+        and not body.get("AllocationTags", None)):
+      body["AllocationTags"] = ttags
+    self.duplo.post(self.endpoint("ReplicationControllerChangeAll"), body)
+    return {
+      "message": f"Successfully updated service '{body['Name']}'"
+    }
+  
+  @Command()
+  def create(self,
+             body: args.BODY,
+             wait: args.WAIT = False):
+    """Create a service."""
+    self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
+    if wait:
+      self.wait(lambda: self.find(body["Name"]))
+    return {
+      "message": f"Successfully created service '{body['Name']}'"
+    }
+
+  @Command()
+  def delete(self,
+             name: args.NAME):
+    """Delete a service."""
+    body = {
+      "Name": name,
+      "State": "delete"
+    }
+    self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
+    return {
+      "message": f"Successfully deleted service '{name}'"
+    }
 
   @Command()
   def update_replicas(self, name: args.NAME,
