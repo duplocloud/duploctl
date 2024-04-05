@@ -1,3 +1,4 @@
+import time
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource
@@ -253,6 +254,29 @@ class DuploService(DuploTenantResourceV2):
     """
     response = self.duplo.get(self.endpoint("GetPods"))
     return [pod for pod in response.json() if pod["Name"] == name]
+  
+  @Command()
+  def logs(self,
+           name: args.NAME,
+           watch: args.WAIT = False):
+    """Get the logs for a service."""
+    pod = self.pods(name)[0]
+    data = {
+      "HostName": pod["Host"],
+      "DockerId": pod["Containers"][0]["DockerId"],
+      "Tail": 50
+    }
+    def new_lines():
+      response = self.duplo.post(self.endpoint("findContainerLogs"), data)
+      o = response.json()
+      lines = o["Data"].split("\n")
+      if lines[-1] == "":
+        lines.pop()
+      return lines
+    lines = new_lines()    
+    for l in lines:
+      self.duplo.logger.info(l)
+    return None
 
   def current_replicaset(self, name: str):
     """Get the current replicaset for a service.

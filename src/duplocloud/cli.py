@@ -6,7 +6,8 @@ def main():
   try:
     duplo, args = DuploClient.from_env()
     o = duplo(*args)
-    print(o)
+    if o:
+      print(o)
   except DuploError as e:
     print(e)
     exit(e.code)

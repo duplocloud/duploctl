@@ -235,6 +235,8 @@ Client for Duplo at {self.host}
     """
     r = self.load(resource)
     d = r(*args)
+    if d is None:
+      return None
     d = self.filter(d)
     return self.format(d)
   
