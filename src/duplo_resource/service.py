@@ -253,7 +253,10 @@ class DuploService(DuploTenantResourceV2):
       DuploError: If the service could not be found.
     """
     response = self.duplo.get(self.endpoint("GetPods"))
-    return [pod for pod in response.json() if pod["Name"] == name]
+    return [
+      pod for pod in response.json() 
+      if pod["Name"] == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:apps/v1/ReplicaSet"
+    ]
   
   @Command()
   def logs(self,
@@ -266,16 +269,28 @@ class DuploService(DuploTenantResourceV2):
       "DockerId": pod["Containers"][0]["DockerId"],
       "Tail": 50
     }
-    def new_lines():
+    def get_logs():
       response = self.duplo.post(self.endpoint("findContainerLogs"), data)
       o = response.json()
       lines = o["Data"].split("\n")
       if lines[-1] == "":
-        lines.pop()
+        lines.pop() 
       return lines
-    lines = new_lines()    
+    lines = get_logs()  
     for l in lines:
       self.duplo.logger.info(l)
+    count = len(lines)
+    if watch:
+      try:
+        while True:
+          lines = get_logs()
+          diff = len(lines) - count
+          # get the last diff lines
+          for l in lines[-diff:]:
+            self.duplo.logger.info(l)
+          time.sleep(3)
+      except KeyboardInterrupt:
+        pass
     return None
 
   def current_replicaset(self, name: str):
