@@ -19,8 +19,9 @@ class DuploTenant(DuploResource):
 
   @Command()
   def find(self, 
-           name: args.NAME):
+           name: args.NAME=None):
     """Find a tenant by name."""
+    name = name or self.duplo.tenant
     try:
       return [t for t in self.list() if t["AccountName"] == name][0]
     except IndexError:
@@ -42,8 +43,9 @@ class DuploTenant(DuploResource):
   
   @Command()
   def delete(self,
-             name: args.NAME):
+             name: args.NAME=None):
     """Delete a tenant."""
+    name = name or self.duplo.tenant
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     self.duplo.post(f"admin/DeleteTenant/{tenant_id}", None)
@@ -53,9 +55,10 @@ class DuploTenant(DuploResource):
     
   @Command()
   def shutdown(self, 
-               name: args.NAME, 
+               name: args.NAME=None, 
                schedule: args.SCHEDULE=None):
     """Expire a tenant."""
+    name = name or self.duplo.tenant
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # if the schedule not specified then set the date 5 minute from now
@@ -95,6 +98,7 @@ class DuploTenant(DuploResource):
               name: args.NAME, 
               enable: args.ENABLE=True):
     """Enable or disable tenant logging."""
+    name = name or self.duplo.tenant
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # add or update the tenant in the list of enabled tenants
@@ -116,25 +120,26 @@ class DuploTenant(DuploResource):
 
   @Command()
   def billing(self,
-              name: args.NAME):
+              name: args.NAME=None):
     """Spend
     
     Get the spend for the tenant. 
     """
-    tenant = self.find(name)
+    tenant = self.find(name or self.duplo.tenant)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/billing/subscriptions/{tenant_id}/aws/billing")
     return response.json()
   
   @Command()
   def config(self,
-               name: args.NAME,
-               setvar: args.SETVAR=[],
-               deletevar: args.DELETEVAR=[]):
+             name: args.NAME=None,
+             setvar: args.SETVAR=[],
+             deletevar: args.DELETEVAR=[]):
     """Add a setting to the tenant."""
     updates = []
     creates = []
     changes = []
+    name = name or self.duplo.tenant
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     curr_settings = tenant.get("Metadata", [])
@@ -174,9 +179,18 @@ class DuploTenant(DuploResource):
     
   @Command()
   def host_images(self,
-                  name: args.NAME):
+                  name: args.NAME = None):
     """Get the list of host images."""
-    tenant = self.find(name)
+    tenant = self.find(name or self.duplo.tenant)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/nativeHostImages")
+    return response.json()
+
+  @Command()
+  def faults(self,
+             name: args.NAME = None):
+    """Get the list of faults."""
+    tenant = self.find(name or self.duplo.tenant)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"subscriptions/{tenant_id}/GetFaultsByTenant")
     return response.json()

@@ -45,8 +45,11 @@ class DuploResource():
         break
       except DuploFailedResource as e:
         raise e
-      except DuploError:
+      except DuploError as e:
+        self.duplo.logger.info(e)
         time.sleep(poll)
+      except KeyboardInterrupt as e:
+        raise e
     else:
       raise DuploError("Timed out waiting", 404)
     
