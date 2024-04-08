@@ -9,6 +9,13 @@ spec:
       - name: app
         image: alpine:latest
         command:
-        - echo
-        - hello
+        - /bin/sh
+        - -c
+        args:
+        - |
+          for i in {1..5}
+          do
+            echo "Hello $i"
+            sleep 10
+          done
       initContainers: []

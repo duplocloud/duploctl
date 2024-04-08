@@ -49,7 +49,7 @@ class DuploLambda(DuploTenantResourceV2):
     tenant_id = self.tenant["TenantId"]
     self.duplo.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", body)
     if wait:
-      self.wait(wait_check, 200)
+      self.wait(wait_check, 400)
     return {
       "message": f"Lambda {body['FunctionName']} created"
     }

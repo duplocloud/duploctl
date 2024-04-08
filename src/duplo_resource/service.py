@@ -284,7 +284,9 @@ class DuploService(DuploTenantResourceV2):
       try:
         while True:
           lines = get_logs()
-          diff = len(lines) - count
+          new_count = len(lines)
+          diff = new_count - count
+          count = new_count
           # get the last diff lines
           for l in lines[-diff:]:
             self.duplo.logger.info(l)

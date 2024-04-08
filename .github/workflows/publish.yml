@@ -37,6 +37,7 @@ jobs:
     with:
       environment: qa-aws
       enabled: ${{ inputs.run_e2e }}
+      logs: true
 
   version:
     name: Version
