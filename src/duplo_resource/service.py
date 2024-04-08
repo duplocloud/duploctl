@@ -11,7 +11,9 @@ _STATUS_CODES = {
   "1": "Running",
   "3": "Pending",
   "4": "Waiting",
-  "6": "Deleted"
+  "6": "Deleted",
+  "7": "Failed",
+  "11": "Succeeded"
 }
 
 @Resource("service")

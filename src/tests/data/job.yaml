@@ -1,21 +1,21 @@
 metadata:
-  name: duploctl
+  name: bigrunner
 spec:
   ttlSecondsAfterFinished: 86400
+  parallelism: 2
+  completions: 4
   template:
     spec:
       restartPolicy: Never
       containers:
       - name: app
-        image: alpine:latest
+        image: ubuntu:latest
         command:
-        - /bin/sh
+        - /bin/bash
         - -c
         args:
         - |
-          for i in {1..5}
-          do
-            echo "Hello $i"
-            sleep 10
-          done
+          echo "Hello, World!"
+          sleep 10
+          echo "Goodbye, World!"
       initContainers: []

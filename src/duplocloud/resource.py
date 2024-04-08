@@ -44,9 +44,11 @@ class DuploResource():
         wait_check()
         break
       except DuploFailedResource as e:
+
         raise e
       except DuploError as e:
-        self.duplo.logger.info(e)
+        if e.message:
+          self.duplo.logger.info(e)
         time.sleep(poll)
       except KeyboardInterrupt as e:
         raise e
