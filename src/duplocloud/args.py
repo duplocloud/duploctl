@@ -1,5 +1,6 @@
 import os
 import argparse
+import logging
 from importlib.metadata import version
 from .argtype import Arg, YamlAction
 from .commander import available_resources
@@ -13,6 +14,11 @@ HOME_DIR = Arg('homedir', '--home-dir',
 CACHE_DIR = Arg('cachedir', '--cache-dir', 
             help='The cache directory for saved credentials.',
             default=os.getenv('DUPLO_CACHE', None))
+
+LOGLEVEL = Arg('log-level', '--loglevel', '-L',
+            help='The log level to use.',
+            default=os.getenv('DUPLO_LOG_LEVEL', 'INFO'),
+            choices=list(logging._nameToLevel.keys()))
 
 CONFIG = Arg('configfile', '--config-file', 
             help='The path to the duploctl configuration file.',
@@ -123,7 +129,7 @@ CRONSCHEDULE = Arg("cronschedule",
 ENABLE = Arg("enable","-y", 
               help='Enable or disable the feature',
               type=bool,
-              action='store_true')
+              action=argparse.BooleanOptionalAction)
 
 MIN = Arg("min", "-m",
           help='The minimum number of replicas',
@@ -146,3 +152,34 @@ WAIT = Arg("wait", "-w",
            help='Wait for the operation to complete',
            type=bool,
            action='store_true')
+
+SIZE = Arg("size",
+           help='The instance size to use')
+
+SAVE_SECRET = Arg("save-secret", "--save",
+                 help='Save the secret to secrets manager.',
+                 type=bool,
+                 action='store_true')
+
+PASSWORD = Arg("password",
+                help='The password to use')
+
+INTERVAL = Arg("interval",
+                help='The monitoring interval to use',
+                type=int,
+                choices=[1, 5, 10, 15, 30, 60])
+
+IMMEDIATE = Arg("immediate", "-i",
+                help='Apply the change immediately',
+                type=bool,
+                action='store_true')
+
+TARGET = Arg("target", "--target-name",
+             help='The target name to use')
+
+TIME = Arg("time", "--time",
+           help='The time to use')
+
+DAYS = Arg("days", 
+            help='The days to use',
+            type=int)

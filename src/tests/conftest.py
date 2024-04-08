@@ -37,10 +37,18 @@ def cleanup(request):
   request.addfinalizer(kill_infra)
 
 @pytest.fixture
-def test_data(request) -> tuple:
-  name = request.param
-  data = get_test_data(name)
-  return (name, data)
+def test_data(request) -> tuple[str, dict]:
+  """Fixture to load test data from a yaml file.
+  
+  Splits like this: kind::file
+  example with a data file named big_host with host data would be: host::big_host
+  """
+  test_id = request.param.split("::")
+  kind = test_id[0]
+  file = test_id[-1]
+  print(f"Loading test data for {kind} from {file}")
+  data = get_test_data(file)
+  return (kind, data)
 
 def get_test_data(name) -> dict:
   # get the directory this file is in

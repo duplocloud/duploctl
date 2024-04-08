@@ -171,7 +171,8 @@ class DuploEcsService(DuploTenantResource):
   def __ecs_task_def_body(self, task_def):
     containers = [
       self.__ecs_container_update_body(c) 
-      for c in task_def.get("ContainerDefinitions", [])]
+      for c in task_def.get("ContainerDefinitions", [])
+    ]
     return {
       "Family": task_def["Family"],
       "Cpu": task_def["Cpu"],

@@ -9,7 +9,9 @@ resources = [
   "job",
   "secret",
   "configmap",
-  "lambda"
+  "lambda",
+  "rds",
+  "rds::rds-read"
 ]
 
 @pytest.mark.parametrize("test_data", resources, indirect=True)

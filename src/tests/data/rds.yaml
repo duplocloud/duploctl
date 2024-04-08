@@ -1,0 +1,9 @@
+Identifier: mydb04
+MasterUsername: fuzlletonnian
+MasterPassword: superstrongpassword
+Engine: 0
+EngineVersion: 8.0.36
+AllocatedStorage: 30
+Cloud: 0
+StorageType: gp3
+SizeEx: db.t3.small
