@@ -25,24 +25,24 @@ class DuploJit(DuploResource):
 
     # check if admin or choose tenant
     if self.duplo.isadmin:
-        path = "adminproxy/GetJITAwsConsoleAccessUrl"
+      path = "adminproxy/GetJITAwsConsoleAccessUrl"
     else:
-        t = self.duplo.load("tenant")
-        tenant = t.find(self.duplo.tenant)
-        path = f"subscriptions/{tenant['TenantId']}/GetAwsConsoleTokenUrl"
-    
+      t = self.duplo.load("tenant")
+      tenant = t.find(self.duplo.tenant)
+      path = f"subscriptions/{tenant['TenantId']}/GetAwsConsoleTokenUrl"
+
     # try and get those creds
     try:
-        if nc:
-            sts = self.duplo.get(path).json()
-        else:
-            sts = self.duplo.get_cached_item(k)
-            if self.duplo.expired(sts.get("Expiration", None)):
-                raise DuploExpiredCache(k)
-    except DuploExpiredCache:
+      if nc:
         sts = self.duplo.get(path).json()
-        sts["Expiration"] = self.duplo.expiration()
-        self.duplo.set_cached_item(k, sts)
+      else:
+        sts = self.duplo.get_cached_item(k)
+        if self.duplo.expired(sts.get("Expiration", None)):
+          raise DuploExpiredCache(k)
+    except DuploExpiredCache:
+      sts = self.duplo.get(path).json()
+      sts["Expiration"] = self.duplo.expiration()
+      self.duplo.set_cached_item(k, sts)
 
     # Convert expiration timestamp to aware datetime object with timezone info
     expiration_timestamp = datetime.datetime.fromisoformat(sts["Expiration"])
@@ -176,11 +176,11 @@ class DuploJit(DuploResource):
 
   def __k8s_exec_credential(self, ctx):
     cluster = {
-        "server": ctx["ApiServer"],
-        "config": None
+      "server": ctx["ApiServer"],
+      "config": None
     }
     if ctx["K8Provider"] == 0 and (ca := ctx.get("CertificateAuthorityDataBase64", None)):
-        cluster["certificate-authority-data"] = ca
+      cluster["certificate-authority-data"] = ca
 
     # Parse expiration timestamp string to datetime object
     expiration_timestamp = datetime.datetime.fromisoformat(self.duplo.expiration())
@@ -189,18 +189,18 @@ class DuploJit(DuploResource):
     formatted_expiration = expiration_timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return {
-        "kind": "ExecCredential",
-        "apiVersion": "client.authentication.k8s.io/v1beta1",
-        "spec": {
-            "cluster": cluster,
-            "interactive": False
-        },
-        "status": {
-            "token": ctx["Token"],
-            "expirationTimestamp": formatted_expiration
-        }
+      "kind": "ExecCredential",
+      "apiVersion": "client.authentication.k8s.io/v1beta1",
+      "spec": {
+        "cluster": cluster,
+        "interactive": False
+      },
+      "status": {
+        "token": ctx["Token"],
+        "expirationTimestamp": formatted_expiration
+      }
     }
-  
+
   def __cluster_config(self, ctx):
     """Build a kubeconfig cluster object"""
     cluster = {
