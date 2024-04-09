@@ -114,6 +114,9 @@ jobs:
     needs: integration_tests
     environment: 
       name: ${{ inputs.environment }}
+    env:
+      AWS_DEFAULT_REGION: us-east-2
+      AWS_REGION: us-east-2
     steps:
     # checkout code 
     - name: Setup
