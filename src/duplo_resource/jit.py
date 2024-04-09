@@ -8,12 +8,13 @@ from pathlib import Path
 import yaml
 import configparser
 import webbrowser
+import datetime
 
 @Resource("jit")
 class DuploJit(DuploResource):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-    
+
   @Command()
   def aws(self, nocache: bool = None):
     """Retrieve aws session credentials for current user."""
@@ -29,7 +30,7 @@ class DuploJit(DuploResource):
       t = self.duplo.load("tenant")
       tenant = t.find(self.duplo.tenant)
       path = f"subscriptions/{tenant['TenantId']}/GetAwsConsoleTokenUrl"
-    
+
     # try and get those creds
     try:
       if nc:
@@ -42,10 +43,17 @@ class DuploJit(DuploResource):
       sts = self.duplo.get(path).json()
       sts["Expiration"] = self.duplo.expiration()
       self.duplo.set_cached_item(k, sts)
+
+    # Convert expiration timestamp to aware datetime object with timezone info
+    expiration_timestamp = datetime.datetime.fromisoformat(sts["Expiration"])
+    expiration_timestamp = expiration_timestamp.replace(tzinfo=datetime.timezone.utc)
+
+    # Convert expiration timestamp to a string in the format expected by AWS CLI
+    formatted_expiration = expiration_timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    sts["Expiration"] = formatted_expiration
     sts["Version"] = 1
-    # TODO: Make the exp correct for aws cli because aws cli really doesn't like this format
-    if "Expiration" in sts:
-      del sts["Expiration"]
+
     return sts
 
   @Command()
@@ -69,9 +77,6 @@ class DuploJit(DuploResource):
       ctx = self.k8s_context(planId)
       creds = self.__k8s_exec_credential(ctx)
       self.duplo.set_cached_item(k, creds)
-    # TODO: sadly the expirationTimestamp is not in the right format for kubectl either
-    if "status" in creds and "expirationTimestamp" in creds["status"]:
-      del creds["status"]["expirationTimestamp"]
     return creds
   
   @Command()
@@ -168,7 +173,7 @@ class DuploJit(DuploResource):
             else f"/v3/subscriptions/{tenant_id}/k8s/jitAccess")
     response = self.duplo.get(path)
     return response.json()
-  
+
   def __k8s_exec_credential(self, ctx):
     cluster = {
       "server": ctx["ApiServer"],
@@ -176,6 +181,13 @@ class DuploJit(DuploResource):
     }
     if ctx["K8Provider"] == 0 and (ca := ctx.get("CertificateAuthorityDataBase64", None)):
       cluster["certificate-authority-data"] = ca
+
+    # Parse expiration timestamp string to datetime object
+    expiration_timestamp = datetime.datetime.fromisoformat(self.duplo.expiration())
+
+    # Format the expiration timestamp to match the expected format
+    formatted_expiration = expiration_timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+
     return {
       "kind": "ExecCredential",
       "apiVersion": "client.authentication.k8s.io/v1beta1",
@@ -185,10 +197,10 @@ class DuploJit(DuploResource):
       },
       "status": {
         "token": ctx["Token"],
-        "expirationTimestamp": self.duplo.expiration()
+        "expirationTimestamp": formatted_expiration
       }
     }
-  
+
   def __cluster_config(self, ctx):
     """Build a kubeconfig cluster object"""
     cluster = {
