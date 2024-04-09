@@ -1,5 +1,5 @@
 metadata:
-  name: bigrunner
+  name: sadgdshftu
 spec:
   ttlSecondsAfterFinished: 86400
   parallelism: 2
@@ -18,4 +18,8 @@ spec:
           echo "Hello, World!"
           sleep 10
           echo "Goodbye, World!"
+          num="$(echo $((1 + $RANDOM % 10)))"
+          sleep $num
+          echo "I slept for $num seconds"
+          sleep 10
       initContainers: []

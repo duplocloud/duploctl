@@ -11,7 +11,7 @@ class DuploJob(DuploTenantResourceV3):
     super().__init__(duplo, "k8s/job")  
     self.wait_timeout = 1000
     self.wait_poll = 3
-    self.duplo.disable_get_cache()
+    self.__pod_svc = self.duplo.load("pod")
 
   @Command()  
   def create(self, 
@@ -19,23 +19,9 @@ class DuploJob(DuploTenantResourceV3):
              wait: args.WAIT = False):
     """Create a job."""
     name = self.name_from_body(body)
-    log_count = {}
     a = 0
     s = 0
     f = 0
-    def show_new_logs():
-      
-      logs = self.logs(name)
-      # self.duplo.logger.info(f"Logs: {len(logs)}")
-      for pod, lines in logs.items():
-        last = log_count.get(pod, 0)
-        count = len(lines)
-        diff = count - last
-        log_count[pod] = count
-        # self.duplo.logger.info(f"last {last} count {count} diff {diff}")
-        if diff > 0:
-          for line in lines[-diff:]:
-            self.duplo.logger.info(f"{pod}: {line}")
     def wait_check():
       nonlocal a, s, f
       job = self.find(name)
@@ -57,13 +43,21 @@ class DuploJob(DuploTenantResourceV3):
       pods = self.pods(name)
       if pods_exist and len(pods) == 0:
         raise DuploError(None)
-      # self.duplo.logger.info(f"There are {len(pods)} pods")
-      show_new_logs()
+      # display the logs
+      for pod in pods:
+        self.__pod_svc.logs(pod=pod)
+      # make sure we got all of the logs
+      pod_count = active + succeeded + failed
+      if len(pods) != pod_count:
+        raise DuploError(None)
       if len(fail) > 0:
         raise DuploFailedResource(f"Job {name} failed with {fail[0]['reason']}: {fail[0]['message']}")
       if not len(cpl) > 0:
         raise DuploError(None)
-    return super().create(body, wait, wait_check)
+    super().create(body, wait, wait_check)
+    return {
+      "message": f"Job {name} ran successfully."
+    }
 
 
   @Command()
@@ -78,10 +72,9 @@ class DuploJob(DuploTenantResourceV3):
     Raises:
       DuploError: If the service could not be found.
     """
-    tenant_id = self.tenant["TenantId"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetPods")
+    pods = self.__pod_svc.list()
     return [
-      pod for pod in response.json() 
+      pod for pod in pods
       if pod["Name"] == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:batch/v1/Job"
     ]
   

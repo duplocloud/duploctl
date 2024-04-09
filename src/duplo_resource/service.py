@@ -23,6 +23,7 @@ class DuploService(DuploTenantResourceV2):
     self.paths = {
       "list": "GetReplicationControllers"
     }
+    self.__pod_svc = self.duplo.load("pod")
     self.__old = None
     self.__updates = None
     self.__old_replicaset = None
@@ -253,48 +254,30 @@ class DuploService(DuploTenantResourceV2):
     Raises:
       DuploError: If the service could not be found.
     """
-    response = self.duplo.get(self.endpoint("GetPods"))
+    pods = self.__pod_svc.list()
     return [
-      pod for pod in response.json() 
+      pod for pod in pods
       if pod["Name"] == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:apps/v1/ReplicaSet"
     ]
   
   @Command()
   def logs(self,
            name: args.NAME,
-           watch: args.WAIT = False):
+           wait: args.WAIT = False):
     """Get the logs for a service."""
-    pod = self.pods(name)[0]
-    data = {
-      "HostName": pod["Host"],
-      "DockerId": pod["Containers"][0]["DockerId"],
-      "Tail": 50
-    }
-    def get_logs():
-      response = self.duplo.post(self.endpoint("findContainerLogs"), data)
-      o = response.json()
-      lines = o["Data"].split("\n")
-      if lines[-1] == "":
-        lines.pop() 
-      return lines
-    lines = get_logs()  
-    for line in lines:
-      self.duplo.logger.info(line)
-    count = len(lines)
-    if watch:
+    def show_logs():
+      pods = self.pods(name)
+      for pod in pods:
+        self.__pod_svc.logs(pod=pod)
+    if wait:
       try:
         while True:
-          lines = get_logs()
-          new_count = len(lines)
-          diff = new_count - count
-          count = new_count
-          # get the last diff lines
-          for line in lines[-diff:]:
-            self.duplo.logger.info(line)
+          show_logs()
           time.sleep(3)
       except KeyboardInterrupt:
         pass
-    return None
+    else:
+      show_logs()
 
   def current_replicaset(self, name: str):
     """Get the current replicaset for a service.
@@ -341,6 +324,7 @@ class DuploService(DuploTenantResourceV2):
     def wait_check():
       svc = self.find(name)
       replicas = svc["Replicas"]
+      # make sure the change has been applied
       if (image_changed and self.image_from_body(svc) != new_img):
         raise DuploError(f"Service {name} waiting for image update", 400)
       if (replicas_changed and replicas != new_replicas):
