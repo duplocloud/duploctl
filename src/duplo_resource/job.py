@@ -20,7 +20,6 @@ class DuploJob(DuploTenantResourceV3):
     """Create a job."""
     name = self.name_from_body(body)
     log_count = {}
-    logs_found = False
     a = 0
     s = 0
     f = 0
@@ -35,8 +34,8 @@ class DuploJob(DuploTenantResourceV3):
         log_count[pod] = count
         # self.duplo.logger.info(f"last {last} count {count} diff {diff}")
         if diff > 0:
-          for l in lines[-diff:]:
-            self.duplo.logger.info(f"{pod}: {l}")
+          for line in lines[-diff:]:
+            self.duplo.logger.info(f"{pod}: {line}")
     def wait_check():
       nonlocal a, s, f
       job = self.find(name)
@@ -55,7 +54,6 @@ class DuploJob(DuploTenantResourceV3):
         self.duplo.logger.info(f"Job {name}: active({active}/{completions}), succeeded({succeeded}/{completions}), failed({failed}/{limit})")
       # make sure we can get pods and logs first
       pods_exist = (active > 0 or succeeded > 0 or failed > 0)
-      pod_count = active + succeeded + failed
       pods = self.pods(name)
       if pods_exist and len(pods) == 0:
         raise DuploError(None)

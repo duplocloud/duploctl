@@ -5,7 +5,6 @@ from duplocloud.errors import DuploError, DuploFailedResource
 from duplocloud.commander import Command, Resource
 from json import dumps, loads
 import duplocloud.args as args
-from copy import deepcopy
 
 _STATUS_CODES = {
   "1": "Running",
@@ -279,8 +278,8 @@ class DuploService(DuploTenantResourceV2):
         lines.pop() 
       return lines
     lines = get_logs()  
-    for l in lines:
-      self.duplo.logger.info(l)
+    for line in lines:
+      self.duplo.logger.info(line)
     count = len(lines)
     if watch:
       try:
@@ -290,8 +289,8 @@ class DuploService(DuploTenantResourceV2):
           diff = new_count - count
           count = new_count
           # get the last diff lines
-          for l in lines[-diff:]:
-            self.duplo.logger.info(l)
+          for line in lines[-diff:]:
+            self.duplo.logger.info(line)
           time.sleep(3)
       except KeyboardInterrupt:
         pass

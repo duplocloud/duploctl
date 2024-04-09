@@ -84,10 +84,10 @@ class JsonPatchAction(argparse._AppendAction):
     def validate_value(v):
       try:
         return json.loads(v)
-      except json.JSONDecodeError as e:
+      except json.JSONDecodeError:
         try: # attempt to load again with literal double quotes
           return json.loads('"' + v + '"')
-        except json.JSONDecodeError as e: # still not so error
+        except json.JSONDecodeError: # still not so error
           raise DuploError(f"Invalid JSON value for {op} operation.")
     patch = None
     key = validate_key(value[0])
