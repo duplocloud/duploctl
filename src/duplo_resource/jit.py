@@ -8,7 +8,8 @@ from pathlib import Path
 import yaml
 import configparser
 import webbrowser
-import datetime
+from datetime import datetime, timezone
+import jwt
 
 @Resource("jit")
 class DuploJit(DuploResource):
@@ -41,19 +42,10 @@ class DuploJit(DuploResource):
           raise DuploExpiredCache(k)
     except DuploExpiredCache:
       sts = self.duplo.get(path).json()
-      sts["Expiration"] = self.duplo.expiration()
+      if "Expiration" not in sts:
+        sts["Expiration"] = self.duplo.expiration()
       self.duplo.set_cached_item(k, sts)
-
-    # Convert expiration timestamp to aware datetime object with timezone info
-    expiration_timestamp = datetime.datetime.fromisoformat(sts["Expiration"])
-    expiration_timestamp = expiration_timestamp.replace(tzinfo=datetime.timezone.utc)
-
-    # Convert expiration timestamp to a string in the format expected by AWS CLI
-    formatted_expiration = expiration_timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    sts["Expiration"] = formatted_expiration
     sts["Version"] = 1
-
     return sts
 
   @Command()
@@ -182,11 +174,8 @@ class DuploJit(DuploResource):
     if ctx["K8Provider"] == 0 and (ca := ctx.get("CertificateAuthorityDataBase64", None)):
       cluster["certificate-authority-data"] = ca
 
-    # Parse expiration timestamp string to datetime object
-    expiration_timestamp = datetime.datetime.fromisoformat(self.duplo.expiration())
-
-    # Format the expiration timestamp to match the expected format
-    formatted_expiration = expiration_timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+    t = jwt.decode(jwt=ctx["Token"],algorithms=["HS256"],options={"verify_signature": False})
+    exp = datetime.fromtimestamp(t["exp"]).strftime('%Y-%m-%dT%H:%M:%S+00:00')
 
     return {
       "kind": "ExecCredential",
@@ -197,7 +186,7 @@ class DuploJit(DuploResource):
       },
       "status": {
         "token": ctx["Token"],
-        "expirationTimestamp": formatted_expiration
+        "expirationTimestamp": exp
       }
     }
 

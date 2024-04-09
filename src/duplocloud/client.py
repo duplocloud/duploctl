@@ -1,12 +1,12 @@
 
 import requests
 import jmespath
-import datetime
 import os
 import yaml
 import json
 import jsonpatch
 import logging
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
 from cachetools import cachedmethod, TTLCache
 from pathlib import Path
@@ -545,7 +545,8 @@ Client for Duplo at {self.host}
     Returns:
       The expiration time as a string.
     """
-    return (datetime.datetime.now() + datetime.timedelta(hours=hours)).isoformat()
+
+    return (datetime.now(timezone.utc) + timedelta(hours=hours)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
   
   def expired(self, exp: str = None) -> bool:
     """Expired
@@ -560,7 +561,7 @@ Client for Duplo at {self.host}
     """
     if exp is None:
       return True
-    return datetime.datetime.now() > datetime.datetime.fromisoformat(exp)
+    return datetime.now(timezone.utc) > datetime.fromisoformat(exp)
   
   def build_command(self, *args) -> list[str]:
     """Context Args

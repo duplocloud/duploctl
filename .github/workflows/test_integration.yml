@@ -106,3 +106,52 @@ jobs:
         summary: true
         display-options: fEX
         fail-on-empty: true
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    if: always()
+    needs: integration_tests
+    steps:
+    # checkout code 
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    # install python
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+        cache: 'pip'
+    
+    # install the project
+    - name: Install dependencies
+      run: |
+        pip install .
+        pip install awscli
+
+    - name: Duplo JIT for AWS
+      id: duplo-jit-aws
+      shell: bash
+      env:
+        AWS_REGION: us-east-2
+      run: >-
+        duploctl jit aws -q '{
+        AWS_ACCESS_KEY_ID: AccessKeyId, 
+        AWS_SECRET_ACCESS_KEY: SecretAccessKey, 
+        AWS_SESSION_TOKEN: SessionToken, 
+        AWS_REGION: Region
+        }' -o env --admin >> $GITHUB_OUTPUT
+
+    - name: Configure AWS IAM Credentials
+      id: aws-iam
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ steps.duplo-jit-aws.outputs.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ steps.duplo-jit-aws.outputs.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ steps.duplo-jit-aws.outputs.AWS_SESSION_TOKEN }}
+        aws-region: ${{ steps.duplo-jit-aws.outputs.AWS_REGION }}
+        mask-aws-account-id: true
+
+    - name: Run Cleanup
+      run: ./scripts/aws_cleanup.sh
