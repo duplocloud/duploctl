@@ -112,6 +112,8 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs: integration_tests
+    environment: 
+      name: ${{ inputs.environment }}
     steps:
     # checkout code 
     - name: Setup
