@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 import configparser
 import webbrowser
-from datetime import datetime, timezone
+from datetime import datetime
 import jwt
 
 @Resource("jit")
