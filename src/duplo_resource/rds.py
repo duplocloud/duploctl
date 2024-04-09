@@ -22,11 +22,16 @@ class DuploRDS(DuploTenantResourceV3):
       body (dict): The body of the request.
     """
     name = self.name_from_body(body)
+    s = None
     def wait_check():
+      nonlocal s
       i = self.find(name)
-      status = i.get("InstanceStatus", None)
+      status = i.get("InstanceStatus", "submitted")
+      if s != status:
+        s = status
+        self.duplo.logger.info(f"DB instance {name} is {status}")
       if status != "available":
-        raise DuploError(f"DB instance {name} is {status}")
+        raise DuploError(None)
     super().create(body, wait, wait_check)
 
   @Command()
