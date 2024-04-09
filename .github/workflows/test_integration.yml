@@ -115,8 +115,10 @@ jobs:
     environment: 
       name: ${{ inputs.environment }}
     env:
-      AWS_DEFAULT_REGION: us-east-2
-      AWS_REGION: us-east-2
+      AWS_DEFAULT_REGION: ${{ vars.AWS_REGION }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      DUPLO_HOST: ${{ vars.DUPLO_HOST }}
+      DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
     steps:
     # checkout code 
     - name: Setup
