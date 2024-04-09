@@ -38,6 +38,7 @@ class DuploInfrastructure(DuploResource):
     status = None
     name = body["Name"]
     def wait_check():
+      nonlocal status
       i = self.find(name)
       s = i.get("ProvisioningStatus", "submitted")
       if status != s:
