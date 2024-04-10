@@ -123,6 +123,8 @@ jobs:
     # checkout code 
     - name: Setup
       uses: duplocloud/actions/setup@main
+      with:
+        admin: true
 
     - name: Run Cleanup
       run: ./scripts/aws_cleanup.sh
