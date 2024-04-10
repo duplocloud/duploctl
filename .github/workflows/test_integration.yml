@@ -120,7 +120,10 @@ jobs:
       DUPLO_HOST: ${{ vars.DUPLO_HOST }}
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
     steps:
-    # checkout code 
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      
     - name: Setup
       uses: duplocloud/actions/setup@main
       with:
