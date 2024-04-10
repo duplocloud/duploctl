@@ -77,25 +77,3 @@ class DuploJob(DuploTenantResourceV3):
       pod for pod in pods
       if pod["Name"] == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:batch/v1/Job"
     ]
-  
-  @Command()
-  def logs(self,
-           name: args.NAME,
-           wait: args.WAIT = False):
-    """Get the logs for a service."""
-    tenant_id = self.tenant["TenantId"]
-    pods = self.pods(name)
-    def pod_logs(pod):
-      data = {
-        "HostName": pod["Host"],
-        "DockerId": pod["Containers"][0]["DockerId"],
-        "Tail": 50
-      }
-      response = self.duplo.post(f"subscriptions/{tenant_id}/findContainerLogs", data)
-      o = response.json()
-      lines = o["Data"].split("\n")
-      if lines[-1] == "":
-        lines.pop()   
-      return lines
-    logs = {pod["InstanceId"]: pod_logs(pod) for pod in pods if pod["CurrentStatus"] in [1, 11, 7]} 
-    return logs
