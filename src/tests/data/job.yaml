@@ -2,13 +2,24 @@ metadata:
   name: duploctl
 spec:
   ttlSecondsAfterFinished: 86400
+  parallelism: 2
+  completions: 4
   template:
     spec:
       restartPolicy: Never
       containers:
       - name: app
-        image: alpine:latest
+        image: ubuntu:latest
         command:
-        - echo
-        - hello
+        - /bin/bash
+        - -c
+        args:
+        - |
+          echo "Hello, World!"
+          sleep 10
+          echo "Goodbye, World!"
+          num="$(echo $((1 + $RANDOM % 10)))"
+          sleep $num
+          echo "I slept for $num seconds"
+          sleep 10
       initContainers: []

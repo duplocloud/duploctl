@@ -57,7 +57,7 @@ class TestInfra:
         },
         "Cloud": 0,
         "OnPremConfig": None,
-        "Region": "us-east-1",
+        "Region": "us-east-2",
         "CustomData": [],
       }, wait=True)
     except DuploFailedResource as e:

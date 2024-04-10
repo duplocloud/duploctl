@@ -44,16 +44,49 @@ class DuploResource():
         wait_check()
         break
       except DuploFailedResource as e:
+
         raise e
-      except DuploError:
+      except DuploError as e:
+        if e.message:
+          self.duplo.logger.info(e)
         time.sleep(poll)
+      except KeyboardInterrupt as e:
+        raise e
     else:
       raise DuploError("Timed out waiting", 404)
+    
+class DuploResourceV2(DuploResource):
+
+  def name_from_body(self, body):
+    return body["Name"]
+  def endpoint(self, path: str=None):
+    return path
+  @Command()
+  def list(self):
+    """Retrieve a list of all services in a tenant."""
+    response = self.duplo.get(self.endpoint(self.paths["list"]))
+    return response.json()
+  @Command()
+  def find(self, 
+           name: args.NAME):
+    """Find a resource by name.
+    
+    Args:
+      name (str): The name of the resource to find.
+    Returns: 
+      The resource object.
+    Raises:
+      DuploError: If the resource could not be found.
+    """
+    try:
+      return [s for s in self.list() if self.name_from_body(s) == name][0]
+    except IndexError:
+      raise DuploError(f"{self.kind} '{name}' not found", 404)
       
   
-class DuploTenantResource(DuploResource):
+class DuploTenantResourceV2(DuploResourceV2):
   def __init__(self, duplo: DuploClient):
-    self.duplo = duplo
+    super().__init__(duplo)
     self.__tenant = None
     self.tenant_svc = duplo.load('tenant')
   @property
@@ -61,6 +94,12 @@ class DuploTenantResource(DuploResource):
     if not self.__tenant:
       self.__tenant = self.tenant_svc.find(self.duplo.tenant)
     return self.__tenant
+  
+  def endpoint(self, path: str=None):
+    tenant_id = self.tenant["TenantId"]
+    p = f"subscriptions/{tenant_id}/{path}"
+    return p
+  
 
 class DuploTenantResourceV3(DuploResource):
   def __init__(self, duplo: DuploClient, slug: str):

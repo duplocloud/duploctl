@@ -10,7 +10,7 @@ class DuploRDS(DuploTenantResourceV3):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "aws/rds/instance")
-    self.wait_timeout = 200
+    self.wait_timeout = 1200
 
   @Command()
   def create(self,
@@ -22,12 +22,16 @@ class DuploRDS(DuploTenantResourceV3):
       body (dict): The body of the request.
     """
     name = self.name_from_body(body)
+    s = None
     def wait_check():
+      nonlocal s
       i = self.find(name)
-      status = i.get("InstanceStatus", None)
+      status = i.get("InstanceStatus", "submitted")
+      if s != status:
+        s = status
+        self.duplo.logger.info(f"DB instance {name} is {status}")
       if status != "available":
-        self.duplo.logger.info(f"DB instance {name} is still creating")
-        raise DuploError("Still creating")
+        raise DuploError(None)
     super().create(body, wait, wait_check)
 
   @Command()

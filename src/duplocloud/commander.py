@@ -18,6 +18,7 @@ def Resource(name: str):
     resources[name] = {
       "class": cls.__qualname__
     }
+    setattr(cls, "kind", name)
     return cls
   return decorator
 

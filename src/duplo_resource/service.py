@@ -1,88 +1,136 @@
+import time
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResource
-from duplocloud.errors import DuploError
+from duplocloud.resource import DuploTenantResourceV2
+from duplocloud.errors import DuploError, DuploFailedResource
 from duplocloud.commander import Command, Resource
 from json import dumps, loads
 import duplocloud.args as args
 
+_STATUS_CODES = {
+  "1": "Running",
+  "3": "Pending",
+  "4": "Waiting",
+  "6": "Deleted",
+  "7": "Failed",
+  "11": "Succeeded"
+}
+
 @Resource("service")
-class DuploService(DuploTenantResource):
+class DuploService(DuploTenantResourceV2):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-  
-  @Command()
-  def list(self):
-    """Retrieve a list of all services in a tenant."""
-    tenant_id = self.tenant["TenantId"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetReplicationControllers")
-    return response.json()
-  
-  @Command()
-  def find(self, 
-           name: args.NAME):
-    """Find a service by name.
+    self.paths = {
+      "list": "GetReplicationControllers"
+    }
+    self.__pod_svc = self.duplo.load("pod")
+    self.__old = None
+    self.__updates = None
+    self.__old_replicaset = None
     
-    Args:
-      name (str): The name of the service to find.
-    Returns: 
-      The service object.
-    Raises:
-      DuploError: If the service could not be found.
-    """
-    try:
-      return [s for s in self.list() if s["Name"] == name][0]
-    except IndexError:
-      raise DuploError(f"Service '{name}' not found", 404)
+  @Command()
+  def update(self, 
+             name: args.NAME,
+             body: args.BODY = None,
+             patches: args.PATCHES = None,
+             wait: args.WAIT = False):
+    """Update a service."""
+    if (name is None and body is None):
+      raise DuploError("No arguments provided to update service", 400)
+    if name and body:
+      body["Name"] = name
+    if body is None:
+      body = self.find(name)
+    # before patching, save the original body if we need to wait
+    old = None
+    if wait:
+      old = self.find(name) # should use the cache
+      old["Replicaset"] = self.current_replicaset(name)
+    if patches:
+      body = self.duplo.jsonpatch(body, patches)
+    if ((ttags := body["Template"].get("AllocationTags", None))
+        and not body.get("AllocationTags", None)):
+      body["AllocationTags"] = ttags
+    self.duplo.post(self.endpoint("ReplicationControllerChangeAll"), body)
+    if wait:
+      self.wait(old, body)
+    return {
+      "message": f"Successfully updated service '{body['Name']}'"
+    }
+  
+  @Command()
+  def create(self,
+             body: args.BODY,
+             wait: args.WAIT = False):
+    """Create a service."""
+    self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
+    if wait:
+      self.wait(lambda: self.find(body["Name"]))
+    return {
+      "message": f"Successfully created service '{body['Name']}'"
+    }
 
   @Command()
-  def update_replicas(self, name: args.NAME,
-                      replica: args.REPLICAS):
+  def delete(self,
+             name: args.NAME):
+    """Delete a service."""
+    body = {
+      "Name": name,
+      "State": "delete"
+    }
+    self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
+    return {
+      "message": f"Successfully deleted service '{name}'"
+    }
+
+  @Command()
+  def update_replicas(self, 
+                      name: args.NAME,
+                      replica: args.REPLICAS,
+                      wait: args.WAIT = False):
     """Update number of replicas for a service.
 
     Args:
         name (str): The name of the service to update.
         replica (str): Number of replicas to set for service.
     """
-    try:
-      tenant_id = self.tenant["TenantId"]
-      service = self.find(name)
-      data = {
-        "Name": name,
-        "Replicas": replica,
-        "AllocationTags": service["Template"].get("AllocationTags", "")
-      }
-      response = self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
-      if response.json() is None:
-        return {"message": f"Successfully updated replicas for service '{name}'"} 
-    except IndexError:
-      raise DuploError(f"Service '{name}' not found to set replica count.", 404)
+    service = self.find(name)
+    data = {
+      "Name": name,
+      "Replicas": replica,
+      "AllocationTags": service["Template"].get("AllocationTags", "")
+    }
+    self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
+    if wait:
+      self.wait(service, data)
+    return {"message": f"Successfully updated replicas for service '{name}'"} 
   
   @Command()
   def update_image(self, 
                    name: args.NAME, 
-                   image: args.IMAGE):
+                   image: args.IMAGE,
+                   wait: args.WAIT = False):
     """Update the image of a service.
     
     Args:
       name (str): The name of the service to update.
       image (str): The new image to use for the service.
     """
-    tenant_id = self.tenant["TenantId"]
     service = self.find(name)
-    current_image =  None
-    for container in service["Template"]["Containers"]:
-        if container["Name"] == name:
-            current_image = container["Image"]
+    service["Replicaset"] = self.current_replicaset(name)
+    current_image =  self.image_from_body(service)
+
     if(current_image == image):
-      self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerReboot/{name}")
+      self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
     else:
       data = {
         "Name": name,
         "Image": image,
         "AllocationTags": service["Template"].get("AllocationTags", "")
       }
-      self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", data)
+      self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
+    if wait:
+      self.wait(service, data)
     return {"message": f"Successfully updated image for service '{name}'"}
  
   @Command()
@@ -90,7 +138,8 @@ class DuploService(DuploTenantResource):
                  name: args.NAME,
                  setvar: args.SETVAR, 
                  strategy: args.STRATEGY,
-                 deletevar: args.DELETEVAR):
+                 deletevar: args.DELETEVAR,
+                 wait: args.WAIT = False):
     """Update the environment variables of a service.
 
     Args:
@@ -99,8 +148,8 @@ class DuploService(DuploTenantResource):
       strategy/strat (str): The merge strategy to use for env vars. Valid options are "merge" or "replace".  Default is merge.
       deletevar/-D (list): A list of keys to delete from the environment variables.
     """
-    tenant_id = self.tenant["TenantId"]
     service = self.find(name)
+    service["Replicaset"] = self.current_replicaset(name)
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
     currentEnv = currentDockerconfig.get("Env", [])
     newEnv = []
@@ -120,7 +169,9 @@ class DuploService(DuploTenantResource):
       "OtherDockerConfig": dumps(currentDockerconfig),
       "allocationTags": service["Template"].get("AllocationTags", "")
     }
-    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerChange", payload)
+    self.duplo.post(self.endpoint("ReplicationControllerChange"), payload)
+    if wait:
+      self.wait(service, payload)
     return {"message": "Successfully updated environment variables for services"}
     
   
@@ -132,7 +183,6 @@ class DuploService(DuploTenantResource):
     Args:
       serviceimage/-S (string): takes n sets of two arguments, service name and image name. e.g -S service1 image1:tag -S service2 image2:tag
     """
-    tenant_id = self.tenant["TenantId"]
     payload = []
     for i in serviceimage:
       servicepair = dict([i])
@@ -144,7 +194,7 @@ class DuploService(DuploTenantResource):
         payloaditem["Image"] = image
         payloaditem["AllocationTags"] = allocation_tags
         payload.append(payloaditem)
-    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerBulkChangeAll", payload)
+    self.duplo.post(self.endpoint("ReplicationControllerBulkChangeAll"), payload)
     return {"message": "Successfully updated images for services"}
 
   @Command()
@@ -159,8 +209,7 @@ class DuploService(DuploTenantResource):
     Raises:
       DuploError: If the service could not be restarted.
     """
-    tenant_id = self.tenant["TenantId"]
-    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerReboot/{name}")
+    self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
     return {"message": f"Successfully restarted service '{name}'"}
   
   @Command()
@@ -175,8 +224,7 @@ class DuploService(DuploTenantResource):
     Raises:
       DuploError: If the service could not be stopped.
     """
-    tenant_id = self.tenant["TenantId"]
-    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerStop/{name}")
+    self.duplo.post(self.endpoint(f"ReplicationControllerStop/{name}"))
     return {"message": f"Successfully stopped service '{name}'"}
   
   @Command()
@@ -191,6 +239,109 @@ class DuploService(DuploTenantResource):
     Raises:
       DuploError: If the service could not be started.
     """
-    tenant_id = self.tenant["TenantId"]
-    self.duplo.post(f"subscriptions/{tenant_id}/ReplicationControllerstart/{name}")
+    self.duplo.post(self.endpoint(f"ReplicationControllerstart/{name}"))
     return {"message": f"Successfully started service '{name}'"}
+
+  @Command()
+  def pods(self, 
+           name: args.NAME):
+    """Get the pods for a service.
+    
+    Args:
+      name (str): The name of the service to get pods for.
+    Returns: 
+      A list of pods for the service.
+    Raises:
+      DuploError: If the service could not be found.
+    """
+    pods = self.__pod_svc.list()
+    return [
+      pod for pod in pods
+      if pod["Name"] == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:apps/v1/ReplicaSet"
+    ]
+  
+  @Command()
+  def logs(self,
+           name: args.NAME,
+           wait: args.WAIT = False):
+    """Get the logs for a service."""
+    def show_logs():
+      pods = self.pods(name)
+      for pod in pods:
+        self.__pod_svc.logs(pod=pod)
+    if wait:
+      try:
+        while True:
+          show_logs()
+          time.sleep(3)
+      except KeyboardInterrupt:
+        pass
+    else:
+      show_logs()
+
+  def current_replicaset(self, name: str):
+    """Get the current replicaset for a service.
+    
+    Args:
+      name (str): The name of the service to get replicaset for.
+    Returns: 
+      The current replicaset for the service.
+    Raises:
+      DuploError: If the service could not be found.
+    """
+    pods = self.pods(name)
+    return pods[0]["ControlledBy"]["NativeId"]
+  
+  def image_from_body(self, body):
+    """Get the image from a service body.
+    
+    Args:
+      body (dict): The body of the service.
+    Returns: 
+      The image for the service.
+    """
+    tpl = body.get("Template", {})
+    containers = tpl.get("Containers", [])
+    for c in containers:
+      if c["Name"] == body["Name"]:
+        return c["Image"]
+    else:
+      return body.get("DockerImage", body.get("Image", None))
+
+  def wait(self, old, updates):
+    """Wait for a service to update."""
+    name = old["Name"]
+    new_img = self.image_from_body(updates)
+    old_img = self.image_from_body(old)
+    new_replicas = updates.get("Replicas", None)
+    replicas_changed = (old["Replicas"] != new_replicas) if new_replicas else False
+    image_changed = (old_img != new_img) if new_img else False
+    new_conf = updates.get("OtherDockerConfig", None)
+    conf_changed = (old["Template"].get("OtherDockerConfig", None) != new_conf) if new_conf else False
+    rollover = False
+    if image_changed or conf_changed:
+      rollover = True
+    def wait_check():
+      svc = self.find(name)
+      replicas = svc["Replicas"]
+      # make sure the change has been applied
+      if (image_changed and self.image_from_body(svc) != new_img):
+        raise DuploError(f"Service {name} waiting for image update", 400)
+      if (replicas_changed and replicas != new_replicas):
+        raise DuploError(f"Service {name} waiting for replicas update", 400)
+      if (conf_changed and svc["Template"].get("OtherDockerConfig", None) != new_conf):
+        raise DuploError(f"Service {name} waiting for pod to update", 400)
+      pods = self.pods(name)
+      faults = self.tenant_svc.faults()
+      running = 0
+      for p in pods:
+        if p["ControlledBy"]["NativeId"] == old.get("Replicaset", None) and rollover:
+          continue
+        for f in faults:
+          if f["Resource"]["Name"] == p["InstanceId"]:
+            raise DuploFailedResource(f"Service {name} raised a fault.\n{f['Description']}")
+        if ((p["CurrentStatus"] == p["DesiredStatus"]) and p["DesiredStatus"] == 1):
+          running += 1
+      if replicas != running:
+        raise DuploError(f"Service {name} waiting for pods {running}/{replicas}", 400)
+    super().wait(wait_check, 400, 11)

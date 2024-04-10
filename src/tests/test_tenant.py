@@ -1,5 +1,6 @@
 import random
 import pytest
+import time
 
 from duplocloud.errors import DuploError
 
@@ -52,6 +53,7 @@ class TestTenant:
       print(f"Tenant '{name}' created")
     except DuploError as e:
       pytest.fail(f"Failed to create tenant: {e}")
+    time.sleep(180)
 
   @pytest.mark.integration
   @pytest.mark.dependency(name="delete_tenant", depends=["create_tenant"], scope='session')

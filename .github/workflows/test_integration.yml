@@ -106,3 +106,28 @@ jobs:
         summary: true
         display-options: fEX
         fail-on-empty: true
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    if: always()
+    needs: integration_tests
+    environment: 
+      name: ${{ inputs.environment }}
+    env:
+      AWS_DEFAULT_REGION: ${{ vars.AWS_REGION }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      DUPLO_HOST: ${{ vars.DUPLO_HOST }}
+      DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
+    steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: Setup
+      uses: duplocloud/actions/setup@main
+      with:
+        admin: true
+
+    - name: Run Cleanup
+      run: ./scripts/aws_cleanup.sh

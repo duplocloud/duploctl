@@ -1,12 +1,12 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResource
+from duplocloud.resource import DuploTenantResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 
 @Resource("ecs")
-class DuploEcsService(DuploTenantResource):
+class DuploEcsService(DuploTenantResourceV2):
 
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)

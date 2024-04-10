@@ -35,13 +35,20 @@ class DuploInfrastructure(DuploResource):
              body: args.BODY,
              wait: args.WAIT=False):
     """Create a new infrastructure."""
+    status = None
+    name = body["Name"]
     def wait_check():
-      i = self.find(body["Name"])
-      if i["ProvisioningStatus"] != "Complete":
+      nonlocal status
+      i = self.find(name)
+      s = i.get("ProvisioningStatus", "submitted")
+      if status != s:
+        self.duplo.logger.info(f"Infrastructure '{name}' - {s}")
+        status = s
+      if s != "Complete":
         # stop waiting if the status contains failed
-        if "Failed" in i["ProvisioningStatus"]:
-          raise DuploFailedResource(f"Infrastructure '{body['Name']}'")
-        raise DuploError(f"Infrastructure '{body['Name']}' not ready", 404)
+        if "Failed" in s:
+          raise DuploFailedResource(f"Infrastructure '{name} - {s}'")
+        raise DuploError(None, 404)
     self.duplo.post("adminproxy/CreateInfrastructureConfig", body)
     if wait:
       self.wait(wait_check, 1800, 20)
@@ -58,3 +65,12 @@ class DuploInfrastructure(DuploResource):
       "message": f"Infrastructure '{name}' deleted"
     }
 
+  @Command()
+  def faults(self, 
+             name: args.NAME):
+    """Retrieve a list of all infrastructure faults in the Duplo system."""
+    response = self.duplo.get("adminproxy/GetAllFaults")
+    faults = response.json()
+    response = self.duplo.get("admin/GetAllFaults")
+    faults += response.json()
+    return faults

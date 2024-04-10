@@ -26,7 +26,9 @@ dependencies = [
   "requests>=2.22.0",
   "cachetools>=5.2.0",
   "jmespath>=1.0.1",
-  "pyyaml>=6.0.1"
+  "pyyaml>=6.0.1",
+  "jsonpatch>=1.33",
+  "pyjwt>=2.8.0"
 ]
 [project.optional-dependencies]
 build = [
@@ -117,8 +119,10 @@ infrastructure = "duplo_resource.infrastructure:DuploInfrastructure"
 tenant = "duplo_resource.tenant:DuploTenant"
 version = "duplo_resource.version:DuploVersion"
 service = "duplo_resource.service:DuploService"
+ecs = "duplo_resource.ecs_service:DuploEcsService"
 cronjob = "duplo_resource.cronjob:DuploCronJob"
 job = "duplo_resource.job:DuploJob"
+pod = "duplo_resource.pod:DuploPod"
 user = "duplo_resource.user:DuploUser"
 lambda = "duplo_resource.lambda:DuploLambda"
 jit = "duplo_resource.jit:DuploJit"
@@ -128,7 +132,6 @@ secret = "duplo_resource.secret:DuploSecret"
 configmap = "duplo_resource.configmap:DuploConfigMap"
 hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
-ecs = "duplo_resource.ecs_service:DuploEcsService"
 rds = "duplo_resource.rds:DuploRDS"
 
 [project.entry-points."formats.duplocloud.net"]

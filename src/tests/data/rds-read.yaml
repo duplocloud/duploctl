@@ -1,4 +1,4 @@
-ReplicationSourceIdentifier: duplozachtest-fuzzle
+ReplicationSourceIdentifier: duplomydb01
 Identifier: mydb02
 Engine: 0
 Cloud: 0

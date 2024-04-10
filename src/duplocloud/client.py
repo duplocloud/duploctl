@@ -1,11 +1,12 @@
 
 import requests
 import jmespath
-import datetime
 import os
 import yaml
 import json
+import jsonpatch
 import logging
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
 from cachetools import cachedmethod, TTLCache
 from pathlib import Path
@@ -234,6 +235,8 @@ Client for Duplo at {self.host}
     """
     r = self.load(resource)
     d = r(*args)
+    if d is None:
+      return None
     d = self.filter(d)
     return self.format(d)
   
@@ -256,6 +259,8 @@ Client for Duplo at {self.host}
     formatter = logging.Formatter("%(levelname)s %(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
+    if (logger.hasHandlers()):
+      logger.handlers.clear()
     logger.addHandler(handler)
     return logger
 
@@ -332,6 +337,23 @@ Client for Duplo at {self.host}
       timeout = self.timeout
     )
     return self.__validate_response(response)
+  
+  def jsonpatch(self, data, patches):
+    """Json Patch
+    
+    Apply a json patch to a resource.
+
+    Args:
+      patches: The patches to apply.
+    Returns:
+      The patched resource as a JSON object.
+    """
+    try:
+      return jsonpatch.apply_patch(data, patches)
+    except jsonpatch.JsonPatchTestFailed as e:
+      raise DuploError("JsonPatch test failed", 500) from e
+    except jsonpatch.JsonPatchConflict as e:
+      raise DuploError(f"JsonPatch conflict:\n {e}", 500)
 
   def filter(self, data: dict):
     """Query data
@@ -525,7 +547,8 @@ Client for Duplo at {self.host}
     Returns:
       The expiration time as a string.
     """
-    return (datetime.datetime.now() + datetime.timedelta(hours=hours)).isoformat()
+
+    return (datetime.now(timezone.utc) + timedelta(hours=hours)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
   
   def expired(self, exp: str = None) -> bool:
     """Expired
@@ -540,7 +563,7 @@ Client for Duplo at {self.host}
     """
     if exp is None:
       return True
-    return datetime.datetime.now() > datetime.datetime.fromisoformat(exp)
+    return datetime.now(timezone.utc) > datetime.fromisoformat(exp)
   
   def build_command(self, *args) -> list[str]:
     """Context Args
