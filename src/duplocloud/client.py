@@ -259,6 +259,8 @@ Client for Duplo at {self.host}
     formatter = logging.Formatter("%(levelname)s %(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
+    if (logger.hasHandlers()):
+      logger.handlers.clear()
     logger.addHandler(handler)
     return logger
 

@@ -1,5 +1,5 @@
 metadata:
-  name: sadgdshftu
+  name: duploctl
 spec:
   ttlSecondsAfterFinished: 86400
   parallelism: 2
