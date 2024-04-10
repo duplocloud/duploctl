@@ -37,7 +37,7 @@ class TestTenantResources:
       except DuploError as e:
         elapsed_time = time.time() - start_time
         if elapsed_time > 45:
-          pytest.fail(f"Failed to create {kind} after {r.wait_timeout or 'x'} seconds: {e}")
+          pytest.fail(f"Failed to create {kind} after x seconds: {e}")
         else:
           print(f"Attempt failed: {e}. Retrying in 5 seconds...")
           time.sleep(5)
