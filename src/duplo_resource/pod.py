@@ -29,8 +29,8 @@ class DuploPod(DuploTenantResourceV2):
     """Retrieve logs for a pod."""
     if not pod:
       pod = self.find(name)
-    # must be certain status for logs
-    if pod["CurrentStatus"] not in [1, 11, 7]:
+    # must be certain status for logs and a host is present
+    if pod["CurrentStatus"] not in [1, 11, 7] or not pod["Host"]:
       return None
     id = pod["InstanceId"]
     data = {
