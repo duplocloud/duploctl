@@ -1,7 +1,8 @@
 build
 dist
 config
-notes
+artifacts
+notes-*
 .tmp
 *.egg-info
 .ruff_cache
@@ -15,4 +16,3 @@ notebooks
 venv
 .idea
 .DS_Store
-artifacts
