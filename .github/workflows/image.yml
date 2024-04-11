@@ -58,7 +58,7 @@ jobs:
         docker-username: ${{ secrets.DOCKER_USERNAME }}
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
         build-args: >
-          PY_VERSION=3.11
+          PY_VERSION=3.12
         tags: ${{ inputs.tag }}
 
     - name: Docker Hub Description

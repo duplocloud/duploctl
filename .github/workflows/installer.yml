@@ -59,7 +59,7 @@ jobs:
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
 
     - name: Setup
-      uses: ./.github/actions/setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
         optionals: "[build]"
