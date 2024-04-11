@@ -72,17 +72,15 @@ jobs:
       with:
         pattern: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}
 
+    # turn notes into multi line env var
     - name: Prep Notes
       env:
-        NOTES_FILE: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}/notes.md
+        NOTES_ARTIFACT: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}
       run: |
-        ls -l ./
-        notes="$(cat $NOTES_FILE)"
+        RELEASE_NOTES="$(cat ${NOTES_ARTIFACT}/notes.md)"
         echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-        echo "$notes" >> $GITHUB_ENV
+        echo "$RELEASE_NOTES" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-        echo "The env"
-        cat $GITHUB_ENV
 
     - name: Stage Release Artifacts
       shell: bash

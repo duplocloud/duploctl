@@ -9,14 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
- - A version bump script with changelogs to release
+ - A version bump script which includes changelog notes in GHA releases
+ - shared setup action in piplines
 
 ### Fixed
 
  - azure services had an issue with the `--wait`
  - homebrew installation needs the `jsonpointer` library explicit in pyproject
- - broken pipeline for docker
- - shared setup action in piplines
+ - broken pipeline for docker from updated action
+ - simplifed the cleanup script for integration tests
 
 ## [0.2.16] - 2024-04-10
 
