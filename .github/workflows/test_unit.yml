@@ -17,7 +17,7 @@ jobs:
     steps:
 
     - name: Setup
-      uses: ./.github/actions/setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         optionals: "[build,test]"
         python-version: ${{ matrix.python-version }}

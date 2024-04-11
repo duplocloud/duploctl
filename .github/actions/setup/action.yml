@@ -1,9 +1,6 @@
 name: Setup
 description: Setup the environment for the release
 inputs:
-  ref:
-    description: The git ref to build on
-    required: false
   optionals:
     description: Optional arguments to pass to the setup
     required: false

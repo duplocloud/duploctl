@@ -54,7 +54,7 @@ jobs:
     steps:
   
     - name: Setup
-      uses: ./.github/actions/setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
       if: inputs.enabled
       with:
         optionals: "[build,test]"

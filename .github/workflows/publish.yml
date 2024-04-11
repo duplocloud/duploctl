@@ -48,7 +48,7 @@ jobs:
       version: ${{ steps.bump.outputs.version }}
     steps:
     - name: Setup
-      uses: ./.github/actions/setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         optionals: "[build]"
     - name: Bump Version
