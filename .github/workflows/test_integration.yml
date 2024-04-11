@@ -61,7 +61,7 @@ jobs:
       uses: duplocloud/duploctl/.github/actions/setup@main
       if: inputs.enabled
       with:
-        optionals: "[build,test]"
+        optionals: "[build,test,aws]"
 
     - name: Setup Args
       id: pytest_args
@@ -102,7 +102,6 @@ jobs:
     - name: Cleanup
       if: always() && inputs.enabled 
       run: |
-        pip install awscli
         mkdir -p config
         duploctl jit update_aws_config test --admin
         ./scripts/aws_cleanup.sh
