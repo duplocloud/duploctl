@@ -46,6 +46,7 @@ jobs:
         NAME="duploctl-${VERSION}"
         PACKAGE_NAME="duplocloud-client-${VERSION}"
         RELEASE_URL="${REPO_URL}/releases/download/${GIT_TAG}"
+        echo "NOTES_ARTIFACT=notes-${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
@@ -69,12 +70,14 @@ jobs:
     - name: Download Notes
       uses: actions/download-artifact@v4
       with:
-        pattern: notes-${{ steps.set_tag.outputs.GIT_TAG }}
+        pattern: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}
 
     - name: Prep Notes
+      env:
+        NOTES_FILE: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}/notes.md
       run: |
         ls -l ./
-        notes="$(cat notes.md)"
+        notes="$(cat $NOTES_FILE)"
         echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
         echo "$notes" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
