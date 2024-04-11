@@ -1,6 +1,7 @@
 build
 dist
 config
+notes
 .tmp
 *.egg-info
 .ruff_cache

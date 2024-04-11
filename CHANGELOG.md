@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+ - A version bump script with changelogs to release
+
+### Fixed
+
+ - azure services had an issue with the `--wait`
+ - homebrew installation needs the `jsonpointer` library explicit in pyproject
+ - broken pipeline for docker
+ - shared setup action in piplines
+
+## [0.2.16] - 2024-04-10
+
 ### Added 
 
  - Actual JIT expiration dates sent to kubectl and aws cli

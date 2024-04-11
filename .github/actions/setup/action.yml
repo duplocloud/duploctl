@@ -1,0 +1,31 @@
+name: Setup
+description: Setup the environment for the release
+inputs:
+  ref:
+    description: The git ref to build on
+    required: false
+  optionals:
+    description: Optional arguments to pass to the setup
+    required: false
+    default: ""
+  python-version:
+    description: The python version to use
+    required: false
+    default: "3.12"
+runs:
+  using: "composite"
+  steps:
+  - name: Checkout Code
+    uses: actions/checkout@v4
+    with:
+      ref: ${{ inputs.ref }}
+  - name: Set up Python ${{ inputs.python-version }}
+    uses: actions/setup-python@v5
+    with:
+      python-version: ${{ inputs.python-version }}
+      cache: pip
+  - name: Install Dependencies
+    shell: bash
+    env:
+      OPTIONALS: ${{ inputs.optionals }}
+    run: pip install .$OPTIONALS

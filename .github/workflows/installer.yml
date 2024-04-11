@@ -58,19 +58,11 @@ jobs:
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
 
-    - name: Checkout Code
-      uses: actions/checkout@v4
+    - name: Setup
+      uses: ./.github/actions/setup
       with:
-        ref: ${{ steps.set_tag.outputs.GIT_TAG }}
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-        cache: pip
-    
-    - name: Install Dependencies
-      run: pip install .[build]
+        ref: ${{ inputs.tag }}
+        optionals: "[build]"
     
     - name: Pyinstaller
       id: installer

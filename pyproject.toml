@@ -28,7 +28,8 @@ dependencies = [
   "jmespath>=1.0.1",
   "pyyaml>=6.0.1",
   "jsonpatch>=1.33",
-  "pyjwt>=2.8.0"
+  "pyjwt>=2.8.0",
+  "jsonpointer>=2.4"
 ]
 [project.optional-dependencies]
 build = [
@@ -37,7 +38,9 @@ build = [
   "build",
   "twine",
   "pyinstaller",
-  "toml"
+  "toml",
+  "semver",
+  "GitPython"
 ]
 test = [
   "pytest",

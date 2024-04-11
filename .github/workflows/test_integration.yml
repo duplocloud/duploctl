@@ -53,27 +53,15 @@ jobs:
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
     steps:
   
-    # checkout code 
-    - name: Checkout Code
-      uses: actions/checkout@v4
-      if: inputs.enabled
-    
-    # install python
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Setup
+      uses: ./.github/actions/setup
       if: inputs.enabled
       with:
-        python-version: 3.12
-        cache: 'pip'
-    
-    # install the project
-    - name: Install dependencies
-      if: inputs.enabled
-      run: |
-        pip install .[build,test]
+        optionals: "[build,test]"
 
     - name: Setup Args
       id: pytest_args
+      if: inputs.enabled
       env:
         INFRA: ${{ inputs.infra }}
         LOGS: ${{ inputs.logs }}
@@ -110,7 +98,7 @@ jobs:
   cleanup:
     name: Cleanup
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && inputs.enabled 
     needs: integration_tests
     environment: 
       name: ${{ inputs.environment }}
