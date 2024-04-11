@@ -24,8 +24,8 @@ def get_changelog():
   with open(CHANGELOG, 'r') as f:
     return f.read()
   
-def save_changelog(changelog):
-  with open(CHANGELOG, 'w') as f:
+def save_changelog(changelog, path):
+  with open(path, 'w') as f:
     f.write(changelog)
   
 def release_notes(changelog):
@@ -77,7 +77,6 @@ def save_github_output(notes, version, tag):
     f.write(notes)
 
 def commit_changes(changelog, tag):
-  save_changelog(changelog)
   msg = f"Release {tag}"
   email = os.environ.get('GITHUB_EMAIL', None)
   REPO.config_writer().set_value("user", "name", "Github Actions").release()
@@ -94,12 +93,15 @@ def main():
   v = bump_version(args.action)
   t = f"v{v}"
   c = get_changelog()
+  cp = CHANGELOG # changelog path
   n = release_notes(c)
   c = replace_unreleased(c, v)
   if args.push != "true":
     v = REPO.head.reference
     t = v
+    cp = os.path.join(HERE, '../dist/CHANGELOG.md')
   save_github_output(n, v, t)
+  save_changelog(c, cp)
   if args.push == "true":
     print(f"Pushing changes for v{v}")
     commit_changes(c, t)

@@ -16,3 +16,5 @@ notebooks
 venv
 .idea
 .DS_Store
+.github/output
+.github/env
