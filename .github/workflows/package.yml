@@ -30,38 +30,26 @@ jobs:
   package:
     name: Package
     runs-on: ubuntu-latest
+    environment: 
+      name: pypi
+      url: https://pypi.org/project/duplocloud-client
     steps:
 
-    - name: Variables
-      id: vars
-      run: |
-        VERSION=$(echo ${{ inputs.tag }} | cut -d'v' -f2)
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
-    # checkout code 
-    - name: Checkout Code
-      uses: actions/checkout@v4
+    - name: Setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
-    
-    # install python
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-        cache: pip
-    
-    # install the project
-    - name: Install Dependencies
-      run: |
-        pip install .[build]
-        pip install .
-    
-    - name: Run the Build
+        optionals: "[build]"
+
+    - name: Check True Version
+      id: check_version
       run: |
         version=$(python -m setuptools_scm)
         echo "Building Version: $version"
-        python -m build
+        echo "VERSION=$version" >> $GITHUB_OUTPUT
+    
+    - name: Run the Build
+      run: python -m build
 
     - name: Publish Package to PyPI
       if: inputs.push == true
