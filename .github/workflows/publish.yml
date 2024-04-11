@@ -51,6 +51,7 @@ jobs:
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         optionals: "[build]"
+        fetch-depth: 0
     - name: Bump Version
       id: bump
       env:
