@@ -6,11 +6,13 @@ from git import Repo
 from packaging.version import Version
 import argparse
 
-UNRELEASED = "## [Unreleased]"
 HERE = os.path.dirname(__file__)
-CHANGELOG = os.path.join(HERE, '../CHANGELOG.md')
-DIST = os.path.join(HERE, '../dist')
-REPO = Repo(os.path.join(HERE, '..'))
+CWD = os.path.join(HERE, '..')
+UNRELEASED = "## [Unreleased]"
+CHANGELOG = 'CHANGELOG.md'
+CHANGELOG_OUT = os.path.join(CWD, CHANGELOG)
+DIST = os.path.join(CWD, 'dist')
+REPO = Repo(CWD)
 
 parser = argparse.ArgumentParser(
   prog='version-bumper',
@@ -93,15 +95,15 @@ def main():
   v = bump_version(args.action)
   t = f"v{v}"
   c = get_changelog()
-  cp = CHANGELOG # changelog path
+  o = CHANGELOG_OUT # changelog path
   n = release_notes(c)
   c = replace_unreleased(c, v)
   if args.push != "true":
     v = REPO.head.reference
     t = v
-    cp = os.path.join(HERE, '../dist/CHANGELOG.md')
+    o = os.path.join(DIST, CHANGELOG)
   save_github_output(n, v, t)
-  save_changelog(c, cp)
+  save_changelog(c, o)
   if args.push == "true":
     print(f"Pushing changes for v{v}")
     commit_changes(c, t)
