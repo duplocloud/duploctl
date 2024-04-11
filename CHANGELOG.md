@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - creating a host without an image will pick a sane default
  - display available host AMIs for a tenant
 
-## [v0.2.15] - March 22, 2024
+## [v0.2.15] - 2024-03-22
 
 ### Added
 

@@ -59,7 +59,7 @@ jobs:
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
         build-args: >
           PY_VERSION=3.11
-        extra-tags: ${{ inputs.tag }}
+        tags: ${{ inputs.tag }}
 
     - name: Docker Hub Description
       uses: peter-evans/dockerhub-description@v4
