@@ -4,6 +4,9 @@ inputs:
   ref:
     description: The git ref to build on
     required: false
+  fetch-depth:
+    description: The depth of the git checkout
+    required: false
   optionals:
     description: Optional arguments to pass to the setup
     required: false
@@ -19,6 +22,7 @@ runs:
     uses: actions/checkout@v4
     with:
       ref: ${{ inputs.ref }}
+      fetch-depth: ${{ inputs.fetch-depth }}
   - name: Set up Python ${{ inputs.python-version }}
     uses: actions/setup-python@v5
     with:

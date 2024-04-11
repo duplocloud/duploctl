@@ -95,6 +95,8 @@ def main():
   c = get_changelog()
   notes = release_notes(c)
   c = replace_unreleased(c, v)
+  if args.push != "true":
+    v = REPO.head.reference
   save_github_output(notes, v)
   if args.push == "true":
     print(f"Pushing changes for v{v}")
