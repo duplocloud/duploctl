@@ -117,8 +117,11 @@ class DuploService(DuploTenantResourceV2):
       image (str): The new image to use for the service.
     """
     service = self.find(name)
-    service["Replicaset"] = self.current_replicaset(name)
     current_image =  self.image_from_body(service)
+
+    # needed before update starts, not needed if not waiting
+    if wait:
+      service["Replicaset"] = self.current_replicaset(name)
 
     if(current_image == image):
       self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))

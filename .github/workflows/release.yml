@@ -46,6 +46,7 @@ jobs:
         NAME="duploctl-${VERSION}"
         PACKAGE_NAME="duplocloud-client-${VERSION}"
         RELEASE_URL="${REPO_URL}/releases/download/${GIT_TAG}"
+        echo "NOTES_ARTIFACT=notes-${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
@@ -65,6 +66,21 @@ jobs:
       with:
         pattern: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
         path: artifacts
+    
+    - name: Download Notes
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}
+
+    # turn notes into multi line env var
+    - name: Prep Notes
+      env:
+        NOTES_ARTIFACT: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}
+      run: |
+        RELEASE_NOTES="$(cat ${NOTES_ARTIFACT}/notes.md)"
+        echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+        echo "$RELEASE_NOTES" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
     - name: Stage Release Artifacts
       shell: bash
@@ -92,7 +108,8 @@ jobs:
         files: |
           dist/*
         body: |
-          duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out!. 
+
+          ${{ env.RELEASE_NOTES }}
 
           PIP PyPi: 
           [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.set_tag.outputs.VERSION }}/)

@@ -1,6 +1,8 @@
 build
 dist
 config
+artifacts
+notes-*
 .tmp
 *.egg-info
 .ruff_cache
@@ -14,4 +16,5 @@ notebooks
 venv
 .idea
 .DS_Store
-artifacts
+.github/output
+.github/env

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+ - A version bump script which includes changelog notes in GHA releases
+ - shared setup action in piplines
+
+### Fixed
+
+ - azure services had an issue with the `--wait`
+ - homebrew installation needs the `jsonpointer` library explicit in pyproject
+ - broken pipeline for docker from updated action
+ - simplifed the cleanup script for integration tests
+
+## [0.2.16] - 2024-04-10
+
 ### Added 
 
  - Actual JIT expiration dates sent to kubectl and aws cli
@@ -23,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - creating a host without an image will pick a sane default
  - display available host AMIs for a tenant
 
-## [v0.2.15] - March 22, 2024
+## [v0.2.15] - 2024-03-22
 
 ### Added
 

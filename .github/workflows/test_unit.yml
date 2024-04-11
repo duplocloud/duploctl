@@ -16,21 +16,11 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
     steps:
 
-    # checkout code 
-    - name: Checkout Code
-      uses: actions/checkout@v4
-    
-    # install python
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
       with:
+        optionals: "[build,test]"
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-    
-    # install the project
-    - name: Install dependencies
-      run: |
-        pip install .[build,test]
     
     # do linting
     - name: Lint with ruff
