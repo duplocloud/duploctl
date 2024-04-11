@@ -10,6 +10,7 @@ UNRELEASED = "## [Unreleased]"
 HERE = os.path.dirname(__file__)
 CHANGELOG = os.path.join(HERE, '../CHANGELOG.md')
 DIST = os.path.join(HERE, '../dist')
+REPO = Repo(os.path.join(HERE, '..'))
 
 parser = argparse.ArgumentParser(
   prog='version-bumper',
@@ -79,13 +80,12 @@ def commit_changes(changelog, tag):
   save_changelog(changelog)
   msg = f"Release {tag}"
   email = os.environ.get('GITHUB_EMAIL', None)
-  repo = Repo(os.path.join(HERE, '..'))
-  repo.config_writer().set_value("user", "name", "Github Actions").release()
-  repo.config_writer().set_value("user", "email", email).release()
-  repo.index.add([CHANGELOG])
-  repo.index.commit(msg)
-  repo.create_tag(tag, message=msg)
-  origin = repo.remote(name='origin')
+  REPO.config_writer().set_value("user", "name", "Github Actions").release()
+  REPO.config_writer().set_value("user", "email", email).release()
+  REPO.index.add([CHANGELOG])
+  REPO.index.commit(msg)
+  REPO.create_tag(tag, message=msg)
+  origin = REPO.remote(name='origin')
   origin.push()
   origin.push(tags=True)
 
