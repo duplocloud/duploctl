@@ -65,12 +65,12 @@ def bump_version(action: str="patch"):
     return latest.bump_patch()
   return latest
 
-def save_github_output(notes, version):
+def save_github_output(notes, version, tag):
   outputs = os.environ.get('GITHUB_OUTPUT', './.github/output')
   # append to the end of the file
   with open(outputs, 'a') as f:
     f.write(f"version={version}\n")
-    f.write(f"tag=v{version}\n")
+    f.write(f"tag={tag}\n")
   # make sure the dist folder exists
   os.makedirs(DIST, exist_ok=True)
   with open(f"{DIST}/notes.md", 'w') as f:
@@ -92,15 +92,17 @@ def commit_changes(changelog, tag):
 def main():
   args = parser.parse_args()
   v = bump_version(args.action)
+  t = f"v{v}"
   c = get_changelog()
-  notes = release_notes(c)
+  n = release_notes(c)
   c = replace_unreleased(c, v)
   if args.push != "true":
     v = REPO.head.reference
-  save_github_output(notes, v)
+    t = v
+  save_github_output(n, v, t)
   if args.push == "true":
     print(f"Pushing changes for v{v}")
-    commit_changes(c, f"v{v}")
+    commit_changes(c, t)
   
 if __name__ == '__main__':
   main()
