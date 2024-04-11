@@ -70,12 +70,11 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: notes-${{ steps.set_tag.outputs.GIT_TAG }}
-        path: notes
 
     - name: Prep Notes
       run: |
-        ls -l notes
-        notes="$(cat notes/notes.md)"
+        ls -l ./
+        notes="$(cat notes.md)"
         echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
         echo "$notes" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
