@@ -78,11 +78,12 @@ def save_github_output(notes, version, tag):
   with open(f"{DIST}/notes.md", 'w') as f:
     f.write(notes)
 
-def commit_changes(changelog, tag):
+def commit_changes(tag):
   msg = f"Release {tag}"
   email = os.environ.get('GITHUB_EMAIL', None)
   REPO.config_writer().set_value("user", "name", "Github Actions").release()
   REPO.config_writer().set_value("user", "email", email).release()
+  print(f"Committing changes for {tag} {CHANGELOG_OUT}")
   REPO.index.add([CHANGELOG_OUT])
   REPO.index.commit(msg)
   REPO.create_tag(tag, message=msg)
@@ -106,7 +107,7 @@ def main():
   save_changelog(c, o)
   if args.push == "true":
     print(f"Pushing changes for v{v}")
-    commit_changes(c, t)
+    commit_changes(t)
   
 if __name__ == '__main__':
   main()

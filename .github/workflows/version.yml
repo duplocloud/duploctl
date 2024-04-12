@@ -42,33 +42,19 @@ jobs:
       version: ${{ steps.bump.outputs.version }}
     steps:
 
-    # - name: Setup
-    #   uses: duplocloud/duploctl/.github/actions/setup@main
-    #   with:
-    #     optionals: "[build]"
-    #     fetch-depth: 0
-    - name: Checkout
-      uses: actions/checkout@v4
+    - name: Setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
       with:
+        optionals: "[build]"
         fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    # install python
-    - name: Set up Python 
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.12
-    
-    # install the project
-    - name: Install dependencies
-      run: |
-        pip install semver packaging GitPython
 
     - name: Bump Version
       id: bump
       env:
         GITHUB_EMAIL: "4399427+kferrone@users.noreply.github.com"
-      run: ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
+      run: |
+        ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
+        cat CHANGELOG.md
 
     - uses: actions/upload-artifact@v4
       with:
