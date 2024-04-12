@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+ - jit timout is now 1 hr vs 6
+
 ## [0.2.18] - 2024-04-11
 
 ### Added
