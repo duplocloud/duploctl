@@ -60,4 +60,6 @@ jobs:
 
     - name: Push Changes
       if: ${{ inputs.push }}
-      run: git push --tags
+      run: |
+        git tag ${{ steps.bump.outputs.tag }}
+        git push --tags
