@@ -81,7 +81,7 @@ def commit_changes(tag):
   msg = f"Release {tag}"
   email = os.environ.get('GITHUB_EMAIL', None)
   REPO.config_writer().set_value("user", "name", "Github Actions").release()
-  REPO.config_writer().set_value("user", "email", email).release()
+  REPO.config_writer().set_value("user", "email", "actions@github.com").release()
   print(f"Committing changes for {tag} {CHANGELOG}")
   REPO.index.add([CHANGELOG])
   REPO.index.commit(msg)
