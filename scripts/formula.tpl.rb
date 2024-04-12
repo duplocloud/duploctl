@@ -11,7 +11,7 @@ class Duploctl < Formula
 
   if build.with? "pip"
     include Language::Python::Virtualenv
-    url "#{{base_url}}/duplocloud-client-#{{version}}.tar.gz"
+    url "#{{base_url}}/duplocloud_client-#{{version}}.tar.gz"
     sha256 "{pip_sha}"
     depends_on "python@3.12"
     {resources}
