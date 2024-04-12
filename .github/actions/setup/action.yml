@@ -21,18 +21,21 @@ inputs:
 runs:
   using: "composite"
   steps:
+
   - name: Checkout Code
     uses: actions/checkout@v4
     with:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
       token: ${{ inputs.token }}
-      persist-credentials: false
+      # persist-credentials: false
+
   - name: Set up Python ${{ inputs.python-version }}
     uses: actions/setup-python@v5
     with:
       python-version: ${{ inputs.python-version }}
       cache: pip
+
   - name: Install Dependencies
     shell: bash
     env:

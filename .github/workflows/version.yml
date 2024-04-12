@@ -47,7 +47,8 @@ jobs:
       with:
         optionals: "[build]"
         fetch-depth: 0
-        token: ${{ secrets.GHA_TOKEN }}
+        # token: ${{ secrets.GHA_TOKEN }}
+        
     - name: Bump Version
       id: bump
       run: ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
@@ -57,7 +58,6 @@ jobs:
         name: notes-${{ steps.bump.outputs.tag }}
         path: dist/notes.md
 
-    - name: Push
-      run: |
-        git remote set-url origin https://x-access-token/:${{ secrets.GHA_TOKEN }}@github.com/${{ github.repository }}
-        git push origin HEAD:main
+    - name: Push Changes
+      if: ${{ inputs.push }}
+      run: git push --tags

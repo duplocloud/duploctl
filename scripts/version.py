@@ -79,17 +79,16 @@ def save_github_output(notes, version, tag):
 
 def commit_changes(tag):
   msg = f"Release {tag}"
-  email = os.environ.get('GITHUB_EMAIL', None)
   REPO.config_writer().set_value("user", "name", "Github Actions").release()
   REPO.config_writer().set_value("user", "email", "actions@github.com").release()
   print(f"Committing changes for {tag} {CHANGELOG}")
   REPO.index.add([CHANGELOG])
   REPO.index.commit(msg)
   REPO.create_tag(tag, message=msg)
-  # origin = REPO.remote(name='origin')
+  origin = REPO.remote(name='origin')
   # can't push on main branch
-  # origin.push() 
-  # origin.push(tags=True)
+  origin.push() 
+  origin.push(tags=True)
 
 def main():
   args = parser.parse_args()
@@ -105,7 +104,9 @@ def main():
   save_changelog(c)
   if args.push == "true":
     print(f"Pushing changes for v{v}")
-    commit_changes(t)
+    # TODO: Use app token
+    # TODO: Make sure signature is setup correctly for tag push
+    # commit_changes(t) 
   
 if __name__ == '__main__':
   main()
