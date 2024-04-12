@@ -15,9 +15,9 @@ inputs:
     description: The python version to use
     required: false
     default: "3.12"
-  token:
-    description: The GitHub token to use
-    required: false
+  # token:
+  #   description: The GitHub token to use
+  #   required: true
 runs:
   using: "composite"
   steps:
@@ -27,7 +27,7 @@ runs:
     with:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
-      token: ${{ inputs.token }}
+      # token: ${{ inputs.token }}
       # persist-credentials: false
 
   - name: Set up Python ${{ inputs.python-version }}
