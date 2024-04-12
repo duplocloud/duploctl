@@ -63,3 +63,4 @@ jobs:
         github_token: ${{ secrets.GHA_TOKEN }}
         branch: main
         tags: true
+        force: true
