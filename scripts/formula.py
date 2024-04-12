@@ -46,7 +46,7 @@ for line in checksums:
     macos_sha = l[0]
   elif 'linux' in line:
     linux_sha = l[0]
-  elif 'duplocloud-client' in line:
+  elif 'duplocloud_client' in line:
     pip_sha = l[0]
 
 # finally build and print the formula from template
