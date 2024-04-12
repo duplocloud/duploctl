@@ -27,6 +27,7 @@ runs:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
       token: ${{ inputs.token }}
+      persist-credentials: false
   - name: Set up Python ${{ inputs.python-version }}
     uses: actions/setup-python@v5
     with:

@@ -57,10 +57,7 @@ jobs:
         name: notes-${{ steps.bump.outputs.tag }}
         path: dist/notes.md
 
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GHA_TOKEN }}
-        branch: main
-        tags: true
-        force: true
+    - name: Push
+      run: |
+        git remote set-url origin https://x-access-token/:${{ secrets.GHA_TOKEN }}@github.com/${{ github.repository }}
+        git push origin HEAD:main
