@@ -56,3 +56,10 @@ jobs:
       with:
         name: notes-${{ steps.bump.outputs.tag }}
         path: dist/notes.md
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GHA_TOKEN }}
+        branch: main
+        tags: true

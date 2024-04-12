@@ -86,10 +86,10 @@ def commit_changes(tag):
   REPO.index.add([CHANGELOG])
   REPO.index.commit(msg)
   REPO.create_tag(tag, message=msg)
-  origin = REPO.remote(name='origin')
+  # origin = REPO.remote(name='origin')
   # can't push on main branch
-  origin.push() 
-  origin.push(tags=True)
+  # origin.push() 
+  # origin.push(tags=True)
 
 def main():
   args = parser.parse_args()
