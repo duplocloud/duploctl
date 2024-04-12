@@ -7,7 +7,7 @@ from packaging.version import Version
 import argparse
 
 HERE = os.path.dirname(__file__)
-CWD = os.path.join(HERE, '..')
+CWD = os.getcwd()
 UNRELEASED = "## [Unreleased]"
 CHANGELOG = 'CHANGELOG.md'
 CHANGELOG_OUT = os.path.join(CWD, CHANGELOG)
