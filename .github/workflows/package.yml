@@ -60,5 +60,5 @@ jobs:
     - name: Github Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: duplocloud-client-${{ steps.vars.outputs.VERSION }}
+        name: duplocloud-client-${{ steps.check_version.outputs.VERSION }}
         path: dist/duplocloud-client-*.tar.gz
