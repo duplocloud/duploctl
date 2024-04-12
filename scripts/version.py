@@ -9,8 +9,7 @@ import argparse
 HERE = os.path.dirname(__file__)
 CWD = os.getcwd()
 UNRELEASED = "## [Unreleased]"
-CHANGELOG = 'CHANGELOG.md'
-CHANGELOG_OUT = os.path.join(CWD, CHANGELOG)
+CHANGELOG = os.path.join(CWD, 'CHANGELOG.md')
 DIST = os.path.join(CWD, 'dist')
 REPO = Repo(CWD)
 
@@ -26,8 +25,8 @@ def get_changelog():
   with open(CHANGELOG, 'r') as f:
     return f.read()
   
-def save_changelog(changelog, path):
-  with open(path, 'w') as f:
+def save_changelog(changelog):
+  with open(CHANGELOG, 'w') as f:
     f.write(changelog)
   
 def release_notes(changelog):
@@ -83,8 +82,8 @@ def commit_changes(tag):
   email = os.environ.get('GITHUB_EMAIL', None)
   REPO.config_writer().set_value("user", "name", "Github Actions").release()
   REPO.config_writer().set_value("user", "email", email).release()
-  print(f"Committing changes for {tag} {CHANGELOG_OUT}")
-  REPO.index.add([CHANGELOG_OUT])
+  print(f"Committing changes for {tag} {CHANGELOG}")
+  REPO.index.add([CHANGELOG])
   REPO.index.commit(msg)
   REPO.create_tag(tag, message=msg)
   origin = REPO.remote(name='origin')
@@ -96,15 +95,13 @@ def main():
   v = bump_version(args.action)
   t = f"v{v}"
   c = get_changelog()
-  o = CHANGELOG_OUT # changelog path
   n = release_notes(c)
   c = replace_unreleased(c, v)
   if args.push != "true":
     v = REPO.head.reference
     t = v
-    o = os.path.join(DIST, CHANGELOG)
   save_github_output(n, v, t)
-  save_changelog(c, o)
+  save_changelog(c)
   if args.push == "true":
     print(f"Pushing changes for v{v}")
     commit_changes(t)
