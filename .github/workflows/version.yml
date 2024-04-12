@@ -1,0 +1,60 @@
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to take'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - 'patch'
+        - 'minor'
+        - 'major'
+      push:
+        description: 'Push changes to remote'
+        required: true
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      action:
+        description: 'Action to take'
+        default: 'patch'
+        type: string
+      push:
+        description: 'Push changes to remote'
+        default: false
+        type: boolean
+    outputs:
+      tag: 
+        value: ${{ jobs.version.outputs.tag }}
+      version: 
+        value: ${{ jobs.version.outputs.version }}
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+      version: ${{ steps.bump.outputs.version }}
+    steps:
+
+    - name: Setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        optionals: "[build]"
+        fetch-depth: 0
+
+    - name: Bump Version
+      id: bump
+      env:
+        GITHUB_EMAIL: "4399427+kferrone@users.noreply.github.com"
+      run: ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: notes-${{ steps.bump.outputs.tag }}
+        path: dist/notes.md
