@@ -51,6 +51,9 @@ jobs:
     - name: Run the Build
       run: python -m build
 
+    - name: Show Files
+      run: ls -l dist
+
     - name: Publish Package to PyPI
       if: inputs.push == true
       uses: pypa/gh-action-pypi-publish@release/v1
