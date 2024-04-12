@@ -1,6 +1,6 @@
 # Duplocloud Py Client  
 
-[![Unit Tests](https://github.com/duplocloud/duploctl/actions/workflows/test_unit.yml/badge.svg)](https://github.com/duplocloud/duploctl/actions/workflows/test_unit.yml) [![PyPI - Version](https://img.shields.io/pypi/v/duplocloud-client)](https://pypi.org/project/duplocloud-client/) ![Docker Image Version](https://img.shields.io/docker/v/duplocloud/duploctl?sort=semver&logo=Docker&label=docker&color=blue&link=https%3A%2F%2Fhub.docker.com%2Fr%2Fduplocloud%2Fduploctl)
+[![Unit Tests](https://github.com/duplocloud/duploctl/actions/workflows/test_unit.yml/badge.svg)](https://github.com/duplocloud/duploctl/actions/workflows/test_unit.yml) [![PyPI - Version](https://img.shields.io/pypi/v/duplocloud-client)](https://pypi.org/project/duplocloud-client/) [![Docker Image Version](https://img.shields.io/docker/v/duplocloud/duploctl?sort=semver&logo=Docker&label=docker&color=blue&link=https%3A%2F%2Fhub.docker.com%2Fr%2Fduplocloud%2Fduploctl)](https://hub.docker.com/r/duplocloud/duploctl)
 
 ```duploctl``` is a cli and package to work with a Duplocloud portal. It is a CLI for interacting with Duplocloud resources, such as Tenants, and is designed to work seamlessly within CLI-based CI/CD pipelines. It is a fully extensible package and can be used as both a Python module and a CLI. 
 
