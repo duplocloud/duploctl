@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.18] - 2024-04-12
+
 ### Added
 
  - A version bump script which includes changelog notes in GHA releases
