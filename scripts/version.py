@@ -88,7 +88,7 @@ def commit_changes(tag):
   REPO.create_tag(tag, message=msg)
   origin = REPO.remote(name='origin')
   # can't push on main branch
-  # origin.push() 
+  origin.push() 
   origin.push(tags=True)
 
 def main():
