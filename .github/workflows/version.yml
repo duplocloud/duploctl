@@ -52,10 +52,7 @@ jobs:
       id: bump
       env:
         GITHUB_EMAIL: "4399427+kferrone@users.noreply.github.com"
-      run: |
-        ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
-        git add CHANGELOG.md
-        git push origin
+      run: ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
 
     - uses: actions/upload-artifact@v4
       with:
