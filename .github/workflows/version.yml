@@ -54,7 +54,8 @@ jobs:
         GITHUB_EMAIL: "4399427+kferrone@users.noreply.github.com"
       run: |
         ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
-        cat CHANGELOG.md
+        git add CHANGELOG.md
+        pit push origin
 
     - uses: actions/upload-artifact@v4
       with:
