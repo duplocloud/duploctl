@@ -120,7 +120,7 @@ jobs:
           PIP Sdist:
           The dowload below named `duplocloud-client-${{ steps.set_tag.outputs.VERSION }}.tar.gz` is the sdist of the package. 
           ```sh
-          pip install ${{ steps.set_tag.outputs.RELEASE_URL }}/duplocloud-client-${{ steps.set_tag.outputs.VERSION }}.tar.gz
+          pip install ${{ steps.set_tag.outputs.RELEASE_URL }}/duplocloud_client-${{ steps.set_tag.outputs.VERSION }}.tar.gz
           ```
           
           PIP From Source:  
