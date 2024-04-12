@@ -83,7 +83,7 @@ def commit_changes(changelog, tag):
   email = os.environ.get('GITHUB_EMAIL', None)
   REPO.config_writer().set_value("user", "name", "Github Actions").release()
   REPO.config_writer().set_value("user", "email", email).release()
-  REPO.index.add([CHANGELOG])
+  REPO.index.add([CHANGELOG_OUT])
   REPO.index.commit(msg)
   REPO.create_tag(tag, message=msg)
   origin = REPO.remote(name='origin')
