@@ -42,11 +42,27 @@ jobs:
       version: ${{ steps.bump.outputs.version }}
     steps:
 
-    - name: Setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+    # - name: Setup
+    #   uses: duplocloud/duploctl/.github/actions/setup@main
+    #   with:
+    #     optionals: "[build]"
+    #     fetch-depth: 0
+    - name: Checkout
+      uses: actions/checkout@v4
       with:
-        optionals: "[build]"
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # install python
+    - name: Set up Python 
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+    
+    # install the project
+    - name: Install dependencies
+      run: |
+        pip install semver packaging GitPython
 
     - name: Bump Version
       id: bump
