@@ -536,7 +536,7 @@ Client for Duplo at {self.host}
     parts.append(name)
     return ",".join(parts)
   
-  def expiration(self, hours: int = 6) -> str:
+  def expiration(self, hours: int = 1) -> str:
     """Expiration
     
     Get the expiration time for the given number of hours. This is a simple calculation of the current time plus the number of hours.
