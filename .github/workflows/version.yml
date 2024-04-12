@@ -55,7 +55,7 @@ jobs:
       run: |
         ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
         git add CHANGELOG.md
-        pit push origin
+        git push origin
 
     - uses: actions/upload-artifact@v4
       with:
