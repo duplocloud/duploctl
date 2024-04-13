@@ -65,7 +65,7 @@ jobs:
         git config --global user.name "duploctl[bot]"
         git config --global user.email "${{ vars.GH_APP_ID }}+duploctl[bot]@users.noreply.github.com"
         git add CHANGELOG.md
-        git commit -S -m "Bump version to ${{ steps.bump.outputs.version }}"
+        git commit -m "Bump version to ${{ steps.bump.outputs.version }}"
         git push origin HEAD:main --force
         git tag ${{ steps.bump.outputs.tag }}
         git push --tags
