@@ -15,19 +15,29 @@ inputs:
     description: The python version to use
     required: false
     default: "3.12"
-  # token:
-  #   description: The GitHub token to use
-  #   required: true
+  app-id:
+    description: The GitHub App ID
+    required: true
+  private-key:
+    description: The GitHub token to use
+    required: true
 runs:
   using: "composite"
   steps:
+
+  - name: Create GitHub App Token
+    uses: actions/create-github-app-token@v1
+    id: app-token
+    with:
+      app-id: ${{ inputs.app-id }}
+      private-key: ${{ inputs.private-key }}
 
   - name: Checkout Code
     uses: actions/checkout@v4
     with:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
-      # token: ${{ inputs.token }}
+      token: ${{ steps.app-token.outputs.token }}
       # persist-credentials: false
 
   - name: Set up Python ${{ inputs.python-version }}

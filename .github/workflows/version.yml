@@ -47,7 +47,8 @@ jobs:
       with:
         optionals: "[build]"
         fetch-depth: 0
-        # token: ${{ secrets.GITHUB_TOKEN }}
+        app-id: ${{ secrets.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
         
     - name: Bump Version
       id: bump
@@ -61,5 +62,10 @@ jobs:
     - name: Push Changes
       if: ${{ inputs.push }}
       run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add CHANGELOG.md
+        git commit -m "Bump version to ${{ steps.bump.outputs.version }}"
+        git push origin HEAD:main
         git tag ${{ steps.bump.outputs.tag }}
         git push --tags
