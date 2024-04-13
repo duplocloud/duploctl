@@ -62,8 +62,6 @@ jobs:
     - name: Push Changes
       if: ${{ inputs.push }}
       run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
         git add CHANGELOG.md
         git commit -m "Bump version to ${{ steps.bump.outputs.version }}"
         git push origin HEAD:main --force
