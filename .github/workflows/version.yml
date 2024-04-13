@@ -47,7 +47,7 @@ jobs:
       with:
         optionals: "[build]"
         fetch-depth: 0
-        app-id: ${{ secrets.GH_APP_ID }}
+        app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         
     - name: Bump Version
