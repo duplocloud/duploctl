@@ -25,6 +25,9 @@ on:
       PYPI_API_TOKEN:
         description: PyPi token
         required: true
+      GH_APP_KEY:
+        description: GitHub App private key
+        required: true
 
 jobs:
   package:
@@ -40,6 +43,8 @@ jobs:
       with:
         ref: ${{ inputs.tag }}
         optionals: "[build]"
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Check True Version
       id: check_version

@@ -32,6 +32,10 @@ on:
         value: ${{ jobs.version.outputs.tag }}
       version: 
         value: ${{ jobs.version.outputs.version }}
+    secrets:
+      GH_APP_KEY:
+        description: GitHub App private key
+        required: true
 
 jobs:
   version:
@@ -53,24 +57,9 @@ jobs:
         
     - name: Bump Version
       id: bump
-      run: ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }}
+      run: ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }} ${{ steps.setup.outputs.token }}
 
     - uses: actions/upload-artifact@v4
       with:
         name: notes-${{ steps.bump.outputs.tag }}
         path: dist/notes.md
-
-    # - name: Push Changes
-    #   if: ${{ inputs.push }}
-    #   run: |
-    #     git config --global user.name "duploctl[bot]"
-    #     git config --global user.email "${{ vars.GH_APP_ID }}+duploctl[bot]@users.noreply.github.com"
-    #     git add CHANGELOG.md
-    #     git commit -m "Bump version to ${{ steps.bump.outputs.version }}"
-    #     git push origin HEAD:main --force
-    #     git tag ${{ steps.bump.outputs.tag }}
-    #     git push --tags
-    - name: Signed Commit
-      if: ${{ inputs.push }}
-      run: |
-        ./scripts/sign_commit.sh ${{ steps.setup.outputs.token }}

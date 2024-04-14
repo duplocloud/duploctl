@@ -41,6 +41,10 @@ on:
         description: 'Whether to log the tests'
         type: boolean
         default: false
+    secrets:
+      GH_APP_KEY:
+        description: GitHub App private key
+        required: true
 
 jobs:
   integration_tests:
@@ -62,6 +66,8 @@ jobs:
       if: inputs.enabled
       with:
         optionals: "[build,test,aws]"
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Setup Args
       id: pytest_args

@@ -2,7 +2,11 @@ name: Unit Tests
 
 on:
   workflow_dispatch: {}
-  workflow_call: {}
+  workflow_call: 
+    secrets:
+      GH_APP_KEY:
+        description: GitHub App private key
+        required: true
   pull_request:
     branches:
       - main
@@ -21,6 +25,8 @@ jobs:
       with:
         optionals: "[build,test]"
         python-version: ${{ matrix.python-version }}
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
     
     # do linting
     - name: Lint with ruff

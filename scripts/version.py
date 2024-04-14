@@ -5,6 +5,7 @@ import semver
 from git import Repo
 from packaging.version import Version
 import argparse
+import requests
 
 HERE = os.path.dirname(__file__)
 CWD = os.getcwd()
@@ -12,6 +13,7 @@ UNRELEASED = "## [Unreleased]"
 CHANGELOG = os.path.join(CWD, 'CHANGELOG.md')
 DIST = os.path.join(CWD, 'dist')
 REPO = Repo(CWD)
+GHAPI="https://api.github.com/repos/duplocloud/duploctl/git"
 
 parser = argparse.ArgumentParser(
   prog='version-bumper',
@@ -20,6 +22,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('action', type=str, help='The type of version bump to perform.', default="patch")
 parser.add_argument('push', type=str, help='Push to remote?', default="false")
+parser.add_argument('token', type=str, help='Github token', default=os.environ.get('GITHUB_TOKEN'))
 
 def get_changelog():
   with open(CHANGELOG, 'r') as f:
@@ -77,10 +80,43 @@ def save_github_output(notes, version, tag):
   with open(f"{DIST}/notes.md", 'w') as f:
     f.write(notes)
 
+def commit_gha_changes(tag, token, changelog):
+  # base_tree = REPO.head.commit.tree
+  base_tree = REPO.head.object.hexsha
+  headers = {
+    "Accept": "application/vnd.github.v3+json",
+    "Authorization": f"token {token}",
+  }
+  r = requests.post(f"{GHAPI}/trees", headers=headers, json={
+    "base_tree": str(base_tree),
+    "tree": [{
+      "path": "CHANGELOG.md",
+      "mode": "100644",
+      "type": "blob",
+      "content": changelog
+  }]})
+  tree = r.json()
+  r = requests.post(f"{GHAPI}/commits", headers=headers, json={
+    "message": f"Bump version to {tag}",
+    "tree": tree["sha"],
+    "parents": [base_tree],
+  })
+  commit = r.json()
+  r = requests.patch(f"{GHAPI}/refs/heads/main", headers=headers, json={
+    "sha": commit["sha"]
+  })
+  print(r.json())
+  r = requests.post(f"{GHAPI}/tags", headers=headers, json={
+    "tag": tag,
+    "message": f"Release {tag}",
+    "object": commit["sha"],
+    "type": "commit"
+  })
+
 def commit_changes(tag):
   msg = f"Release {tag}"
-  REPO.config_writer().set_value("user", "name", "Github Actions").release()
-  REPO.config_writer().set_value("user", "email", "actions@github.com").release()
+  REPO.config_writer().set_value("user", "name", "duploctl[bot]").release()
+  REPO.config_writer().set_value("user", "email", "123456789+duploctl[bot]@users.noreply.github.com").release()
   print(f"Committing changes for {tag} {CHANGELOG}")
   REPO.index.add([CHANGELOG])
   REPO.index.commit(msg)
@@ -104,9 +140,7 @@ def main():
   save_changelog(c)
   if args.push == "true":
     print(f"Pushing changes for v{v}")
-    # TODO: Use app token
-    # TODO: Make sure signature is setup correctly for tag push
-    # commit_changes(t) 
+    commit_gha_changes(t, args.token, c)
   
 if __name__ == '__main__':
   main()

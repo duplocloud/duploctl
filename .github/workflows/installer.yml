@@ -23,7 +23,10 @@ on:
         description: The git tag to build on
         required: false
         type: string
-
+    secrets:
+      GH_APP_KEY:
+        description: GitHub App private key
+        required: true
 jobs:
   installer:
     name: Pyinstaller
@@ -63,6 +66,8 @@ jobs:
       with:
         ref: ${{ inputs.tag }}
         optionals: "[build]"
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
     
     - name: Pyinstaller
       id: installer
