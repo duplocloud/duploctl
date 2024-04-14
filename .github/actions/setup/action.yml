@@ -21,6 +21,10 @@ inputs:
   private-key:
     description: The GitHub token to use
     required: true
+outputs:
+  token:
+    description: The GitHub App token
+    value: ${{ steps.app-token.outputs.token }}
 runs:
   using: "composite"
   steps:
