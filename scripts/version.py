@@ -109,18 +109,18 @@ def commit_gha_changes(tag, token, changelog):
   })
   print("The ref object")
   print(r.json())
-  r = requests.post(f"{GHAPI}/tags", headers=headers, json={
-    "tag": tag,
-    "message": f"Release {tag}",
-    "object": commit["sha"],
-    "type": "commit"
-  })
-  t = r.json()
-  print("The tag object")
-  print(t)
+  # r = requests.post(f"{GHAPI}/tags", headers=headers, json={
+  #   "tag": tag,
+  #   "message": f"Release {tag}",
+  #   "object": commit["sha"],
+  #   "type": "commit"
+  # })
+  # t = r.json()
+  # print("The tag object")
+  # print(t)
   r = requests.post(f"{GHAPI}/refs", headers=headers, json={
     "ref": f"refs/tags/{tag}",
-    "sha": t["sha"]
+    "sha": commit["sha"]
   })
   ref = r.json()
   print("The ref object")
