@@ -81,12 +81,12 @@ def save_github_output(notes, version, tag):
     f.write(notes)
 
 def commit_gha_changes(tag, token, changelog):
-  # base_tree = REPO.head.commit.tree
   base_tree = REPO.head.object.hexsha
   headers = {
     "Accept": "application/vnd.github.v3+json",
     "Authorization": f"token {token}",
   }
+  # first make a tree, basically staging the changes
   r = requests.post(f"{GHAPI}/trees", headers=headers, json={
     "base_tree": str(base_tree),
     "tree": [{
@@ -96,6 +96,7 @@ def commit_gha_changes(tag, token, changelog):
       "content": changelog
   }]})
   tree = r.json()
+  # commit the changed changelog
   r = requests.post(f"{GHAPI}/commits", headers=headers, json={
     "message": f"Bump version to {tag}",
     "tree": tree["sha"],
@@ -104,20 +105,13 @@ def commit_gha_changes(tag, token, changelog):
   commit = r.json()
   print("The commit object")
   print(commit)
+  # update the main branch to point to the new commit
   r = requests.patch(f"{GHAPI}/refs/heads/main", headers=headers, json={
     "sha": commit["sha"]
   })
   print("The ref object")
   print(r.json())
-  # r = requests.post(f"{GHAPI}/tags", headers=headers, json={
-  #   "tag": tag,
-  #   "message": f"Release {tag}",
-  #   "object": commit["sha"],
-  #   "type": "commit"
-  # })
-  # t = r.json()
-  # print("The tag object")
-  # print(t)
+  # create a lightweight tag for the commit
   r = requests.post(f"{GHAPI}/refs", headers=headers, json={
     "ref": f"refs/tags/{tag}",
     "sha": commit["sha"]
