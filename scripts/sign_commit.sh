@@ -30,4 +30,3 @@ curl \
   -H "Authorization: token $gh_token" \
   "$ghapi/refs/heads/main" \
   -d '{"sha": "'$commit_sha'"}'
-
