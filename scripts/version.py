@@ -102,9 +102,12 @@ def commit_gha_changes(tag, token, changelog):
     "parents": [base_tree],
   })
   commit = r.json()
+  print("The commit object")
+  print(commit)
   r = requests.patch(f"{GHAPI}/refs/heads/main", headers=headers, json={
     "sha": commit["sha"]
   })
+  print("The ref object")
   print(r.json())
   r = requests.post(f"{GHAPI}/tags", headers=headers, json={
     "tag": tag,
@@ -112,6 +115,8 @@ def commit_gha_changes(tag, token, changelog):
     "object": commit["sha"],
     "type": "commit"
   })
+  print("The tag object")
+  print(r.json())
 
 def commit_changes(tag):
   msg = f"Release {tag}"
