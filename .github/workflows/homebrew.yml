@@ -46,7 +46,8 @@ jobs:
 
     - name: Gen Formula
       run: >-
-        ./scripts/formula.py ${{ inputs.tag }}
+        ./scripts/formula.py 
+        --tag ${{ inputs.tag }}
         --push ${{ inputs.push }} 
         --token ${{ steps.setup.outputs.token }}
 
