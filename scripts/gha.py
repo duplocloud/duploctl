@@ -21,7 +21,8 @@ class GithubRepo:
     return self.repo.head.reference
 
   def publish(self, tag, file, content) -> Any:
-    base_tree = self.repo.head.object.hexsha
+    parent = self.get_base_commit()
+    base_tree = parent["object"]["sha"]
     tree = self.create_tree(base_tree, file, content)
     print(tree)
     commit = self.create_commit(base_tree, tree, f"Bump version to {tag}")
@@ -30,6 +31,10 @@ class GithubRepo:
     print(ref)
     tag = self.create_tag(tag, commit)
     print(tag)
+
+  def get_base_commit(self):
+    r = requests.get(f"{self.url}/refs/heads/main", headers=self.headers)
+    return r.json()
 
   def create_tree(self, base_tree, file, content):
     r = requests.post(f"{self.url}/trees", headers=self.headers, json={
