@@ -72,7 +72,7 @@ jobs:
     - name: Download Package Artifacts
       uses: actions/download-artifact@v4
       with:
-        pattern: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
+        pattern: duplocloud_client-*
         path: artifacts
     
     - name: Download Notes
@@ -95,6 +95,7 @@ jobs:
       env:
         PACKAGE_NAME: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
       run: |
+        ls -l artifacts
         for d in artifacts/*; do
           name=$(basename $d)
           dest="dist/${name}.tar.gz"
