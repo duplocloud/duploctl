@@ -23,9 +23,13 @@ class GithubRepo:
   def publish(self, tag, file, content) -> Any:
     base_tree = self.repo.head.object.hexsha
     tree = self.create_tree(base_tree, file, content)
+    print(tree)
     commit = self.create_commit(base_tree, tree, f"Bump version to {tag}")
-    self.update_main(commit)
-    self.create_tag(tag, commit)
+    print(commit)
+    ref = self.update_main(commit)
+    print(ref)
+    tag = self.create_tag(tag, commit)
+    print(tag)
 
   def create_tree(self, base_tree, file, content):
     r = requests.post(f"{self.url}/trees", headers=self.headers, json={

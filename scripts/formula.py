@@ -26,6 +26,7 @@ class HomebrewFormula:
     formula = self.build_formula()
     print(formula)
     if push == "true":
+      print("Pushing to remote")
       self.repo.publish(f"duploctl-v{self.version}", 'Formula/duploctl.rb', formula)
     else:
       self.repo.dist_file(self.out_file, formula)
