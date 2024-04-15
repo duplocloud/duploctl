@@ -45,7 +45,11 @@ jobs:
         repositories: homebrew-tap
 
     - name: Gen Formula
-      run: ./scripts/formula.py --push ${{ inputs.push }} --token ${{ steps.setup.outputs.token }}
+      run: >-
+        ./scripts/formula.py 
+        --tag ${{ inputs.tag }}
+        --push ${{ inputs.push }} 
+        --token ${{ steps.setup.outputs.token }}
 
     # - name: Checkout Tap
     #   uses: actions/checkout@v4

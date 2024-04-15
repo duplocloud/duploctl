@@ -12,15 +12,15 @@ from gha import GithubRepo
 
 class HomebrewFormula:
 
-  def __init__(self, token):
+  def __init__(self, token, tag=None):
     self.repo = GithubRepo(token, "homebrew-tap")
     f = open('pyproject.toml')
     self.pyproject = toml.load(f)
     self.repo_url = self.pyproject['project']['urls']['Repository']
     self.description = self.pyproject['project']['description']
-    self.version = self.repo.latest_tag()
     self.tpl_file = 'scripts/formula.tpl.rb'
     self.out_file = 'duploctl.rb'
+    self.version = tag.replace("v", "") if tag else self.repo.latest_tag()
 
   def publish(self, push="false"):
     formula = self.build_formula()
@@ -92,11 +92,12 @@ if __name__ == '__main__':
     description='A duploctl version bumper.',
   )
 
+  parser.add_argument('--tag', type=str, help='A version tag to use.', default=None)
   parser.add_argument('--push', type=str, help='Push to remote?', default="false")
   parser.add_argument('--token', type=str, help='Github token', default=os.environ.get('GITHUB_TOKEN'))
 
   args = parser.parse_args()
 
-  brew = HomebrewFormula(args.token)
+  brew = HomebrewFormula(args.token, args.tag)
   brew.publish(args.push)
 
