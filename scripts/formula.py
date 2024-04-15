@@ -88,15 +88,17 @@ class HomebrewFormula:
   
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
-    prog='version-bumper',
-    description='A duploctl version bumper.',
+    prog='tap-formula',
+    description='Pushes formula to tap',
   )
 
-  parser.add_argument('--tag', type=str, help='A version tag to use.', default=None)
   parser.add_argument('--push', type=str, help='Push to remote?', default="false")
   parser.add_argument('--token', type=str, help='Github token', default=os.environ.get('GITHUB_TOKEN'))
+  parser.add_argument('--tag', type=str, help='A version tag to use.', default=None)
 
   args = parser.parse_args()
+
+  print(args)
 
   brew = HomebrewFormula(args.token, args.tag)
   brew.publish(args.push)
