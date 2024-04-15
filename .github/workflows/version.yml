@@ -57,7 +57,11 @@ jobs:
         
     - name: Bump Version
       id: bump
-      run: ./scripts/version.py ${{ inputs.action }} ${{ inputs.push }} ${{ steps.setup.outputs.token }}
+      run: >-
+        ./scripts/version.py 
+        --action ${{ inputs.action }} 
+        --push ${{ inputs.push }} 
+        --token ${{ steps.setup.outputs.token }}
 
     - uses: actions/upload-artifact@v4
       with:

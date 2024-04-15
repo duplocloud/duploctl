@@ -35,45 +35,47 @@ jobs:
     steps:
 
     - name: Setup
+      id: setup
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
         optionals: "[build]"
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
-
-    - name: Checkout Tap
-      uses: actions/checkout@v4
-      if: inputs.push == true
-      with:
-        repository: 'duplocloud/homebrew-tap'
-        path: 'homebrew-tap'
-        token: ${{ secrets.GHA_TOKEN }}
+        repositories: homebrew-tap
 
     - name: Gen Formula
-      run: ./scripts/formula.py ${{ inputs.tag }}
+      run: ./scripts/formula.py --push ${{ inputs.push }} --token ${{ steps.setup.outputs.token }}
 
-    - name: Copy Formula
-      if: inputs.push == true
-      run: cp dist/duploctl.rb homebrew-tap/Formula/duploctl.rb
+    # - name: Checkout Tap
+    #   uses: actions/checkout@v4
+    #   if: inputs.push == true
+    #   with:
+    #     repository: 'duplocloud/homebrew-tap'
+    #     path: 'homebrew-tap'
+    #     token: ${{ steps.setup.outputs.token }}
 
-    - name: Commit Formula
-      if: inputs.push == true
-      working-directory: homebrew-tap
-      run: |
-        git config --global user.email "100788897+duplo-bot@users.noreply.github.com"
-        git config --global user.name "Duplo Bot"
-        git add Formula/duploctl.rb
-        git commit -m "Update duploctl to ${{ inputs.tag }}"
-        git tag duploctl-${{ inputs.tag }}
+    # - name: Copy Formula
+    #   if: inputs.push == true
+    #   run: cp dist/duploctl.rb homebrew-tap/Formula/duploctl.rb
+
+    # - name: Commit Formula
+    #   if: inputs.push == true
+    #   working-directory: homebrew-tap
+    #   run: |
+    #     git config --global user.email "100788897+duplo-bot@users.noreply.github.com"
+    #     git config --global user.name "Duplo Bot"
+    #     git add Formula/duploctl.rb
+    #     git commit -m "Update duploctl to ${{ inputs.tag }}"
+    #     git tag duploctl-${{ inputs.tag }}
       
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      if: inputs.push == true
-      with:
-        github_token: ${{ secrets.GHA_TOKEN }}
-        branch: main
-        directory: homebrew-tap
-        repository: duplocloud/homebrew-tap
-        tags: true
+    # - name: Push changes
+    #   uses: ad-m/github-push-action@master
+    #   if: inputs.push == true
+    #   with:
+    #     github_token: ${{ secrets.GHA_TOKEN }}
+    #     branch: main
+    #     directory: homebrew-tap
+    #     repository: duplocloud/homebrew-tap
+    #     tags: true
       

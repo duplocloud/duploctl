@@ -21,6 +21,10 @@ inputs:
   private-key:
     description: The GitHub token to use
     required: true
+  repositories:
+    description: The repositories to get tokens for.
+    required: false
+    default: duploctl
 outputs:
   token:
     description: The GitHub App token
@@ -35,6 +39,7 @@ runs:
     with:
       app-id: ${{ inputs.app-id }}
       private-key: ${{ inputs.private-key }}
+      repositories: ${{ inputs.repositories }}
 
   - name: Checkout Code
     uses: actions/checkout@v4

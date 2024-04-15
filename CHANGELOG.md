@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+ - all actions use the duploctl[bot] app for commits
+
 ## [0.2.23] - 2024-04-14
 
 ### Fixed
