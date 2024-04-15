@@ -99,8 +99,6 @@ if __name__ == '__main__':
 
   args = parser.parse_args()
 
-  print(f"Will publish version {args.tag}")
-
   brew = HomebrewFormula(args.token, args.tag)
   brew.publish(args.push)
 

@@ -24,13 +24,9 @@ class GithubRepo:
     parent = self.get_base_commit()
     base_tree = parent["object"]["sha"]
     tree = self.create_tree(base_tree, file, content)
-    print(tree)
     commit = self.create_commit(base_tree, tree, f"Bump version to {tag}")
-    print(commit)
-    ref = self.update_main(commit)
-    print(ref)
-    tag = self.create_tag(tag, commit)
-    print(tag)
+    self.update_main(commit)
+    self.create_tag(tag, commit)
 
   def get_base_commit(self):
     r = requests.get(f"{self.url}/refs/heads/main", headers=self.headers)
@@ -66,7 +62,7 @@ class GithubRepo:
       "ref": f"refs/tags/{tag}",
       "sha": commit["sha"]
     })
-    ref = r.json()
+    return r.json()
 
   def latest_tag(self):
     latest = Version("0.0.0")
