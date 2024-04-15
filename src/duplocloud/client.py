@@ -40,6 +40,7 @@ class DuploClient():
                host: args.HOST=None,
                token: args.TOKEN=None,
                tenant: args.TENANT=None,
+               tenantid: args.TENANT_ID=None,
                home_dir: args.HOME_DIR = None,
                config_file: args.CONFIG = None,
                cache_dir: args.CACHE_DIR = None,
@@ -73,6 +74,7 @@ class DuploClient():
     self.__host = self.__sanitize_host(host)
     self.__token = token.strip() if token else token
     self.__tenant = tenant.strip().lower() if tenant else tenant
+    self.tenantid = tenantid
     self.version = version
     self.interactive = interactive
     self.nocache = nocache

@@ -88,6 +88,7 @@ class DuploTenantResourceV2(DuploResourceV2):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
     self.__tenant = None
+    self.__tenant_id = None
     self.tenant_svc = duplo.load('tenant')
   @property
   def tenant(self):
@@ -95,16 +96,24 @@ class DuploTenantResourceV2(DuploResourceV2):
       self.__tenant = self.tenant_svc.find(self.duplo.tenant)
     return self.__tenant
   
+  @property
+  def tenant_id(self):
+    if not self.__tenant_id:
+      if self.duplo.tenantid:
+        self.__tenant_id = self.duplo.tenantid
+      else:
+        self.__tenant_id = self.tenant["TenantId"]
+    return self.__tenant_id
+  
   def endpoint(self, path: str=None):
-    tenant_id = self.tenant["TenantId"]
-    p = f"subscriptions/{tenant_id}/{path}"
-    return p
+    return f"subscriptions/{self.tenant_id}/{path}"
   
 
 class DuploTenantResourceV3(DuploResource):
   def __init__(self, duplo: DuploClient, slug: str):
     super().__init__(duplo)
     self.__tenant = None
+    self.__tenant_id = None
     self.tenant_svc = duplo.load('tenant')
     self.slug = slug
     self.wait_timeout = 200
@@ -114,6 +123,15 @@ class DuploTenantResourceV3(DuploResource):
     if not self.__tenant:
       self.__tenant = self.tenant_svc.find(self.duplo.tenant)
     return self.__tenant
+  
+  @property
+  def tenant_id(self):
+    if not self.__tenant_id:
+      if self.duplo.tenantid:
+        self.__tenant_id = self.duplo.tenantid
+      else:
+        self.__tenant_id = self.tenant["TenantId"]
+    return self.__tenant_id
   
   @Command()
   def list(self):
@@ -193,8 +211,7 @@ class DuploTenantResourceV3(DuploResource):
     return body["metadata"]["name"]
 
   def endpoint(self, name: str=None, path: str=None):
-    tenant_id = self.tenant["TenantId"]
-    p = f"v3/subscriptions/{tenant_id}/{self.slug}"
+    p = f"v3/subscriptions/{self.tenant_id}/{self.slug}"
     if name:
       p += f"/{name}"
     if path:

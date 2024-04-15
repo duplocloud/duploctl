@@ -257,11 +257,15 @@ class DuploService(DuploTenantResourceV2):
     Raises:
       DuploError: If the service could not be found.
     """
+    def controlled_by_service(pod):
+      cb = pod.get("ControlledBy", None)
+      same_name = pod["Name"] == name
+      if cb is None:
+        return same_name
+      else:
+        return same_name and cb.get("QualifiedType", None) == "kubernetes:apps/v1/ReplicaSet" 
     pods = self.__pod_svc.list()
-    return [
-      pod for pod in pods
-      if pod["Name"] == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:apps/v1/ReplicaSet"
-    ]
+    return [ pod for pod in pods if controlled_by_service(pod) ]
   
   @Command()
   def logs(self,
