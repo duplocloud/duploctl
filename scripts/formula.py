@@ -75,7 +75,7 @@ class HomebrewFormula:
       tpl = tpl_file.read()
       linux_sha, macos_sha, pip_sha = self.get_shas()
       resources = self.make_resources()
-      formula = tpl.format(
+      return tpl.format(
         repo_url=self.repo_url,
         description=self.description,
         version=self.version, 
@@ -84,8 +84,6 @@ class HomebrewFormula:
         pip_sha=pip_sha,
         resources=resources
       )
-      return formula
-  
   
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
