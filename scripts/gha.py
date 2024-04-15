@@ -34,13 +34,14 @@ class GithubRepo:
 
   def create_tree(self, base_tree, file, content):
     r = requests.post(f"{self.url}/trees", headers=self.headers, json={
-    "base_tree": str(base_tree),
-    "tree": [{
-      "path": file,
-      "mode": "100644",
-      "type": "blob",
-      "content": content
-    }]})
+      "base_tree": str(base_tree),
+      "tree": [{
+        "path": file,
+        "mode": "100644",
+        "type": "blob",
+        "content": content
+      }]
+    })
     return r.json()
 
   def create_commit(self, base_tree, tree, message):

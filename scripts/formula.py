@@ -38,10 +38,10 @@ class HomebrewFormula:
     data = response.json()
     sdist = list(filter(lambda x: x['packagetype'] == 'sdist', data['urls']))[0]
     return f"""
-      resource "{name}" do
-        url "{sdist['url']}"
-        sha256 "{sdist['digests']['sha256']}"
-      end
+    resource "{name}" do
+      url "{sdist['url']}"
+      sha256 "{sdist['digests']['sha256']}"
+    end
     """
   
   def make_resources(self):
