@@ -101,7 +101,9 @@ jobs:
           tar -czvf "$dest" -C $d .
         done
         package="$(find artifacts -type f -name "duplocloud_client-*.tar.gz")"
-        cp $package dist/
+        pkg_name="$(basename $package)"
+        echo "Package: $package -- $pkg_name"
+        cp "$package" "dist/${pkg_name}"
         find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
         echo "Created Release Artifacts"
         ls -l dist
