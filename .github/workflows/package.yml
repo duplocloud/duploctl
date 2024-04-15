@@ -21,6 +21,10 @@ on:
         description: Tag to push
         required: true
         type: string
+    outputs:
+      version: 
+        description: The true version of the package
+        value: ${{ jobs.package.outputs.version }}
     secrets:
       PYPI_API_TOKEN:
         description: PyPi token
@@ -36,6 +40,8 @@ jobs:
     environment: 
       name: pypi
       url: https://pypi.org/project/duplocloud-client
+    outputs:
+      version: ${{ steps.check_version.outputs.version }}
     steps:
 
     - name: Setup
@@ -50,8 +56,10 @@ jobs:
       id: check_version
       run: |
         version=$(python -m setuptools_scm)
+        package="duplocloud_client-${version}"
         echo "Building Version: $version"
-        echo "VERSION=$version" >> $GITHUB_OUTPUT
+        echo "version=$version" >> $GITHUB_OUTPUT
+        echo "package=$package" >> $GITHUB_OUTPUT
     
     - name: Run the Build
       run: python -m build
@@ -68,5 +76,5 @@ jobs:
     - name: Github Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: duplocloud_client-${{ steps.check_version.outputs.VERSION }}
+        name: ${{ steps.check_version.outputs.package }}
         path: dist/duplocloud_client-*.tar.gz

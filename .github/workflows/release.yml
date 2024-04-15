@@ -12,6 +12,10 @@ on:
         description: Tag to release
         required: false
         type: string
+      version:
+        description: The true version of the package
+        required: false
+        type: string
   workflow_call:
     inputs:
       push:
@@ -96,7 +100,8 @@ jobs:
           dest="dist/${name}.tar.gz"
           tar -czvf "$dest" -C $d .
         done
-        cp -a artifacts/${PACKAGE_NAME}/. dist/
+        package="$(find artifacts -type f -name "duplocloud_client-*.tar.gz")"
+        cp $package dist/
         find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
         echo "Created Release Artifacts"
         ls -l dist
