@@ -153,9 +153,9 @@ class DuploJit(DuploResource):
     admin = self.duplo.isadmin
 
     # don't even like try sometimes
-    if not self.duplo.isadmin and not identified:
+    if not admin and not identified:
       raise DuploError("--tenant is required", 300)
-    if planId is None and not identified:
+    if not planId and not identified:
       raise DuploError("--plan or --tenant is required", 300)
     
     # and admin needs a plan and may have a identified a tenant
