@@ -104,7 +104,7 @@ class DuploLambda(DuploTenantResourceV2):
     return response.json()
 
   def name_from_body(self, body):
-    prefix = f"duploservices-{self.duplo.tenant}"
+    prefix = f"duploservices-{self.tenant['AccountName']}"
     name =  body["FunctionName"]
     if not name.startswith(prefix):
       name = f"{prefix}-{name}"

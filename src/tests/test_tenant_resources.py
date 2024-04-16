@@ -25,14 +25,15 @@ class TestTenantResources:
   def test_creating_resource(self, test_data, duplo):
     (kind, data) = test_data
     r = duplo.load(kind)
+    tenant = r.tenant["AccountName"]
     name = r.name_from_body(data)
     start_time = time.time()
-    print(f"Creating {kind} '{name}' in '{duplo.tenant}'")
+    print(f"Creating {kind} '{name}' in '{tenant}'")
     # For some reason you'll get a 409 a bunch of times until the tenant is actually ready.
     while True:
       try:
         r.create(data, wait=True)
-        print(f"{kind} '{name}' created in '{duplo.tenant}'")
+        print(f"{kind} '{name}' created in '{tenant}'")
         break
       except DuploError as e:
         elapsed_time = time.time() - start_time
@@ -61,7 +62,7 @@ class TestTenantResources:
   
   @pytest.mark.integration
   @pytest.mark.k8s
-  @pytest.mark.order(8)
+  @pytest.mark.order(997)
   @pytest.mark.dependency(
     name="delete_tenant_resource", 
     depends=["create_tenant_resource"], 

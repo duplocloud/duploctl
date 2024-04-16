@@ -29,7 +29,7 @@ class DuploJit(DuploResource):
       path = "adminproxy/GetJITAwsConsoleAccessUrl"
     else:
       t = self.duplo.load("tenant")
-      tenant = t.find(self.duplo.tenant)
+      tenant = t.find()
       path = f"subscriptions/{tenant['TenantId']}/GetAwsConsoleTokenUrl"
 
     # try and get those creds
@@ -53,7 +53,7 @@ class DuploJit(DuploResource):
           planId: args.PLAN = None):
     """Retrieve k8s session credentials for current user."""
     # either plan or tenant in cache key
-    pt = planId if planId else self.duplo.tenant
+    pt = planId or self.duplo.tenant or self.duplo.tenantid
     k = self.duplo.cache_key_for(f"plan,{pt},k8s-creds")
     creds = None
     try:
@@ -86,8 +86,12 @@ class DuploJit(DuploResource):
       ctx["Name"] = ctx["Name"].removeprefix("duploinfra-")
       ctx["cmd_arg"] = "--plan"
     else:
-      ctx["Name"] = self.duplo.tenant
-      ctx["cmd_arg"] = "--tenant"
+      if self.duplo.tenantid:
+        ctx["Name"] = self.duplo.tenantid
+        ctx["cmd_arg"] = "--tenant-id"
+      else:
+        ctx["Name"] = self.duplo.tenant
+        ctx["cmd_arg"] = "--tenant"
     # add the cluster, user, and context to the kubeconfig
     self.__add_to_kubeconfig("clusters", self.__cluster_config(ctx), kubeconfig)
     self.__add_to_kubeconfig("users", self.__user_config(ctx), kubeconfig)
@@ -143,25 +147,28 @@ class DuploJit(DuploResource):
       dict: The k8s context.
     """
     tenant = None
-    tenant_id = None
+    tenant_id = self.duplo.tenantid
     tenant_name = self.duplo.tenant
+    identified = True if tenant_id or tenant_name else False
+    admin = self.duplo.isadmin
 
     # don't even like try sometimes
-    if not self.duplo.isadmin and not tenant_name:
+    if not self.duplo.isadmin and not identified:
       raise DuploError("--tenant is required", 300)
-    if planId is None and not tenant_name:
+    if planId is None and not identified:
       raise DuploError("--plan or --tenant is required", 300)
     
-    # if we need to discover the planId or you are not admin, then we get the tenant
-    if (planId is None and tenant_name) or not self.duplo.isadmin:
+    # and admin needs a plan and may have a identified a tenant
+    # or maybe it's not an admin and a name was used to identify the tenant
+    if (admin and not planId) or (not admin and not tenant_id):
       tenant_svc = self.duplo.load("tenant")
       tenant = tenant_svc.find(tenant_name)
-      planId = tenant.get("PlanID") if not planId else planId
+      planId = tenant.get("PlanID")
       tenant_id = tenant.get("TenantId")
 
     # choose the correct path
     path = (f"v3/admin/plans/{planId}/k8sConfig"
-            if self.duplo.isadmin
+            if admin
             else f"/v3/subscriptions/{tenant_id}/k8s/jitAccess")
     response = self.duplo.get(path)
     return response.json()

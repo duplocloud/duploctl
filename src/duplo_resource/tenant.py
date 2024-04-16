@@ -19,33 +19,55 @@ class DuploTenant(DuploResource):
 
   @Command()
   def find(self, 
-           name: args.NAME=None):
-    """Find a tenant by name."""
-    name = name or self.duplo.tenant
+           name: args.NAME=None,
+           id: str=None):
+    """Find a tenant.
+
+    Find a tenant by name or id. Passing in a name directly takes highest precedence.
+    If a name is not passed in, the id is second highest precedence. Lastly if the global
+    tenant name is set, that will be used. 
+
+    The global tenant id takes care ofthe commandline. For other code, sometimes the id 
+    needs to be passed in directly. If this happens, that id takes most precedence.
+
+    Args:
+      name (str): The name or id of the tenant to find.
+    
+    Returns:
+      The tenant.
+    """
+    key = None 
+    ref = None 
+    if id or (not name and self.duplo.tenantid):
+      key = "TenantId"
+      ref = id or self.duplo.tenantid
+    else:
+      key = "AccountName"
+      ref = name or self.duplo.tenant
     try:
-      return [t for t in self.list() if t["AccountName"] == name][0]
+      return [t for t in self.list() if t[key] == ref][0]
     except IndexError:
-      raise DuploError(f"Tenant '{name}' not found", 404)
+      raise DuploError(f"Tenant '{ref}' not found", 404)
   
   @Command()
   def create(self, 
              body: args.BODY,
              wait: args.WAIT=False):
     """Create a new tenant."""
+    name = body["AccountName"]
     self.duplo.post("admin/AddTenant", body)
     def wait_check():
-      self.find(body["AccountName"])
+      self.find(name)
     if wait:
       self.wait(wait_check)
     return {
-      "message": f"Tenant '{body['AccountName']}' created"
+      "message": f"Tenant '{name}' created"
     }
   
   @Command()
   def delete(self,
              name: args.NAME=None):
     """Delete a tenant."""
-    name = name or self.duplo.tenant
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     self.duplo.post(f"admin/DeleteTenant/{tenant_id}", None)
@@ -58,7 +80,6 @@ class DuploTenant(DuploResource):
                name: args.NAME=None, 
                schedule: args.SCHEDULE=None):
     """Expire a tenant."""
-    name = name or self.duplo.tenant
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # if the schedule not specified then set the date 5 minute from now
@@ -95,10 +116,9 @@ class DuploTenant(DuploResource):
 
   @Command()
   def logging(self, 
-              name: args.NAME, 
+              name: args.NAME=None, 
               enable: args.ENABLE=True):
     """Enable or disable tenant logging."""
-    name = name or self.duplo.tenant
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # add or update the tenant in the list of enabled tenants
@@ -125,7 +145,7 @@ class DuploTenant(DuploResource):
     
     Get the spend for the tenant. 
     """
-    tenant = self.find(name or self.duplo.tenant)
+    tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/billing/subscriptions/{tenant_id}/aws/billing")
     return response.json()
@@ -139,9 +159,9 @@ class DuploTenant(DuploResource):
     updates = []
     creates = []
     changes = []
-    name = name or self.duplo.tenant
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
+    endpoint = f"v3/admin/tenant/{tenant_id}/metadata"
     curr_settings = tenant.get("Metadata", [])
     curr_keys = [s["Key"] for s in curr_settings]
     # flatten k/v pair while dedupe and remove deleted keys
@@ -158,18 +178,18 @@ class DuploTenant(DuploResource):
         creates.append(s)
     # create, update, and delete the settings
     for s in creates:
-      response = self.duplo.post(f"v3/admin/tenant/{tenant_id}/metadata", s)
+      response = self.duplo.post(endpoint, s)
       change = response.json()
       change["Operation"] = "create"
       changes.append(change)
     for s in updates:
-      response = self.duplo.put(f"v3/admin/tenant/{tenant_id}/metadata/{s['Key']}", s)
+      response = self.duplo.put(f"{endpoint}/{s['Key']}", s)
       change = response.json()
       change["Operation"] = "update"
       changes.append(change)
     for k in deletevar:
       if k in curr_keys:
-        self.duplo.delete(f"v3/admin/tenant/{tenant_id}/metadata/{k}")
+        self.duplo.delete(f"{endpoint}/{k}")
         change = {"Key": k, "Operation": "delete"}
         changes.append(change)
     return {
@@ -181,16 +201,17 @@ class DuploTenant(DuploResource):
   def host_images(self,
                   name: args.NAME = None):
     """Get the list of host images."""
-    tenant = self.find(name or self.duplo.tenant)
+    tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/nativeHostImages")
     return response.json()
 
   @Command()
   def faults(self,
-             name: args.NAME = None):
+             name: args.NAME = None,
+             id: str = None):
     """Get the list of faults."""
-    tenant = self.find(name or self.duplo.tenant)
+    tenant = self.find(name, id)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetFaultsByTenant")
     return response.json()

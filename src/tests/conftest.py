@@ -1,3 +1,4 @@
+import os
 import pytest
 import random
 import yaml
@@ -5,9 +6,11 @@ import pathlib
 from duplocloud.client import DuploClient
 
 def pytest_addoption(parser):
+  infra = os.getenv("DUPLO_INFRA", None)
+  tenant = os.getenv("DUPLO_TENANT", None)
   parser.addoption("--e2e", action="store_true", default=False, help="run e2e tests")
-  parser.addoption("--infra", action="store", default=None, help="Choose existing infra")
-  parser.addoption("--tenant", action="store", default=None, help="Choose existing tenant to use")
+  parser.addoption("--infra", action="store", default=infra, help="Choose existing infra")
+  parser.addoption("--tenant", action="store", default=tenant, help="Choose existing tenant to use")
 
 @pytest.fixture(scope='session', autouse=True)
 def infra_name(pytestconfig) -> str:

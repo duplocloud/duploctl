@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+ - Support for `DUPLO_TENANT_ID` or `--tenant-id` as a global argument alternative to using the tenant name
+
+### Fixed 
+
+ - `--wait` flag for azures updates
+
 ## [0.2.25] - 2024-04-15
 
 ### Added

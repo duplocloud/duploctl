@@ -93,16 +93,17 @@ class DuploTenantResourceV2(DuploResourceV2):
   @property
   def tenant(self):
     if not self.__tenant:
-      self.__tenant = self.tenant_svc.find(self.duplo.tenant)
+      self.__tenant = self.tenant_svc.find()
+      self.__tenant_id = self.__tenant["TenantId"]
     return self.__tenant
   
   @property
   def tenant_id(self):
     if not self.__tenant_id:
-      if self.duplo.tenantid:
+      if self.__tenant:
+        self.__tenant_id = self.__tenant["TenantId"]
+      elif self.duplo.tenantid:
         self.__tenant_id = self.duplo.tenantid
-      else:
-        self.__tenant_id = self.tenant["TenantId"]
     return self.__tenant_id
   
   def endpoint(self, path: str=None):
@@ -121,16 +122,17 @@ class DuploTenantResourceV3(DuploResource):
   @property
   def tenant(self):
     if not self.__tenant:
-      self.__tenant = self.tenant_svc.find(self.duplo.tenant)
+      self.__tenant = self.tenant_svc.find()
+      self.__tenant_id = self.__tenant["TenantId"]
     return self.__tenant
   
   @property
   def tenant_id(self):
     if not self.__tenant_id:
-      if self.duplo.tenantid:
+      if self.__tenant:
+        self.__tenant_id = self.__tenant["TenantId"]
+      elif self.duplo.tenantid:
         self.__tenant_id = self.duplo.tenantid
-      else:
-        self.__tenant_id = self.tenant["TenantId"]
     return self.__tenant_id
   
   @Command()

@@ -65,6 +65,8 @@ class TestTenant:
     print(f"Delete tenant '{name}'")
     try:
       nt = r("find", name)
+      # now try to find again, but using the id this time
+      nt = r.find(id=nt["TenantId"])
       assert nt["AccountName"] == name
     except DuploError as e:
       pytest.fail(f"Failed to find tenant {name}: {e}")
