@@ -341,7 +341,7 @@ class DuploService(DuploTenantResourceV2):
       """
       for f in faults:
         if f["Resource"]["Name"] == pod["InstanceId"]:
-          raise DuploFailedResource(f"Pod {pod["InstanceId"]} raised a fault.\n{f['Description']}")
+          raise DuploFailedResource(f"Pod {pod['InstanceId']} raised a fault.\n{f['Description']}")
     def check_service_faults(faults):
       """Check if the service has any faults.
       
