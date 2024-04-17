@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - Support for `DUPLO_TENANT_ID` or `--tenant-id` as a global argument alternative to using the tenant name
  - `WARN` is default log level and `--wait` will show more logs when set to `DEBUG`
+ - Support for AWS S3
 
 ### Fixed 
 
