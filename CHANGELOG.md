@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.26] - 2024-04-17
+
 ### Added 
 
  - Support for `DUPLO_TENANT_ID` or `--tenant-id` as a global argument alternative to using the tenant name
