@@ -121,7 +121,11 @@ jobs:
           dist/*
         body: |
 
+          [[![Publish](https://github.com/duplocloud/duploctl/actions/workflows/publish.yml/badge.svg)](https://github.com/duplocloud/duploctl/actions/workflows/publish.yml)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
           ${{ env.RELEASE_NOTES }}
+
+          ### Installation
 
           PIP PyPi: 
           [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.set_tag.outputs.VERSION }}/)
