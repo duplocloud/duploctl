@@ -1,6 +1,6 @@
 # Duplocloud Py Client  
 
-[![Unit Tests](https://github.com/duplocloud/duploctl/actions/workflows/test_unit.yml/badge.svg)](https://github.com/duplocloud/duploctl/actions/workflows/test_unit.yml) [![PyPI - Version](https://img.shields.io/pypi/v/duplocloud-client)](https://pypi.org/project/duplocloud-client/) [![Docker Image Version](https://img.shields.io/docker/v/duplocloud/duploctl?sort=semver&logo=Docker&label=docker&color=blue&link=https%3A%2F%2Fhub.docker.com%2Fr%2Fduplocloud%2Fduploctl)](https://hub.docker.com/r/duplocloud/duploctl) [![GitHub Release](https://img.shields.io/github/v/release/duplocloud/duploctl?logo=github&label=Github&color=purple)
+[![Unit Tests](https://github.com/duplocloud/duploctl/actions/workflows/test_unit.yml/badge.svg)](https://github.com/duplocloud/duploctl/actions/workflows/test_unit.yml) [![PyPI - Version](https://img.shields.io/pypi/v/duplocloud-client?logo=pypi)](https://pypi.org/project/duplocloud-client/) [![Docker Image Version](https://img.shields.io/docker/v/duplocloud/duploctl?sort=semver&logo=Docker&label=docker&color=blue&link=https%3A%2F%2Fhub.docker.com%2Fr%2Fduplocloud%2Fduploctl)](https://hub.docker.com/r/duplocloud/duploctl) [![GitHub Release](https://img.shields.io/github/v/release/duplocloud/duploctl?logo=github&label=Github&color=purple)
 ](https://github.com/duplocloud/duploctl) [![Static Badge](https://img.shields.io/badge/Docs-lightblue?logo=github)
 ](https://duplocloud.github.io/duploctl/)
 
