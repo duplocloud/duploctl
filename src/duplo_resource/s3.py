@@ -71,8 +71,3 @@ class DuploS3(DuploTenantResourceV2):
     return {
       "message": f"S3 Bucket with name {body['Name']} updated"
     }
-
-    
-    
- 
-  
