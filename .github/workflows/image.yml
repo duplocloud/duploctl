@@ -1,0 +1,72 @@
+name: Publish Image
+
+on:
+  workflow_dispatch: 
+    inputs:
+      push:
+        description: Push the image to the registry
+        required: true
+        default: false
+        type: boolean
+      tag:
+        description: The git tag to build on
+        required: true
+        type: string
+  workflow_call: 
+    inputs:
+      push:
+        description: Push the image to the registry
+        required: false
+        default: true
+        type: boolean
+      tag:
+        description: The git tag to build on
+        required: true
+        type: string
+    outputs:
+      image:
+        description: The URI of the image
+        value: ${{ jobs.build_image.outputs.image }}
+    secrets:
+      DOCKER_USERNAME:
+        description: Docker username
+        required: true
+      DOCKER_PASSWORD:
+        description: Docker password
+        required: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build_image:
+    name: Image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build_image.outputs.uri }}
+    environment: 
+      name: dockerhub
+      url: https://hub.docker.com/r/duplocloud/duploctl
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.tag }}
+
+    - name: Build and Push Docker Image
+      id: build_image
+      uses: duplocloud/actions/build-image@main
+      with:
+        platforms: linux/amd64,linux/arm64 # makes it take longer
+        push: ${{ inputs.push }}
+        docker-username: ${{ secrets.DOCKER_USERNAME }}
+        docker-password: ${{ secrets.DOCKER_PASSWORD }}
+        build-args: >
+          PY_VERSION=3.12
+        tags: ${{ inputs.tag }}
+
+    - name: Docker Hub Description
+      uses: peter-evans/dockerhub-description@v4
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: duplocloud/duploctl
