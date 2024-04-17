@@ -5,12 +5,12 @@ on:
     inputs:
       push:
         description: Push the image to the registry
-        required: true
+        required: false
         default: false
         type: boolean
       tag:
         description: The git tag to build on
-        required: true
+        required: false
         type: string
   workflow_call: 
     inputs:
