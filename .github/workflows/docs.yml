@@ -6,11 +6,11 @@ on:
       push:
         description: Push the formula to the tap repository?
         required: false
-        default: true
+        default: false
         type: boolean
       tag:
         description: The git tag for the formula
-        required: true
+        required: false
         type: string
   workflow_call:
     inputs:
