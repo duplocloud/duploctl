@@ -104,6 +104,8 @@ class DuploTenantResourceV2(DuploResourceV2):
         self.__tenant_id = self.__tenant["TenantId"]
       elif self.duplo.tenantid:
         self.__tenant_id = self.duplo.tenantid
+      else:
+        self.__tenant_id = self.tenant["TenantId"]
     return self.__tenant_id
   
   def endpoint(self, path: str=None):
@@ -133,6 +135,8 @@ class DuploTenantResourceV3(DuploResource):
         self.__tenant_id = self.__tenant["TenantId"]
       elif self.duplo.tenantid:
         self.__tenant_id = self.duplo.tenantid
+      else:
+        self.__tenant_id = self.tenant["TenantId"]
     return self.__tenant_id
   
   @Command()
