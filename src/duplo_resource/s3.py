@@ -1,7 +1,6 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV3
-from duplocloud.commander import Command, Resource
-import duplocloud.args as args
+from duplocloud.commander import Resource
 
 
 @Resource("s3")
