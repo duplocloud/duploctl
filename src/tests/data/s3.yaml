@@ -1,0 +1,6 @@
+Name: test-bucket
+AllowPublicAccess: false
+EnableVersioning: null
+Region: us-west-2
+Policies:
+ - ssl
