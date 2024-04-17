@@ -38,3 +38,5 @@ nav:
   - Version: Version.md
 - Module:
   - Client: Client.md
+- Changelog: Changelog.md
+- Contributing: Contributing.md

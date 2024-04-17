@@ -74,12 +74,21 @@ jobs:
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}
+
+  docs:
+    name: Docs
+    uses: ./.github/workflows/docs.yml
+    secrets: inherit
+    needs: [version]
+    with:
+      tag: ${{ needs.version.outputs.tag }}
+      push: ${{ inputs.push }}
   
   release:
     name: Release
     uses: ./.github/workflows/release.yml
     secrets: inherit
-    needs: [version, package, installer, image]
+    needs: [version, package, installer, image, docs]
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}

@@ -71,10 +71,10 @@ build-backend = "setuptools.build_meta"
 
 [project.urls]
 Homepage = "https://github.com/duplocloud/duploctl"
-Documentation = "https://github.com/duplocloud/duploctl/wiki"
+Documentation = "https://duplocloud.github.io/duploctl/"
 Repository = "https://github.com/duplocloud/duploctl"
 Issues = "https://github.com/duplocloud/duploctl/issues"
-Changelog = "https://github.com/duplocloud/duploctl"
+Changelog = "https://github.com/duplocloud/duploctl/blob/main/CHANGELOG.md"
 LatestRelease = "https://github.com/duplocloud/duploctl/releases"
 
 [tool.pytest.ini_options]
