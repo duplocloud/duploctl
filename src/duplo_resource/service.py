@@ -118,6 +118,7 @@ class DuploService(DuploTenantResourceV2):
     """
     service = self.find(name)
     current_image =  self.image_from_body(service)
+    data = None
 
     # needed before update starts, not needed if not waiting
     if wait:
@@ -152,7 +153,7 @@ class DuploService(DuploTenantResourceV2):
       deletevar/-D (list): A list of keys to delete from the environment variables.
     """
     service = self.find(name)
-    service["Replicaset"] = self.current_replicaset(name)
+    
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
     currentEnv = currentDockerconfig.get("Env", [])
     newEnv = []
@@ -174,6 +175,7 @@ class DuploService(DuploTenantResourceV2):
     }
     self.duplo.post(self.endpoint("ReplicationControllerChange"), payload)
     if wait:
+      service["Replicaset"] = self.current_replicaset(name)
       self.wait(service, payload)
     return {"message": "Successfully updated environment variables for services"}
     
@@ -257,11 +259,15 @@ class DuploService(DuploTenantResourceV2):
     Raises:
       DuploError: If the service could not be found.
     """
+    def controlled_by_service(pod):
+      cb = pod.get("ControlledBy", None)
+      same_name = pod["Name"] == name
+      if cb is None:
+        return same_name
+      else:
+        return same_name and cb.get("QualifiedType", None) == "kubernetes:apps/v1/ReplicaSet" 
     pods = self.__pod_svc.list()
-    return [
-      pod for pod in pods
-      if pod["Name"] == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:apps/v1/ReplicaSet"
-    ]
+    return [ pod for pod in pods if controlled_by_service(pod) ]
   
   @Command()
   def logs(self,
@@ -293,7 +299,10 @@ class DuploService(DuploTenantResourceV2):
       DuploError: If the service could not be found.
     """
     pods = self.pods(name)
-    return pods[0]["ControlledBy"]["NativeId"]
+    cb = pods[0].get("ControlledBy", None)
+    if cb is None:
+      return None
+    return cb.get("NativeId", None)
   
   def image_from_body(self, body):
     """Get the image from a service body.
@@ -314,6 +323,7 @@ class DuploService(DuploTenantResourceV2):
   def wait(self, old, updates):
     """Wait for a service to update."""
     name = old["Name"]
+    cloud = old["Template"]["Cloud"]
     new_img = self.image_from_body(updates)
     old_img = self.image_from_body(old)
     new_replicas = updates.get("Replicas", None)
@@ -324,6 +334,22 @@ class DuploService(DuploTenantResourceV2):
     rollover = False
     if image_changed or conf_changed:
       rollover = True
+    def check_pod_faults(pod, faults):
+      """Check if the pod has any faults.
+      
+      This is for aws and gke because the faults are at the pod level.
+      """
+      for f in faults:
+        if f["Resource"]["Name"] == pod["InstanceId"]:
+          raise DuploFailedResource(f"Pod {pod['InstanceId']} raised a fault.\n{f['Description']}")
+    def check_service_faults(faults):
+      """Check if the service has any faults.
+      
+      This is only for azure because the faults are at the service level only
+      """
+      for f in faults:
+        if f["ResourceName"] == name:
+          raise DuploFailedResource(f"Service {name} raised a fault.\n{f['Description']}")
     def wait_check():
       svc = self.find(name)
       replicas = svc["Replicas"]
@@ -335,16 +361,37 @@ class DuploService(DuploTenantResourceV2):
       if (conf_changed and svc["Template"].get("OtherDockerConfig", None) != new_conf):
         raise DuploError(f"Service {name} waiting for pod to update", 400)
       pods = self.pods(name)
-      faults = self.tenant_svc.faults()
+      faults = self.tenant_svc.faults(id=self.tenant_id)
       running = 0
+
+      # check for azure faults on service
+      if cloud == 2:
+        check_service_faults(faults)
       for p in pods:
-        if p["ControlledBy"]["NativeId"] == old.get("Replicaset", None) and rollover:
+
+        # azure doesn't have controlled by, so we skip this check if it's not there
+        cb = p.get("ControlledBy", None) 
+        # skip if the pod is not controlled by the new replicaset
+        if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
           continue
-        for f in faults:
-          if f["Resource"]["Name"] == p["InstanceId"]:
-            raise DuploFailedResource(f"Service {name} raised a fault.\n{f['Description']}")
+
+        # ignore this pod if the image is the old image
+        img = p["Containers"][0]["Image"].removeprefix("docker.io/library/")
+        if image_changed and img == old_img:
+          continue
+
+        # check for aws and gke faults on pod
+        if cloud != 2:
+          check_pod_faults(p, faults)
+
+        # update total running pod count if one is running 
         if ((p["CurrentStatus"] == p["DesiredStatus"]) and p["DesiredStatus"] == 1):
+          self.duplo.logger.info(f"Pod {p['InstanceId']} is running")
           running += 1
+
+      # make sure all the replicas are up
       if replicas != running:
         raise DuploError(f"Service {name} waiting for pods {running}/{replicas}", 400)
+      
+    # send to the base class to do the waiting
     super().wait(wait_check, 400, 11)

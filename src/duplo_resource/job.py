@@ -37,23 +37,25 @@ class DuploJob(DuploTenantResourceV3):
         a = active
         s = succeeded
         f = failed
-        self.duplo.logger.info(f"Job {name}: active({active}/{completions}), succeeded({succeeded}/{completions}), failed({failed}/{limit})")
+        self.duplo.logger.warn(f"Job {name}: active({active}/{completions}), succeeded({succeeded}/{completions}), failed({failed}/{limit})")
       # make sure we can get pods and logs first
       pods_exist = (active > 0 or succeeded > 0 or failed > 0)
       pods = self.pods(name)
       if pods_exist and len(pods) == 0:
-        raise DuploError(None)
+        raise DuploError(f"Job {name} has no pods {pods_exist} {len(pods)}")
       # display the logs
       for pod in pods:
         self.__pod_svc.logs(pod=pod)
       # make sure we got all of the logs
       pod_count = active + succeeded + failed
       if len(pods) != pod_count:
-        raise DuploError(None)
+        raise DuploError(f"Expected {pod_count} pods, got {len(pods)}")
       if len(fail) > 0:
         raise DuploFailedResource(f"Job {name} failed with {fail[0]['reason']}: {fail[0]['message']}")
+      
+      # if none have completed, keep waiting
       if not len(cpl) > 0:
-        raise DuploError(None)
+        raise DuploError(f"Job {name} not complete {cpl}")
     super().create(body, wait, wait_check)
     return {
       "message": f"Job {name} ran successfully."

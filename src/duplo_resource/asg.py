@@ -101,14 +101,14 @@ class DuploAsg(DuploTenantResourceV2):
     return self.update(data)
   
   def name_from_body(self, body):
-    prefix = f"duploservices-{self.duplo.tenant}"
+    prefix = f"duploservices-{self.tenant['AccountName']}"
     name =  body["FriendlyName"]
     if not name.startswith(prefix):
       name = f"{prefix}-{name}"
     return name
 
   def discover_image(self, agent, arch="amd64"):
-    imgs = self.tenant_svc.host_images(self.duplo.tenant)
+    imgs = self.tenant_svc.host_images(self.tenant['AccountName'])
     try:
       img = [i for i in imgs if i["Agent"] == agent and i["Arch"] == arch][0]
       return img.get("ImageId")

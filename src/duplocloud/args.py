@@ -36,6 +36,10 @@ TENANT = Arg("tenant", "-T",
              help='The tenant name',
              default=os.getenv('DUPLO_TENANT', None))
 
+TENANT_ID = Arg("tenantid", "--tenant-id", "--tid",
+             help='The tenant id',
+             default=os.getenv('DUPLO_TENANT_ID', None))
+
 ARN = Arg("aws-arn", "--arn",
            help='The aws arn',
            default=None)

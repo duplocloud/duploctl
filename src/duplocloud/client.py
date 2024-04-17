@@ -40,6 +40,7 @@ class DuploClient():
                host: args.HOST=None,
                token: args.TOKEN=None,
                tenant: args.TENANT=None,
+               tenant_id: args.TENANT_ID=None,
                home_dir: args.HOME_DIR = None,
                config_file: args.CONFIG = None,
                cache_dir: args.CACHE_DIR = None,
@@ -51,7 +52,7 @@ class DuploClient():
                isadmin: args.ISADMIN=False,
                query: args.QUERY=None,
                output: args.OUTPUT="json",
-               loglevel: args.LOGLEVEL="INFO"):
+               loglevel: args.LOGLEVEL="WARN"):
     """DuploClient
     
     Creates an instance of a duplocloud client configured for a certain portal. All of the specific configuration is done in the DuploConfig class.
@@ -63,6 +64,9 @@ class DuploClient():
     # ignore the given token with interactive mode
     if token and interactive: 
       token = None
+    # if a tenant id was given, the tenant name must be ignored
+    if tenant_id:
+      tenant = None
 
     user_home = Path.home()
     self.home_dir = home_dir or f"{user_home}/.duplo"
@@ -73,6 +77,7 @@ class DuploClient():
     self.__host = self.__sanitize_host(host)
     self.__token = token.strip() if token else token
     self.__tenant = tenant.strip().lower() if tenant else tenant
+    self.tenantid = tenant_id.strip() if tenant_id else tenant_id
     self.version = version
     self.interactive = interactive
     self.nocache = nocache
