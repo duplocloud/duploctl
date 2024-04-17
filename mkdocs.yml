@@ -1,0 +1,40 @@
+site_name: Duploctl Wiki
+
+docs_dir: wiki
+site_dir: dist/site
+
+theme:
+  name: "material"
+
+plugins: 
+- mkdocstrings
+
+markdown_extensions:
+- pymdownx.highlight:
+    anchor_linenums: true
+    line_spans: __span
+    pygments_lang_class: true
+- pymdownx.inlinehilite
+- pymdownx.superfences
+- pymdownx.magiclink
+- pymdownx.snippets:
+    check_paths: true
+
+nav:
+- Readme: index.md
+- Overview: Home.md
+- Resources:
+  - JIT: Jit.md
+  - Autoscaling Groups: Autoscaling.md
+  - Hosts: Host.md
+  - Lambda: Lambda.md
+  - Service: Service.md
+  - CronJobs: CronJob.md
+  - Ingress: Ingress.md
+  - Secret: Secret.md
+  - ConfigMap: ConfigMap.md
+  - User: User.md
+  - System: System.md
+  - Version: Version.md
+- Module:
+  - Client: Client.md

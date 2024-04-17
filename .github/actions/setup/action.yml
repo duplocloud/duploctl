@@ -25,6 +25,10 @@ inputs:
     description: The repositories to get tokens for.
     required: false
     default: duploctl
+  submodules:
+    description: Whether to fetch submodules
+    required: false
+    default: "false"
 outputs:
   token:
     description: The GitHub App token
@@ -47,6 +51,7 @@ runs:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
       token: ${{ steps.app-token.outputs.token }}
+      submodules: ${{ inputs.submodules }}
       # persist-credentials: false
 
   - name: Set up Python ${{ inputs.python-version }}
