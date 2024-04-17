@@ -42,7 +42,7 @@ class DuploInfrastructure(DuploResource):
       i = self.find(name)
       s = i.get("ProvisioningStatus", "submitted")
       if status != s:
-        self.duplo.logger.info(f"Infrastructure '{name}' - {s}")
+        self.duplo.logger.warn(f"Infrastructure '{name}' - {s}")
         status = s
       if s != "Complete":
         # stop waiting if the status contains failed

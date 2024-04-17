@@ -51,7 +51,7 @@ class DuploPod(DuploTenantResourceV2):
       title = id
       spaces = len(title) * " "
       for line in lines[-diff:]:
-        self.duplo.logger.info(f"{title}: {line}")
+        self.duplo.logger.warn(f"{title}: {line}")
         title = spaces
     return None
 

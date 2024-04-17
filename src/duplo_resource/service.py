@@ -386,7 +386,7 @@ class DuploService(DuploTenantResourceV2):
 
         # update total running pod count if one is running 
         if ((p["CurrentStatus"] == p["DesiredStatus"]) and p["DesiredStatus"] == 1):
-          self.duplo.logger.info(f"Pod {p['InstanceId']} is running")
+          self.duplo.logger.warn(f"Pod {p['InstanceId']} is running")
           running += 1
 
       # make sure all the replicas are up

@@ -29,7 +29,7 @@ class DuploRDS(DuploTenantResourceV3):
       status = i.get("InstanceStatus", "submitted")
       if s != status:
         s = status
-        self.duplo.logger.info(f"DB instance {name} is {status}")
+        self.duplo.logger.warn(f"DB instance {name} is {status}")
       if status != "available":
         raise DuploError(None)
     super().create(body, wait, wait_check)
