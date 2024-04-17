@@ -1,0 +1,55 @@
+name: Publish Docs
+
+on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Push the formula to the tap repository?
+        required: false
+        default: true
+        type: boolean
+      tag:
+        description: The git tag for the formula
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      push:
+        description: Push the formula to the tap repository?
+        required: false
+        default: true
+        type: boolean
+      tag:
+        description: The git tag to build on
+        required: true
+        type: string
+    secrets:
+      GH_APP_KEY:
+        description: GitHub App private key
+        required: true
+
+jobs:
+  mkdocs:
+    name: Mkdocs to GH Pages
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Setup
+      id: setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        ref: ${{ inputs.tag }}
+        optionals: "[docs]"
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+        submodules: "true"
+
+    - name: Gen Formula
+      run: mkdocs build
+
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist/site
+      

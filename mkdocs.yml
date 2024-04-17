@@ -1,6 +1,7 @@
 site_name: Duploctl Wiki
 
 docs_dir: wiki
+site_dir: dist/site
 
 theme:
   name: "material"
