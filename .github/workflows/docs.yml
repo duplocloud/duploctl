@@ -4,23 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       push:
-        description: Push the formula to the tap repository?
+        description: Push site to Github Pages?
         required: false
         default: false
         type: boolean
       tag:
-        description: The git tag for the formula
+        description: Ref to build docs from?
         required: false
         type: string
   workflow_call:
     inputs:
       push:
-        description: Push the formula to the tap repository?
+        description: Push site to Github Pages?
         required: false
         default: true
         type: boolean
       tag:
-        description: The git tag to build on
+        description: Ref to build docs from?
         required: true
         type: string
     secrets:
@@ -29,8 +29,8 @@ on:
         required: true
 
 jobs:
-  mkdocs:
-    name: Mkdocs to GH Pages
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
 
@@ -44,13 +44,32 @@ jobs:
         private-key: ${{ secrets.GH_APP_KEY }}
         submodules: "true"
 
-    - name: Gen Formula
+    - name: Build Docs
       run: mkdocs build
 
-    - name: Deploy
-      uses: peaceiris/actions-gh-pages@v4
-      if: inputs.push
+    - name: Fix permissions
+      run: |
+        chmod -c -R +rX "dist/site/" | while read line; do
+          echo "::warning title=Invalid file permissions automatically fixed::$line"
+        done
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist/site
-      
+        path: dist/site
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.push
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
