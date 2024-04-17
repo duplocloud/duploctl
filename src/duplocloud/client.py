@@ -52,7 +52,7 @@ class DuploClient():
                isadmin: args.ISADMIN=False,
                query: args.QUERY=None,
                output: args.OUTPUT="json",
-               loglevel: args.LOGLEVEL="INFO"):
+               loglevel: args.LOGLEVEL="WARN"):
     """DuploClient
     
     Creates an instance of a duplocloud client configured for a certain portal. All of the specific configuration is done in the DuploConfig class.
