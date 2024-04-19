@@ -3,11 +3,24 @@ site_name: Duploctl Wiki
 docs_dir: wiki
 site_dir: dist/site
 
+watch:
+- src
+- wiki
+
 theme:
   name: "material"
+  features:
+  - content.code.annotate
+  - content.code.copy
 
 plugins: 
-- mkdocstrings
+- mkdocstrings:
+    handlers:
+      python:
+        options:
+          show_source: false
+          filters:
+          - "^(?!__).*"
 
 markdown_extensions:
 - pymdownx.highlight:

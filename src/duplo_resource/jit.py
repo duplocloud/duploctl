@@ -13,12 +13,60 @@ import jwt
 
 @Resource("jit")
 class DuploJit(DuploResource):
+  """Just In Time (JIT) Resource
+  
+  Just in time access for AWS. This will use Duplo credentials to ask a certain Duplo portal for temporary AWS credentials. These credentials will be valid for a certain amount of time and will be used to access AWS resources.
+
+  Usage:  
+    using the `duploctl` command line tool, you can manage services with actions:
+
+    ```sh
+    duploctl jit <action>
+    ```
+  """
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
 
   @Command()
   def aws(self, nocache: bool = None):
-    """Retrieve aws session credentials for current user."""
+    """AWS STS Session Credentials
+    
+    Provides a full sts session with credentials and region. The default return is a valid exec credential for the AWS CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant 
+    credentials are returned. The `--interactive` flag can be used to get the credentials for an interactive session and use the cache. 
+
+    Basic Usage:  
+      ```sh
+      duploctl jit aws
+      ```
+
+    Example: Using in AWS CLI Credential Process  
+      Here is an example for using the duploctl jit for aws in an AWS CLI config file. 
+
+      ```toml
+      [profile myportal]
+      region=us-west-2
+      output=json
+      credential_process=duploctl jit aws --host https://myportal.duplocloud.net --admin --interactive
+      ```
+
+    Example: Using in AWS CLI Credential Process  
+      Here is an example using a query and env output to create some just in time aws credentials. 
+
+      ```sh
+      duploctl jit aws -o env -q '{AWS_ACCESS_KEY_ID: AccessKeyId, AWS_SECRET_ACCESS_KEY: SecretAccessKey, AWS_SESSION_TOKEN: SessionToken, AWS_REGION: Region}'
+      ```
+
+      A one liner to export those credentials as environment variables. 
+      ```sh
+      for i in `duploctl jit aws -q '{AWS_ACCESS_KEY_ID: AccessKeyId, AWS_SECRET_ACCESS_KEY: SecretAccessKey, AWS_SESSION_TOKEN: SessionToken, AWS_REGION: Region}' -o env`; do export $i; done
+      ```
+
+    Args:
+      nocache (bool): Do not use cached credentials. Only for other methods to use.
+
+    Returns:
+      sts (dict): The AWS STS session credentials. 
+    """
     sts = None
     path = None
     k = self.duplo.cache_key_for("aws-creds")
@@ -51,7 +99,20 @@ class DuploJit(DuploResource):
   @Command()
   def k8s(self,
           planId: args.PLAN = None):
-    """Retrieve k8s session credentials for current user."""
+    """Kubernetes JIT Exec Credentials
+    
+    Provides a full exec credential for kubectl. The default return is a valid exec credential for the kubectl CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant. 
+    An admin can pass the `--plan` or else it will be discovered from the chosen tenant. A non admin must 
+    choose a tenant. 
+
+    Usage:  
+      ```sh
+      duploctl jit k8s
+      ```
+
+    Args:
+      planId: The planId aka name the infrastructure.
+    """
     # either plan or tenant in cache key
     pt = planId or self.duplo.tenant or self.duplo.tenantid
     k = self.duplo.cache_key_for(f"plan,{pt},k8s-creds")

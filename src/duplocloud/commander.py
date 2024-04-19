@@ -1,13 +1,14 @@
 import inspect 
 import argparse
 from copy import deepcopy
-from importlib.metadata import entry_points
+from importlib.metadata import entry_points, version
 from .errors import DuploError
 from .argtype import Arg
 
 
 ENTRYPOINT="duplocloud.net"
 FORMATS=f"formats.{ENTRYPOINT}"
+VERSION=version('duplocloud-client')
 ep = entry_points(group=ENTRYPOINT)
 fep = entry_points(group=FORMATS)
 schema = {}
@@ -48,8 +49,9 @@ def Command():
       a = deepcopy(param.annotation)
       if not a.positional and name != a.__name__:
         a.set_attribute("dest", name)
-      if param.default is not inspect.Parameter.empty:
-        a.set_attribute("default", param.default)
+      # hmmm, is this a good idea? If so, maybe some innovations is needed. 
+      # if param.default is not inspect.Parameter.empty:
+      #   a.set_attribute("default", param.default)
       return a
     schema[function.__qualname__] = [
         arg_anno(k, v)

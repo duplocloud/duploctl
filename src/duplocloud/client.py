@@ -1,4 +1,5 @@
 
+import sys
 import requests
 import jmespath
 import os
@@ -14,7 +15,7 @@ from .commander import load_resource,load_format
 from .errors import DuploError, DuploExpiredCache
 from .server import TokenServer
 from . import args
-from .commander import Command, get_parser
+from .commander import Command, get_parser, available_resources, VERSION
 
 class DuploClient():
   """Duplo Client
@@ -41,9 +42,9 @@ class DuploClient():
                token: args.TOKEN=None,
                tenant: args.TENANT=None,
                tenant_id: args.TENANT_ID=None,
-               home_dir: args.HOME_DIR = None,
-               config_file: args.CONFIG = None,
-               cache_dir: args.CACHE_DIR = None,
+               home_dir: args.HOME_DIR=None,
+               config_file: args.CONFIG=None,
+               cache_dir: args.CACHE_DIR=None,
                version: args.VERSION=False,
                interactive: args.INTERACTIVE=False,
                ctx: args.CONTEXT=None,
@@ -225,10 +226,18 @@ class DuploClient():
   
   def __str__(self) -> str:
      return f"""
-Client for Duplo at {self.host}
-"""
+Host: {self.host}
+Tenant: {self.tenant or self.tenantid}
+Home: {self.home_dir}
+Config: {self.config_file}
+Cache: {self.cache_dir}
+Version: {VERSION}
+Path: {sys.argv[0]}
+Available Resources: 
+  {", ".join(available_resources())}
+""".strip()
   
-  def __call__(self, resource: str, *args):
+  def __call__(self, resource: str=None, *args):
     """Run a service command.
     
     Args:
@@ -238,6 +247,8 @@ Client for Duplo at {self.host}
     Returns:
       The result of the command.
     """
+    if not resource:
+      raise DuploError(str(self), 400)
     r = self.load(resource)
     d = r(*args)
     if d is None:
