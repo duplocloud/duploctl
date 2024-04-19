@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed 
+
+ - homebrew deployment uses pip freeze for it's dependencies so all subpackages exist as well
+
 ## [0.2.26] - 2024-04-17
 
 ### Added 
