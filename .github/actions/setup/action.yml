@@ -7,10 +7,9 @@ inputs:
   fetch-depth:
     description: The depth of the git checkout
     required: false
-  optionals:
-    description: Optional arguments to pass to the setup
+  install:
+    description: Arguments to pass to the pip install
     required: false
-    default: ""
   python-version:
     description: The python version to use
     required: false
@@ -52,16 +51,15 @@ runs:
       fetch-depth: ${{ inputs.fetch-depth }}
       token: ${{ steps.app-token.outputs.token }}
       submodules: ${{ inputs.submodules }}
-      # persist-credentials: false
 
   - name: Set up Python ${{ inputs.python-version }}
     uses: actions/setup-python@v5
+    if: inputs.install
     with:
       python-version: ${{ inputs.python-version }}
       cache: pip
 
   - name: Install Dependencies
+    if: inputs.install
     shell: bash
-    env:
-      OPTIONALS: ${{ inputs.optionals }}
-    run: pip install .$OPTIONALS
+    run: pip install ${{ inputs.install }}
