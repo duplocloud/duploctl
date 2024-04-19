@@ -2,6 +2,7 @@ from typing import NewType
 import argparse
 import yaml
 import json 
+import os
 from .errors import DuploError
 
 class Arg(NewType):
@@ -9,16 +10,17 @@ class Arg(NewType):
               name, 
               *flags, 
               type=str, 
-              action=None, 
-              nargs=None, 
-              const=None, 
+              action: str=None, 
+              nargs: str=None, 
+              const: str=None, 
               default=None, 
               choices=None, 
-              required=None, 
-              help=None, 
+              required: bool=None, 
+              help: str=None, 
               metavar=None, 
-              dest=None,
-              version=None):
+              dest: str=None,
+              version=None,
+              env: str=None):
     """Command Argument Type
 
     Args:
@@ -39,6 +41,8 @@ class Arg(NewType):
     super().__init__(name, type)
     self.attributes = {}
     self._flags = flags
+    if env:
+      default = os.getenv(env, default)
     # if action is not a string, then type is allowed
     if not isinstance(action, str):
       self.set_attribute("type", type)
@@ -64,6 +68,9 @@ class Arg(NewType):
   @property
   def positional(self):
     return len(self._flags) == 0
+  
+  def __doc__(self):
+    return self.attributes.get("help", "")
 
 class YamlAction(argparse.Action):
   def __init__(self, option_strings, dest, nargs=None, **kwargs):

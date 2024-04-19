@@ -1,44 +1,52 @@
-import os
 import argparse
 import logging
-from importlib.metadata import version
 from .argtype import Arg, YamlAction, JsonPatchAction
-from .commander import available_resources
+from .commander import available_resources, VERSION
 
 # the global args for the CLI
 
 HOME_DIR = Arg('homedir', '--home-dir', 
             help='The home directory for duplo configurations',
-            default=os.getenv('DUPLO_HOME', None))
+            env='DUPLO_HOME')
+"""Home Directory
+
+Defaults to users home directory in a directory named ".duplo"
+This is where the cli will look by default for the config and cache. 
+"""
 
 CACHE_DIR = Arg('cachedir', '--cache-dir', 
             help='The cache directory for saved credentials.',
-            default=os.getenv('DUPLO_CACHE', None))
+            env='DUPLO_CACHE')
 
 LOGLEVEL = Arg('log-level', '--loglevel', '-L',
             help='The log level to use.',
-            default=os.getenv('DUPLO_LOG_LEVEL', 'INFO'),
+            default='INFO',
+            env='DUPLO_LOG_LEVEL',
             choices=list(logging._nameToLevel.keys()))
 
 CONFIG = Arg('configfile', '--config-file', 
             help='The path to the duploctl configuration file.',
-            default=os.getenv('DUPLO_CONFIG', None))
+            env='DUPLO_CONFIG')
+
+CONTEXT = Arg("context", "--ctx",
+              help='Use the specified context from the config file.',
+              env='DUPLO_CONTEXT')
 
 HOST = Arg('host', '-H', 
             help='The url to specified duplo portal.',
-            default=os.getenv('DUPLO_HOST', None))
+            env='DUPLO_HOST')
 
 TOKEN = Arg('token', '-t', 
             help='The token to authenticate with duplocloud portal api.',
-            default=os.getenv('DUPLO_TOKEN', None))
+            env='DUPLO_TOKEN')
 
 TENANT = Arg("tenant", "-T",
              help='The tenant name',
-             default=os.getenv('DUPLO_TENANT', None))
+             env='DUPLO_TENANT')
 
 TENANT_ID = Arg("tenantid", "--tenant-id", "--tid",
              help='The tenant id',
-             default=os.getenv('DUPLO_TENANT_ID', None))
+             env='DUPLO_TENANT_ID')
 
 ARN = Arg("aws-arn", "--arn",
            help='The aws arn',
@@ -54,10 +62,6 @@ ISADMIN = Arg("admin","--isadmin",
               type=bool,
               action='store_true')
 
-CONTEXT = Arg("context", "--ctx",
-              help='Use the specified context from the config file.',
-              default=os.getenv('DUPLO_CONTEXT', None))
-
 NOCACHE = Arg("no-cache","--nocache", 
               help='Do not use cache credentials.',
               type=bool,
@@ -65,14 +69,16 @@ NOCACHE = Arg("no-cache","--nocache",
 
 BROWSER = Arg("web-browser","--browser", 
               help='The desired web browser to use for interactive login',
-              default=os.getenv('DUPLO_BROWSER', None))
+              env='DUPLO_BROWSER')
 
 PLAN = Arg("plan", "-P",
             help='The plan name.',
-            default=os.getenv('DUPLO_PLAN', None))
+            env='DUPLO_PLAN')
 
 OUTPUT = Arg("output", "-o",
-              help='The output format')
+              help='The output format',
+              default='json',
+              env='DUPLO_OUTPUT')
 
 QUERY = Arg("query", "-q",
             help='The jmespath query to run on a result')
@@ -83,7 +89,7 @@ PATCHES = Arg("patches", '-p',
 
 VERSION = Arg("version", "--version",
               action='version', 
-              version=f"%(prog)s {version('duplocloud-client')}",
+              version=f"%(prog)s {VERSION}",
               type=bool)
 
 # The rest are resource level args for commands
