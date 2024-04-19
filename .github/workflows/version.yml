@@ -50,7 +50,7 @@ jobs:
       id: setup
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
-        optionals: "[build]"
+        install: ".[build]"
         fetch-depth: 0
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}

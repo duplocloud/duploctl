@@ -39,10 +39,16 @@ jobs:
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
-        optionals: "[build]"
+        install: "-e ."
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         repositories: homebrew-tap
+    
+    - name: Freeze Requirements
+      run: pip freeze --exclude-editable > requirements.txt
+
+    - name: Build Dependencies
+      run: pip install .[build]
 
     - name: Gen Formula
       run: >-
