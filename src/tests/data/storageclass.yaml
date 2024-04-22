@@ -1,0 +1,5 @@
+provisioner: efs.csi.aws.com
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+name: test1
+allowVolumeExpansion: true

@@ -146,6 +146,7 @@ hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
 rds = "duplo_resource.rds:DuploRDS"
 s3 = "duplo_resource.s3:DuploS3"
+storageclass = "duplo_resource.storageclass:DuploStorageClass"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
