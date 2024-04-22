@@ -49,7 +49,7 @@ class DuploJit(DuploResource):
       credential_process=duploctl jit aws --host https://myportal.duplocloud.net --admin --interactive
       ```
 
-    Example: Using in AWS CLI Credential Process  
+    Example: Get AWS Environment Variables  
       Here is an example using a query and env output to create some just in time aws credentials. 
 
       ```sh
@@ -202,7 +202,7 @@ class DuploJit(DuploResource):
     Gets context based on planId or tenant name or admin or nonadmin. 
 
     Args:
-      planId (str): The planId of the infrastructure.
+      planId: The planId of the infrastructure.
     
     Returns:
       dict: The k8s context.
