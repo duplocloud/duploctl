@@ -71,9 +71,11 @@ class DuploResourceV2(DuploResource):
     """Find a resource by name.
     
     Args:
-      name (str): The name of the resource to find.
+      name: The name of the resource to find.
+
     Returns: 
       The resource object.
+      
     Raises:
       DuploError: If the resource could not be found.
     """

@@ -23,7 +23,7 @@ jobs:
     - name: Setup
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
-        optionals: "[build,test]"
+        install: ".[build,test]"
         python-version: ${{ matrix.python-version }}
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
