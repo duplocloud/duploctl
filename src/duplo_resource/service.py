@@ -17,6 +17,15 @@ _STATUS_CODES = {
 
 @Resource("service")
 class DuploService(DuploTenantResourceV2):
+  """Duplocloud Service Resource
+  
+  This resource is used to manage services in Duplocloud. Using the `duploctl` command line tool, you can manage services with actions:
+  
+  Usage: Basic CLI Use  
+    ```sh
+    duploctl service <action>
+    ```
+  """
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
@@ -111,10 +120,20 @@ class DuploService(DuploTenantResourceV2):
                    image: args.IMAGE,
                    wait: args.WAIT = False):
     """Update the image of a service.
+
+    Update the image of a service.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service update_image <service-name> <image-name>
+      ```
     
     Args:
-      name (str): The name of the service to update.
-      image (str): The new image to use for the service.
+      name: The name of the service to update.
+      image: The new image to use for the service.
+
+    Returns:
+      Success message
     """
     service = self.find(name)
     current_image =  self.image_from_body(service)
@@ -184,6 +203,13 @@ class DuploService(DuploTenantResourceV2):
   def bulk_update_image(self, 
                   serviceimage: args.SERVICEIMAGE):
     """Update multiple services.
+
+    Bulk update the image of a services.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service bulk_update_image -S <service-name-1> <image-name-1> -S <service-name-2> <image-name-2>
+      ```
     
     Args:
       serviceimage/-S (string): takes n sets of two arguments, service name and image name. e.g -S service1 image1:tag -S service2 image2:tag
@@ -206,11 +232,20 @@ class DuploService(DuploTenantResourceV2):
   def restart(self, 
               name: args.NAME):
     """Restart a service.
+
+    Restart a service.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service restart <service-name>
+      ```
     
     Args:
-      name (str): The name of the service to restart.
+      name: The name of the service to restart.
+
     Returns: 
       A success message if the service was restarted successfully.
+
     Raises:
       DuploError: If the service could not be restarted.
     """
@@ -221,13 +256,22 @@ class DuploService(DuploTenantResourceV2):
   def stop(self, 
            name: args.NAME):
     """Stop a service.
+
+    Stop a service.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service stop <service-name>
+      ```
     
     Args:
-      name (str): The name of the service to stop.
+      name (str): The name of the service to stop.  
+
     Returns: 
-      A success message if the service was stopped successfully.
+      A success message if the service was stopped successfully.  
+      
     Raises:
-      DuploError: If the service could not be stopped.
+      DuploError: If the service could not be stopped.  
     """
     self.duplo.post(self.endpoint(f"ReplicationControllerStop/{name}"))
     return {"message": f"Successfully stopped service '{name}'"}
@@ -236,11 +280,20 @@ class DuploService(DuploTenantResourceV2):
   def start(self, 
             name: args.NAME):
     """Start a service.
+
+    Start a service.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service start <service-name>
+      ```
     
     Args:
       name (str): The name of the service to start.
+
     Returns: 
       A success message if the service was started successfully.
+
     Raises:
       DuploError: If the service could not be started.
     """

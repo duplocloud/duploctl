@@ -18,3 +18,4 @@ venv
 .DS_Store
 .github/output
 .github/env
+requirements.txt

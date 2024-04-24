@@ -13,10 +13,12 @@ NAME = Arg("name",
 ENABLED = Arg("enabled", "-y",
               help='A test enabled arg',
               action="store_true",
-              type=bool)
+              type=bool,
+              default=False)
               
 IMAGE = Arg("image", "-i", "--img",
-            help='A test image arg')
+            help='A test image arg',
+            default="ubuntu")
 
 class SomeResource():
   @Command()

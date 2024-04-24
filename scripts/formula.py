@@ -6,8 +6,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(HERE))
 import requests
 import toml
-import re
-from importlib.metadata import version
+# from importlib.metadata import version
 from gha import GithubRepo
 
 class HomebrewFormula:
@@ -31,9 +30,9 @@ class HomebrewFormula:
     else:
       self.repo.dist_file(self.out_file, formula)
 
-  def make_resource(self, name):
-    v = version(name)
-    url = f"https://pypi.org/pypi/{name}/{v}/json"
+  def make_resource(self, requirement):
+    name, version = requirement.split("==")
+    url = f"https://pypi.org/pypi/{name}/{version}/json"
     response = requests.get(url)
     data = response.json()
     sdist = list(filter(lambda x: x['packagetype'] == 'sdist', data['urls']))[0]
@@ -45,13 +44,9 @@ class HomebrewFormula:
     """
   
   def make_resources(self):
-    pattern = '|'.join(map(re.escape, ['>=', '<=', '==', '!=']))
-    resources = []
-    for dep in self.pyproject['project']['dependencies']:
-      name, _ = re.split(pattern, dep, 1)
-      res = self.make_resource(name)
-      resources.append(res)
-    return "".join(resources)
+    with open('requirements.txt', 'r') as f:
+      resources = [self.make_resource(r) for r in f.read().splitlines()]
+      return "".join(resources)
   
   def get_shas(self):
     url = f"{self.repo_url}/releases/download/v{self.version}/checksums.txt"
@@ -71,10 +66,10 @@ class HomebrewFormula:
     return (linux_sha, macos_sha, pip_sha)
   
   def build_formula(self):
+    linux_sha, macos_sha, pip_sha = self.get_shas()
+    resources = self.make_resources()
     with open(self.tpl_file, 'r') as tpl_file:
       tpl = tpl_file.read()
-      linux_sha, macos_sha, pip_sha = self.get_shas()
-      resources = self.make_resources()
       return tpl.format(
         repo_url=self.repo_url,
         description=self.description,

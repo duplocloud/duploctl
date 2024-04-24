@@ -1,4 +1,5 @@
 
+import sys
 import requests
 import jmespath
 import os
@@ -14,7 +15,10 @@ from .commander import load_resource,load_format
 from .errors import DuploError, DuploExpiredCache
 from .server import TokenServer
 from . import args
-from .commander import Command, get_parser
+from .commander import Command, get_parser, available_resources, VERSION
+from typing import TypeVar
+
+T = TypeVar("T")
 
 class DuploClient():
   """Duplo Client
@@ -41,9 +45,9 @@ class DuploClient():
                token: args.TOKEN=None,
                tenant: args.TENANT=None,
                tenant_id: args.TENANT_ID=None,
-               home_dir: args.HOME_DIR = None,
-               config_file: args.CONFIG = None,
-               cache_dir: args.CACHE_DIR = None,
+               home_dir: args.HOME_DIR=None,
+               config_file: args.CONFIG=None,
+               cache_dir: args.CACHE_DIR=None,
                version: args.VERSION=False,
                interactive: args.INTERACTIVE=False,
                ctx: args.CONTEXT=None,
@@ -53,9 +57,30 @@ class DuploClient():
                query: args.QUERY=None,
                output: args.OUTPUT="json",
                loglevel: args.LOGLEVEL="WARN"):
-    """DuploClient
+    """DuploClient Constructor
     
-    Creates an instance of a duplocloud client configured for a certain portal. All of the specific configuration is done in the DuploConfig class.
+    Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each ofthe arguments are annotated types that are used by argparse to create the command line arguments.
+
+    Args:
+      host: The host of the Duplo instance.
+      token: The token to use for authentication.
+      tenant: The tenant to use.
+      tenant_id: The tenant id to use.
+      home_dir: The home directory for the client.
+      config_file: The config file for the client.
+      cache_dir: The cache directory for the client.
+      version: The version of the client.
+      interactive: The interactive mode for the client.
+      ctx: The context to use.
+      nocache: The nocache flag for the client.
+      browser: The browser to use for interactive login.
+      isadmin: The admin flag for the client.
+      query: The query to use.
+      output: The output format for the client.
+      loglevel: The log level for the client.
+
+    Returns:
+      duplo (DuploClient): An instance of a DuploClient.
     """
     # forces the given context to be used
     if ctx: 
@@ -92,12 +117,17 @@ class DuploClient():
 
   @staticmethod
   def from_env():
-    """DuploClient from Environment
+    """From Environment
 
-    Create a DuploClient from environment variables.
+    Create a DuploClient from environment variables. This is the most common way to create a DuploClient.
+
+    Usage: New Client From Environment
+      ```python
+      duplo, args = DuploClient.from_env()
+      ```
 
     Returns:
-      An instance of DuploConfig.
+      duplo (DuploClient): An instance of a DuploClient.
     """
     p = get_parser(DuploClient.__init__)
     env, xtra = p.parse_known_args()
@@ -105,13 +135,16 @@ class DuploClient():
     return duplo, xtra
   
   @staticmethod
-  def from_args(*args):
+  def from_args(*args: str): 
     """DuploClient from Environment
 
-    Create a DuploClient from environment variables.
+    Create a DuploClient from an array of global client arguments. 
+
+    Args:
+      args: An array of global client arguments aligning with the DuploClient constructor.
 
     Returns:
-      An instance of DuploConfig.
+      duplo (DuploClient): An instance of DuploConfig.
     """
     p = get_parser(DuploClient.__init__)
     env = p.parse_args(args)
@@ -126,8 +159,9 @@ class DuploClient():
       host: The host of the Duplo instance.
       token: The token to use for authentication.
       tenant: The tenant to use.
-    Returns:
-      The DuploClient.
+
+    Returns:  
+      duplo (DuploClient): The DuploClient.
     """
     return DuploClient(host=host, token=token, tenant=tenant)
 
@@ -148,7 +182,7 @@ class DuploClient():
     return self.__config
   
   @property
-  def context(self):
+  def context(self) -> dict:
     """Get Config Context
     
     Get the current context from the Duplo config. This is accessed as a lazy loaded property. 
@@ -167,7 +201,7 @@ class DuploClient():
       raise DuploError(f"Portal '{ctx}' not found in config", 500)
     
   @property
-  def host(self):
+  def host(self) -> str:
     """Get Host
     
     Get the host from the Duplo config. This is accessed as a lazy loaded property. 
@@ -181,7 +215,7 @@ class DuploClient():
     return self.__host
   
   @property 
-  def token(self):
+  def token(self) -> str:
     """Get Token
     
     Returns the configured token. If interactive mode is enabled, an attempt will be made to get the token interactively. Ultimately, the token is required and if it is not set, an error will be raised.
@@ -199,7 +233,7 @@ class DuploClient():
     return self.__token
   
   @property
-  def tenant(self):
+  def tenant(self) -> str:
     """Get Tenant
     
     Get the tenant from the Duplo config. This is accessed as a lazy loaded property. 
@@ -213,7 +247,7 @@ class DuploClient():
     return self.__tenant
   
   @tenant.setter
-  def tenant(self, value: str):
+  def tenant(self, value: str) -> None:
     """Set Tenant
     
     Set the tenant for this Duplo client. This will override the tenant in the config.
@@ -225,10 +259,18 @@ class DuploClient():
   
   def __str__(self) -> str:
      return f"""
-Client for Duplo at {self.host}
-"""
+Host: {self.host}
+Tenant: {self.tenant or self.tenantid}
+Home: {self.home_dir}
+Config: {self.config_file}
+Cache: {self.cache_dir}
+Version: {VERSION}
+Path: {sys.argv[0]}
+Available Resources: 
+  {", ".join(available_resources())}
+""".strip()
   
-  def __call__(self, resource: str, *args):
+  def __call__(self, resource: str=None, *args):
     """Run a service command.
     
     Args:
@@ -238,6 +280,8 @@ Client for Duplo at {self.host}
     Returns:
       The result of the command.
     """
+    if not resource:
+      raise DuploError(str(self), 400)
     r = self.load(resource)
     d = r(*args)
     if d is None:
@@ -380,13 +424,14 @@ Client for Duplo at {self.host}
     except jmespath.exceptions.JMESPathTypeError as e:
       raise DuploError("Invalid jmespath query", 500) from e
     
-  def load(self, resource: str):
-    """Load Service
+  def load(self, resource: str) -> T:
+    """Load Resource
       
     Load a resource class from the entry points.
 
     Args:
       name: The name of the service.
+
     Returns:
       The instantiated service with a reference to this client.
     """

@@ -7,7 +7,7 @@ class DuploError(Exception):
     self.code = code
     self.response = response
   def __str__(self):
-    return f"{self.code}: {self.message}"
+    return self.message
 
 class DuploExpiredCache(DuploError):
   """Raised when the Duplo cache is expired."""

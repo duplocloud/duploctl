@@ -65,7 +65,7 @@ jobs:
       uses: duplocloud/duploctl/.github/actions/setup@main
       if: inputs.enabled
       with:
-        optionals: "[build,test,aws]"
+        install: ".[build,test,aws]"
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
