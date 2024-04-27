@@ -1,0 +1,10 @@
+spec:
+  accessModes:
+  - ReadWriteMany
+  - ReadOnlyMany
+  volumeMode: Filesystem
+  storageClassName: duploservices-test-akshay-test1
+  resources:
+    requests:
+      storage: 10Gi
+name: pvc1
