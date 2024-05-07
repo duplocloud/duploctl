@@ -1,0 +1,16 @@
+---
+Username: test2@gmail.com
+Roles:
+- User
+- SignupUser
+VpnPassword: "********"
+ApiTokens: []
+IsReadOnly: false
+IsVpnConfigCreated: false
+IsVpnConfigUpdated: false
+IsConfirmationEmailSent: false
+Devspaces:
+  IsEnabled: false
+  IsAdmin: false
+SourceLastRefresh: 0
+CreationDateTime: '2024-05-07T07:21:42.412Z'

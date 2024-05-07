@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - Support for Storage Class
  - Support for PVC
+ - Added support for create and delete user
 
 ## [0.2.27] - 2024-04-22
 
