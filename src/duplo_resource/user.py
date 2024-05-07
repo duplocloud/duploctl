@@ -41,3 +41,10 @@ class DuploUser(DuploResource):
       raise DuploError(f"Failed to add user '{name}' to tenant '{tenant}'", res["status_code"])
     else:
       return f"User '{name}' added to tenant '{tenant}'"
+    
+  @Command()
+  def create(self, 
+             body: args.BODY):
+    """Create a new user."""
+    response = self.duplo.post("admin/UpdateUserRole", body)
+    return response.json()
