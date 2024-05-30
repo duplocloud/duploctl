@@ -71,16 +71,13 @@ class DuploHosts(DuploTenantResourceV2):
     inst_id = host["InstanceId"]
     res = self.duplo.post(self.endpoint(f"stopNativeHost/{inst_id}"), host)
     def wait_check():
-      h = None 
-      try:
-        h = self.find(name)
-        print(h)
-        if h["Status"] == "stopped":
-          return None # if 404 then it's stopped so finish waiting
-      except DuploError as e:
+      h = self.find(name)
+      if h["Status"] == "running":
+        raise DuploError(f"Host '{name}' not ready", 404)
+      if h["Status"] != "stopped":
+        if h["Status"] != "stopping":
           raise DuploFailedResource(f"Host '{name}' failed to stop.")
-      if h["Status"] == "shutting-down" or h["Status"] == "running":
-        raise DuploError(f"Host '{name}' not stopped", 404)
+        raise DuploError(f"Host '{name}' not ready", 404)
     if wait:
       self.wait(wait_check, 500)
     return {
@@ -93,25 +90,18 @@ class DuploHosts(DuploTenantResourceV2):
              name: args.NAME,
              wait: args.WAIT=False):
     """Start a host."""
-    print("Inside start")
     host = self.find(name)
     inst_id = host["InstanceId"]
     res = self.duplo.post(self.endpoint(f"startNativeHost/{inst_id}"), host)
-    print("Inside start1")
     def wait_check():
-      print("Inside start2")
-      h = None 
-      try:
-        h = self.find(name)
-        if h["Status"] == "running":
-          return None # if 404 then it's stopped so finish waiting
-      except DuploError as e:
-          raise DuploFailedResource(f"Host '{name}' failed to start.")
-      if h["Status"] == "shutting-down" or h["Status"] == "running":
-        raise DuploError(f"Host '{name}' not stopped", 404)
-    print("Inside start3")
+      h = self.find(name)
+      if h["Status"] == "stopped":
+        raise DuploError(f"Host '{name}' not ready", 404)
+      if h["Status"] != "running":
+        if h["Status"] != "pending":
+          raise DuploFailedResource(f"Host '{name}' failed to stop.")
+        raise DuploError(f"Host '{name}' not ready", 404)
     if wait:
-      print("Inside start4")
       self.wait(wait_check, 500)
     return {
       "message": f"Successfully started host '{name}'",
@@ -120,29 +110,11 @@ class DuploHosts(DuploTenantResourceV2):
   
   @Command()
   def reboot(self,
-             name: args.NAME,
-             wait: args.WAIT=False):
+             name: args.NAME):
     """Reboot a host."""
-    print("Inside start")
     host = self.find(name)
     inst_id = host["InstanceId"]
     res = self.duplo.post(self.endpoint(f"RebootNativeHost/{inst_id}"), host)
-    print("Inside start1")
-    def wait_check():
-      print("Inside start2")
-      h = None 
-      try:
-        h = self.find(name)
-        if h["Status"] == "running":
-          return None # if 404 then it's stopped so finish waiting
-      except DuploError as e:
-          raise DuploFailedResource(f"Host '{name}' failed to start.")
-      if h["Status"] == "shutting-down" or h["Status"] == "running":
-        raise DuploError(f"Host '{name}' not stopped", 404)
-    print("Inside start3")
-    if wait:
-      print("Inside start4")
-      self.wait(wait_check, 500)
     return {
       "message": f"Successfully rebooted host '{name}'",
       "data": res.json()
