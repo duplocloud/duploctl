@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Added support for create and delete user
  - start, stop, restart for hosts with `--wait`
  - Allow code to programmatically return the config from `update_kubeconfig` when save is false.
- - more docs
+ - more docs for the wiki
+ - A new check to make sure CHANGELOG.md is updated before merging a PR. 
 
 ### Fixed
 

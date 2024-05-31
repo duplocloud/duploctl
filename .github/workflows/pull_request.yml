@@ -1,0 +1,22 @@
+name: Validate
+
+on:
+  pull_request:
+    branches:
+    - main
+
+jobs: 
+
+  changelog_check:
+    name: Changelog Updated
+    runs-on: ubuntu-latest
+    steps:
+    - name: Make sure changes are logged
+      uses: tarides/changelog-check-action@v2
+      with:
+        changelog: CHANGELOG.md
+
+  unit_test:
+    name: Test
+    uses: ./.github/workflows/test_unit.yml
+    secrets: inherit
