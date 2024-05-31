@@ -22,6 +22,10 @@ on:
         required: false
         default: false
         type: boolean
+      infra:
+        description: An infra to use. Empty creates one.
+        required: false
+        type: string
 
 jobs:
 
@@ -38,6 +42,7 @@ jobs:
       environment: qa-aws
       enabled: ${{ inputs.run_e2e }}
       logs: true
+      infra: ${{ inputs.infra }}
 
   version:
     name: Version
