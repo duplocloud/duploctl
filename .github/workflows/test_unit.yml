@@ -7,9 +7,6 @@ on:
       GH_APP_KEY:
         description: GitHub App private key
         required: true
-  pull_request:
-    branches:
-      - main
 
 jobs:
   unit_test:

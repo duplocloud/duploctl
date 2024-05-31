@@ -1,0 +1,22 @@
+name: Validate PR
+
+on:
+  pull_request:
+    branches:
+    - main
+
+jobs: 
+
+  validate_pr:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    steps:
+    - name: Make sure changes are logged
+      uses: tarides/changelog-check-action@v2
+      with:
+        changelog: CHANGELOG.md
+
+  unit_test:
+    name: Test
+    uses: ./.github/workflows/test_unit.yml
+    secrets: inherit
