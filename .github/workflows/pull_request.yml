@@ -7,8 +7,8 @@ on:
 
 jobs: 
 
-  validate_pr:
-    name: Validate PR
+  changelog_check:
+    name: Changelog Updated
     runs-on: ubuntu-latest
     steps:
     - name: Make sure changes are logged
