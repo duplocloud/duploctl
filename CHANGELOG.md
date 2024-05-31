@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Support for Storage Class
  - Support for PVC
  - Added support for create and delete user
+ - start, stop, restart for hosts with `--wait`
+ - Allow code to programmatically return the config from `update_kubeconfig` when save is false.
+ - more docs
+
+### Fixed
+
+  - Kubernetes commands with JIT were not getting the CA when using GCP. 
 
 ## [0.2.27] - 2024-04-22
 
