@@ -28,7 +28,7 @@ class DuploJit(DuploResource):
     super().__init__(duplo)
 
   @Command()
-  def aws(self, nocache: bool = None):
+  def aws(self, nocache: bool = None) -> dict:
     """AWS STS Session Credentials
     
     Provides a full sts session with credentials and region. The default return is a valid exec credential for the AWS CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant 
@@ -65,7 +65,7 @@ class DuploJit(DuploResource):
       nocache (bool): Do not use cached credentials. Only for other methods to use.
 
     Returns:
-      sts (dict): The AWS STS session credentials. 
+      sts: The AWS STS session credentials. 
     """
     sts = None
     path = None
@@ -98,7 +98,7 @@ class DuploJit(DuploResource):
 
   @Command()
   def k8s(self,
-          planId: args.PLAN = None):
+          planId: args.PLAN = None) -> dict:
     """Kubernetes JIT Exec Credentials
     
     Provides a full exec credential for kubectl. The default return is a valid exec credential for the kubectl CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant. 
@@ -112,6 +112,9 @@ class DuploJit(DuploResource):
 
     Args:
       planId: The planId aka name the infrastructure.
+
+    Returns:
+      credentials: A Kubernetes client [ExecCredential](https://kubernetes.io/docs/reference/config-api/client-authentication.v1beta1/).
     """
     # either plan or tenant in cache key
     pt = planId or self.duplo.tenant or self.duplo.tenantid
@@ -131,11 +134,58 @@ class DuploJit(DuploResource):
       creds = self.__k8s_exec_credential(ctx)
       self.duplo.set_cached_item(k, creds)
     return creds
-  
+
   @Command()
   def update_kubeconfig(self,
-                        planId: args.PLAN = None):
-    """Update kubeconfig"""
+                        planId: args.PLAN = None,
+                        save: bool = True) -> dict:
+    """Update Kubeconfig
+    
+    Update the kubeconfig file with a new context. This will add a new context to the kubeconfig file. This will honor the `KUBECONFIG` environment variable if it is set. The generated command will inherit the `--host`, `--admin`, and `--interactive` flags from the current command. 
+
+    Usage:
+      ```sh
+      duploctl jit update_kubeconfig --plan myplan
+      ```
+
+    Example: Add Admin Context
+      Run this command to add an admin context.
+      ```sh
+      duploctl jit update_kubeconfig --plan myplan --admin --interactive
+      ```
+      This generates the following user credential process in the kubeconfig file.
+      ```yaml
+      users:
+      - name: myplan
+        user:
+          exec:
+            apiVersion: client.authentication.k8s.io/v1beta1
+            args:
+            - jit
+            - k8s
+            - --plan
+            - myplan
+            - --host
+            - https://myportal.duplocloud.net
+            - --admin
+            - --interactive
+            command: duploctl
+            env: null
+            installHint: |2
+
+              Install duploctl for use with kubectl by following
+              https://github.com/duplocloud/duploctl
+            interactiveMode: IfAvailable
+            provideClusterInfo: false
+      ```
+
+    Args:
+      planId: The planId of the infrastructure.
+      save: Save the kubeconfig file. This is a code only option. 
+    
+    Returns:
+      msg: The message that the kubeconfig was updated. Unless save is False, then the kubeconfig is returned.
+    """
     # first get the kubeconfig file and parse it
     kubeconfig_path = os.environ.get("KUBECONFIG", f"{Path.home()}/.kube/config")
     kubeconfig = (yaml.safe_load(open(kubeconfig_path, "r")) 
@@ -158,15 +208,47 @@ class DuploJit(DuploResource):
     self.__add_to_kubeconfig("users", self.__user_config(ctx), kubeconfig)
     self.__add_to_kubeconfig("contexts", self.__context_config(ctx), kubeconfig)
     kubeconfig["current-context"] = ctx["Name"]
-    # write the kubeconfig back to the file
-    with open(kubeconfig_path, "w") as f:
-      yaml.safe_dump(kubeconfig, f)
-    return {"message": f"kubeconfig updated successfully to {kubeconfig_path}"}
+    if save:
+      # write the kubeconfig back to the file
+      with open(kubeconfig_path, "w") as f:
+        yaml.safe_dump(kubeconfig, f)
+      return {"message": f"kubeconfig updated successfully to {kubeconfig_path}"}
+    else:
+      return kubeconfig
   
   @Command()
   def update_aws_config(self,
-                        name: args.NAME):
-    """Update aws config"""
+                        name: args.NAME) -> dict:
+    """Update AWS Config
+    
+    Update the AWS config file with a new profile. This will add a new profile to the AWS config file.
+    This will honor the `AWS_CONFIG_FILE` environment variable if it is set. 
+    This will set the aws cli credentialprocess to use the `duploctl jit aws` command. 
+    The generated command will inherit the `--host`, `--admin`, and `--interactive` flags from the current command.
+
+    Usage:
+      ```sh
+      duploctl jit update_aws_config myprofile
+      ```
+
+    Example: Add Admin Profile
+      Run this command to add an admin profile.
+      ```sh
+      duploctl jit update_aws_config myportal --admin --interactive
+      ```
+      This generates the following in the AWS config file.
+      ```toml
+      [profile myportal]
+      region = us-west-2
+      credential_process = duploctl jit aws --host https://myportal.duplocloud.net --interactive --admin
+      ```
+
+    Args:
+      name: The name of the profile to add.
+    
+    Returns:
+      msg: The message that the profile was added.
+    """
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
     cp.read(config)
@@ -185,7 +267,21 @@ class DuploJit(DuploResource):
     return {"message": msg}
 
   @Command()
-  def web(self):
+  def web(self) -> dict:
+    """Open Cloud Console
+
+    Opens a default or specified browser to the Duploclouds underlying cloud. 
+    Currently this only supports AWS. The global `--browser` flag can be used to specify a browser.
+
+    Usage:  
+
+    ```sh
+    duploctl jit web --browser chrome
+    ```
+    
+    Returns:
+      msg: The message that the browser is opening.
+    """
     b = self.duplo.browser
     wb = webbrowser if not b else webbrowser.get(b)
     sts = self.aws(nocache=True)
@@ -239,7 +335,9 @@ class DuploJit(DuploResource):
       "server": ctx["ApiServer"],
       "config": None
     }
-    if ctx["K8Provider"] == 0 and (ca := ctx.get("CertificateAuthorityDataBase64", None)):
+
+    # only add the ca if it is present, Azure won't have one
+    if (ca := ctx.get("CertificateAuthorityDataBase64", None)):
       cluster["certificate-authority-data"] = ca
 
     t = jwt.decode(jwt=ctx["Token"],algorithms=["HS256"],options={"verify_signature": False})
@@ -263,9 +361,9 @@ class DuploJit(DuploResource):
     cluster = {
       "server": ctx["ApiServer"]
     }
-    if ctx["K8Provider"] == 0 and (ca := ctx.get("CertificateAuthorityDataBase64", None)):
+    if (ca := ctx.get("CertificateAuthorityDataBase64", None)):
       cluster["certificate-authority-data"] = ca
-    elif ctx["K8Provider"] == 1:
+    else:
       cluster["insecure-skip-tls-verify"] = True
     return {
       "name": ctx["Name"],
