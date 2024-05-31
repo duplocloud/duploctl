@@ -61,6 +61,64 @@ class DuploHosts(DuploTenantResourceV2):
       "message": f"Successfully deleted host '{name}'",
       "data": res.json()
     }
+  
+  @Command()
+  def stop(self,
+             name: args.NAME,
+             wait: args.WAIT=False):
+    """Stop a host."""
+    host = self.find(name)
+    inst_id = host["InstanceId"]
+    res = self.duplo.post(self.endpoint(f"stopNativeHost/{inst_id}"), host)
+    def wait_check():
+      h = self.find(name)
+      if h["Status"] == "running":
+        raise DuploError(f"Host '{name}' not ready", 404)
+      if h["Status"] != "stopped":
+        if h["Status"] != "stopping":
+          raise DuploFailedResource(f"Host '{name}' failed to stop.")
+        raise DuploError(f"Host '{name}' not ready", 404)
+    if wait:
+      self.wait(wait_check, 500)
+    return {
+      "message": f"Successfully stopped host '{name}'",
+      "data": res.json()
+    }
+  
+  @Command()
+  def start(self,
+             name: args.NAME,
+             wait: args.WAIT=False):
+    """Start a host."""
+    host = self.find(name)
+    inst_id = host["InstanceId"]
+    res = self.duplo.post(self.endpoint(f"startNativeHost/{inst_id}"), host)
+    def wait_check():
+      h = self.find(name)
+      if h["Status"] == "stopped":
+        raise DuploError(f"Host '{name}' not ready", 404)
+      if h["Status"] != "running":
+        if h["Status"] != "pending":
+          raise DuploFailedResource(f"Host '{name}' failed to stop.")
+        raise DuploError(f"Host '{name}' not ready", 404)
+    if wait:
+      self.wait(wait_check, 500)
+    return {
+      "message": f"Successfully started host '{name}'",
+      "data": res.json()
+    }
+  
+  @Command()
+  def reboot(self,
+             name: args.NAME):
+    """Reboot a host."""
+    host = self.find(name)
+    inst_id = host["InstanceId"]
+    res = self.duplo.post(self.endpoint(f"RebootNativeHost/{inst_id}"), host)
+    return {
+      "message": f"Successfully rebooted host '{name}'",
+      "data": res.json()
+    }
     
   def name_from_body(self, body):
     prefix = f"duploservices-{self.tenant['AccountName']}"
