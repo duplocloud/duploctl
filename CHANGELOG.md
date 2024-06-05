@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+ - publish docs on main branch push
+
+### Fixed 
+
+ - Better error handling for the version command. It failed when the server didn't have the version endpoint.
+
 ## [0.2.28] - 2024-06-04
 ### Added 
 

@@ -23,13 +23,7 @@ export DUPLO_CACHE="config/cache"
 Install dependencies in editable mode so you can use step through debugging. 
 
 ```sh
-pip install --editable .[build,test]
-```
-
-If you are using zsh Run following to install dependencies:
-
-```sh
-pip3 install -e '.[build,test]'
+pip install --editable '.[build,test,aws,docs]'
 ```
 
 ## Building Artifacts  

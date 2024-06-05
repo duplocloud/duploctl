@@ -20,11 +20,19 @@ class DuploVersion():
     self.duplo = duplo
     
   def __call__(self) -> dict:
-    cli = version('duplocloud-client')
-    ui = self.duplo.get("build-metadata.json")
-    server = self.duplo.get("v3/version")
-    return {
-      "cli": cli,
-      "ui": ui.json(),
-      "server": server.json()
+    ui = None
+    server = None
+    v = {
+      "cli": version('duplocloud-client')
     }
+    try:
+      ui = self.duplo.get("build-metadata.json")
+      server = self.duplo.get("v3/version")
+    except Exception as e:
+      pass
+    finally:
+      if ui:
+        v["ui"] = ui.json()
+      if server:
+        v["server"] = server.json()
+    return v
