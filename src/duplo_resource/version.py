@@ -28,7 +28,7 @@ class DuploVersion():
     try:
       ui = self.duplo.get("build-metadata.json")
       server = self.duplo.get("v3/version")
-    except Exception as e:
+    except Exception:
       pass
     finally:
       if ui:
