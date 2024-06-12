@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - New aws plugin which can
    - generate boto3 clients using JIT
    - `update_website` command to push new code to an S3 bucket and invalidate the cloudfront cache
+ - Tenant resource has a new `region` command to get just the current region for the tenant.
 
 ## [0.2.29] - 2024-06-07
 
