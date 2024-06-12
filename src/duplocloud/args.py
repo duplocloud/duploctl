@@ -198,3 +198,8 @@ TIME = Arg("time", "--time",
 DAYS = Arg("days", 
             help='The days to use',
             type=int)
+
+CONTENT_DIR = Arg('content', '--content-dir', 
+            help='The content directory for a website.',
+            default='dist',
+            env='DUPLO_CONTENT')
