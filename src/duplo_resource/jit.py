@@ -258,6 +258,7 @@ class DuploJit(DuploResource):
                 name = hostname.split('.')[0]
         if not name:
             name = "default"
+            print("No valid DUPLO_HOST found. Setting name to 'default'.")
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
     cp.read(config)
