@@ -250,11 +250,21 @@ class DuploJit(DuploResource):
     Returns:
       msg: The message that the profile was added.
     """
-    duplo_host = os.environ.get("DUPLO_HOST")
-    name = name or (urlparse(duplo_host).hostname.split('.')[0] if duplo_host and urlparse(duplo_host).hostname and urlparse(duplo_host).hostname.endswith('.duplocloud.net') else "default")
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
     cp.read(config)
+
+    # If name is not provided, use the global context variable or the subdomain from the --host flag
+    if not name:
+        # Get the global context variable
+        name = os.getenv("DUPLO_CONTEXT")
+        if not name:
+            # Extract the subdomain from the --host flag
+            host = os.getenv("DUPLO_HOST")
+            if host:
+                parsed_url = urlparse(host)
+                name = parsed_url.hostname.split('.')[0]
+
     prf = f'profile {name}'
     msg = f"aws profile named {name} already exists in {config}"
     try:
