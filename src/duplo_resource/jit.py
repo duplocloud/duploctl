@@ -255,15 +255,7 @@ class DuploJit(DuploResource):
     cp.read(config)
 
     # If name is not provided, use the global context variable or the subdomain from the --host flag
-    if not name:
-        # Get the global context variable
-        name = os.getenv("DUPLO_CONTEXT")
-        if not name:
-            # Extract the subdomain from the --host flag
-            host = os.getenv("DUPLO_HOST")
-            if host:
-                parsed_url = urlparse(host)
-                name = parsed_url.hostname.split('.')[0]
+    name = name or os.getenv("DUPLO_CONTEXT") or (urlparse(os.getenv("DUPLO_HOST", '')).hostname or '').split('.')[0]
 
     prf = f'profile {name}'
     msg = f"aws profile named {name} already exists in {config}"
