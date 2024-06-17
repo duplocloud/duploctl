@@ -4,13 +4,13 @@ from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 import os
-import re
 from pathlib import Path
 import yaml
 import configparser
 import webbrowser
 from datetime import datetime
 import jwt
+from urllib.parse import urlparse
 
 @Resource("jit")
 class DuploJit(DuploResource):
@@ -253,9 +253,9 @@ class DuploJit(DuploResource):
     if name is None:
         duplo_host = os.environ.get("DUPLO_HOST")
         if duplo_host:
-            match = re.search(r'https://(.*).duplocloud.net', duplo_host)
-            if match:
-                name = match.group(1)
+            hostname = urlparse(duplo_host).hostname
+            if hostname and hostname.endswith('.duplocloud.net'):
+                name = hostname.split('.')[0]
         if not name:
             name = "default"
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
