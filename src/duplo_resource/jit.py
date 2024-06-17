@@ -4,6 +4,7 @@ from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 import os
+import re
 from pathlib import Path
 import yaml
 import configparser
@@ -249,6 +250,14 @@ class DuploJit(DuploResource):
     Returns:
       msg: The message that the profile was added.
     """
+    if name is None:
+        duplo_host = os.environ.get("DUPLO_HOST")
+        if duplo_host:
+            match = re.search(r'https://(.*).duplocloud.net', duplo_host)
+            if match:
+                name = match.group(1)
+        if not name:
+            name = "default"
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
     cp.read(config)
