@@ -250,15 +250,8 @@ class DuploJit(DuploResource):
     Returns:
       msg: The message that the profile was added.
     """
-    if name is None:
-        duplo_host = os.environ.get("DUPLO_HOST")
-        if duplo_host:
-            hostname = urlparse(duplo_host).hostname
-            if hostname and hostname.endswith('.duplocloud.net'):
-                name = hostname.split('.')[0]
-        if not name:
-            name = "default"
-            print("No valid DUPLO_HOST found. Setting name to 'default'.")
+    duplo_host = os.environ.get("DUPLO_HOST")
+    name = name or (urlparse(duplo_host).hostname.split('.')[0] if duplo_host and urlparse(duplo_host).hostname and urlparse(duplo_host).hostname.endswith('.duplocloud.net') else "default")
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
     cp.read(config)
