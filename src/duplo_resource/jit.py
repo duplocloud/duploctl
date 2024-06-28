@@ -10,7 +10,6 @@ import configparser
 import webbrowser
 from datetime import datetime
 import jwt
-from urllib.parse import urlparse
 
 @Resource("jit")
 class DuploJit(DuploResource):
@@ -254,7 +253,7 @@ class DuploJit(DuploResource):
     cp = configparser.ConfigParser()
     cp.read(config)
 
-    # If name is not provided, use the global context variable or the subdomain from the --host flag
+    # If name is not provided, set default profile name to "duplo"
     name = name or "duplo"
 
     prf = f'profile {name}'
