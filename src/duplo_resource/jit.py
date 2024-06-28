@@ -254,7 +254,7 @@ class DuploJit(DuploResource):
     cp = configparser.ConfigParser()
     cp.read(config)
 
-    # If name is not provided, use the global context variable or the subdomain from the --host flag
+    # If name is not provided, set default profile name to "duplo"
     name = name or "duplo"
 
     prf = f'profile {name}'
