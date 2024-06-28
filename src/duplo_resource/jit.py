@@ -252,6 +252,10 @@ class DuploJit(DuploResource):
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
     cp.read(config)
+
+    # If name is not provided, set default profile name to "duplo"
+    name = name or "duplo"
+
     prf = f'profile {name}'
     msg = f"aws profile named {name} already exists in {config}"
     try:
