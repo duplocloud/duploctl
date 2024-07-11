@@ -74,6 +74,12 @@ jobs:
       with:
         pattern: duplocloud_client-*
         path: artifacts
+
+    - name: Download Plugin Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: duploctl_plugins-*
+        path: artifacts
     
     - name: Download Notes
       uses: actions/download-artifact@v4
