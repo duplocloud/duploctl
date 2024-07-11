@@ -51,5 +51,7 @@ nav:
   - Version: Version.md
 - Module:
   - Client: Client.md
+- Plugins:
+  - AWS: plugins/aws.md
 - Changelog: Changelog.md
 - Contributing: Contributing.md
