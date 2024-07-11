@@ -39,7 +39,7 @@ jobs:
 
     - name: Dist Dir
       id: dist_dir
-      run: mkdir -p dist artifacts
+      run: mkdir -p dist artifacts artifacts/installer
 
     - name: Get Tag Name
       id: set_tag
@@ -66,7 +66,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: ${{ steps.set_tag.outputs.NAME }}-*
-        path: artifacts
+        path: artifacts/installer
         merge-multiple: false
     
     - name: Download Package Artifacts
@@ -96,22 +96,43 @@ jobs:
         echo "$RELEASE_NOTES" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
-    - name: Stage Release Artifacts
-      shell: bash
-      env:
-        PACKAGE_NAME: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
+    - name: Stage Binaries
+      id: stage_binaries
       run: |
-        ls -l artifacts
-        for d in artifacts/*; do
+        ls -l artifacts/installer
+        for d in artifacts/installer/*; do
           name=$(basename $d)
           dest="dist/${name}.tar.gz"
           tar -czvf "$dest" -C $d .
         done
+
+    - name: Stage Release Package
+      shell: bash
+      env:
+        PACKAGE_NAME: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
+      run: |
         package="$(find artifacts -type f -name "duplocloud_client-*.tar.gz")"
-        echo "Package: $package"
+        echo "Staging Package $package"
         pkg_name="$(basename $package)"
         cp "$package" "dist/${pkg_name}"
+    
+    - name: Stage Release Plugins
+      shell: bash
+      run: |
+        plugins="$(find artifacts -type f -name "duploctl_*-*.tar.gz")"
+        echo "Staging Plugins $plugins"
+        for plugin in $plugins; do
+          plugin_name="$(basename $plugin)"
+          cp "$plugin" "dist/${plugin_name}"
+        done
+
+    - name: Stamp the Checksums
+      id: checksums
+      run: |
         find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
+        
+    - name: Preview Distribution
+      run: |
         echo "Created Release Artifacts"
         ls -l dist
 
