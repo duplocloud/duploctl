@@ -84,7 +84,7 @@ The docker image uses a couple of stages to do a few different tasks. Mainly the
 
 Build the main image locally for your machine.
 ```sh
-docker compose build duploctl --load
+docker compose build duploctl
 ```
 
 Use buildx to build the multiarch binaries.
