@@ -95,20 +95,20 @@ jobs:
 
     - name: Single Artifact
       uses: actions/upload-artifact@v4
-      if: matrix.os.multiarch == false
+      if: matrix.os.multiarch == false && inputs.push
       with:
         name: ${{ steps.info.outputs.NAME }}-${{ matrix.arch }}
         path: dist
 
     - name: Amd Artifact
       uses: actions/upload-artifact@v4
-      if: matrix.os.multiarch
+      if: matrix.os.multiarch && inputs.push
       with:
         name: ${{ steps.info.outputs.NAME }}-amd64
         path: dist/${{ matrix.os.name }}_amd64
     - name: Arm Artifact
       uses: actions/upload-artifact@v4
-      if: matrix.os.multiarch
+      if: matrix.os.multiarch && inputs.push
       with:
         name: ${{ steps.info.outputs.NAME }}-arm64
         path: dist/${{ matrix.os.name }}_arm64
