@@ -57,11 +57,9 @@ jobs:
       run: |
         version=$(python -m setuptools_scm)
         package="duplocloud_client-${version}"
-        plugins="duploctl_plugins-${version}"
         echo "Building Version: $version"
         echo "version=$version" >> $GITHUB_OUTPUT
         echo "package=$package" >> $GITHUB_OUTPUT
-        echo "plugins=$plugins" >> $GITHUB_OUTPUT
     
     - name: Run the Build
       run: python -m build
@@ -86,11 +84,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.check_version.outputs.package }}
-        path: dist/duplocloud_client-*.tar.gz
-
-    - name: Github Artifact Plugins
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ steps.check_version.outputs.plugins }}
-        path: dist/duploctl_*-*.tar.gz
+        path: dist/*.tar.gz
           

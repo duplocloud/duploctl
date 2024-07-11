@@ -74,12 +74,6 @@ jobs:
       with:
         pattern: duplocloud_client-*
         path: artifacts
-
-    - name: Download Plugin Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        pattern: duploctl_plugins-*
-        path: artifacts
     
     - name: Download Notes
       uses: actions/download-artifact@v4
@@ -95,17 +89,6 @@ jobs:
         echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
         echo "$RELEASE_NOTES" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-
-    - name: Stage Binaries
-      id: stage_binaries
-      run: |
-        echo "Staging Binaries"
-        ls -l artifacts/installer
-        for d in artifacts/installer/*; do
-          name=$(basename $d)
-          dest="dist/${name}.tar.gz"
-          tar -czvf "$dest" -C $d .
-        done
 
     - name: Stage Release Package
       shell: bash
@@ -124,7 +107,20 @@ jobs:
         echo "Staging Plugins $plugins"
         for plugin in $plugins; do
           plugin_name="$(basename $plugin)"
+          echo " -- plugin $plugin_name"
           cp "$plugin" "dist/${plugin_name}"
+        done
+
+    - name: Stage Binaries
+      id: stage_binaries
+      run: |
+        echo "Staging Binaries"
+        ls -l artifacts/installer
+        for d in artifacts/installer/*; do
+          name=$(basename $d)
+          dest="dist/${name}.tar.gz"
+          echo " -- binary $name"
+          tar -czvf "$dest" -C $d .
         done
 
     - name: Stamp the Checksums
