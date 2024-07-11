@@ -86,6 +86,7 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: false
         target: bin
+        cache-scope: installer
         build-args: >
           PY_VERSION=3.12
         extra-args: --output=type=local,dest=./dist
