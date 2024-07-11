@@ -62,6 +62,7 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: ${{ inputs.push }}
         tags: ${{ inputs.tag }}
+        target: runner
         docker-username: ${{ secrets.DOCKER_USERNAME }}
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
         build-args: >
