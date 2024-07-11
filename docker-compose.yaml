@@ -22,9 +22,12 @@ services:
   duploctl-bin:
     <<: *base
     container_name: duploctl-bin
-    image: &binImage duplocloud/duploctl:latest-bin
+    image: &binImage duplocloud/duploctl:bin
     build:
       <<: *build
       target: bin
       tags:
       - *binImage
+      x-bake:
+        platforms: *platforms
+        output: type=local,dest=./dist
