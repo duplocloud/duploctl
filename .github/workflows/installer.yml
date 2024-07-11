@@ -37,16 +37,19 @@ jobs:
         os:
         - name: windows
           runs-on: windows-latest
+          multiarch: false
         - name: linux
           runs-on: ubuntu-latest
+          multiarch: true
         - name: darwin
           runs-on: macos-latest
+          multiarch: false
         arch:
         - amd64
     steps:
 
     - name: Get Tag Name
-      id: set_tag
+      id: info
       shell: bash
       env:
         OS: ${{ matrix.os.name }}
@@ -57,26 +60,58 @@ jobs:
           GIT_TAG=${GITHUB_REF#refs/*/}
         fi
         VERSION="${GIT_TAG#v*}"
-        NAME="duploctl-${VERSION}-${OS}-${ARCH}"
+        NAME="duploctl-${VERSION}-${OS}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
 
     - name: Setup
+      id: setup
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
-        install: ".[build]"
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
+        install: ".[build]"
     
     - name: Pyinstaller
       id: installer
+      if: matrix.os.multiarch == false
       run: pyinstaller scripts/installer.spec
+
+    # Use buildx to build the bin target which has the binary inside
+    # then output the binary to the dist folder
+    - name: Buildx MultiArch Installer
+      if: matrix.os.multiarch
+      id: installer-multiarch
+      uses: duplocloud/actions/build-image@main
+      with:
+        platforms: linux/amd64,linux/arm64
+        push: false
+        target: bin
+        cache-scope: installer
+        build-args: >
+          PY_VERSION=3.12
+        extra-args: --output=type=local,dest=./dist
 
     - name: View Files
       run: ls dist
 
-    - uses: actions/upload-artifact@v4
+    - name: Single Artifact
+      uses: actions/upload-artifact@v4
+      if: matrix.os.multiarch == false && inputs.push
       with:
-        name: ${{ steps.set_tag.outputs.NAME }}
+        name: ${{ steps.info.outputs.NAME }}-${{ matrix.arch }}
         path: dist
+
+    - name: Amd Artifact
+      uses: actions/upload-artifact@v4
+      if: matrix.os.multiarch && inputs.push
+      with:
+        name: ${{ steps.info.outputs.NAME }}-amd64
+        path: dist/${{ matrix.os.name }}_amd64
+    - name: Arm Artifact
+      uses: actions/upload-artifact@v4
+      if: matrix.os.multiarch && inputs.push
+      with:
+        name: ${{ steps.info.outputs.NAME }}-arm64
+        path: dist/${{ matrix.os.name }}_arm64

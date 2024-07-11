@@ -78,7 +78,7 @@ jobs:
     needs: [version]
     with:
       tag: ${{ needs.version.outputs.tag }}
-      push: ${{ inputs.push }}
+      push: true # just pushes to artifacts
 
   docs:
     name: Docs

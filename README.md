@@ -26,10 +26,10 @@ Use ```duploctl``` as a CLI or as a standalone Python module called by your cust
 
 Use the following syntax for these global arguments:  
 | Arg | Env Var | Description | Default | Required |  
-| --- | --- | --- | --- | --- |
-| --host, -H | DUPLO_HOST | The host to connect to |  | Yes |
-| --token, -T | DUPLO_TOKEN | The token to use for auth |  | Yes |
-| --tenant, -t | DUPLO_TENANT | The tenant to use for auth | default | No | 
+| --- | --- | --- | --- | --- |  
+| --host, -H | DUPLO_HOST | The host to connect to |  | Yes |  
+| --token, -T | DUPLO_TOKEN | The token to use for auth |  | Yes |  
+| --tenant, -t | DUPLO_TENANT | The tenant to use for auth | default | No |  
 
 ### CLI  
 

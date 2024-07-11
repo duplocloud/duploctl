@@ -19,8 +19,7 @@ authors = [
 { name = "Kelly", email = "kelly@duplocloud.net" }
 ]
 maintainers = [
-{ name = "Kelly", email = "kelly@duplocloud.net" },
-{ name = "Mick", email ="mick@duplocloud.net" }
+{ name = "Kelly", email = "kelly@duplocloud.net" }
 ]
 dependencies = [
   "requests>=2.22.0",
@@ -52,8 +51,7 @@ test = [
   "pytest-order"
 ]
 aws = [
-  "boto3>=1.34.83",
-  "awscli>=1.32.83"
+  "boto3>=1.34.83"
 ]
 docs = [
   "mkdocs",
