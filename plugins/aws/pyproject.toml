@@ -34,8 +34,8 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project.urls]
-Homepage = "https://github.com/duplocloud/duploctl"
-Documentation = "https://github.com/duplocloud/duploctl/wiki"
+Homepage = "https://cli.duplocloud.com/"
+Documentation = "https://cli.duplocloud.com/"
 Repository = "https://github.com/duplocloud/duploctl"
 Issues = "https://github.com/duplocloud/duploctl/issues"
 Changelog = "https://github.com/duplocloud/duploctl"

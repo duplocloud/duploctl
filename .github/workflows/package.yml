@@ -73,8 +73,17 @@ jobs:
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
 
+    - name: Build the Plugins
+      run: |
+        for d in ./plugins/*; do 
+          python -m build "$d" -o=dist
+        done
+        ls -l dist
+
     - name: Github Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.check_version.outputs.package }}
-        path: dist/duplocloud_client-*.tar.gz
+        path: |
+          dist/duplocloud_client-*.tar.gz
+          dist/duploctl_*-*.tar.gz

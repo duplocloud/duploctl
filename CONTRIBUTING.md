@@ -33,6 +33,11 @@ Build the package which creates the artifact in the build folder.
 python -m build
 ```
 
+Building a plugin.
+```sh
+python -m build plugins/aws/ -o=dist
+```
+
 Create a single binary build for the cli using pyinstaller.  
 ```sh
 ./scripts/installer.spec
