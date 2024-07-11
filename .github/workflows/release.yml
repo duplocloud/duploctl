@@ -42,7 +42,7 @@ jobs:
       run: mkdir -p dist artifacts artifacts/installer
 
     - name: Get Tag Name
-      id: set_tag
+      id: info
       env:
         GIT_TAG: ${{ inputs.tag }}
         REPO_URL: ${{ github.server_url }}/${{ github.repository }}
@@ -65,7 +65,7 @@ jobs:
     - name: Download Installer Artifacts
       uses: actions/download-artifact@v4
       with:
-        pattern: ${{ steps.set_tag.outputs.NAME }}-*
+        pattern: ${{ steps.info.outputs.NAME }}-*
         path: artifacts/installer
         merge-multiple: false
     
@@ -84,12 +84,12 @@ jobs:
     - name: Download Notes
       uses: actions/download-artifact@v4
       with:
-        pattern: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}
+        pattern: ${{ steps.info.outputs.NOTES_ARTIFACT }}
 
     # turn notes into multi line env var
     - name: Prep Notes
       env:
-        NOTES_ARTIFACT: ${{ steps.set_tag.outputs.NOTES_ARTIFACT }}
+        NOTES_ARTIFACT: ${{ steps.info.outputs.NOTES_ARTIFACT }}
       run: |
         RELEASE_NOTES="$(cat ${NOTES_ARTIFACT}/notes.md)"
         echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
@@ -99,6 +99,7 @@ jobs:
     - name: Stage Binaries
       id: stage_binaries
       run: |
+        echo "Staging Binaries"
         ls -l artifacts/installer
         for d in artifacts/installer/*; do
           name=$(basename $d)
@@ -109,7 +110,7 @@ jobs:
     - name: Stage Release Package
       shell: bash
       env:
-        PACKAGE_NAME: ${{ steps.set_tag.outputs.PACKAGE_NAME }}
+        PACKAGE_NAME: ${{ steps.info.outputs.PACKAGE_NAME }}
       run: |
         package="$(find artifacts -type f -name "duplocloud_client-*.tar.gz")"
         echo "Staging Package $package"
@@ -128,21 +129,22 @@ jobs:
 
     - name: Stamp the Checksums
       id: checksums
-      run: |
-        find dist -type f -name "*.tar.gz" -execdir shasum -a 256 {} \; >> dist/checksums.txt
+      run: >-
+        find dist 
+        -type f 
+        -name "*.tar.gz" 
+        -execdir shasum -a 256 {} \; >> dist/checksums.txt
         
     - name: Preview Distribution
-      run: |
-        echo "Created Release Artifacts"
-        ls -l dist
+      run: ls -l dist
 
     - name: Create Release
       id: release
       uses: softprops/action-gh-release@v2
       if: inputs.push == true
       with:
-        name: ${{ steps.set_tag.outputs.GIT_TAG }}
-        tag_name: ${{ steps.set_tag.outputs.GIT_TAG }}
+        name: ${{ steps.info.outputs.GIT_TAG }}
+        tag_name: ${{ steps.info.outputs.GIT_TAG }}
         prerelease: false
         files: |
           dist/*
@@ -155,32 +157,32 @@ jobs:
           ### Installation
 
           PIP PyPi: 
-          [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.set_tag.outputs.VERSION }}/)
+          [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.info.outputs.VERSION }}/)
           ```sh
-          pip install duplocloud-client==${{ steps.set_tag.outputs.VERSION }}
+          pip install duplocloud-client==${{ steps.info.outputs.VERSION }}
           ```
 
           PIP Sdist:
-          The dowload below named `${{ steps.set_tag.outputs.PACKAGE_NAME }}.tar.gz` is the sdist of the package. 
+          The dowload below named `${{ steps.info.outputs.PACKAGE_NAME }}.tar.gz` is the sdist of the package. 
           ```sh
-          pip install ${{ steps.set_tag.outputs.RELEASE_URL }}/${{ steps.set_tag.outputs.PACKAGE_NAME }}.tar.gz
+          pip install ${{ steps.info.outputs.RELEASE_URL }}/${{ steps.info.outputs.PACKAGE_NAME }}.tar.gz
           ```
           
           PIP From Source:  
           Install directly from the version tag on GitHub. 
           ```sh
-          pip install git+${{ steps.set_tag.outputs.REPO_URL }}.git@${{ steps.set_tag.outputs.GIT_TAG }}
+          pip install git+${{ steps.info.outputs.REPO_URL }}.git@${{ steps.info.outputs.GIT_TAG }}
           ```
 
           Dockerhub:  
-          [duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
+          [duplocloud/duploctl:${{ steps.info.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
           ```sh
-          docker pull duplocloud/duploctl:${{ steps.set_tag.outputs.GIT_TAG }}
+          docker pull duplocloud/duploctl:${{ steps.info.outputs.GIT_TAG }}
           ```
 
           Install CLI to Path Linux:
           ```sh
-          curl -s -L ${{ steps.set_tag.outputs.RELEASE_URL }}/duploctl-${{ steps.set_tag.outputs.VERSION }}-linux-amd64.tar.gz | tar xvz - -C /usr/local/bin
+          curl -s -L ${{ steps.info.outputs.RELEASE_URL }}/duploctl-${{ steps.info.outputs.VERSION }}-linux-amd64.tar.gz | tar xvz - -C /usr/local/bin
           ```
 
           Homebrew single binary:
@@ -204,14 +206,14 @@ jobs:
       with:
         channel-id: ${{ vars.SLACK_CHANNEL_ID }}
         slack-message: |
-          duploctl ${{ steps.set_tag.outputs.GIT_TAG }} is out! 
+          duploctl ${{ steps.info.outputs.GIT_TAG }} is out! 
           ${{ steps.release.outputs.url }}
 
     - name: Job Summary
       env:
-        GIT_TAG: ${{ steps.set_tag.outputs.GIT_TAG }}
+        GIT_TAG: ${{ steps.info.outputs.GIT_TAG }}
         URL: ${{ steps.release.outputs.url }}
-        VERSION: ${{ steps.set_tag.outputs.VERSION }}
+        VERSION: ${{ steps.info.outputs.VERSION }}
       run: |
         cat <<EOF >> $GITHUB_STEP_SUMMARY
         Tag: $GIT_TAG
