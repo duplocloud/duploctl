@@ -83,7 +83,7 @@ jobs:
     - name: Buildx MultiArch Installer
       if: matrix.os.multiarch
       id: installer-multiarch
-      uses: duplocloud/actions/build-image@build-image-updates
+      uses: duplocloud/actions/build-image@main
       with:
         platforms: linux/amd64,linux/arm64
         push: false
