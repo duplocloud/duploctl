@@ -28,7 +28,7 @@ FROM scratch AS bin
 COPY --from=installer /app/dist/duploctl /duploctl
 
 # Stage 2: Install the package in a slimmer container
-FROM python:$PY_VERSION-slim as runner
+FROM python:$PY_VERSION-slim AS runner
 
 # Set the working directory in the container
 WORKDIR /app
