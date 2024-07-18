@@ -1,3 +1,4 @@
+from typing import override
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource
@@ -6,6 +7,19 @@ import duplocloud.args as args
 
 @Resource("hosts")
 class DuploHosts(DuploTenantResourceV2):
+  """Manage Duplo Hosts
+  
+  Duplo hosts are virtual machines that run your services. You can create, delete, start, stop, and reboot hosts.
+  
+  Methods:
+    list -> stuff: 
+      List all hosts.
+
+      Usage: cli
+        ```sh
+        duplo hosts list
+        ```
+  """
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)

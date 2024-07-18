@@ -21,7 +21,7 @@ RUN python -m build --no-isolation
 
 # Build the binaries
 FROM setup AS installer
-RUN pyinstaller scripts/installer.spec && ls -al dist
+RUN pyinstaller scripts/installer.spec
 
 # use scratch for easy exports
 FROM scratch AS bin 
