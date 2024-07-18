@@ -33,6 +33,11 @@ Build the package which creates the artifact in the build folder.
 python -m build
 ```
 
+Building a plugin.
+```sh
+python -m build plugins/aws/ -o=dist
+```
+
 Create a single binary build for the cli using pyinstaller.  
 ```sh
 ./scripts/installer.spec
@@ -72,3 +77,17 @@ _ref:_ [SetupTools SCM](https://pypi.org/project/setuptools-scm/)
 ## Add Wiki Doc For Subcommand
 
 make sure to add a wiki document to the wiki folder for the subcommand. Follow the same pattern as the other subcommand readme's.
+
+## Docker Image  
+
+The docker image uses a couple of stages to do a few different tasks. Mainly the official image is the runner target. The bin target is for generating multiarch binaries. 
+
+Build the main image locally for your machine.
+```sh
+docker compose build duploctl
+```
+
+Use buildx to build the multiarch binaries.
+```sh
+docker buildx bake duploctl-bin
+```

@@ -1,14 +1,33 @@
 services:
-  duploctl:
-    build: .
-    image: duplocloud/duploctl:latest
+  duploctl: &base
+    image: &image duplocloud/duploctl:latest
+    build: &build
+      target: runner
+      args:
+        PY_VERSION: '3.12'
+      tags:
+      - *image
+      platforms: &platforms
+      - linux/amd64
+      - linux/arm64
+      x-bake:
+        platforms: *platforms
     container_name: duploctl
     environment:
       DUPLO_HOST: $DUPLO_HOST
       DUPLO_TOKEN: $DUPLO_TOKEN
       DUPLO_TENANT: $DUPLO_TENANT
     command:
-    - tenant
-    - list
-    - -q
-    - '[].AccountName'
+    - version
+  duploctl-bin:
+    <<: *base
+    container_name: duploctl-bin
+    image: &binImage duplocloud/duploctl:bin
+    build:
+      <<: *build
+      target: bin
+      tags:
+      - *binImage
+      x-bake:
+        platforms: *platforms
+        output: type=local,dest=./dist

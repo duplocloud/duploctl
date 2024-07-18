@@ -27,7 +27,7 @@ class DuploTenant(DuploResource):
     If a name is not passed in, the id is second highest precedence. Lastly if the global
     tenant name is set, that will be used. 
 
-    The global tenant id takes care ofthe commandline. For other code, sometimes the id 
+    The global tenant id takes care of the commandline. For other code, sometimes the id 
     needs to be passed in directly. If this happens, that id takes most precedence.
 
     Args:
@@ -215,3 +215,14 @@ class DuploTenant(DuploResource):
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetFaultsByTenant")
     return response.json()
+  
+  @Command()
+  def region(self,
+             name: args.NAME = None):
+    """Get the region for the tenant."""
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"subscriptions/{tenant_id}/GetAwsRegionId")
+    return {
+      "region": response.json()
+    }
