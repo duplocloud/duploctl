@@ -66,7 +66,7 @@ class DuploResourceV2(DuploResource):
     
     Usage: cli usage
       ```sh
-      duplo {{kind | lower}} list
+      duploctl {{kind | lower}} list
       ```
 
     Returns:
@@ -78,6 +78,11 @@ class DuploResourceV2(DuploResource):
   def find(self, 
            name: args.NAME) -> dict:
     """Find a {{kind}} by name.
+
+    Usage: cli usage
+      ```sh
+      duploctl {{kind | lower}} find <name>
+      ```
     
     Args:
       name: The name of the {{kind}} to find.
