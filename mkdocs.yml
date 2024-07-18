@@ -8,7 +8,7 @@ watch:
 - wiki
 
 theme:
-  name: "material"
+  name: material
   features:
   - content.code.annotate
   - content.code.copy
