@@ -8,13 +8,14 @@ watch:
 - wiki
 
 theme:
-  name: "material"
+  name: material
   features:
   - content.code.annotate
   - content.code.copy
 
-plugins: 
+plugins:
 - mkdocstrings:
+    custom_templates: wiki/templates
     handlers:
       python:
         options:
@@ -33,11 +34,15 @@ markdown_extensions:
 - pymdownx.snippets:
     check_paths: true
 
+hooks:
+- ./scripts/mkdocs.py
+
 nav:
 - Readme: index.md
 - Overview: Home.md
 - Resources:
   - JIT: Jit.md
+  - Tenants: Tenant.md
   - Autoscaling Groups: Autoscaling.md
   - Hosts: Host.md
   - Lambda: Lambda.md
@@ -49,6 +54,7 @@ nav:
   - User: User.md
   - System: System.md
   - Version: Version.md
+  - S3: S3.md
 - Module:
   - Client: Client.md
 - Plugins:
