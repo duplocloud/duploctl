@@ -45,6 +45,8 @@ jobs:
     environment: 
       name: dockerhub
       url: https://hub.docker.com/r/duplocloud/duploctl
+    env:
+      PY_VERSION: "3.12"
     steps:
 
     - name: Setup
@@ -57,16 +59,20 @@ jobs:
 
     - name: Build and Push Docker Image
       id: build_image
-      uses: duplocloud/actions/build-image@main
+      uses: duplocloud/actions/build-image@build-image-updates
+      env:
+        PY_VERSION: ${{ env.PY_VERSION }}
+        GIT_TAG: ${{ inputs.tag }}
       with:
-        platforms: linux/amd64,linux/arm64
+        type: bake
+        target: duploctl
         push: ${{ inputs.push }}
-        tags: ${{ inputs.tag }}
-        target: runner
         docker-username: ${{ secrets.DOCKER_USERNAME }}
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
-        build-args: >
-          PY_VERSION=3.12
+        # platforms: linux/amd64,linux/arm64
+        # tags: ${{ inputs.tag }}
+        # build-args: >
+        #   PY_VERSION=${{ env.PY_VERSION }}
 
     - name: Docker Hub Description
       uses: peter-evans/dockerhub-description@v4

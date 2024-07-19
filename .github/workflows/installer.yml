@@ -83,15 +83,16 @@ jobs:
     - name: Buildx MultiArch Installer
       if: matrix.os.multiarch
       id: installer-multiarch
-      uses: duplocloud/actions/build-image@main
+      uses: duplocloud/actions/build-image@build-image-updates
       with:
-        platforms: linux/amd64,linux/arm64
-        push: false
+        type: bake
         target: bin
-        cache-scope: installer
-        build-args: >
-          PY_VERSION=3.12
-        extra-args: --output=type=local,dest=./dist
+        push: false
+        # cache-scope: installer
+        # platforms: linux/amd64,linux/arm64
+        # build-args: >
+        #   PY_VERSION=3.12
+        # extra-args: --output=type=local,dest=./dist
 
     - name: View Files
       run: ls dist
