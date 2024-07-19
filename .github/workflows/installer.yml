@@ -84,15 +84,13 @@ jobs:
       if: matrix.os.multiarch
       id: installer-multiarch
       uses: duplocloud/actions/build-image@build-image-updates
+      env:
+        PY_VERSION: ${{ env.PY_VERSION }}
+        GIT_TAG: ${{ inputs.tag }}
       with:
         type: bake
         target: bin
         push: false
-        # cache-scope: installer
-        # platforms: linux/amd64,linux/arm64
-        # build-args: >
-        #   PY_VERSION=3.12
-        # extra-args: --output=type=local,dest=./dist
 
     - name: View Files
       run: ls dist
@@ -110,7 +108,7 @@ jobs:
       with:
         name: ${{ steps.info.outputs.NAME }}-amd64
         path: dist/${{ matrix.os.name }}_amd64
-        
+
     - name: Arm Artifact
       uses: actions/upload-artifact@v4
       if: matrix.os.multiarch && inputs.push

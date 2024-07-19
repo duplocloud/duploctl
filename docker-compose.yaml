@@ -19,9 +19,9 @@ services:
         cache-from: type=gha,scope=runner
     container_name: duploctl
     environment:
-      DUPLO_HOST: $DUPLO_HOST
-      DUPLO_TOKEN: $DUPLO_TOKEN
-      DUPLO_TENANT: $DUPLO_TENANT
+      DUPLO_HOST: ${DUPLO_HOST:-}
+      DUPLO_TOKEN: ${DUPLO_TOKEN:-}
+      DUPLO_TENANT: ${DUPLO_TENANT:-}
     command:
     - version
   duploctl-bin:

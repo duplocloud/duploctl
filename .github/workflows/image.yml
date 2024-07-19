@@ -69,10 +69,6 @@ jobs:
         push: ${{ inputs.push }}
         docker-username: ${{ secrets.DOCKER_USERNAME }}
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
-        # platforms: linux/amd64,linux/arm64
-        # tags: ${{ inputs.tag }}
-        # build-args: >
-        #   PY_VERSION=${{ env.PY_VERSION }}
 
     - name: Docker Hub Description
       uses: peter-evans/dockerhub-description@v4
