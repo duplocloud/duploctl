@@ -83,6 +83,21 @@ jobs:
         echo "Found AMI: $AMI_ID"
         echo "ami=${AMI_ID}" >> $GITHUB_OUTPUT
 
+    - name: Network Details
+      id: network-details
+      run: |
+        PLAN="$(duploctl tenant find \
+          --query 'PlanID'
+          --output string)"
+        SUBNET_ID="$(duploctl infrastructure find $PLAN \
+          --query "Vnet.Subnets[?contains(Tags[],{Key: 'Reach',Value: 'private'})] | [0].Id" \
+          --output string)"
+        SECURITY_GROUP="$(duploctl infrastructure find $PLAN \
+        --query "Vnet.SecurityGroups[?Name=='duplo-allhosts'] | [0].SystemId" \
+        --output string)"
+        echo "subnet_id=${SUBNET_ID}" >> $GITHUB_OUTPUT
+        echo "security_group=${SECURITY_GROUP}" >> $GITHUB_OUTPUT
+
     - name: Allocate Host
       id: allocate-host
       run: |
@@ -97,7 +112,7 @@ jobs:
           --availability-zone ${AWS_REGION}b \
           --auto-placement "on" \
           --quantity 1 \
-          --tag-specifications 'ResourceType=dedicated-host,Tags={Key=duploctl,Value=true}' \
+          --tag-specifications 'ResourceType=dedicated-host,Tags={Key=duploctl,Value=gharunner}' \
           --query 'HostIds[0]' \
           --output text)"
           echo "Created host: $HOST_ID"
@@ -108,14 +123,20 @@ jobs:
       id: launch-runner
       env:
         AMI_ID: ${{ steps.find-ami.outputs.ami }}
+        SUBNET_ID: ${{ steps.network-details.outputs.subnet_id }}
+        SECURITY_GROUP: ${{ steps.network-details.outputs.security_group }}
       run: |
         INSTANCE_ID="$(aws ec2 run-instances \
         --region $AWS_REGION \
         --instance-type $INSTANCE_TYPE \
         --placement Tenancy=host \
         --image-id $AMI_ID \
+        --count 1 \
+        --subnet-id $SUBNET_ID \
+        --security-group-ids ${SECURITY_GROUP} \
         --user-data "$USER_DATA" \
         --query 'Instances[0].InstanceId' \
+        --tag-specifications 'ResourceType=instance,Tags=[{Key=duploctl,Value=gharunner}]' \
         --output text)"
         echo "Launched instance: $INSTANCE_ID"
         aws ec2 wait instance-running --instance-ids $INSTANCE_ID
