@@ -86,7 +86,7 @@ jobs:
       uses: duplocloud/actions/build-image@build-image-updates
       env:
         PY_VERSION: ${{ env.PY_VERSION }}
-        GIT_TAG: ${{ inputs.tag }}
+        GIT_TAG: ${{ steps.info.outputs.GIT_TAG }}
       with:
         type: bake
         target: duploctl-bin
