@@ -126,18 +126,27 @@ jobs:
         SUBNET_ID: ${{ steps.network-details.outputs.subnet_id }}
         SECURITY_GROUP: ${{ steps.network-details.outputs.security_group }}
       run: |
-        INSTANCE_ID="$(aws ec2 run-instances \
-          --region $AWS_REGION \
-          --instance-type $INSTANCE_TYPE \
-          --placement Tenancy=host \
-          --image-id $AMI_ID \
-          --count 1 \
-          --subnet-id $SUBNET_ID \
-          --security-group-ids ${SECURITY_GROUP} \
-          --user-data "$USER_DATA" \
-          --query 'Instances[0].InstanceId' \
-          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value='Duploctl GHA Runner'},{Key=duploctl,Value=gharunner}]" \
+        INSTANCE_ID="$(aws ec2 describe-instances \
+          --filter "Name=tag:duploctl,Values=gharunner" \
+          --query "Reservations[0].Instances[0].InstanceId" \
           --output text)"
+        echo "Found instance: $INSTANCE_ID"
+        # if instance id does not start with i-
+        if [[ ! $INSTANCE_ID =~ ^i- ]]; then
+          echo "Launching instance"
+          INSTANCE_ID="$(aws ec2 run-instances \
+            --region $AWS_REGION \
+            --instance-type $INSTANCE_TYPE \
+            --placement Tenancy=host \
+            --image-id $AMI_ID \
+            --count 1 \
+            --subnet-id $SUBNET_ID \
+            --security-group-ids ${SECURITY_GROUP} \
+            --user-data "$USER_DATA" \
+            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value='Duploctl GHA Runner'},{Key=duploctl,Value=gharunner}]" \
+            --query 'Instances[0].InstanceId' \
+            --output text)"
+        fi
         echo "Launched instance: $INSTANCE_ID"
         aws ec2 wait instance-running --instance-ids $INSTANCE_ID
         echo "Instance is running"
