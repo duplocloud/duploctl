@@ -1,4 +1,3 @@
-from typing import override
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource
