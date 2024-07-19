@@ -83,6 +83,7 @@ jobs:
 
     # Use buildx to build the bin target which has the binary inside
     # then output the binary to the dist folder
+    # see the docker-compose.yaml for the bake target
     - name: Buildx MultiArch Installer
       if: matrix.os.multiarch
       id: installer-multiarch
