@@ -136,7 +136,7 @@ jobs:
           --security-group-ids ${SECURITY_GROUP} \
           --user-data "$USER_DATA" \
           --query 'Instances[0].InstanceId' \
-          --tag-specifications 'ResourceType=instance,Tags=[{Key=duploctl,Value=gharunner}]' \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value='Duploctl GHA Runner'},{Key=duploctl,Value=gharunner}]" \
           --output text)"
         echo "Launched instance: $INSTANCE_ID"
         aws ec2 wait instance-running --instance-ids $INSTANCE_ID
