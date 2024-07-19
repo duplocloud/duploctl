@@ -110,6 +110,7 @@ jobs:
       with:
         name: ${{ steps.info.outputs.NAME }}-amd64
         path: dist/${{ matrix.os.name }}_amd64
+        
     - name: Arm Artifact
       uses: actions/upload-artifact@v4
       if: matrix.os.multiarch && inputs.push
