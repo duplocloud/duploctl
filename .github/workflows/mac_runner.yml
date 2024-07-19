@@ -65,8 +65,10 @@ jobs:
     - name: Install Script
       id: install-script
       run: |
-        INSTALL_SCRIPT=$(sed -e 's/$GH_RUNNER_TOKEN/${{ secrets.GH_RUNNER_TOKEN }}/g' ./scripts/runner_install.sh | base64)
-        echo "user_data=${INSTALL_SCRIPT}" >> $GITHUB_OUTPUT
+        USER_DATA="$(sed -e 's/$GH_RUNNER_TOKEN/${{ secrets.GH_RUNNER_TOKEN }}/g' ./scripts/runner_install.sh | base64)"
+        echo "USER_DATA<<EOF" >> $GITHUB_ENV
+        echo "$USER_DATA" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
     - name: Find AMI
       id: find-ami
@@ -97,7 +99,6 @@ jobs:
       id: launch-runner
       env:
         AMI_ID: ${{ steps.find-ami.outputs.ami }}
-        USER_DATA: ${{ steps.install-script.outputs.user_data }}
       run: |
         INSTANCE_ID="$(aws ec2 run-instances \
         --region $AWS_REGION \
