@@ -56,6 +56,7 @@ jobs:
         ref: ${{ inputs.tag }}
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
+        python-version: ${{ env.PY_VERSION }}
 
     - name: Build and Push Docker Image
       id: build_image

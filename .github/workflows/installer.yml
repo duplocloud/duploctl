@@ -92,7 +92,6 @@ jobs:
       with:
         type: bake
         target: duploctl-bin
-        push: false
 
     - name: View Files
       run: ls dist
