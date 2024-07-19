@@ -159,7 +159,7 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def update_env(self, 
                  name: args.NAME,
-                 setvar: args.SETVAR, 
+                 setvar: args.SETVAR,
                  strategy: args.STRATEGY,
                  deletevar: args.DELETEVAR,
                  wait: args.WAIT = False):

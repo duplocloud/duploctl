@@ -52,21 +52,29 @@ class HomebrewFormula:
     url = f"{self.repo_url}/releases/download/v{self.version}/checksums.txt"
     response = requests.get(url)
     checksums = response.text.splitlines()
-    linux_sha = None 
-    macos_sha = None
-    pip_sha = None
+    shas = {
+      "linux_sha_amd64": None,
+      "linux_sha_arm64": None,
+      "macos_sha_amd64": None,
+      "macos_sha_arm64": None,
+      "pip_sha": None
+    }
     for line in checksums:
       l = line.split(" ")
-      if 'darwin' in line:
-        macos_sha = l[0]
-      elif 'linux' in line:
-        linux_sha = l[0]
+      if 'darwin-amd64' in line:
+        shas["macos_sha_amd64"] = l[0]
+      if 'darwin-arm64' in line:
+        shas["macos_sha_arm64"] = l[0]
+      elif 'linux-amd64' in line:
+        shas["linux_sha_amd64"] = l[0]
+      elif 'linux-arm64' in line:
+        shas["linux_sha_arm64"] = l[0]
       elif 'duplocloud_client' in line:
-        pip_sha = l[0]
-    return (linux_sha, macos_sha, pip_sha)
+        shas["pip_sha"] = l[0]
+    return shas
   
   def build_formula(self):
-    linux_sha, macos_sha, pip_sha = self.get_shas()
+    shas = self.get_shas()
     resources = self.make_resources()
     with open(self.tpl_file, 'r') as tpl_file:
       tpl = tpl_file.read()
@@ -74,10 +82,8 @@ class HomebrewFormula:
         repo_url=self.repo_url,
         description=self.description,
         version=self.version, 
-        linux_sha=linux_sha, 
-        macos_sha=macos_sha,
-        pip_sha=pip_sha,
-        resources=resources
+        resources=resources,
+        **shas
       )
   
 if __name__ == '__main__':

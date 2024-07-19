@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Updates 
+ - updated all of the resources to show up in the docs
+ - arm64 linux binary is now available in the homebrew formula
+
+## [0.2.30] - 2024-07-11
+
 ### Added 
 
  - New aws plugin which can

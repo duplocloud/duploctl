@@ -8,19 +8,39 @@ import duplocloud.args as args
 
 @Resource("tenant")
 class DuploTenant(DuploResource):
+  """Duplo Tenant Resource
+  
+  The tenant resource provides a set of commands to manage tenants in the Duplo system.
+
+  Usage: Basic CLI Use  
+    ```sh
+    duploctl tenant <action>
+    ```
+  """
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
   
   @Command()
   def list(self):
-    """Retrieve a list of all tenants in the Duplo system."""
+    """List Tenants
+    
+    Retrieve a list of all tenants in the Duplo system. 
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant list
+      ```
+    
+    Returns:
+      tenants (list): A list of tenants.
+    """
     response = self.duplo.get("adminproxy/GetTenantNames")
     return response.json()
 
   @Command()
   def find(self, 
            name: args.NAME=None,
-           id: str=None):
+           id: str=None) -> dict:
     """Find a tenant.
 
     Find a tenant by name or id. Passing in a name directly takes highest precedence.
@@ -30,11 +50,17 @@ class DuploTenant(DuploResource):
     The global tenant id takes care of the commandline. For other code, sometimes the id 
     needs to be passed in directly. If this happens, that id takes most precedence.
 
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant find <name>
+      ```
+
     Args:
-      name (str): The name or id of the tenant to find.
+      name: The name or id of the tenant to find.
+      id: The id of the tenant to find. Optional and code only.
     
     Returns:
-      The tenant.
+      tenant: The tenant.
     """
     key = None 
     ref = None 
@@ -52,8 +78,37 @@ class DuploTenant(DuploResource):
   @Command()
   def create(self, 
              body: args.BODY,
-             wait: args.WAIT=False):
-    """Create a new tenant."""
+             wait: args.WAIT=False) -> dict:
+    """Create Tenant.
+    
+    Create a new tenant with a new body for a tenant. 
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant create --file tenant.yaml
+      ```
+
+    Example: Tenant Body
+      Contents of the `tenant.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/tenant.yaml"
+      ```
+
+    Example: Create One Liner
+      Here is how to create a tenant in one line.  
+      ```bash
+      echo \"\"\"
+      --8<-- "src/tests/data/tenant.yaml"
+      \"\"\" | duploctl tenant create -f -
+      ```
+    
+    Args:
+      body: The body of the tenant to create.
+      wait: Wait for the tenant to be created.
+
+    Returns:
+      message: The message that the tenant was created
+    """
     name = body["AccountName"]
     self.duplo.post("admin/AddTenant", body)
     def wait_check():
@@ -66,8 +121,22 @@ class DuploTenant(DuploResource):
   
   @Command()
   def delete(self,
-             name: args.NAME=None):
-    """Delete a tenant."""
+             name: args.NAME=None) -> dict:
+    """Delete Tenant
+
+    Delete a tenant by name.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl tenant delete <name>
+      ```
+    
+    Args:
+      name: The name of the tenant to delete.
+    
+    Returns:
+      message: The message that the tenant was deleted.
+    """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     self.duplo.post(f"admin/DeleteTenant/{tenant_id}", None)
@@ -78,8 +147,26 @@ class DuploTenant(DuploResource):
   @Command()
   def shutdown(self, 
                name: args.NAME=None, 
-               schedule: args.SCHEDULE=None):
-    """Expire a tenant."""
+               schedule: args.SCHEDULE=None) -> dict:
+    """Shutdown Tenant
+    
+    Shutdown a tenant by name and with a schedule.
+
+    Usage: Basic CLI Use
+      ```bash
+      // Below command shutdown the tenant after 5 minutes (default)
+      duploctl tenant shutdown <tenant-name>
+      // Below command shutdown the tenant after given time 'minutes'(m), 'hours'(h) and 'day'(d) and it also support overriding the shutdown time.
+      duploctl tenant shutdown <tenant-name> <time) // Example: 5m, 2h, 1d
+      ```
+
+    Args:
+      name: The name of the tenant to shutdown.
+      schedule: The schedule to shutdown the tenant.
+    
+    Returns:
+      message: The message that the tenant was shutdown
+    """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # if the schedule not specified then set the date 5 minute from now
@@ -110,15 +197,32 @@ class DuploTenant(DuploResource):
     })
 
     if res.status_code == 200:
-      return f"Tenant '{name}' will shutdown on {schedule}"
+      return {
+        "message": f"Tenant '{name}' will shutdown on {schedule}"
+      }
     else:
       raise DuploError(f"Failed to expire tenant '{name}'", res.status_code)
 
   @Command()
   def logging(self, 
               name: args.NAME=None, 
-              enable: args.ENABLE=True):
-    """Enable or disable tenant logging."""
+              enable: args.ENABLE=True) -> dict:
+    """Toggle Loggine
+    
+    Enable or disable logging for a tenant.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant logging <tenant-name> (default: true) // false not supported
+      ```
+    
+    Args:
+      name: The name of the tenant to toggle logging.
+      enable: Enable or disable logging.
+    
+    Returns:
+      message: The message that the tenant logging was toggled
+    """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # add or update the tenant in the list of enabled tenants
@@ -134,16 +238,29 @@ class DuploTenant(DuploResource):
     # update the entire list
     res = self.duplo.post("admin/UpdateLoggingEnabledTenants", log_tenants)
     if res.status_code == 200:
-      return f"Tenant '{name}' logging {enable}"
+      return {
+        "message": f"Tenant '{name}' logging {enable}"
+      }
     else:
       raise DuploError(f"Failed to {'enable' if enable else 'disable'} tenant '{name}'", res.status_code)
 
   @Command()
   def billing(self,
-              name: args.NAME=None):
-    """Spend
+              name: args.NAME=None) -> dict:
+    """Tenant Billing Information
     
-    Get the spend for the tenant. 
+    Get the spend for the tenant.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant billing <tenant-name>
+      ```
+
+    Args:
+      name: The name of the tenant to get billing information for.
+
+    Returns:
+      billing: The billing information for the tenant.
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
@@ -154,8 +271,24 @@ class DuploTenant(DuploResource):
   def config(self,
              name: args.NAME=None,
              setvar: args.SETVAR=[],
-             deletevar: args.DELETEVAR=[]):
-    """Add a setting to the tenant."""
+             deletevar: args.DELETEVAR=[]) -> dict:
+    """Manage Tenant Settings
+    
+    Send a series of new settings and even some to delete.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant config <tenant-name> --setvar <key> <value> --deletevar key3
+      ```
+
+    Args:
+      name: The name of the tenant to manage.
+      setvar: A series of key value pairs to set.
+      deletevar: The keys to delete.
+    
+    Returns:
+      message: The message that the tenant settings were updated.
+    """
     updates = []
     creates = []
     changes = []
@@ -199,8 +332,22 @@ class DuploTenant(DuploResource):
     
   @Command()
   def host_images(self,
-                  name: args.NAME = None):
-    """Get the list of host images."""
+                  name: args.NAME = None) -> list:
+    """Available Duplo Host Images
+    
+    Get the list of host images for the tenant. These AMI's are region scoped. 
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant host_images <tenant-name>
+      ```
+
+    Args:
+      name: The name of the tenant to get host images for.
+
+    Returns:
+      host_images: A list of host images.
+    """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/nativeHostImages")
@@ -209,8 +356,23 @@ class DuploTenant(DuploResource):
   @Command()
   def faults(self,
              name: args.NAME = None,
-             id: str = None):
-    """Get the list of faults."""
+             id: str = None) -> list:
+    """Tenant Faults
+    
+    Retrieves the list of faults for a tenant.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant faults <tenant-name>
+      ```
+
+    Args:
+      name: The name of the tenant to get faults for.
+      id: The id of the tenant to get faults for. Optional and code only.
+    
+    Returns:
+      faults: A list of faults.
+    """
     tenant = self.find(name, id)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetFaultsByTenant")
@@ -218,8 +380,22 @@ class DuploTenant(DuploResource):
   
   @Command()
   def region(self,
-             name: args.NAME = None):
-    """Get the region for the tenant."""
+             name: args.NAME = None) -> dict:
+    """Tenant Region
+    
+    Get the region the tenants infrastructure is placed in.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant region <tenant-name>
+      ```
+    
+    Args:
+      name: The name of the tenant to get the region for.
+
+    Returns:
+      region: The region the tenant is in.
+    """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetAwsRegionId")

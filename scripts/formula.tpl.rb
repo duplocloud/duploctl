@@ -20,13 +20,26 @@ class Duploctl < Formula
     end
   else
     on_macos do
-      url "#{{base_url}}/duploctl-#{{version}}-darwin-amd64.tar.gz"
-      sha256 "{macos_sha}"
+      if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
+        url "#{{base_url}}/duploctl-#{{version}}-darwin-arm64.tar.gz"
+        sha256 "{macos_sha_arm64}"
+        odie "No binary available for M1 Macs at the moment please install using the --with-pip option. (brew install duploctl --with-pip)"
+      end
+      if Hardware::CPU.intel?
+        url "#{{base_url}}/duploctl-#{{version}}-darwin-amd64.tar.gz"
+        sha256 "{macos_sha_amd64}"
+      end
     end
   
     on_linux do
-      url "#{{base_url}}/duploctl-#{{version}}-linux-amd64.tar.gz"
-      sha256 "{linux_sha}"
+      if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
+        url "#{{base_url}}/duploctl-#{{version}}-linux-arm64.tar.gz"
+        sha256 "{linux_sha_arm64}"
+      end
+      if Hardware::CPU.intel?
+        url "#{{base_url}}/duploctl-#{{version}}-linux-amd64.tar.gz"
+        sha256 "{linux_sha_amd64}"
+      end
     end
   
     def install
