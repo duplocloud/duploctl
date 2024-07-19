@@ -86,15 +86,22 @@ jobs:
     - name: Allocate Host
       id: allocate-host
       run: |
-        HOST_ID="$(aws ec2 allocate-hosts \
-        --region $AWS_REGION \
-        --instance-type $INSTANCE_TYPE \
-        --availability-zone ${AWS_REGION}b \
-        --auto-placement "on" \
-        --quantity 1 \
-        --query 'HostIds[0]' \
+        HOST_ID="$(aws ec2 describe-hosts \
+        --query "Hosts[?contains(Tags[].Key, 'duploctl')] | [0].HostId"
         --output text)"
-        echo "Created host: $HOST_ID"
+        echo "Found host: $HOST_ID"
+        if [ "$HOST_ID" == "None" ]; then
+          HOST_ID="$(aws ec2 allocate-hosts \
+          --region $AWS_REGION \
+          --instance-type $INSTANCE_TYPE \
+          --availability-zone ${AWS_REGION}b \
+          --auto-placement "on" \
+          --quantity 1 \
+          --tag-specifications 'ResourceType=dedicated-host,Tags={Key=duploctl,Value=true}' \
+          --query 'HostIds[0]' \
+          --output text)"
+          echo "Created host: $HOST_ID"
+        fi
         echo "host_id=${HOST_ID}" >> $GITHUB_OUTPUT
 
     - name: Launch Runner
@@ -107,7 +114,7 @@ jobs:
         --instance-type $INSTANCE_TYPE \
         --placement Tenancy=host \
         --image-id $AMI_ID \
-        --user-data $USER_DATA \
+        --user-data "$USER_DATA" \
         --query 'Instances[0].InstanceId' \
         --output text)"
         echo "Launched instance: $INSTANCE_ID"
