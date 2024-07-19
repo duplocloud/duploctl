@@ -46,6 +46,8 @@ jobs:
           multiarch: false
         arch:
         - amd64
+    env:
+      PY_VERSION: "3.12"
     steps:
 
     - name: Get Tag Name
@@ -71,6 +73,7 @@ jobs:
         ref: ${{ inputs.tag }}
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
+        python-version: ${{ env.PY_VERSION }}
         install: ".[build]"
     
     - name: Pyinstaller
@@ -85,7 +88,6 @@ jobs:
       id: installer-multiarch
       uses: duplocloud/actions/build-image@build-image-updates
       env:
-        PY_VERSION: ${{ env.PY_VERSION }}
         GIT_TAG: ${{ steps.info.outputs.GIT_TAG }}
       with:
         type: bake
