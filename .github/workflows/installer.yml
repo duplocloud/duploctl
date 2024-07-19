@@ -89,7 +89,7 @@ jobs:
         GIT_TAG: ${{ inputs.tag }}
       with:
         type: bake
-        target: bin
+        target: duploctl-bin
         push: false
 
     - name: View Files
