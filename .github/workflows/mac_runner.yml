@@ -130,9 +130,9 @@ jobs:
           --filter "Name=tag:duploctl,Values=gharunner" \
           --query "Reservations[0].Instances[0].InstanceId" \
           --output text)"
+        echo "Found existing runner: $INSTANCE_ID"
         if [[ ! $INSTANCE_ID =~ ^i- ]]; then
           echo "No existing runner found: $INSTANCE_ID"
-          echo "Launching instance"
           INSTANCE_ID="$(aws ec2 run-instances \
             --region $AWS_REGION \
             --instance-type $INSTANCE_TYPE \
