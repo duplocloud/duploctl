@@ -104,8 +104,7 @@ jobs:
         HOST_ID="$(aws ec2 describe-hosts \
           --query "Hosts[?contains(Tags[].Key, 'duploctl')] | [0].HostId" \
           --output text)"
-        echo "Found host: $HOST_ID"
-        if [ "$HOST_ID" == "None" ]; then
+        if [[ ! $HOST_ID =~ ^h- ]]; then
           HOST_ID="$(aws ec2 allocate-hosts \
             --region $AWS_REGION \
             --instance-type $INSTANCE_TYPE \
@@ -125,19 +124,19 @@ jobs:
         AMI_ID: ${{ steps.find-ami.outputs.ami }}
         SUBNET_ID: ${{ steps.network-details.outputs.subnet_id }}
         SECURITY_GROUP: ${{ steps.network-details.outputs.security_group }}
+        HOST_ID: ${{ steps.allocate-host.outputs.host_id }}
       run: |
         INSTANCE_ID="$(aws ec2 describe-instances \
           --filter "Name=tag:duploctl,Values=gharunner" \
           --query "Reservations[0].Instances[0].InstanceId" \
           --output text)"
-        echo "Found instance: $INSTANCE_ID"
-        # if instance id does not start with i-
         if [[ ! $INSTANCE_ID =~ ^i- ]]; then
+          echo "No existing runner found: $INSTANCE_ID"
           echo "Launching instance"
           INSTANCE_ID="$(aws ec2 run-instances \
             --region $AWS_REGION \
             --instance-type $INSTANCE_TYPE \
-            --placement Tenancy=host \
+            --placement "Tenancy=host,HostId=$HOST_ID" \
             --image-id $AMI_ID \
             --count 1 \
             --subnet-id $SUBNET_ID \
@@ -146,9 +145,9 @@ jobs:
             --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value='Duploctl GHA Runner'},{Key=duploctl,Value=gharunner}]" \
             --query 'Instances[0].InstanceId' \
             --output text)"
+          echo "Launched instance: $INSTANCE_ID"
+          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+          echo "Instance is running"
         fi
-        echo "Launched instance: $INSTANCE_ID"
-        aws ec2 wait instance-running --instance-ids $INSTANCE_ID
-        echo "Instance is running"
         aws ec2 describe-instance-status --instance-ids $INSTANCE_ID
         echo "instance_id=${INSTANCE_ID}" >> $GITHUB_OUTPUT
