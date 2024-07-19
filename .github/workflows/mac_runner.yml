@@ -42,8 +42,6 @@ jobs:
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
       DUPLO_TENANT: ${{ vars.DUPLO_TENANT }}
       AWS_CONFIG_FILE: config/aws
-      AWS_DEFAULT_REGION: ${{ vars.AWS_REGION }}
-      AWS_REGION: ${{ vars.AWS_REGION }}
       AWS_PROFILE: test
       INSTANCE_TYPE: mac2-m2.metal
     steps:
@@ -60,7 +58,11 @@ jobs:
       id: aws-login
       run: |
         mkdir -p config
+        export AWS_DEFAULT_REGION="$(duploctl tenant region -o string -q region)"
+        export AWS_REGION=$AWS_DEFAULT_REGION
         duploctl jit update_aws_config $AWS_PROFILE --admin
+        echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> $GITHUB_ENV
+        echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
 
     - name: Install Script
       id: install-script
@@ -87,7 +89,7 @@ jobs:
         HOST_ID="$(aws ec2 allocate-hosts \
         --region $AWS_REGION \
         --instance-type $INSTANCE_TYPE \
-        --availability-zone ${AWS_REGION}a \
+        --availability-zone ${AWS_REGION}b \
         --auto-placement "on" \
         --quantity 1 \
         --query 'HostIds[0]' \
