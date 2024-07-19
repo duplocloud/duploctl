@@ -87,7 +87,7 @@ jobs:
       id: allocate-host
       run: |
         HOST_ID="$(aws ec2 describe-hosts \
-        --query "Hosts[?contains(Tags[].Key, 'duploctl')] | [0].HostId"
+        --query "Hosts[?contains(Tags[].Key, 'duploctl')] | [0].HostId" \
         --output text)"
         echo "Found host: $HOST_ID"
         if [ "$HOST_ID" == "None" ]; then
