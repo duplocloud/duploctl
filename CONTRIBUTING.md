@@ -50,20 +50,6 @@ Build the Homebrew formula from a tagged release. Normally only the pipeline wil
 
 ## Version Bump
 
-Make sure you have the duplo git-bump installed and then run
-
-```sh
-git bump -v '[patch, major, minor]'
-```
-
-e.g. a small patch do this:
-
-```sh
-git bump -v patch
-```
-
-Doing this creates a proper semver which will trigger a new publish pipeline which in the background uses setuptools_scm to determine the version.
-
 Get the current version:
 
 ```sh
@@ -74,9 +60,7 @@ When building the artifact the setuptools scm tool will use the a snazzy semver 
 
 _ref:_ [SetupTools SCM](https://pypi.org/project/setuptools-scm/)
 
-## Add Wiki Doc For Subcommand
-
-make sure to add a wiki document to the wiki folder for the subcommand. Follow the same pattern as the other subcommand readme's.
+When Ready to publish a new version live, go to the [publish.yml](https://github.com/duplocloud/duploctl/actions/workflows/publish.yml) workflow and run the workflow manually. This will bump the version, build the artifact, and push the new version to pypi. 
 
 ## Docker Image  
 
@@ -87,7 +71,7 @@ Build the main image locally for your machine.
 docker compose build duploctl
 ```
 
-Use buildx to build the multiarch binaries.
+Use buildx to build the multiarch binaries. This will output the binaries to the `dist` folder.
 ```sh
 docker buildx bake duploctl-bin
 ```
@@ -104,3 +88,77 @@ Then generate the formula using the current git tag.
 ```sh
 ./scripts/formula.py
 ```
+
+## Documentation 
+
+The wiki is a static generated website using mkdocs. All of the resource docs are pulled out from the pydoc strings in the code. The convention for docs in code is [Google style docstrings](https://google.github.io/styleguide/pyguide.html).
+
+Here is an example of the docstring format. 
+
+```python
+def my_function(param1, param2) -> dict:
+    """This is a function that does something.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ...
+      ```
+
+    Args:
+      param1: The first parameter.
+      param2: The second parameter.
+
+    Returns:
+      message: The return value.
+
+    Raises:
+        DuploError: If the value is not correct.
+    """
+    return {}
+```
+
+To work on the wiki you need to install the dependencies. You probably already did this if you ran the editable install command above, this includes the optional doc dependencies. 
+
+```sh
+pip install --editable '.[docs]'
+```
+
+To serve the wiki locally you can run the following command. This will start a local server and watch for changes.
+
+```sh
+mkdocs serve
+```
+
+## Step Through Debugging  
+
+Assuming you are using VSCode, make sure you have a `.vscode/launch.json` file with the following configuration. Change the `args` to the command you want to debug, this is equivelent to running from the command line. 
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "name": "duploctl",
+          "type": "debugpy",
+          "console": "integratedTerminal",
+          "request": "launch",
+          "justMyCode": true,
+          "cwd": "${workspaceFolder}",
+          "program": "src/duplocloud/cli.py",
+          "args": [
+            "version",
+            "--interactive", 
+            "--wait",
+            "--admin"
+          ],
+          "env": {
+            "DUPLO_HOST": "https://myportal.duplocloud.net",
+            "DUPLO_TENANT": "toolstest",
+            "DUPLO_CONFIG": "${workspaceFolder}/config/duploconfig.yaml"
+          }
+        }
+    ]
+}
+```
+
+Then you can run the debugger on the current file.

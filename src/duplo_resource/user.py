@@ -28,8 +28,21 @@ class DuploUser(DuploResource):
   @Command()
   def add_user_to_tenant(self, 
                  name: args.NAME, 
-                 tenant: args.TENANT):
-    """Retrieve a list of all users in the Duplo system."""
+                 tenant: args.TENANT) -> dict:
+    """Add User to Tenant
+    
+    Usage: CLI Usage
+      ```sh
+      duploctl user add_user_to_tenant <user> --tenant <tenant_name>
+      ```
+
+    Args:
+      name: The name of the user to add to the tenant.
+      tenant: The name of the tenant to add the user to.
+
+    Returns:
+      message: A message indicating the user was added to the tenant.
+    """
     tenant_id = self.tenent_svc.find(tenant)["TenantId"]
     res = self.duplo.post("admin/UpdateUserAccess", {
       "Policy": { "IsReadOnly": None },
@@ -45,7 +58,23 @@ class DuploUser(DuploResource):
   @Command()
   def create(self, 
              body: args.BODY):
-    """Create a new user."""
+    """Create a new user.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl user create -f 'user.yaml'
+      ```
+      Contents of the `user.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/user.yaml"
+      ```
+    
+    Args:
+      body: The user body. 
+
+    Returns:
+      message: A success message.
+    """
     if 'State' not in body:
       body['State'] = 'added'
     response = self.duplo.post("admin/UpdateUserRole", body)
@@ -53,8 +82,20 @@ class DuploUser(DuploResource):
   
   @Command()
   def delete(self, 
-             name: args.NAME):
-    """Delete a user."""
+             name: args.NAME) -> dict:
+    """Delete a User.
+    
+    Usage: CLI Usage
+      ```sh
+      duploctl user delete <name>
+      ```
+    
+    Args:
+      name: The name of the user to delete.
+    
+    Returns:
+      message: A success message.
+    """
     body = {
       "Username": name,
       "State": "deleted"

@@ -120,4 +120,3 @@ def available_resources():
     A list of available resources names.
   """
   return list(ep.names)
-
