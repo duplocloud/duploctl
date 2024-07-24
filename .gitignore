@@ -20,3 +20,4 @@ venv
 .github/output
 .github/env
 requirements.txt
+actions-runner/

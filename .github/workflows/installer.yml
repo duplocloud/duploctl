@@ -12,6 +12,11 @@ on:
         description: The git tag to build on
         required: false
         type: string
+      include_mac_arm64:
+        description: Include the mac arm64 build
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       push:
@@ -23,6 +28,11 @@ on:
         description: The git tag to build on
         required: false
         type: string
+      include_mac_arm64:
+        description: Include the mac arm64 build
+        required: false
+        default: false
+        type: boolean
     secrets:
       GH_APP_KEY:
         description: GitHub App private key
@@ -38,16 +48,17 @@ jobs:
         - name: windows
           runs-on: windows-latest
           multiarch: false
+          arch: amd64
         - name: linux
           runs-on: ubuntu-latest
           multiarch: true
+          arch: amd64
         - name: darwin
           runs-on: macos-latest
           multiarch: false
-        arch:
-        - amd64
+          arch: amd64
     env:
-      PY_VERSION: "3.12"
+      PY_VERSION: ${{ vars.PY_VERSION }}
     steps:
 
     - name: Get Tag Name
@@ -55,7 +66,7 @@ jobs:
       shell: bash
       env:
         OS: ${{ matrix.os.name }}
-        ARCH: ${{ matrix.arch }}
+        ARCH: ${{ matrix.os.arch }}
         GIT_TAG: ${{ inputs.tag }}
       run: |
         if [ -z "${GIT_TAG}" ]; then
@@ -101,7 +112,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: matrix.os.multiarch == false && inputs.push
       with:
-        name: ${{ steps.info.outputs.NAME }}-${{ matrix.arch }}
+        name: ${{ steps.info.outputs.NAME }}-${{ matrix.os.arch }}
         path: dist
 
     - name: Amd Artifact
@@ -117,3 +128,50 @@ jobs:
       with:
         name: ${{ steps.info.outputs.NAME }}-arm64
         path: dist/${{ matrix.os.name }}_arm64
+
+  installer_darwin_arm64:
+    name: Pyinstaller for Mac Arm64
+    if: inputs.include_mac_arm64
+    runs-on:
+    - self-hosted
+    - darwin
+    - arm64
+    env:
+      PY_VERSION: ${{ vars.PY_VERSION }}
+    steps:
+    - name: Get Tag Name
+      id: info
+      shell: bash
+      env:
+        OS: darwin
+        ARCH: arm64
+        GIT_TAG: ${{ inputs.tag }}
+      run: |
+        if [ -z "${GIT_TAG}" ]; then
+          GIT_TAG=${GITHUB_REF#refs/*/}
+        fi
+        VERSION="${GIT_TAG#v*}"
+        NAME="duploctl-${VERSION}-${OS}"
+        echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "NAME=${NAME}" >> $GITHUB_OUTPUT
+
+    - name: Setup
+      id: setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        ref: ${{ inputs.tag }}
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+        python-version: ${{ env.PY_VERSION }}
+        install: ".[build]"
+    
+    - name: Pyinstaller
+      id: installer
+      run: pyinstaller scripts/installer.spec
+
+    - name: Single Artifact
+      uses: actions/upload-artifact@v4
+      if: inputs.push
+      with:
+        name: ${{ steps.info.outputs.NAME }}-arm64
+        path: dist
