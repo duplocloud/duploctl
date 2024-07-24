@@ -402,3 +402,55 @@ class DuploTenant(DuploResource):
     return {
       "region": response.json()
     }
+
+  @Command()
+  def start(self, wait: args.WAIT=False):
+    """Start Tenant All Resources
+
+    Starts all resources of a tenant.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant start
+      ```
+
+    Args:
+      wait: Wait for the resources to start.
+
+    Returns:
+      message: A success message.
+    """
+    service_types = ['rds', 'hosts']
+    for service_type in service_types:
+      service = self.duplo.load(service_type)
+      for item in service.list():
+        service.start(service.name_from_body(item), wait)
+    return {
+      "message": f"Successfully started all resources for tenant"
+    }
+
+  @Command()
+  def stop(self, wait: args.WAIT=False):
+    """Stop Tenant All Resources
+
+    Stops all resources of a tenant.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant stop
+      ```
+
+    Args:
+      wait: Wait for the resources to stop.
+
+    Returns:
+      message: A success message.
+    """
+    service_types = ['rds', 'hosts']
+    for service_type in service_types:
+      service = self.duplo.load(service_type)
+      for item in service.list():
+        service.stop(service.name_from_body(item), wait)
+    return {
+      "message": f"Successfully stopped all resources for tenant"
+    }

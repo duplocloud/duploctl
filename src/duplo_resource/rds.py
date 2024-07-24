@@ -66,6 +66,22 @@ class DuploRDS(DuploTenantResourceV3):
     }
   
   @Command()
+  def start(self,
+           name: args.NAME,
+           wait: args.WAIT=False):
+    """Start a DB instance."""
+    def wait_check():
+      i = self.find(name)
+      if i["InstanceStatus"] in ["starting"]:
+        raise DuploError(f"DB instance {name} is still starting")
+    self.duplo.post(self.endpoint(name, "start"))
+    if wait:
+      self.wait(wait_check, 1800, 10)
+    return {
+      "message": "DB instance started"
+    }
+  
+  @Command()
   def reboot(self,
              name: args.NAME,
              wait: args.WAIT=False):
