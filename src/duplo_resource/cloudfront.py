@@ -44,5 +44,5 @@ class CloudFront(DuploTenantResourceV3):
         Args:
           distribution_id (str): The ID of the distribution to delete.
         """
-        response = self.duplo.delete(self.endpoint(distribution_id))
+        self.duplo.delete(self.endpoint(distribution_id))
         return {"message": f"CloudFront distribution {distribution_id} deleted"}
