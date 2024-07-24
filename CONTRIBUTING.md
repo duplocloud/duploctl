@@ -164,3 +164,28 @@ Assuming you are using VSCode, make sure you have a `.vscode/launch.json` file w
     ]
 }
 ```
+
+## Self Hosted Mac Arm64 Runner  
+
+Due to limitations of GHA, there are no darwin/Arm64 machines to compile the installer for. This means you must install the self hosted runner on your own machine. 
+
+First Get a token from here: [GHA New Runner Page](https://github.com/duplocloud/duploctl/settings/actions/runners/new). 
+Set this variable in your `.envrc` file. 
+
+```sh
+export GH_RUNNER_TOKEN="your-token-here"
+```
+
+Next you need to run the following command to make a dir and chown it so the setup-python step is happy. 
+[See issue here](https://github.com/actions/setup-python/blob/2f078955e4d0f34cc7a8b0108b2eb7bbe154438e/docs/advanced-usage.md#macos)  
+
+```sh
+sudo mkdir -p /Users/runner /Users/runner/hostedtoolcache
+sudo chown -R "$(id -un)" /Users/runner
+```
+
+Then run the following command to install the runner and activate it. 
+
+```sh 
+./scripts/runner_install.sh
+```
