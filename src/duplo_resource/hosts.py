@@ -20,7 +20,7 @@ class DuploHosts(DuploTenantResourceV2):
   @Command()
   def create(self,
              body: args.BODY,
-             wait: args.WAIT=False):
+             wait: args.WAIT=False) -> dict:
     """Create a Hosts resource.
 
     Usage: CLI Usage
@@ -43,8 +43,10 @@ class DuploHosts(DuploTenantResourceV2):
       body: The resource to create.
       wait: Wait for the resource to be created.
       wait_check: A callable function to check if the resource
+
     Returns: 
-      Success message.
+      message: Success message.
+
     Raises:
       DuploError: If the resource could not be created.
     """

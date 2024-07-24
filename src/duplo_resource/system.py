@@ -8,15 +8,26 @@ class DuploSystem(DuploResource):
     super().__init__(duplo)
   
   @Command()
-  def info(self):
-    """Retrieve all of the system information."""
+  def info(self) -> dict:
+    """Get system information
+    
+    Usage: CLI Usage
+      ```sh
+      duploctl system info
+      ```
+    """
     return self.duplo.get("v3/features/system").json()
   
   @Command()
-  def billing(self):
+  def billing(self) -> dict:
     """Account
     
     Get the account spend for the portal. 
+
+    Usage: CLI Usage
+      ```sh
+      duploctl system billing
+      ```
     """
     response = self.duplo.get("v3/billing/admin/aws/billing")
     return response.json()
