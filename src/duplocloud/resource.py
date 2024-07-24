@@ -61,23 +61,37 @@ class DuploResourceV2(DuploResource):
   def endpoint(self, path: str=None):
     return path
   @Command()
-  def list(self):
-    """Retrieve a list of all services in a tenant."""
+  def list(self) -> list:
+    """Retrieve a List of {{kind}}
+    
+    Usage: cli usage
+      ```sh
+      duploctl {{kind | lower}} list
+      ```
+
+    Returns:
+      list: A list of {{kind}}.
+    """
     response = self.duplo.get(self.endpoint(self.paths["list"]))
     return response.json()
   @Command()
   def find(self, 
-           name: args.NAME):
-    """Find a resource by name.
+           name: args.NAME) -> dict:
+    """Find a {{kind}} by name.
+
+    Usage: cli usage
+      ```sh
+      duploctl {{kind | lower}} find <name>
+      ```
     
     Args:
-      name: The name of the resource to find.
+      name: The name of the {{kind}} to find.
 
     Returns: 
-      The resource object.
+      resource: The {{kind}} object.
       
     Raises:
-      DuploError: If the resource could not be found.
+      DuploError: If the {{kind}} could not be found.
     """
     try:
       return [s for s in self.list() if self.name_from_body(s) == name][0]
@@ -141,37 +155,58 @@ class DuploTenantResourceV3(DuploResource):
     return self.__tenant_id
   
   @Command()
-  def list(self):
-    """Retrieve a list of all resources in a tenant."""
+  def list(self) -> list:
+    """Retrieve a List of {{kind}} resources
+
+    Usage: cli usage
+      ```sh
+      duploctl {{kind | lower}} list
+      ```
+    
+    Returns:
+      list: A list of {{kind}}.
+    """
     response = self.duplo.get(self.endpoint())
     return response.json()
   
   @Command()
   def find(self, 
            name: args.NAME):
-    """Find a V3 resource by name.
+    """Find {{kind}} resources by name.
+
+    Usage: cli usage
+      ```sh
+      duploctl {{kind | lower}} find <name>
+      ```
     
     Args:
-      name (str): The name of the resource to find.
+      name: The name of the {{kind}} resource to find.
+
     Returns: 
-      The resource.
+      resource: The {{kind}} object.
+      
     Raises:
-      DuploError: If the resource could not be found.
+      DuploError: If the {{kind}} could not be found.
     """
     response = self.duplo.get(self.endpoint(name))
     return response.json()
   
   @Command()
   def delete(self, 
-             name: args.NAME):
-    """Delete a V3 resource by name.
+             name: args.NAME) -> dict:
+    """Delete a {{kind}} resource by name.
+
+    Usage: cli usage
+      ```sh
+      duploctl {{kind | lower}} delete <name>
+      ```
     
     Args:
-      name (str): The name of the resource to delete.
+      name: The name of the {{kind}} resource to delete.
     Returns: 
-      A success message.
+      message: A success message.
     Raises:
-      DuploError: If the resource could not be found or deleted. 
+      DuploError: If the {{kind}} resource could not be found or deleted. 
     """
     self.duplo.delete(self.endpoint(name))
     return {
@@ -183,10 +218,28 @@ class DuploTenantResourceV3(DuploResource):
              body: args.BODY,
              wait: args.WAIT=False,
              wait_check: callable=None):
-    """Create a V3 resource by name.
+    """Create a {{kind}} resource.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl {{kind | lower}} create -f '{{kind | lower}}.yaml'
+      ```
+      Contents of the `{{kind|lower}}.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/{{kind|lower}}.yaml"
+      ```
+
+    Example: One liner example
+      ```sh
+      echo \"\"\"
+      --8<-- "src/tests/data/{{kind|lower}}.yaml"
+      \"\"\" | duploctl {{kind | lower}} create -f -
+      ```
     
     Args:
-      body (str): The resource to create.
+      body: The resource to create.
+      wait: Wait for the resource to be created.
+      wait_check: A callable function to check if the resource
     Returns: 
       Success message.
     Raises:

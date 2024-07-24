@@ -91,3 +91,16 @@ Use buildx to build the multiarch binaries.
 ```sh
 docker buildx bake duploctl-bin
 ```
+
+## Building the Homebrew Formula  
+
+The homebrew formula is built from the `scripts/formula.py` script. This script will use the current git tag to build the formula. 
+
+First you need to get the frozen requirements for the formula. This is done by running the following command. This will do all local dependencies including dev only dependencies. The pipeline will make sure to only include the necessary dependencies.
+```sh
+pip freeze --exclude-editable > requirements.txt
+```
+Then generate the formula using the current git tag. 
+```sh
+./scripts/formula.py
+```

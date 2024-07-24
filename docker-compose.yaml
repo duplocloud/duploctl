@@ -1,22 +1,27 @@
 services:
   duploctl: &base
-    image: &image duplocloud/duploctl:latest
+    image: &image $IMAGE:latest
     build: &build
       target: runner
       args:
-        PY_VERSION: '3.12'
+        PY_VERSION: $PY_VERSION
       tags:
       - *image
+      - $IMAGE:$GIT_SHA
+      - $IMAGE:$GIT_REF
+      - $IMAGE:$GIT_TAG
       platforms: &platforms
       - linux/amd64
       - linux/arm64
-      x-bake:
+      x-bake: &bake
         platforms: *platforms
+        cache-to: type=gha,scope=runner,mode=max
+        cache-from: type=gha,scope=runner
     container_name: duploctl
     environment:
-      DUPLO_HOST: $DUPLO_HOST
-      DUPLO_TOKEN: $DUPLO_TOKEN
-      DUPLO_TENANT: $DUPLO_TENANT
+      DUPLO_HOST: ${DUPLO_HOST:-}
+      DUPLO_TOKEN: ${DUPLO_TOKEN:-}
+      DUPLO_TENANT: ${DUPLO_TENANT:-}
     command:
     - version
   duploctl-bin:
@@ -29,5 +34,7 @@ services:
       tags:
       - *binImage
       x-bake:
-        platforms: *platforms
+        <<: *bake
         output: type=local,dest=./dist
+        cache-to: type=gha,scope=installer,mode=max
+        cache-from: type=gha,scope=installer
