@@ -23,7 +23,6 @@ class Duploctl < Formula
       if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
         url "#{{base_url}}/duploctl-#{{version}}-darwin-arm64.tar.gz"
         sha256 "{macos_sha_arm64}"
-        odie "No binary available for M1 Macs at the moment please install using the --with-pip option. (brew install duploctl --with-pip)"
       end
       if Hardware::CPU.intel?
         url "#{{base_url}}/duploctl-#{{version}}-darwin-amd64.tar.gz"
