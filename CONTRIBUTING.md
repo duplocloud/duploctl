@@ -89,6 +89,10 @@ Then generate the formula using the current git tag.
 ./scripts/formula.py
 ```
 
+## Changelog  
+
+Make sure to take note of your changes in the changelog. This is done by updating the `CHANGELOG.md` file. Add any new details under the `## [Unreleased]` section. When a new version is published, the word `Unreleased` will be replaced with the version number and the date. The section will also be the detailed release notes under releases in Github. The checks on the PR will fail if you don't add any notes in the changelog.
+
 ## Documentation 
 
 The wiki is a static generated website using mkdocs. All of the resource docs are pulled out from the pydoc strings in the code. The convention for docs in code is [Google style docstrings](https://google.github.io/styleguide/pyguide.html).
@@ -160,5 +164,3 @@ Assuming you are using VSCode, make sure you have a `.vscode/launch.json` file w
     ]
 }
 ```
-
-Then you can run the debugger on the current file.
