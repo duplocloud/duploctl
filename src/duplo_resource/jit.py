@@ -28,6 +28,22 @@ class DuploJit(DuploResource):
     super().__init__(duplo)
 
   @Command()
+  def token(self) -> dict:
+    """Get JWT Token
+    
+    Get the JWT token for the current user. This is the token that is used to authenticate with the Duplo API. 
+
+    Usage:  
+      ```sh
+      duploctl jit token
+      ```
+
+    Returns:
+      token: The JWT token.
+    """
+    return {"token": self.duplo.token}
+
+  @Command()
   def aws(self, nocache: bool = None) -> dict:
     """AWS STS Session Credentials
     
