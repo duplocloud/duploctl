@@ -199,7 +199,7 @@ class DuploService(DuploTenantResourceV2):
     if wait:
       service["Replicaset"] = self.current_replicaset(name)
       self.wait(service, payload)
-    return {"message": "Successfully updated environment variables for service '{0}'".format(name)}
+    return {"message": f"Successfully updated environment variables for service '{name}'"}
     
   
   @Command()
