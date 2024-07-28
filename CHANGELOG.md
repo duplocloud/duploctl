@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - updated all of the resources to show up in the docs
  - arm64 linux binary is now available in the homebrew formula
  - auto generate markdown templates for resources when building the docs
+ - updated docs for services.update_env to include usage
 
 ## [0.2.30] - 2024-07-11
 
