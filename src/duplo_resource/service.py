@@ -163,8 +163,11 @@ class DuploService(DuploTenantResourceV2):
                  strategy: args.STRATEGY,
                  deletevar: args.DELETEVAR,
                  wait: args.WAIT = False):
-    """Update the environment variables of a service.
-
+    """Update the environment variables of a service. If service has no environment variables set, use -strat replace to set new values.
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service update_env <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --setvar env-key3 env-val3 -strat merge --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      ```
     Args:
       name (str): The name of the service to update.
       setvar/-V (list): A list of key value pairs to set as environment variables.
@@ -196,7 +199,7 @@ class DuploService(DuploTenantResourceV2):
     if wait:
       service["Replicaset"] = self.current_replicaset(name)
       self.wait(service, payload)
-    return {"message": "Successfully updated environment variables for services"}
+    return {"message": "Successfully updated environment variables for service '{0}'".format(name)}
     
   
   @Command()
