@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Added
+
+  - Added support for tenant start/stop
+
 ## [0.2.31] - 2024-07-29
 
 ### Added 
@@ -14,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - cloudfront resource with crud operations
  - a new plan resource to view
  - print token command when you just want the token
- - Added support for tenant start/stop
 
 ### Updates 
  - updated all of the resources to show up in the docs
