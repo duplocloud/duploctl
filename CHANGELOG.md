@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - cloudfront resource with crud operations
  - a new plan resource to view
+ - print token command when you just want the token
 
 ### Updates 
  - updated all of the resources to show up in the docs
