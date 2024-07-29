@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added 
 
  - cloudfront resource with crud operations
+ - Added support for tenant start/stop
 
 ### Updates 
  - updated all of the resources to show up in the docs
