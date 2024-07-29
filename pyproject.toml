@@ -126,6 +126,7 @@ duploctl = "duplocloud.cli:main"
 
 [project.entry-points."duplocloud.net"]
 infrastructure = "duplo_resource.infrastructure:DuploInfrastructure"
+plan = "duplo_resource.plan:DuploPlan"
 tenant = "duplo_resource.tenant:DuploTenant"
 version = "duplo_resource.version:DuploVersion"
 service = "duplo_resource.service:DuploService"
