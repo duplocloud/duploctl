@@ -444,7 +444,7 @@ class DuploTenant(DuploResource):
         if service_name not in parsed_exclude[service_type]:
           service.start(service_name, wait)
     return {
-      "message": f"Successfully started all resources for tenant"
+      "message": "Successfully started all resources for tenant"
     }
 
   @Command()
@@ -488,7 +488,7 @@ class DuploTenant(DuploResource):
         if service_name not in parsed_exclude[service_type]:
           service.stop(service_name, wait)
     return {
-      "message": f"Successfully stopped all resources for tenant"
+      "message": "Successfully stopped all resources for tenant"
     }
 
   def get_hosts_to_exclude(self, host_at):
