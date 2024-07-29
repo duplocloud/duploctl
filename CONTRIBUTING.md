@@ -50,20 +50,6 @@ Build the Homebrew formula from a tagged release. Normally only the pipeline wil
 
 ## Version Bump
 
-Make sure you have the duplo git-bump installed and then run
-
-```sh
-git bump -v '[patch, major, minor]'
-```
-
-e.g. a small patch do this:
-
-```sh
-git bump -v patch
-```
-
-Doing this creates a proper semver which will trigger a new publish pipeline which in the background uses setuptools_scm to determine the version.
-
 Get the current version:
 
 ```sh
@@ -74,9 +60,7 @@ When building the artifact the setuptools scm tool will use the a snazzy semver 
 
 _ref:_ [SetupTools SCM](https://pypi.org/project/setuptools-scm/)
 
-## Add Wiki Doc For Subcommand
-
-make sure to add a wiki document to the wiki folder for the subcommand. Follow the same pattern as the other subcommand readme's.
+When Ready to publish a new version live, go to the [publish.yml](https://github.com/duplocloud/duploctl/actions/workflows/publish.yml) workflow and run the workflow manually. This will bump the version, build the artifact, and push the new version to pypi. 
 
 ## Docker Image  
 
@@ -87,7 +71,7 @@ Build the main image locally for your machine.
 docker compose build duploctl
 ```
 
-Use buildx to build the multiarch binaries.
+Use buildx to build the multiarch binaries. This will output the binaries to the `dist` folder.
 ```sh
 docker buildx bake duploctl-bin
 ```
@@ -103,4 +87,105 @@ pip freeze --exclude-editable > requirements.txt
 Then generate the formula using the current git tag. 
 ```sh
 ./scripts/formula.py
+```
+
+## Changelog  
+
+Make sure to take note of your changes in the changelog. This is done by updating the `CHANGELOG.md` file. Add any new details under the `## [Unreleased]` section. When a new version is published, the word `Unreleased` will be replaced with the version number and the date. The section will also be the detailed release notes under releases in Github. The checks on the PR will fail if you don't add any notes in the changelog.
+
+## Documentation 
+
+The wiki is a static generated website using mkdocs. All of the resource docs are pulled out from the pydoc strings in the code. The convention for docs in code is [Google style docstrings](https://google.github.io/styleguide/pyguide.html).
+
+Here is an example of the docstring format. 
+
+```python
+def my_function(param1, param2) -> dict:
+    """This is a function that does something.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ...
+      ```
+
+    Args:
+      param1: The first parameter.
+      param2: The second parameter.
+
+    Returns:
+      message: The return value.
+
+    Raises:
+        DuploError: If the value is not correct.
+    """
+    return {}
+```
+
+To work on the wiki you need to install the dependencies. You probably already did this if you ran the editable install command above, this includes the optional doc dependencies. 
+
+```sh
+pip install --editable '.[docs]'
+```
+
+To serve the wiki locally you can run the following command. This will start a local server and watch for changes.
+
+```sh
+mkdocs serve
+```
+
+## Step Through Debugging  
+
+Assuming you are using VSCode, make sure you have a `.vscode/launch.json` file with the following configuration. Change the `args` to the command you want to debug, this is equivelent to running from the command line. 
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "name": "duploctl",
+          "type": "debugpy",
+          "console": "integratedTerminal",
+          "request": "launch",
+          "justMyCode": true,
+          "cwd": "${workspaceFolder}",
+          "program": "src/duplocloud/cli.py",
+          "args": [
+            "version",
+            "--interactive", 
+            "--wait",
+            "--admin"
+          ],
+          "env": {
+            "DUPLO_HOST": "https://myportal.duplocloud.net",
+            "DUPLO_TENANT": "toolstest",
+            "DUPLO_CONFIG": "${workspaceFolder}/config/duploconfig.yaml"
+          }
+        }
+    ]
+}
+```
+
+## Self Hosted Mac Arm64 Runner  
+
+Due to limitations of GHA, there are no darwin/Arm64 machines to compile the installer for. This means you must install the self hosted runner on your own machine. 
+
+First Get a token from here: [GHA New Runner Page](https://github.com/duplocloud/duploctl/settings/actions/runners/new). 
+Set this variable in your `.envrc` file. 
+
+```sh
+export GH_RUNNER_TOKEN="your-token-here"
+```
+
+Next you need to run the following command to make a dir and chown it so the setup-python step is happy. 
+[See issue here](https://github.com/actions/setup-python/blob/2f078955e4d0f34cc7a8b0108b2eb7bbe154438e/docs/advanced-usage.md#macos)  
+
+```sh
+sudo mkdir -p /Users/runner /Users/runner/hostedtoolcache
+sudo chown -R "$(id -un)" /Users/runner
+```
+
+Then run the following command to install the runner and activate it. 
+
+```sh 
+./scripts/runner_install.sh
 ```

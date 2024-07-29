@@ -1,6 +1,6 @@
 site_name: Duploctl Wiki
 
-docs_dir: wiki
+docs_dir: dist/docs
 site_dir: dist/site
 
 watch:
@@ -20,6 +20,7 @@ plugins:
       python:
         options:
           show_source: false
+          inherited_members: true
           filters:
           - "^(?!__).*"
 
@@ -42,22 +43,31 @@ nav:
 - Overview: Home.md
 - Resources:
   - JIT: Jit.md
+  - Infrastructure: Infrastructure.md
+  - Plan: Plan.md
   - Tenants: Tenant.md
-  - Autoscaling Groups: Autoscaling.md
-  - Hosts: Host.md
+  - Autoscaling Groups: Asg.md
+  - Hosts: Hosts.md
   - Lambda: Lambda.md
   - Service: Service.md
   - CronJobs: CronJob.md
   - Ingress: Ingress.md
+  - CloudFront: CloudFront.md
   - Secret: Secret.md
   - ConfigMap: ConfigMap.md
   - User: User.md
   - System: System.md
   - Version: Version.md
   - S3: S3.md
+  - PVC: PersistentVolumeClaim.md
+  - StorageClass: StorageClass.md
+  - Job: Job.md
+  - RDS: RDS.md
+  - Pod: Pod.md
+  - ECS: EcsService.md
 - Module:
   - Client: Client.md
 - Plugins:
   - AWS: plugins/aws.md
-- Changelog: Changelog.md
-- Contributing: Contributing.md
+- Changelog: CHANGELOG.md
+- Contributing: CONTRIBUTING.md

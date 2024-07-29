@@ -4,9 +4,9 @@ from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-
 @Resource("rds")
 class DuploRDS(DuploTenantResourceV3):
+  """Resource for managing RDS instances."""
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "aws/rds/instance")

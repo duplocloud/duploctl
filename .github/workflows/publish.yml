@@ -26,7 +26,11 @@ on:
         description: An infra to use. Empty creates one.
         required: false
         type: string
-
+      include_mac_arm64:
+        description: Include the mac arm64 build
+        required: false
+        default: false
+        type: boolean
 jobs:
 
   unit_test:
@@ -79,6 +83,7 @@ jobs:
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: true # just pushes to artifacts
+      include_mac_arm64: ${{ inputs.include_mac_arm64 }}
 
   docs:
     name: Docs
