@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+ - remove_user_from_tenant command
+
+### Updates 
+ - changed handling of tenant arg in user resource
+ - add reference yaml for users
+
 ## [0.2.31] - 2024-07-29
 
 ### Added 
