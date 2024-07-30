@@ -1,0 +1,13 @@
+Username: nobody@example.com
+Roles:
+- User
+VpnPassword: "********"
+ApiTokens: []
+IsReadOnly: false
+IsVpnConfigCreated: false
+IsVpnConfigUpdated: false
+IsConfirmationEmailSent: false
+Devspaces:
+  IsEnabled: false
+  IsAdmin: false
+SourceLastRefresh: 0
