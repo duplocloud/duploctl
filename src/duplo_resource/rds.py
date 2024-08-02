@@ -235,3 +235,39 @@ class DuploRDS(DuploTenantResourceV3):
     if not name.startswith("duplo"):
       name = "duplo" + name
     return name
+
+  @Command()
+  def readiness_check(self, name: args.NAME):
+    """RDS Readiness Check
+    
+    Check the RDS readiness.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl rds readiness_check <name>
+      ```
+    Args:
+      name: The name of the RDS.
+    
+    """
+    checklist = []
+    rds = self.find(name)
+    delete_protection = rds['DeletionProtection']
+    if delete_protection is False:
+      delete_protection_checklist =  {
+        "Name": f"{name}",
+        "Readiness Check": "Deletion Protection",
+        "Status": "Failed",
+        "Possible Solution": "Enable DeletionProtection",
+      }
+      checklist.append(delete_protection_checklist)
+    multiaz = rds['MultiAZ']
+    if multiaz is False:
+      multiaz_checklist =  {
+        "Name": f"{name}",
+        "Readiness Check": "Enable MultiAZ",
+        "Status": "Failed",
+        "Possible Solution": "Enable MultiAZ",
+      }
+      checklist.append(multiaz_checklist)
+    return checklist

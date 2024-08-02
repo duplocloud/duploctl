@@ -5,6 +5,8 @@ from duplocloud.resource import DuploResource
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
+import json
+from texttable import Texttable
 
 @Resource("tenant")
 class DuploTenant(DuploResource):
@@ -402,3 +404,51 @@ class DuploTenant(DuploResource):
     return {
       "region": response.json()
     }
+  
+  @Command()
+  def readiness_check(self):
+    """Tenant Readiness Check
+    
+    Check the tenant readiness.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant readiness_check
+      ```
+    
+    """
+    response = {}
+    service_types = ['s3', 'rds']
+    # service_types = ['s3']
+    for service_type in service_types:
+      outputs = []
+      service = self.duplo.load(service_type)
+      for item in service.list():
+        service_name = service.name_from_body(item)
+        output = service.readiness_check(service_name)
+        outputs.extend(output)
+      response[service_type] = outputs
+
+    print(json.dumps(response, indent=4))
+
+    # table = Texttable(max_width=120)
+    # headers = ["Service", "Name", "Readiness Check", "Status", "Possible Solution"]
+    # table.header(headers)
+    # for service_name, service_data in response.items():     
+    #   for item in service_data:
+    #       row = [service_name.upper()] + [item.get(key, "") for key in headers[1:]]
+    #       table.add_row(row)
+    # print(table.draw())
+
+    # for service_name, service_data in response.items():
+    #   table = Texttable(max_width=120)
+    #   headers = ["Name", "Readiness Check", "Status", "Possible Solution"]
+    #   table.header(headers)
+    #   for item in service_data:
+    #       row = [item[key] for key in headers]
+    #       table.add_row(row)
+    #   print(f"\n{service_name.upper()}:\n")
+    #   print(table.draw())
+    #   print("\n")
+      # print("\n" + "-" * 120 + "\n")
+    
