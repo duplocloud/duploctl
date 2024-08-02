@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Added
+### Added 
 
-  - Added support for tenant start/stop
+ - remove_user_from_tenant command
+ - Added support for tenant start/stop
+
+### Updates 
+ - changed handling of tenant arg in user resource
+ - add reference yaml for users
 
 ## [0.2.31] - 2024-07-29
 
