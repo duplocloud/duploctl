@@ -287,7 +287,7 @@ Available Resources:
     try:
       d = r(*args)
     except TypeError:
-      if(r.__doc__): 
+      if (r.__doc__):
         raise DuploError(r.__doc__, 400)
       else: 
         traceback.print_exc()
