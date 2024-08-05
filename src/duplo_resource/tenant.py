@@ -469,7 +469,7 @@ class DuploTenant(DuploResource):
 
     Args:
       wait: Wait for the resources to stop.
-      exclude (optional): A list of resources to exclude from starting. Can include:
+      exclude (optional): A list of resources to exclude from stopping. Can include:
         - hosts/<host_name>: Exclude a specific host.
         - rds/<rds_name>: Exclude a specific RDS instance.
         - hosts/at/<allocation_tags>: Exclude hosts with specific allocation tags.
