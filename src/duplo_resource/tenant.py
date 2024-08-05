@@ -404,7 +404,7 @@ class DuploTenant(DuploResource):
     }
 
   @Command()
-  def start(self, wait: args.WAIT=False, exclude: args.EXCLUDE=None):
+  def start(self, name: args.NAME = None, wait: args.WAIT=False, exclude: args.EXCLUDE=None):
     """Start Tenant All Resources
 
     Starts all resources of a tenant.
@@ -416,39 +416,48 @@ class DuploTenant(DuploResource):
 
     Args:
       wait: Wait for the resources to start.
+      exclude (optional): A list of resources to exclude from starting. Can include:
+        - hosts/<host_name>: Exclude a specific host.
+        - rds/<rds_name>: Exclude a specific RDS instance.
+        - hosts/at/<allocation_tags>: Exclude hosts with specific allocation tags.
 
     Returns:
       message: A success message.
     """
-    parsed_exclude = {"hosts": [], "rds": []}
+    service_types = {"hosts": [], "rds": []}
     host_at = []
     if exclude:
       for item in exclude:
-        category, value = item.split(':', 1)
-        if 'at:' in value:
-          _, name = value.split('at:', 1)
-          host_at.append(name)
-        elif category in parsed_exclude:
-          parsed_exclude[category].append(value)
+        category, value = item.split('/', 1)
+        if 'at/' in value:
+          _, at_name = value.split('at/', 1)
+          host_at.append(at_name)
+        elif category in {"hosts", "rds"}:
+          tenant_name = self.find(name)['AccountName']
+          if category == "hosts":
+            prefix = f"duploservices-{tenant_name}"
+            value = f"{prefix}-{value}" if not value.startswith(prefix) else value
+          elif category == "rds":
+            value = f"duplo{value}" if not value.startswith("duplo") else value
+          service_types[category].append(value)
         else:
           print(f"Unknown service: {category}")
 
     host_at_exclude = self.get_hosts_to_exclude(host_at)
-    parsed_exclude['hosts'] = list(set(parsed_exclude['hosts']) | set(host_at_exclude))
+    service_types['hosts'] = list(set(service_types['hosts']) | set(host_at_exclude))
 
-    service_types = ['rds', 'hosts']
-    for service_type in service_types:
+    for service_type in service_types.keys():
       service = self.duplo.load(service_type)
       for item in service.list():
         service_name = service.name_from_body(item)
-        if service_name not in parsed_exclude[service_type]:
+        if service_name not in service_types[service_type]:
           service.start(service_name, wait)
     return {
       "message": "Successfully started all resources for tenant"
     }
 
   @Command()
-  def stop(self, wait: args.WAIT=False, exclude: args.EXCLUDE=None):
+  def stop(self, name: args.NAME = None, wait: args.WAIT=False, exclude: args.EXCLUDE=None):
     """Stop Tenant All Resources
 
     Stops all resources of a tenant.
@@ -460,32 +469,41 @@ class DuploTenant(DuploResource):
 
     Args:
       wait: Wait for the resources to stop.
+      exclude (optional): A list of resources to exclude from starting. Can include:
+        - hosts/<host_name>: Exclude a specific host.
+        - rds/<rds_name>: Exclude a specific RDS instance.
+        - hosts/at/<allocation_tags>: Exclude hosts with specific allocation tags.
 
     Returns:
       message: A success message.
     """
-    parsed_exclude = {"hosts": [], "rds": []}
+    service_types = {"hosts": [], "rds": []}
     host_at = []
     if exclude:
       for item in exclude:
-        category, value = item.split(':', 1)
-        if 'at:' in value:
-          _, name = value.split('at:', 1)
-          host_at.append(name)
-        elif category in parsed_exclude:
-          parsed_exclude[category].append(value)
+        category, value = item.split('/', 1)
+        if 'at/' in value:
+          _, at_name = value.split('at/', 1)
+          host_at.append(at_name)
+        elif category in {"hosts", "rds"}:
+          tenant_name = self.find(name)['AccountName']
+          if category == "hosts":
+            prefix = f"duploservices-{tenant_name}"
+            value = f"{prefix}-{value}" if not value.startswith(prefix) else value
+          elif category == "rds":
+            value = f"duplo{value}" if not value.startswith("duplo") else value
+          service_types[category].append(value)
         else:
           print(f"Unknown service: {category}")
 
     host_at_exclude = self.get_hosts_to_exclude(host_at)
-    parsed_exclude['hosts'] = list(set(parsed_exclude['hosts']) | set(host_at_exclude))
+    service_types['hosts'] = list(set(service_types['hosts']) | set(host_at_exclude))
 
-    service_types = ['rds', 'hosts']
-    for service_type in service_types:
+    for service_type in service_types.keys():
       service = self.duplo.load(service_type)
       for item in service.list():
         service_name = service.name_from_body(item)
-        if service_name not in parsed_exclude[service_type]:
+        if service_name not in service_types[service_type]:
           service.stop(service_name, wait)
     return {
       "message": "Successfully stopped all resources for tenant"
@@ -495,15 +513,12 @@ class DuploTenant(DuploResource):
     host_at_exclude = []
     hosts = self.duplo.load('hosts').list()
     for host in hosts:
-      try:
-        allocation_tags_value = ''
-        minion_tags = host.get('MinionTags', [])
-        for tag in minion_tags:
-          if tag.get('Key') == 'AllocationTags':
-            allocation_tags_value = tag.get('Value')
+      allocation_tags_value = ''
+      minion_tags = host.get('MinionTags', [])
+      for tag in minion_tags:
+        if tag.get('Key') == 'AllocationTags':
+          allocation_tags_value = tag.get('Value')
 
-        if allocation_tags_value in host_at:
-          host_at_exclude.append(host['FriendlyName'])
-      except DuploError as e:
-        raise DuploError(f"Error accessing host data: {e}")
+      if allocation_tags_value in host_at:
+        host_at_exclude.append(host['FriendlyName'])
     return host_at_exclude
