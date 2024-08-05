@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Updates 
  - changed handling of tenant arg in user resource
  - add reference yaml for users
+ - changed client error handling to display docstrings on bad input
+
 
 ## [0.2.31] - 2024-07-29
 

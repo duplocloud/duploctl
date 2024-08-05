@@ -7,6 +7,7 @@ import yaml
 import json
 import jsonpatch
 import logging
+import traceback
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
 from cachetools import cachedmethod, TTLCache
@@ -283,7 +284,15 @@ Available Resources:
     if not resource:
       raise DuploError(str(self), 400)
     r = self.load(resource)
-    d = r(*args)
+    try:
+      d = r(*args)
+    except TypeError:
+      if (r.__doc__):
+        raise DuploError(r.__doc__, 400)
+      else: 
+        traceback.print_exc()
+        raise DuploError(f"No docstring found, error calling command {resource} : Traceback printed", 400)
+
     if d is None:
       return None
     d = self.filter(d)
