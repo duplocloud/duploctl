@@ -92,6 +92,10 @@ VERSION = Arg("version", "--version",
               version=f"%(prog)s {VERSION}",
               type=bool)
 
+EXCLUDE = Arg("exclude", '--exclude',
+              action='append',
+              help='Exclude from the command')
+
 # The rest are resource level args for commands
 SERVICE = Arg('service', 
               help='The service to run',
