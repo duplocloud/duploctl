@@ -4,6 +4,7 @@ import logging, re
 from jinja2 import Template
 from jinja2.filters import FILTERS
 from duplocloud.commander import ep
+import duplocloud.args as args
 
 log = logging.getLogger('mkdocs')
 doc_dir = './dist/docs'
@@ -17,6 +18,9 @@ include_pages = [
 ignored = [
   "aws"
 ]
+
+def copy_static():
+  shutil.copytree('./wiki', doc_dir, dirs_exist_ok=True)
 
 def gen_resource_page(endpoint: str):
   cls = endpoint.value.split(':')[-1]
@@ -42,8 +46,20 @@ def page_meta_filter(input):
   t = Template(input)
   return t.render(**page_meta)
 
+def cli_arg_filter(attr):
+  return getattr(args, attr.name)
+
+def list_to_csv_filter(input):
+  return ', '.join(str(v) for v in input)
+
+def string_or_class_name_filter(input):
+  if isinstance(input, str):
+    return input
+  else:
+    return getattr(input, "__name__", str(input))
+
 def on_startup(**kwargs):
-  shutil.copytree('./wiki', doc_dir, dirs_exist_ok=True)
+  copy_static()
   for e in ep:
     if e.name not in ignored:
       gen_resource_page(e)
@@ -51,7 +67,11 @@ def on_startup(**kwargs):
     gen_include_page(f)
 
 def on_config(config, **kwargs):
+  copy_static()
   FILTERS['page_meta'] = page_meta_filter
+  FILTERS['cli_arg'] = cli_arg_filter
+  FILTERS['list_to_csv'] = list_to_csv_filter
+  FILTERS['string_or_class_name'] = string_or_class_name_filter
   return config
 
 def on_page_markdown(markdown, page, **kwargs):

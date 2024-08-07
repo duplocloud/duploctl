@@ -76,7 +76,7 @@ def get_parser(function):
   )
   try:
     for arg in schema[qn]:
-      parser.add_argument(*arg.flags, **arg.attributes)
+      parser.add_argument(*arg.flags, default=arg.default, **arg.attributes)
   except KeyError:
     raise DuploError(f"Function named {qn} not registered as a command.", 3)
   return parser
@@ -120,3 +120,11 @@ def available_resources():
     A list of available resources names.
   """
   return list(ep.names)
+
+def available_formats():
+  """Available Formats
+
+  Returns:
+    A list of available format names.
+  """
+  return list(fep.names)

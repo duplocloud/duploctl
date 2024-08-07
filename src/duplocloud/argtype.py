@@ -40,16 +40,15 @@ class Arg(NewType):
     """
     super().__init__(name, type)
     self.attributes = {}
-    self._flags = flags
-    if env:
-      default = os.getenv(env, default)
+    self.env = env
+    self.__flags = flags
+    self.__default = default
     # if action is not a string, then type is allowed
     if not isinstance(action, str):
       self.set_attribute("type", type)
     self.set_attribute("action", action)
     self.set_attribute("nargs", nargs)
     self.set_attribute("const", const)
-    self.set_attribute("default", default)
     self.set_attribute("choices", choices)
     self.set_attribute("required", required)
     self.set_attribute("help", help)
@@ -64,12 +63,25 @@ class Arg(NewType):
     if self.positional:
       # return the name
       return [self.__name__]
-    return [*self._flags, f"--{self.__name__}"]
+    return [*self.__flags, f"--{self.__name__}"]
   @property
   def positional(self):
-    return len(self._flags) == 0
+    return len(self.__flags) == 0
   
-  def __doc__(self):
+  @property
+  def default(self):
+    if self.env:
+      return os.getenv(self.env, self.__default)
+    else:
+      return self.__default
+  
+  @property 
+  def type_name(self):
+    # t = self.attributes.get("type", self.__supertype__)
+    t = self.__supertype__
+    return getattr(t, "__name__", str(t))
+  
+  def __str__(self):
     return self.attributes.get("help", "")
 
 class YamlAction(argparse.Action):

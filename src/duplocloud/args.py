@@ -1,7 +1,7 @@
 import argparse
 import logging
 from .argtype import Arg, YamlAction, JsonPatchAction
-from .commander import available_resources, VERSION
+from .commander import available_resources, available_formats, VERSION
 
 # the global args for the CLI
 
@@ -10,13 +10,17 @@ HOME_DIR = Arg('homedir', '--home-dir',
             env='DUPLO_HOME')
 """Home Directory
 
-Defaults to users home directory in a directory named ".duplo"
-This is where the cli will look by default for the config and cache. 
+Defaults to users home directory at `$HOME/.duplo`
+This is where the cli will look by default for the config and cache as well. 
 """
 
 CACHE_DIR = Arg('cachedir', '--cache-dir', 
             help='The cache directory for saved credentials.',
             env='DUPLO_CACHE')
+"""Cache Directory
+
+Defaults to `$HOME/.duplo/cache`. This is where the cli will store the cached credentials. Sometimes you may need to delete this directory to clear out old credentials. Simply type `duploctl` and this will print where the cache is currently stored.
+"""
 
 LOGLEVEL = Arg('log-level', '--loglevel', '-L',
             help='The log level to use.',
@@ -43,10 +47,31 @@ TOKEN = Arg('token', '-t',
 TENANT = Arg("tenant", "-T",
              help='The tenant name',
              env='DUPLO_TENANT')
+"""Tenant Name
+
+Scopes the command into the specified tenant. In the background the TENANT_ID is discovered using this name. So if TENANT_ID is set, this is ignored. Often times this is set as an environment variable so you don't have to choose the tenant each and every command. This can also be set in the config file within a context.
+"""
 
 TENANT_ID = Arg("tenantid", "--tenant-id", "--tid",
              help='The tenant id',
              env='DUPLO_TENANT_ID')
+"""Tenant ID
+
+Scopes the command into the specified tenant. This is the internal id of the tenant. If this is set, TENANT name argument is ignored.
+"""
+
+PLAN = Arg("plan", "-P",
+            help='The plan name.',
+            env='DUPLO_PLAN')
+"""Plan Name
+
+This is another high level placement style argument. This is used to scope the command to a specific plan aka infrastructure. 
+"""
+
+BODY = Arg("file", "-f", "--cli-input",
+            help='A file to read the input from',
+            type=argparse.FileType('r'),
+            action=YamlAction)
 
 ARN = Arg("aws-arn", "--arn",
            help='The aws arn',
@@ -69,21 +94,26 @@ NOCACHE = Arg("no-cache","--nocache",
 
 BROWSER = Arg("web-browser","--browser", 
               help='The desired web browser to use for interactive login',
-              env='DUPLO_BROWSER')
+              env='DUPLO_BROWSER',
+              choices=[
+                'chrome', 'chromium', 'firefox', 'safari', 'epiphany', 
+                'edge', 'opera', 'konqueror', "kfm", 'w3m', 'lynx'
+              ])
+"""Web Browser
 
-PLAN = Arg("plan", "-P",
-            help='The plan name.',
-            env='DUPLO_PLAN')
+This is the browser of choice to use for interactive login. This is simply using the python [webbrowser](https://docs.python.org/3/library/webbrowser.html) module to open the browser. If you don't have a browser installed, you can use `w3m` or `lynx` for a text based browser.
+"""
 
 OUTPUT = Arg("output", "-o",
               help='The output format',
               default='json',
-              env='DUPLO_OUTPUT')
+              env='DUPLO_OUTPUT',
+              choices=available_formats())
 
 QUERY = Arg("query", "-q",
             help='The jmespath query to run on a result')
 
-PATCHES = Arg("patches", '-p',
+PATCHES = Arg("patches", "--add", "--remove", "--copy", "--replace", "--test", "--move",
               help='The json patch to apply',
               action=JsonPatchAction)
 
@@ -157,11 +187,6 @@ MIN = Arg("min", "-m",
 MAX = Arg("max", "-M",
           help='The maximum number of replicas',
           type=int)
-
-BODY = Arg("file", "-f", "--cli-input",
-            help='A file to read the input from',
-            type=argparse.FileType('r'),
-            action=YamlAction)
 
 REPLICAS = Arg("replicas", "-r",
                help = 'Number of replicas for service',

@@ -20,6 +20,7 @@ plugins:
       python:
         options:
           show_source: false
+          show_signature: false
           inherited_members: true
           filters:
           - "^(?!__).*"
@@ -69,5 +70,6 @@ nav:
   - Client: Client.md
 - Plugins:
   - AWS: plugins/aws.md
+- Args: Args.md
 - Changelog: CHANGELOG.md
 - Contributing: CONTRIBUTING.md

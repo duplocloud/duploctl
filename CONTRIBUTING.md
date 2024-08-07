@@ -159,14 +159,14 @@ mkdocs serve
 All of the customizations done to the doc website are done through the [`mkdocs.py`](scripts/mkdocs.py) file. One ofthe main features, there is a two phases to mkdocs now, phase 1 stages a bunch of generated  and copied markdown files, stage two generates the actual html. 
 
 *Static Files:*
-All non generated and very static files go into the [`wiki`](./wiki/) submodule which is cloned into the `./wiki` folder when you clone the repo. 
+All non generated and very static files go into the [`wiki`](./wiki/) submodule which is cloned into the `./wiki` folder when you clone the repo. The `hooks.py` has a hook that copies the files from the `wiki` folder into the `dist/docs` folder before final compilation.
 
 *Themes:*  
-To extend the mkdocstring python theme, you can copy any of these templates into `wiki/templates` from here https://github.com/mkdocstrings/python/tree/master/src/mkdocstrings_handlers/python/templates/material. 
+To extend the mkdocstring python theme, you can copy any of the base templates into `wiki/templates` from here https://github.com/mkdocstrings/python/tree/master/src/mkdocstrings_handlers/python/templates/material. Then simply modify the base template to do what you want. 
 
 ## Step Through Debugging  
 
-Assuming you are using VSCode, make sure you have a `.vscode/launch.json` file with the following configuration. Change the `args` to the command you want to debug, this is equivelent to running from the command line. 
+Assuming you are using VSCode, make sure you have a `.vscode/launch.json` file with the following configuration. Change the `args` to the command you want to debug, this is equivelent to running from the command line. Remember to install the project with `--editable` so you can step through the code easily. 
 
 ```json
 {
