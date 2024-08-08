@@ -522,3 +522,26 @@ class DuploTenant(DuploResource):
       if allocation_tags_value in host_at:
         host_at_exclude.append(host['FriendlyName'])
     return host_at_exclude
+
+  @Command()
+  def dns_config(self, 
+                 name: args.NAME=None):
+    """Tenant DNS Config
+
+    Retrieve DNS configuration for a tenant by name..
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl tenant dns_config <name>
+      ```
+
+    Args:
+      name: The name of the tenant.
+
+    Returns:
+      dict: A dictionary containing the DNS configuration of the tenant.
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"v3/subscriptions/{tenant_id}/aws/dnsConfig")
+    return response.json()
