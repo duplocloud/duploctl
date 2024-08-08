@@ -387,7 +387,7 @@ class DuploService(DuploTenantResourceV2):
   def logs(self,
            name: args.NAME,
            wait: args.WAIT = False) -> dict:
-    """Servie Logs
+    """Service Logs
     
     Get the logs for a service.
 
