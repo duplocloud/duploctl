@@ -20,7 +20,7 @@ class DuploTenant(DuploResource):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
   
-  @Command()
+  @Command("ls")
   def list(self):
     """List Tenants
     

@@ -60,7 +60,7 @@ jobs:
 
     - name: Build and Push Docker Image
       id: build_image
-      uses: duplocloud/actions/build-image@build-image-updates
+      uses: duplocloud/actions/build-image@main
       env:
         GIT_TAG: ${{ inputs.tag }}
       with:
