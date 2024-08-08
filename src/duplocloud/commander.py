@@ -23,7 +23,7 @@ def Resource(name: str):
     return cls
   return decorator
 
-def Command():
+def Command(*aliases):
   """Command decorator
 
   This decorator is used to register a function as a command. It will
@@ -44,24 +44,48 @@ def Command():
 
   """
   def decorator(function):
-    sig = inspect.signature(function)
-    def arg_anno(name, param):
-      a = deepcopy(param.annotation)
-      if not a.positional and name != a.__name__:
-        a.set_attribute("dest", name)
-      # hmmm, is this a good idea? If so, maybe some innovations is needed. 
-      # if param.default is not inspect.Parameter.empty:
-      #   a.set_attribute("default", param.default)
-      return a
-    schema[function.__qualname__] = [
-        arg_anno(k, v)
-        for k, v in sig.parameters.items()
-        if v.annotation is not inspect.Parameter.empty and isinstance(v.annotation, Arg)
-    ]
+    schema[function.__qualname__] = {
+      "method": function.__name__,
+      "aliases": list(aliases),
+    }
     return function
   return decorator
 
-def get_parser(function):
+def extract_args(function):
+  sig = inspect.signature(function)
+  def arg_anno(name, param):
+    a = deepcopy(param.annotation)
+    if not a.positional and name != a.__name__:
+      a.set_attribute("dest", name)
+    # hmmm, is this a good idea? If so, maybe some innovations is needed. 
+    # if param.default is not inspect.Parameter.empty:
+    #   a.set_attribute("default", param.default)
+    return a
+  return [
+    arg_anno(k, v)
+    for k, v in sig.parameters.items()
+    if v.annotation is not inspect.Parameter.empty and isinstance(v.annotation, Arg)
+  ]
+
+def aliased_method(classname: str, command: str):
+  """Schema For
+  
+  Get the schema for a function.
+
+  Args:
+    name: The name of the function.
+  Returns:
+    The schema for the function.
+  """
+  s = next((
+    v for k, v in schema.items()
+    if k.startswith(classname) and (command == v["method"] or command in v.get("aliases", []))
+  ), None)
+  if not s:
+    raise DuploError(f"Command {command} not found.", 404)
+  return s["method"]
+
+def get_parser(args: list):
   """Get Parser
   
   Args:
@@ -69,16 +93,12 @@ def get_parser(function):
   Returns:
     An argparse.ArgumentParser object with args from function.
   """
-  qn = function.__qualname__
   parser = argparse.ArgumentParser(
     prog='duplocloud-client',
     description='Duplo Cloud CLI',
   )
-  try:
-    for arg in schema[qn]:
-      parser.add_argument(*arg.flags, default=arg.default, **arg.attributes)
-  except KeyError:
-    raise DuploError(f"Function named {qn} not registered as a command.", 3)
+  for arg in args:
+    parser.add_argument(*arg.flags, default=arg.default, **arg.attributes)
   return parser
 
 def load_resource(name: str):

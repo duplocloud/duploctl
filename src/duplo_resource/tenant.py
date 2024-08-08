@@ -37,7 +37,7 @@ class DuploTenant(DuploResource):
     response = self.duplo.get("adminproxy/GetTenantNames")
     return response.json()
 
-  @Command()
+  @Command("get")
   def find(self, 
            name: args.NAME=None,
            id: str=None) -> dict:

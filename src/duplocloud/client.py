@@ -16,7 +16,7 @@ from .commander import load_resource,load_format
 from .errors import DuploError, DuploExpiredCache
 from .server import TokenServer
 from . import args
-from .commander import Command, get_parser, available_resources, VERSION
+from .commander import Command, get_parser, extract_args, available_resources, VERSION
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -130,7 +130,8 @@ class DuploClient():
     Returns:
       duplo (DuploClient): An instance of a DuploClient.
     """
-    p = get_parser(DuploClient.__init__)
+    a = extract_args(DuploClient.__init__)
+    p = get_parser(a)
     env, xtra = p.parse_known_args()
     duplo = DuploClient(**vars(env))
     return duplo, xtra
@@ -147,7 +148,8 @@ class DuploClient():
     Returns:
       duplo (DuploClient): An instance of DuploConfig.
     """
-    p = get_parser(DuploClient.__init__)
+    a = extract_args(DuploClient.__init__)
+    p = get_parser(a)
     env = p.parse_args(args)
     duplo = DuploClient(**vars(env))
     return duplo
