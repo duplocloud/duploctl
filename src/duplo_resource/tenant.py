@@ -543,4 +543,4 @@ class DuploTenant(DuploResource):
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/aws/dnsConfig")
-    response.json()
+    return response.json()
