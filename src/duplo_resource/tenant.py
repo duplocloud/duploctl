@@ -524,7 +524,8 @@ class DuploTenant(DuploResource):
     return host_at_exclude
 
   @Command()
-  def dns_config(self, name: args.NAME=None):
+  def dns_config(self, 
+                 name: args.NAME=None):
     """Tenant DNS Config
 
     Retrieve DNS configuration for a tenant by name..
@@ -543,4 +544,4 @@ class DuploTenant(DuploResource):
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/aws/dnsConfig")
-    response.json()
+    return response.json()
