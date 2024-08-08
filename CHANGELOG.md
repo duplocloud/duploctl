@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- added tenant DNS config command to retrieve configuration
+
 ## [0.2.32] - 2024-08-05
 
 ### Added 
