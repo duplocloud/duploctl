@@ -98,6 +98,17 @@ class DuploResourceV2(DuploResource):
     except IndexError:
       raise DuploError(f"{self.kind} '{name}' not found", 404)
       
+  @Command()
+  def apply(self,
+             body: args.BODY,
+             wait: args.WAIT = False):
+    """Apply a service."""
+    name = self.name_from_body(body)
+    try:
+      self.find(name)
+      return self.update(name, body, wait)
+    except DuploError:
+      return self.create(body, wait)
   
 class DuploTenantResourceV2(DuploResourceV2):
   def __init__(self, duplo: DuploClient):
@@ -266,6 +277,18 @@ class DuploTenantResourceV3(DuploResource):
     name = self.name_from_body(body)
     response = self.duplo.put(self.endpoint(name), body)
     return response.json()
+  
+  @Command()
+  def apply(self,
+             body: args.BODY,
+             wait: args.WAIT = False):
+    """Apply a service."""
+    name = self.name_from_body(body)
+    try:
+      self.find(name)
+      return self.update(name, body, wait)
+    except DuploError:
+      return self.create(body, wait)
   
   def name_from_body(self, body):
     return body["metadata"]["name"]
