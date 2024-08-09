@@ -30,8 +30,7 @@ class DuploResource():
   #   return self.__logger
   
   def command(self, name: str):
-    cls = self.__class__.__name__
-    method = aliased_method(cls, name)
+    method = aliased_method(self.__class__, name)
     if not (command := getattr(self, method, None)):
       raise DuploError(f"Invalid command: {name}")
     cliargs = extract_args(command)

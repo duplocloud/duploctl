@@ -45,6 +45,7 @@ def Command(*aliases):
   """
   def decorator(function):
     schema[function.__qualname__] = {
+      "class": function.__qualname__.split(".")[0],
       "method": function.__name__,
       "aliases": list(aliases),
     }
@@ -67,7 +68,7 @@ def extract_args(function):
     if v.annotation is not inspect.Parameter.empty and isinstance(v.annotation, Arg)
   ]
 
-def aliased_method(classname: str, command: str):
+def aliased_method(cls, command: str):
   """Schema For
   
   Get the schema for a function.
@@ -77,9 +78,10 @@ def aliased_method(classname: str, command: str):
   Returns:
     The schema for the function.
   """
+  clss = [c.__name__ for c in inspect.getmro(cls) if c.__name__ != "object"]
   s = next((
-    v for k, v in schema.items()
-    if k.startswith(classname) and (command == v["method"] or command in v.get("aliases", []))
+    v for v in schema.values()
+    if (v["class"] in clss) and (command == v["method"] or command in v.get("aliases", []))
   ), None)
   if not s:
     raise DuploError(f"Command {command} not found.", 404)
