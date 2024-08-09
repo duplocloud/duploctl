@@ -4,12 +4,12 @@ services:
     build: &build
       target: runner
       args:
-        PY_VERSION: $PY_VERSION
+        PY_VERSION: ${PY_VERSION:-3.12}
       tags:
       - *image
-      - $IMAGE:$GIT_SHA
-      - $IMAGE:$GIT_REF
-      - $IMAGE:$GIT_TAG
+      - $IMAGE:${GIT_SHA:-latest}
+      - $IMAGE:${GIT_REF:-latest}
+      - $IMAGE:${GIT_TAG:-latest}
       platforms: &platforms
       - linux/amd64
       - linux/arm64
