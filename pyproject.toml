@@ -23,7 +23,7 @@ maintainers = [
 ]
 dependencies = [
   "requests>=2.22.0",
-  "cachetools>=5.2.0",
+  "cachetools>=4.2.4",
   "jmespath>=1.0.1",
   "pyyaml>=6.0.1",
   "jsonpatch>=1.33",
@@ -148,6 +148,7 @@ s3 = "duplo_resource.s3:DuploS3"
 storageclass = "duplo_resource.storageclass:DuploStorageClass"
 pvc = "duplo_resource.pvc:PersistentVolumeClaim"
 cloudfront = "duplo_resource.cloudfront:CloudFront"
+aws_secrets = "duplo_resource.aws_secrets:DuploAwsSecrets"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"

@@ -272,6 +272,7 @@ class DuploTenantResourceV3(DuploResource):
 
   def endpoint(self, name: str=None, path: str=None):
     p = f"v3/subscriptions/{self.tenant_id}/{self.slug}"
+    print("p==", p)
     if name:
       p += f"/{name}"
     if path:

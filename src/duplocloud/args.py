@@ -129,6 +129,15 @@ SETVAR = Arg("setvar", "-V",
             action='append',
             nargs=2,
             metavar=('key', 'value'))
+SETLABEL = Arg("setlabel", "-l",
+            help='a key and value to set as an pod label',
+            action='append',
+            nargs=2,
+            metavar=('key', 'value'))
+
+DELETELABEL = Arg("deletelabel", "-d",
+            action='append',
+            help='a key to delete from the pod labels')
 
 STRATEGY = Arg("-strategy", "-strat",
             help='The merge strategy to use for env vars. Valid options are \"merge\" or \"replace\".  Default is merge.',
