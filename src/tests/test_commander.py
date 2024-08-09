@@ -1,7 +1,7 @@
 import pytest 
 # import unittest
 import argparse
-from duplocloud.commander import schema, resources, Command, get_parser, available_resources, load_resource
+from duplocloud.commander import schema, resources, Command, get_parser, extract_args, available_resources, load_resource
 from duplocloud.argtype import Arg
 from duplocloud.errors import DuploError
 # from duplo_resource.service import DuploService
@@ -27,8 +27,8 @@ class SomeResource():
              name: NAME,
              # inline an Arg definition with alt flag and new dest based on arg name
              image_name: IMAGE="ubuntu",
-            # a boolean arg too
-            enabled: ENABLED=False,
+             # a boolean arg too
+             enabled: ENABLED=False,
              # foo should not be registered as an arg
              foo: str="bar"):
     print(name, image_name, foo, enabled)
@@ -40,28 +40,28 @@ def test_command_registration():
   qn = SomeResource.tester.__qualname__
   # assert qn is a key in schema
   assert qn in schema
-  assert len(schema[qn]) == 3
-  for arg in schema[qn]:
+
+@pytest.mark.unit
+def test_extracting_args():
+  args = extract_args(SomeResource.tester)
+  assert len(args) == 3
+  for arg in args:
     # assert arg is an Arg
     assert isinstance(arg, Arg)
+    print(arg.__name__)
     if arg.__name__ == "image":
-      assert arg.attributes["default"] == "ubuntu"
+      assert arg.default == "ubuntu"
       assert arg.attributes["dest"] == "image_name"
     if arg.__name__ == "enabled":
       assert arg.attributes["action"] == "store_true"
-      assert arg.attributes["default"] == False # noqa: E712
+      assert arg.default == False # noqa: E712
       assert isinstance(arg(True), bool)
 
 @pytest.mark.unit
 def test_using_parser():
-  # first make sure the proper error is raised when the function is not registered
-  try:
-    get_parser(SomeResource.not_a_command)
-  except DuploError as e:
-    assert e.code == 3
-    assert e.message == "Function named SomeResource.not_a_command not registered as a command."
   # now make sure the proper parser is returned
-  assert (p := get_parser(SomeResource.tester))
+  args = extract_args(SomeResource.tester)
+  assert (p := get_parser(args))
   assert isinstance(p, argparse.ArgumentParser)
   # test with no args and get defaults
   args = ["foo"]
