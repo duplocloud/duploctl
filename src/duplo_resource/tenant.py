@@ -50,32 +50,39 @@ class DuploTenant(DuploResource):
       ```
     
     Returns:
-      tenants (list): A list of tenants.
+      users (list): A list of users with access to the tenants, their readonly status, and if they're an admin user
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get("admin/GetAllTenantAuthInfo")
-    tenant_users = {}
+    tenant_users = []
     for tenant in response.json():
-      if tenant["TenantId"] == tenant_id:
-        for user in tenant['UserAccess']:
-             tenant_users[user['Username']] = {
-                "IsReadOnly": user['Policy']['IsReadOnly'],
-                "IsAdmin": "false"
-             }
-    # Admins have access to all tenants.  Check for them and add them
+        if tenant["TenantId"] == tenant_id:
+            for user in tenant['UserAccess']:
+                tenant_users.append({
+                    "Username": user['Username'],
+                    "IsReadOnly": f"{user['Policy']['IsReadOnly']}",
+                    "IsAdmin": "False"
+                })
+
+    # Admins have access to all tenants. Check for them and add them
     users = self.duplo.get("admin/GetAllUserRoles")
     for user in users.json():
-      if "Administrator" in user['Roles']:
-        # If the user is already in the list for the tenant, mark them as admins. I don't think this can actually happen.
-        if user['Username'] in tenant_users:
-          tenant_users[user['Username']]["IsAdmin"] = "true"
-        # Add the admin to the list of users with access. Admins are always readonly: false.
-        else:
-          tenant_users[user['Username']] = {
-                  "IsReadOnly": "false",
-                  "IsAdmin": "true"
-                }
+        if "Administrator" in user['Roles']:
+            # If the user is already in the list for the tenant, mark them as admins. This shouldn't be possible.
+            existing_user = next((u for u in tenant_users if u['Username'] == user['Username']), None)
+            if existing_user:
+              for user in tenant_users:
+                  if user == existing_user:
+                      user["IsAdmin"] = True
+                      break
+            else:
+                tenant_users.append({
+                    "Username": user['Username'],
+                    "IsReadOnly": "False",
+                    "IsAdmin": "True"
+                })
+    
     return tenant_users
 
   @Command()
