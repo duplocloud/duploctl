@@ -1,0 +1,68 @@
+name: Audit and Quality
+
+on:
+  workflow_dispatch: 
+    inputs:
+      push:
+        description: Save the lock file?
+        default: false
+        type: boolean
+      tag:
+        description: Tag to push
+        required: false
+        type: string
+  workflow_call: 
+    inputs:
+      push:
+        description: Save the lock file?
+        default: true
+        type: boolean
+      tag:
+        description: Tag to push
+        required: false
+        type: string
+    secrets:
+      PYPI_API_TOKEN:
+        description: PyPi token
+        required: true
+      GH_APP_KEY:
+        description: GitHub App private key
+        required: true
+
+jobs:
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        ref: ${{ inputs.tag }}
+        install: "--editable ."
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+
+    - name: Freeze Requirements
+      run: pip freeze --exclude-editable > requirements.txt
+
+    - name: Install Test Dependencies
+      run: pip install .[test]
+
+    - name: Pip Audit
+      uses: pypa/gh-action-pip-audit@v1.1.0
+      with:
+        inputs: requirements.txt
+    
+    # do linting
+    # stop the build if there are Python syntax errors or undefined names
+    # ruff --format=github --select=E9,F63,F7,F82 --target-version=py37 .
+    - name: Lint with ruff
+      run: ruff check ./src
+    
+    - name: Single Artifact
+      uses: actions/upload-artifact@v4
+      if: inputs.push
+      with:
+        name: requirements.lock
+        path: requirements.txt
