@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - added tenant DNS config command to retrieve configuration
+- added functionality to search for users by tenant
+- moved command to add/remove users from tenant from user to tenant
 
 ## [0.2.32] - 2024-08-05
 
