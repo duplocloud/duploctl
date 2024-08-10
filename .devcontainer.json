@@ -13,14 +13,11 @@
 	
 	"build": {
 		"dockerfile": "Dockerfile",
-		"target": "devcontainer"
+		"target": "dev"
 	},
 	// The optional 'workspaceFolder' property is the path VS Code should open by default when
 	// connected. This is typically a file mount in .devcontainer/docker-compose.yml
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-	"features": {
-		"ghcr.io/devcontainers-contrib/features/act-asdf:2": {}
-	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -39,9 +36,9 @@
 		"vscode": {
 			"extensions": [
 				"ms-python.python",
-				"redhat.vscode-yaml",
 				"ms-python.vscode-pylance",
-				"ms-python.debugpy"
+				"ms-python.debugpy",
+				"redhat.vscode-yaml"
 			]
 		}
 	}

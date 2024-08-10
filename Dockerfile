@@ -17,11 +17,9 @@ EOF
 
 # dev container build
 # docs: https://github.com/microsoft/vscode-dev-containers/blob/main/containers/python-3/README.md
-FROM mcr.microsoft.com/vscode/devcontainers/python:${PY_VERSION} AS devcontainer
+FROM mcr.microsoft.com/vscode/devcontainers/python:${PY_VERSION} AS dev
 
 ARG NODE_VERSION="none"
-
-RUN mkdir -p ./foo
 
 # Build the binaries
 FROM setup AS installer
