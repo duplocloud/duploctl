@@ -1,7 +1,7 @@
 from . import args
 from .client import DuploClient
 from .errors import DuploError, DuploFailedResource
-from .commander import get_parser, aliased_method, extract_args, Command
+from .commander import get_parser, extract_args, Command
 import math
 import time
 
