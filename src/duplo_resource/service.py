@@ -292,6 +292,7 @@ class DuploService(DuploTenantResourceV2):
     if deletevar is not None:
       for key in deletevar:
         currentDockerconfig['PodLabels'] = [d for d in currentDockerconfig['PodLabels'] if d['Name'] != key]
+
     payload = {
       "Name": name,
       "OtherDockerConfig": dumps(currentDockerconfig),
