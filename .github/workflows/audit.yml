@@ -60,7 +60,7 @@ jobs:
     - name: Lint with ruff
       run: ruff check ./src
     
-    - name: Single Artifact
+    - name: Save Lock File
       uses: actions/upload-artifact@v4
       if: inputs.push
       with:
