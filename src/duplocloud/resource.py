@@ -1,7 +1,7 @@
 from . import args
 from .client import DuploClient
 from .errors import DuploError, DuploFailedResource
-from .commander import get_parser, Command
+from .commander import get_parser, extract_args, Command
 import math
 import time
 
@@ -19,12 +19,10 @@ class DuploResource():
     self.__logger = None
   
   def __call__(self, cmd: str, *args):
-    command = self.command(cmd)
-    parser = get_parser(command)
-    parsed_args = parser.parse_args(args)
-    return command(**vars(parsed_args))
+    c = self.command(cmd)
+    return c(*args)
 
-  # something is off and the logs will duplicate if we do this  
+  # TODO: something is off and the logs will duplicate if we do this. Plese figure out how to actually create a logger for each resource.
   # @property
   # def logger(self):
   #   if not self.__logger:
@@ -32,9 +30,16 @@ class DuploResource():
   #   return self.__logger
   
   def command(self, name: str):
+    # TODO: Test the aliased_method further before actually releasing this feature. This will be disabled for now.
+    # method = aliased_method(self.__class__, name)
     if not (command := getattr(self, name, None)):
       raise DuploError(f"Invalid command: {name}")
-    return command
+    cliargs = extract_args(command)
+    parser = get_parser(cliargs)
+    def wrapped(*args):
+      pargs = vars(parser.parse_args(args))
+      return command(**pargs)
+    return wrapped
   
   def wait(self, wait_check: callable, timeout: int=None, poll: int=10):
     timeout = timeout or self.duplo.timeout

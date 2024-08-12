@@ -44,6 +44,7 @@ build = [
 test = [
   "pytest",
   "ruff",
+  "pip-audit",
   "pytest-black",
   "pytest-isort",
   "pytest-cov",

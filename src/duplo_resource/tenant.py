@@ -20,7 +20,7 @@ class DuploTenant(DuploResource):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
   
-  @Command()
+  @Command("ls")
   def list(self):
     """List Tenants
     
@@ -85,7 +85,7 @@ class DuploTenant(DuploResource):
     
     return tenant_users
 
-  @Command()
+  @Command("get")
   def find(self, 
            name: args.NAME=None,
            id: str=None) -> dict:

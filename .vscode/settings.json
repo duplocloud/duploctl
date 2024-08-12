@@ -1,0 +1,10 @@
+{
+  "task.autoDetect": "off",
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "src",
+    "--no-cov",
+    "-s"
+  ]
+}

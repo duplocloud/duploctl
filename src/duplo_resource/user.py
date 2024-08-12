@@ -10,13 +10,13 @@ class DuploUser(DuploResource):
     super().__init__(duplo)
     self.tenent_svc = duplo.load('tenant')
 
-  @Command()
+  @Command("ls")
   def list(self):
     """Retrieve a list of all users in the Duplo system."""
     response = self.duplo.get("admin/GetAllUserRoles")
     return response.json()
   
-  @Command()
+  @Command("get")
   def find(self, 
            name: args.NAME):
     """Find a User by their username."""
