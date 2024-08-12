@@ -8,7 +8,7 @@ on:
 jobs: 
 
   changelog_check:
-    name: PR Checks
+    name: Changelog Updated
     runs-on: ubuntu-latest
     steps:
     - name: Make sure changes are logged
