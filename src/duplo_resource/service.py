@@ -203,37 +203,37 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def update_pod_label(self,
                  name: args.NAME,
-                 setlabel: args.SETLABEL,
+                 setvar: args.SETVAR,
                  strategy: args.STRATEGY,
-                 deletelabel: args.DELETELABEL,
+                 deletevar: args.DELETEVAR,
                  wait: args.WAIT = False):    
   
     """Update the pod labels of a service. If service has no pod labels set, use -strat replace to set new values.
     Usage: Basic CLI Use
       ```sh
-      duploctl service update_pod_labels <service-name> --setlabel env-key1 env-val1 --setlabel env-key2 env-val2 --setlabel env-key3 env-val3 -strat merge --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      duploctl service update_pod_labels <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --setvar env-key3 env-val3 -strat merge --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
       ```
     Args:
-      name (str): The name of the service to update.
-      setlabel/-l (list): A list of key value pairs to set as pod labels.
-      strategy/strat (str): The merge strategy to use for pod labels. Valid options are "merge" or "replace".  Default is merge.
-      deletelabel/-d (list): A list of keys to delete from the pod labels.
+      name: The name of the service to update.
+      setvar/-V: A list of key value pairs to set as environment variables.
+      strategy/strat: The merge strategy to use for env vars. Valid options are "merge" or "replace".  Default is merge.
+      deletevar/-D: A list of keys to delete from the environment variables.
     """
     service = self.find(name)
     
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
     currentLabels = currentDockerconfig.get("PodLabels", [])
     newLabels = []
-    if setlabel is not None:
-      newLabels = [{"Name": i[0], "Value": i[1]} for i in setlabel]
+    if setvar is not None:
+      newLabels = [{"Name": i[0], "Value": i[1]} for i in setvar]
     if strategy == 'merge':
       d = {d['Name']: d for d in currentLabels + newLabels}
       mergedlabels = list(d.values())
       currentDockerconfig['PodLabels'] = mergedlabels
     else:
       currentDockerconfig['PodLabels'] = newLabels
-    if deletelabel is not None:
-      for key in deletelabel:
+    if deletevar is not None:
+      for key in deletevar:
         currentDockerconfig['PodLabels'] = [d for d in currentDockerconfig['PodLabels'] if d['Name'] != key]
     payload = {
       "Name": name,
