@@ -1,4 +1,4 @@
-name: Audit and Quality
+name: Quality
 
 on:
   workflow_dispatch: 
@@ -30,8 +30,8 @@ on:
         required: true
 
 jobs:
-  audit:
-    name: Audit
+  quality:
+    name: Quality
     runs-on: ubuntu-latest
     permissions:
       # required for all workflows
