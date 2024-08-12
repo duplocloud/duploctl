@@ -68,6 +68,8 @@ nav:
   - ECS: EcsService.md
 - Module:
   - Client: Client.md
+  - Commander: Commander.md
+  - ArgType: ArgType.md
 - Plugins:
   - AWS: plugins/aws.md
 - Args: Args.md

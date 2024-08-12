@@ -1,3 +1,6 @@
+"""
+This module contains the customizations to the Argparse library. 
+"""
 from typing import NewType
 import argparse
 import yaml
@@ -6,6 +9,19 @@ import os
 from .errors import DuploError
 
 class Arg(NewType):
+  """Duplo ArgType
+  
+  A custom type for defining arguments in Duplo commands as annotations. 
+  This extends the NewType class so type hinting will work as expected and we get truly new types. 
+  Each instance of this class will be used to define a command line argument for a function.
+  The values contained are the values needed for the argparse.ArgumentParser.add_argument method.
+
+  Example:
+    Make a reusable arg type called `foo`
+    ```python
+    FOO = Arg("foo", "-f", help="A foo arg")
+    ```
+  """
   def __init__(self, 
               name, 
               *flags, 
@@ -21,22 +37,23 @@ class Arg(NewType):
               dest: str=None,
               version=None,
               env: str=None):
-    """Command Argument Type
+    """Initialize ArgType
 
     Args:
-      name (str): The name of the argument.
-      type (type): The type of the argument.
-      flag (str): The flag to use for the argument.
-      action (str): The action to use for the argument.
-      nargs (int): The number of arguments to use for the argument.
-      const (str): The constant to use for the argument.
-      default (str): The default value to use for the argument. This can be overriden by the default value of the arg in the function definition.
-      choices (list): The choices to use for the argument.
-      required (bool): Whether the argument is required.
-      help (str): The help text to use for the argument.
-      metavar (str): The metavar to use for the argument.
-      dest (str): The destination to use for the argument.
-      version (str): The version to use for the special version arg.
+      name: The name of the argument.
+      type: The type of the argument.
+      flag: The flag to use for the argument.
+      action: The action to use for the argument.
+      nargs: The number of arguments to use for the argument.
+      const: The constant to use for the argument.
+      default (any): The default value to use for the argument. This can be overriden by the default value of the arg in the function definition.
+      choices (List[any]): The choices to use for the argument.
+      required: Whether the argument is required.
+      help: The help text to use for the argument.
+      metavar: The metavar to use for the argument.
+      dest: The destination to use for the argument.
+      version: The version to use for the special version arg.
+      env: The environment variable to use for the argument.
     """
     super().__init__(name, type)
     self.attributes = {}
@@ -85,6 +102,12 @@ class Arg(NewType):
     return self.attributes.get("help", "")
 
 class YamlAction(argparse.Action):
+  """Yaml Action
+  
+  A custom action for argparse that loads a yaml file into a python object. 
+  This is intended to be used alongside the File type in argparse. This way
+  the file type (yaml) is enforced. 
+  """
   def __init__(self, option_strings, dest, nargs=None, **kwargs):
     super().__init__(option_strings, dest, **kwargs)
   def __call__(self, parser, namespace, value, option_string=None):
@@ -92,6 +115,10 @@ class YamlAction(argparse.Action):
     setattr(namespace, self.dest, data)
 
 class JsonPatchAction(argparse._AppendAction):
+  """Json Patch Action
+
+  A custom argparse action that translates [JSON Patch](https://jsonpatch.com/) operations from the command line arguments. 
+  """
   def __init__(self, option_strings, dest, nargs='+', metavar=('key', 'value'), **kwargs):
     opts = ["--add", "--remove", "--copy", "--replace", "--test", "--move"]
     super().__init__(opts, dest, nargs=nargs, metavar=metavar, **kwargs)
