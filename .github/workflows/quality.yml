@@ -33,6 +33,16 @@ jobs:
   audit:
     name: Audit
     runs-on: ubuntu-latest
+    permissions:
+      # required for all workflows
+      security-events: write
+
+      # required to fetch internal or private CodeQL packs
+      packages: read
+
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
     steps:
 
     - name: Setup
@@ -67,13 +77,13 @@ jobs:
       with:
         languages: python
         build-mode: none
-        token: ${{ steps.setup.outputs.token }}
+        # token: ${{ steps.setup.outputs.token }}
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:python"
-        token: ${{ steps.setup.outputs.token }}
+        # token: ${{ steps.setup.outputs.token }}
     
     - name: Save Lock File
       uses: actions/upload-artifact@v4
