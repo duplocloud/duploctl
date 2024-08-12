@@ -42,8 +42,26 @@ class DuploService(DuploTenantResourceV2):
              name: args.NAME,
              body: args.BODY = None,
              patches: args.PATCHES = None,
-             wait: args.WAIT = False):
-    """Update a service."""
+             wait: args.WAIT = False) -> dict:
+    """Update a service.
+    
+    Update the state of a service.
+
+    Usage: Basic CLI Use
+      Update the replicas to 3 for a service.
+      ```sh
+      duploctl service update <service-name> --replace Replicas 3 
+      ```
+    
+    Args:
+      name: The name of the service to update.
+      body: The body of the service to update.
+      patches: A list of JSON patches as args to apply to the service.
+        The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
+        Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
+      wait: Whether to wait for the service to update.
+    
+    """
     if (name is None and body is None):
       raise DuploError("No arguments provided to update service", 400)
     if name and body:
@@ -70,8 +88,27 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def create(self,
              body: args.BODY,
-             wait: args.WAIT = False):
-    """Create a service."""
+             wait: args.WAIT = False) -> dict:
+    """Create a service.
+    
+    Create a service in Duplocloud.
+    
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service create --file service.yaml
+      ```
+      Contents of the `service.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/service.yaml"
+      ```
+
+    Args:
+      body: The service to create.
+      wait: Wait for the service to be created.
+
+    Returns:
+      message: Success message.
+    """
     self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
     if wait:
       self.wait(lambda: self.find(body["Name"]))
@@ -81,8 +118,22 @@ class DuploService(DuploTenantResourceV2):
 
   @Command()
   def delete(self,
-             name: args.NAME):
-    """Delete a service."""
+             name: args.NAME) -> dict:
+    """Delete a service.
+    
+    Delete a service in Duplocloud.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service delete <service-name>
+      ```
+
+    Args:
+      name: The name of the service to delete.
+
+    Returns:
+      message: Success message.
+    """
     body = {
       "Name": name,
       "State": "delete"
@@ -96,8 +147,15 @@ class DuploService(DuploTenantResourceV2):
   def update_replicas(self, 
                       name: args.NAME,
                       replica: args.REPLICAS,
-                      wait: args.WAIT = False):
-    """Update number of replicas for a service.
+                      wait: args.WAIT = False) -> dict:
+    """Scale Service
+
+    Update the number of replicas for a service.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service update_replicas <service-name> <replicas>
+      ```
 
     Args:
         name (str): The name of the service to update.
@@ -118,7 +176,7 @@ class DuploService(DuploTenantResourceV2):
   def update_image(self, 
                    name: args.NAME, 
                    image: args.IMAGE,
-                   wait: args.WAIT = False):
+                   wait: args.WAIT = False) -> dict:
     """Update the image of a service.
 
     Update the image of a service.
@@ -133,7 +191,7 @@ class DuploService(DuploTenantResourceV2):
       image: The new image to use for the service.
 
     Returns:
-      Success message
+      message: Success message
     """
     service = self.find(name)
     current_image =  self.image_from_body(service)
@@ -161,7 +219,7 @@ class DuploService(DuploTenantResourceV2):
                  setvar: args.SETVAR,
                  strategy: args.STRATEGY,
                  deletevar: args.DELETEVAR,
-                 wait: args.WAIT = False):
+                 wait: args.WAIT = False) -> dict:
     """Update the environment variables of a service. If service has no environment variables set, use -strat replace to set new values.
     Usage: Basic CLI Use
       ```sh
@@ -249,7 +307,7 @@ class DuploService(DuploTenantResourceV2):
   
   @Command()
   def bulk_update_image(self, 
-                  serviceimage: args.SERVICEIMAGE):
+                  serviceimage: args.SERVICEIMAGE) -> dict:
     """Update multiple services.
 
     Bulk update the image of a services.
@@ -278,7 +336,7 @@ class DuploService(DuploTenantResourceV2):
 
   @Command()
   def restart(self, 
-              name: args.NAME):
+              name: args.NAME) -> dict:
     """Restart a service.
 
     Restart a service.
@@ -302,7 +360,7 @@ class DuploService(DuploTenantResourceV2):
   
   @Command()
   def stop(self, 
-           name: args.NAME):
+           name: args.NAME) -> dict:
     """Stop a service.
 
     Stop a service.
@@ -326,7 +384,7 @@ class DuploService(DuploTenantResourceV2):
   
   @Command()
   def start(self, 
-            name: args.NAME):
+            name: args.NAME) -> dict:
     """Start a service.
 
     Start a service.
@@ -350,13 +408,13 @@ class DuploService(DuploTenantResourceV2):
 
   @Command()
   def pods(self, 
-           name: args.NAME):
+           name: args.NAME) -> dict:
     """Get the pods for a service.
     
     Args:
-      name (str): The name of the service to get pods for.
+      name: The name of the service to get pods for.
     Returns: 
-      A list of pods for the service.
+      message: A list of pods for the service.
     Raises:
       DuploError: If the service could not be found.
     """
@@ -373,8 +431,21 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def logs(self,
            name: args.NAME,
-           wait: args.WAIT = False):
-    """Get the logs for a service."""
+           wait: args.WAIT = False) -> dict:
+    """Service Logs
+    
+    Get the logs for a service.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service logs <service-name>
+      ```
+    Args:
+      name (str): The name of the service to get logs for.
+      wait (bool): Whether to wait for logs to update.
+    Returns:
+      message: A success message.
+    """
     def show_logs():
       pods = self.pods(name)
       for pod in pods:
@@ -496,3 +567,6 @@ class DuploService(DuploTenantResourceV2):
       
     # send to the base class to do the waiting
     super().wait(wait_check, 400, 11)
+
+  def name_from_body(self, body):
+    return body["Name"]

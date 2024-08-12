@@ -15,9 +15,11 @@ pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir .[build]
 EOF
 
-# Build the package
-FROM setup AS builder
-RUN python -m build --no-isolation
+# dev container build
+# docs: https://github.com/microsoft/vscode-dev-containers/blob/main/containers/python-3/README.md
+FROM mcr.microsoft.com/vscode/devcontainers/python:${PY_VERSION} AS dev
+
+ARG NODE_VERSION="none"
 
 # Build the binaries
 FROM setup AS installer
@@ -26,6 +28,10 @@ RUN pyinstaller scripts/installer.spec
 # use scratch for easy exports
 FROM scratch AS bin 
 COPY --from=installer /app/dist/duploctl /duploctl
+
+# Build the package
+FROM setup AS builder
+RUN python -m build --no-isolation
 
 # Stage 2: Install the package in a slimmer container
 FROM python:$PY_VERSION-slim AS runner

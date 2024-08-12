@@ -21,3 +21,8 @@ venv
 .github/env
 requirements.txt
 actions-runner/
+stuff/
+foo.*
+
+# can be ignored globally, we do want the tasks
+!.vscode/

@@ -1,0 +1,146 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "env": {
+      "PY_VERSION": "3.12",
+      "IMAGE": "duplocloud/duploctl",
+    }
+  },
+  "tasks": [
+    {
+      "type": "process",
+      "label": "Pip Install",
+      "detail": "Full development environment installation",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "icon": {
+        "color": "terminal.ansiMagenta",
+        "id": "cloud-download"
+      },
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "-m", "pip", "install", "--editable", ".[build,test,aws,docs]"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "type": "process",
+      "label": "Pip Audit",
+      "detail": "Audits the installed packages",
+      "group": "build",
+      "icon": {
+        "color": "terminal.ansiMagenta",
+        "id": "issues"
+      },
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "-m", "pip_audit"
+      ]
+    },
+    {
+      "type": "process",
+      "label": "Ruff Lint",
+      "detail": "Does a lint check on the src dir with Ruff",
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "icon": {
+        "color": "terminal.ansiCyan",
+        "id": "inspect"
+      },
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "-m", "ruff", "check", "./src"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "type": "shell",
+      "label": "bake duploctl",
+      "group": "build",
+      "command": "docker",
+      "args": [
+        "buildx", "bake", "duploctl"
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "bake binaries",
+      "group": "build",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "file-binary"
+      },
+      "command": "docker",
+      "args": [
+        "buildx", "bake", "duploctl-bin"
+      ]
+    },
+    {
+      "type": "process",
+      "label": "Build Package",
+      "detail": "Build the pip package",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "file-binary"
+      },
+      "group": "build",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "-m", "build"
+      ]
+    },
+    {
+      "type": "shell",
+      "label": "Pyinstaller",
+      "detail": "Build the pyinstaller binary",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "file-binary"
+      },
+      "group": "build",
+      "command": "./scripts/installer.spec"
+    },
+    {
+      "type": "process",
+      "label": "Unit Test",
+      "detail": "Run the unit tests with pytest",
+      "group": "test",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "beaker"
+      },
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "-m", "pytest", "-s", "-m", "unit"
+      ]
+    },
+    {
+      "type": "process",
+      "label": "Docs Build",
+      "detail": "Build the docs with Mkdocs",
+      "group": "build",
+      "icon": {
+        "color": "terminal.ansiBlue",
+        "id": "book"
+      },
+      "command": "${command:python.interpreterPath}",
+      "args": [ "-m", "mkdocs", "build" ],
+    },
+    {
+      "label": "Docs Serve",
+      "detail": "Run the Mkdocs local server",
+      "group": "build",
+      "icon": {
+        "color": "terminal.ansiBlue",
+        "id": "book"
+      },
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [ "-m", "mkdocs", "serve" ],
+    }
+  ]
+}

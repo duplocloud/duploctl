@@ -20,6 +20,7 @@ plugins:
       python:
         options:
           show_source: false
+          show_signature: false
           inherited_members: true
           filters:
           - "^(?!__).*"
@@ -67,7 +68,10 @@ nav:
   - ECS: EcsService.md
 - Module:
   - Client: Client.md
+  - Commander: Commander.md
+  - ArgType: ArgType.md
 - Plugins:
   - AWS: plugins/aws.md
+- Args: Args.md
 - Changelog: CHANGELOG.md
 - Contributing: CONTRIBUTING.md

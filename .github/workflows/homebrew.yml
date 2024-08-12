@@ -39,7 +39,7 @@ jobs:
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
-        install: "-e ."
+        install: "--editable ."
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         repositories: homebrew-tap
