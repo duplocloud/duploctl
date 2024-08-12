@@ -278,7 +278,6 @@ class DuploService(DuploTenantResourceV2):
       deletevar/-D: A list of keys to delete from the environment variables.
     """
     service = self.find(name)
-    
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
     currentLabels = currentDockerconfig.get("PodLabels", [])
     newLabels = []
