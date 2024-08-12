@@ -17,7 +17,7 @@ jobs:
         changelog: CHANGELOG.md
 
   quality:
-    name: Quality
+    name: Test
     uses: ./.github/workflows/quality.yml
     secrets: inherit
     with:

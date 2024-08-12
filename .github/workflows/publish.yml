@@ -33,6 +33,11 @@ on:
         type: boolean
 jobs:
 
+  quality:
+    name: Quality
+    uses: ./.github/workflows/quality.yml
+    secrets: inherit
+
   unit_test:
     name: Test
     uses: ./.github/workflows/test_unit.yml
@@ -52,7 +57,7 @@ jobs:
     name: Version
     uses: ./.github/workflows/version.yml
     secrets: inherit
-    needs: [unit_test, integration_test]
+    needs: [quality, unit_test, integration_test]
     with:
       action: ${{ inputs.action }}
       push: ${{ inputs.push }}
