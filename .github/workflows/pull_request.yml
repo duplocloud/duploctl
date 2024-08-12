@@ -16,6 +16,13 @@ jobs:
       with:
         changelog: CHANGELOG.md
 
+  audit:
+    name: Audit
+    uses: ./.github/workflows/audit.yml
+    secrets: inherit
+    with:
+      push: false
+
   unit_test:
     name: Test
     uses: ./.github/workflows/test_unit.yml
