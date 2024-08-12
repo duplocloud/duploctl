@@ -1,7 +1,7 @@
 import pytest 
 # import unittest
 import argparse
-from duplocloud.commander import schema, resources, Command, get_parser, extract_args, available_resources, load_resource
+from duplocloud.commander import schema, resources, Command, get_parser, aliased_method, extract_args, available_resources, load_resource
 from duplocloud.argtype import Arg
 from duplocloud.errors import DuploError
 # from duplo_resource.service import DuploService
@@ -21,7 +21,7 @@ IMAGE = Arg("image", "-i", "--img",
             default="ubuntu")
 
 class SomeResource():
-  @Command()
+  @Command("test")
   def tester(self, 
              # use shared arg
              name: NAME,
@@ -92,4 +92,7 @@ def test_arg_type():
   name = NAME("foo")
   assert isinstance(name, str)
 
-
+@pytest.mark.unit
+def test_aliased_command():
+  method = aliased_method(SomeResource, "test")
+  assert method == "tester"

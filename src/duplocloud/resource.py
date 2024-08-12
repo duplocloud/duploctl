@@ -22,7 +22,7 @@ class DuploResource():
     c = self.command(cmd)
     return c(*args)
 
-  # something is off and the logs will duplicate if we do this  
+  # TODO: something is off and the logs will duplicate if we do this. Plese figure out how to actually create a logger for each resource.
   # @property
   # def logger(self):
   #   if not self.__logger:
@@ -30,8 +30,9 @@ class DuploResource():
   #   return self.__logger
   
   def command(self, name: str):
-    method = aliased_method(self.__class__, name)
-    if not (command := getattr(self, method, None)):
+    # TODO: Test the aliased_method further before actually releasing this feature. This will be disabled for now.
+    # method = aliased_method(self.__class__, name)
+    if not (command := getattr(self, name, None)):
       raise DuploError(f"Invalid command: {name}")
     cliargs = extract_args(command)
     parser = get_parser(cliargs)
