@@ -36,6 +36,54 @@ class DuploTenant(DuploResource):
     """
     response = self.duplo.get("adminproxy/GetTenantNames")
     return response.json()
+  
+  @Command()
+  def list_users(self, 
+               name: args.NAME) -> dict:
+    """List users assigned to a tenant
+    
+    Retrieve a list of all users with access to a tenant
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant list_users
+      ```
+    
+    Returns:
+      users (list): A list of users with access to the tenants, their readonly status, and if they're an admin user
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get("admin/GetAllTenantAuthInfo")
+    tenant_users = []
+    for tenant in response.json():
+        if tenant["TenantId"] == tenant_id:
+            for user in tenant['UserAccess']:
+                tenant_users.append({
+                    "Username": user['Username'],
+                    "IsReadOnly": f"{user['Policy']['IsReadOnly']}",
+                    "IsAdmin": "False"
+                })
+
+    # Admins have access to all tenants. Check for them and add them
+    users = self.duplo.get("admin/GetAllUserRoles")
+    for user in users.json():
+        if "Administrator" in user['Roles']:
+            # If the user is already in the list for the tenant, mark them as admins. This shouldn't be possible.
+            existing_user = next((u for u in tenant_users if u['Username'] == user['Username']), None)
+            if existing_user:
+              for user in tenant_users:
+                  if user == existing_user:
+                      user["IsAdmin"] = True
+                      break
+            else:
+                tenant_users.append({
+                    "Username": user['Username'],
+                    "IsReadOnly": "False",
+                    "IsAdmin": "True"
+                })
+    
+    return tenant_users
 
   @Command("get")
   def find(self, 
@@ -545,3 +593,64 @@ class DuploTenant(DuploResource):
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/subscriptions/{tenant_id}/aws/dnsConfig")
     return response.json()
+
+  @Command()
+  def add_user(self, 
+    name: args.NAME) -> dict:
+    """Add User to Tenant
+    
+    Usage: CLI Usage
+      ```sh
+      duploctl tenant add_user <user> --tenant <tenant_name>
+      ```
+
+    Args:
+      name: The name of the user to add to the tenant.
+      tenant: The name of the tenant to add the user to.
+
+    Returns:
+      message: A message indicating the user was added to the tenant.
+    """
+    tenant_id = self.find(self.duplo.tenant)["TenantId"]
+    res = self.duplo.post("admin/UpdateUserAccess", {
+      "Policy": { "IsReadOnly": None },
+      "Username": name,
+      "TenantId": tenant_id
+    })
+    # check http response is 204
+    if res.status_code != 204:
+      raise DuploError(f"Failed to add user '{name}' to tenant '{self.duplo.tenant}'", res["status_code"])
+    else:
+      return f"User '{name}' added to tenant '{self.duplo.tenant}'"
+    
+  @Command()
+  def remove_user(self, 
+                 name: args.NAME) -> dict:
+    """Remove a User from a Tenant
+    
+    Usage: CLI Usage
+      ```sh
+      duploctl tenant remove_user <user> --tenant <tenant_name>
+      ```
+
+    Args:
+      name: The name of the user to remove from the tenant.
+      tenant: The name of the tenant to remove the user from.
+
+    Returns:
+      message: A message indicating the user was removed from the tenant.
+    """
+    tenant_id = self.find(self.duplo.tenant)["TenantId"]
+    res = self.duplo.post("admin/UpdateUserAccess", {
+      "Policy": {},
+      "Username": name,
+      "TenantId": tenant_id,
+      "State": "deleted"
+    })
+
+    # check http response is 204
+    if res.status_code != 204:
+      raise DuploError(f"Failed to remove user '{name}' from tenant '{self.duplo.tenant}'", res["status_code"])
+    else:
+      return f"User '{name}' removed from tenant '{self.duplo.tenant}'"
+    

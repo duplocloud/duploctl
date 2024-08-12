@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  
  - Added an apply method on base classes. Now most resources can simply `apply` files. 
  - added tenant DNS config command to retrieve configuration
+ - added functionality to search for users by tenant
+ - moved command to add/remove users from tenant from user to tenant
  - Commands can have aliases now. For example `find` and `get` are aliases for the same command. Or `list` and `ls` for short. 
 
 ### Updates  
