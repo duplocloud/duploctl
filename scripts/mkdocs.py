@@ -13,6 +13,9 @@ page_meta = None
 include_pages = [
   "CONTRIBUTING.md",
   "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+  "SECURITY.md",
+  "LICENSE",
 ]
 
 ignored = [
@@ -36,7 +39,8 @@ kind: {kind}
 """)
     
 def gen_include_page(file):
-  fp = f"{doc_dir}/{file}"
+  page = file if file.endswith('.md') else file + '.md'
+  fp = f"{doc_dir}/{page}"
   if not os.path.exists(fp):
     with open(fp, 'w') as f:
       f.write(f"--8<-- \"{file}\"")
