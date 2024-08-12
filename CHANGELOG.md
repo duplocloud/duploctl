@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - added tenant DNS config command to retrieve configuration
  - added functionality to search for users by tenant
  - moved command to add/remove users from tenant from user to tenant
+ - Added new function in service for updating pod label config.
 
 ### Updates  
 
