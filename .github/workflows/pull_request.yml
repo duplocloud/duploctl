@@ -17,13 +17,13 @@ jobs:
         changelog: CHANGELOG.md
 
   quality:
-    name: PR Checks
+    name: Quality
     uses: ./.github/workflows/quality.yml
     secrets: inherit
     with:
       push: false
 
   unit_test:
-    name: PR Checks
+    name: Test
     uses: ./.github/workflows/test_unit.yml
     secrets: inherit
