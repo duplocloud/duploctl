@@ -6,15 +6,5 @@
     "src",
     "--no-cov",
     "-s"
-  ],
-  "workbench.iconTheme": "bearded-icons",
-  "workbench.colorTheme": "Bearded Theme Earth",
-  "editor.tokenColorCustomizations": {
-    "textMateRules": [{
-        "scope": "string.quoted.docstring.multi.python",
-        "settings": {
-            "foreground": "#969340"
-        }
-    }]
-  }
+  ]
 }
