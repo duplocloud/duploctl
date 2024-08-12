@@ -164,37 +164,27 @@ All non generated and very static files go into the [`wiki`](./wiki/) submodule 
 *Themes:*  
 To extend the mkdocstring python theme, you can copy any of the base templates into `wiki/templates` from here https://github.com/mkdocstrings/python/tree/master/src/mkdocstrings_handlers/python/templates/material. Then simply modify the base template to do what you want. 
 
-## Step Through Debugging  
+## VSCode Setup  
 
-Assuming you are using VSCode, make sure you have a `.vscode/launch.json` file with the following configuration. Change the `args` to the command you want to debug, this is equivelent to running from the command line. Remember to install the project with `--editable` so you can step through the code easily. 
+To be helpful as possible, all of the sweet spot configurations for VSCode are included in the `.vscode` folder. Although these files are committed they have been ignored from the working tree, so feel free to update them as you see fit and they will not be committed.
 
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-          "name": "duploctl",
-          "type": "debugpy",
-          "console": "integratedTerminal",
-          "request": "launch",
-          "justMyCode": true,
-          "cwd": "${workspaceFolder}",
-          "program": "src/duplocloud/cli.py",
-          "args": [
-            "version",
-            "--interactive", 
-            "--wait",
-            "--admin"
-          ],
-          "env": {
-            "DUPLO_HOST": "https://myportal.duplocloud.net",
-            "DUPLO_TENANT": "toolstest",
-            "DUPLO_CONFIG": "${workspaceFolder}/config/duploconfig.yaml"
-          }
-        }
-    ]
-}
+Here is how git is ignoring the files.  
+
+```sh
+git update-index --skip-worktree .vscode/settings.json
 ```
+
+### Step Through Debugging  
+
+Within the `.vscode/launch.json`, change the `args` to the command you want to debug, this is equivelent to running from the command line. Remember to install the project with `--editable` so you can step through the code easily. 
+
+### Tasks  
+
+All of the commands described above have been implemented as VSCode tasks in the `.vscode/tasks.json`. This goes well with the [spmeesseman.vscode-taskexplorer](https://marketplace.visualstudio.com/items?itemName=spmeesseman.vscode-taskexplorer) extension which gives you a nice little button to run the tasks.  
+
+### Devcontainer  
+
+The `.devcontainer.json` file is included for quickly spinning up a working enviornment. This is a good way to ensure that all of the dependencies are installed and the correct version of python is being used without fighting with any nuances present in your local environment. 
 
 ## Self Hosted Mac Arm64 Runner  
 
