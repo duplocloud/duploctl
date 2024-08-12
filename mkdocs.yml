@@ -75,3 +75,6 @@ nav:
 - Args: Args.md
 - Changelog: CHANGELOG.md
 - Contributing: CONTRIBUTING.md
+- Code of Conduct: CODE_OF_CONDUCT.md
+- Security: SECURITY.md
+- License: LICENSE.md

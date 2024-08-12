@@ -13,13 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - added tenant DNS config command to retrieve configuration
  - added functionality to search for users by tenant
  - moved command to add/remove users from tenant from user to tenant
- - Commands can have aliases now. For example `find` and `get` are aliases for the same command. Or `list` and `ls` for short. 
 
 ### Updates  
 
  - performance improvements to load cli args only when needed
  - The `command` method on all `DuploResources` returns a factory function with a parser already scoped into the functions argument annotations. 
  - Custom display in the docs for CLI Arguments
+ - Added docs for internals of the CLI for anyone wanting to contribute or extend. 
+ - Comply with Github best practices, ie added Security, Code of conduct, License, issue/pr templates, etc. [Community Standards](https://github.com/duplocloud/duploctl/community)
 
 ## [0.2.32] - 2024-08-05
 
