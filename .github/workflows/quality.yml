@@ -36,6 +36,7 @@ jobs:
     steps:
 
     - name: Setup
+      id: setup
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
@@ -59,6 +60,20 @@ jobs:
     # ruff --format=github --select=E9,F63,F7,F82 --target-version=py37 .
     - name: Lint with ruff
       run: ruff check ./src
+
+    # Now do codequality checks with CodeQL
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: python
+        build-mode: none
+        token: ${{ steps.setup.outputs.token }}
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:python"
+        token: ${{ steps.setup.outputs.token }}
     
     - name: Save Lock File
       uses: actions/upload-artifact@v4
