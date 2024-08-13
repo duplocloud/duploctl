@@ -270,7 +270,10 @@ class DuploService(DuploTenantResourceV2):
     """Update the pod labels of a service. If service has no pod labels set, use -strat replace to set new values.
     Usage: Basic CLI Use
       ```sh
-      duploctl service update_pod_labels <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --setvar env-key3 env-val3 -strat merge --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      duploctl service update_pod_label <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --setvar env-key3 env-val3 -strat merge --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      duploctl service update_pod_label <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 -strat replace --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      duploctl service update_pod_label <service-name> --deletevar env-key1 --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      
       ```
     Args:
       name: The name of the service to update.
@@ -284,16 +287,28 @@ class DuploService(DuploTenantResourceV2):
     newLabels = []
     if setvar is not None:
       newLabels = [{"Name": i[0], "Value": i[1]} for i in setvar]
+
+    # merge new labels in existing labels (append)
     if strategy == 'merge':
-      d = {d['Name']: d for d in currentLabels + newLabels}
-      mergedlabels = list(d.values())
-      currentDockerconfig['PodLabels'] = mergedlabels
+      mergedLabels = currentLabels
+      for vars in newLabels:
+        mergedLabels[vars["Name"]] = vars["Value"]
+      currentDockerconfig['PodLabels'] = mergedLabels
+
     else:
-      currentDockerconfig['PodLabels'] = newLabels
+      # replace values of existing label
+      for label, value in currentDockerconfig['PodLabels'].items():
+        for vars in newLabels:
+          if vars["Name"] not in currentDockerconfig['PodLabels']:
+            label_name = vars["Name"]
+            raise DuploError(f"Service {name} does not have Pod label '{label_name}', enter correct label.", 400)
+          if vars["Name"] == label:
+            currentDockerconfig['PodLabels'][label] = vars["Value"]
+
     if deletevar is not None:
       for key in deletevar:
-        currentDockerconfig['PodLabels'] = [d for d in currentDockerconfig['PodLabels'] if d['Name'] != key]
-
+        del currentDockerconfig['PodLabels'][key]
+      
     payload = {
       "Name": name,
       "OtherDockerConfig": dumps(currentDockerconfig),
