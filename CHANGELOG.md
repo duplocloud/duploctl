@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+ - Fixed update_pod_label subcommand functionality for service.
+
 ## [0.2.33] - 2024-08-12
 
 ### Added 
