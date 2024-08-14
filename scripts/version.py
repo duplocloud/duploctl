@@ -1,39 +1,13 @@
 #!/usr/bin/env python3
-import datetime
 import argparse
 import sys
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(HERE))
 from gha import GithubRepo
+from project import Project
 
-UNRELEASED = "## [Unreleased]"
-CHANGELOG = 'CHANGELOG.md'
-
-def get_changelog():
-  with open(CHANGELOG, 'r') as f:
-    return f.read()
-  
-def release_notes(changelog):
-  inblock = False
-  msg = []
-  for line in changelog.splitlines():
-    if line.startswith(UNRELEASED):
-      inblock = True
-      continue
-    if inblock and line.startswith("## ["):
-      break
-    if inblock:
-      msg.append(line.strip())
-  return "\n".join(msg)
-
-def replace_unreleased(changelog, version):
-  # get todays date formatted like 2023-03-05
-  date = datetime.datetime.now().strftime("%Y-%m-%d")
-  new_notes = f"{UNRELEASED}\n\n## [{version}] - {date}"
-  return changelog.replace(UNRELEASED, new_notes)
-
-def save_github_output(notes, version, tag):
+def save_github_output(version, tag):
   """Save the tag and version in github output file"""
   outputs = os.environ.get('GITHUB_OUTPUT', './.github/output')
   with open(outputs, 'a') as f:
@@ -41,21 +15,26 @@ def save_github_output(notes, version, tag):
     f.write(f"tag={tag}\n")
 
 def publish(action, push, token):
-  repo = GithubRepo(token)
-  v = repo.bump_version(action)
-  t = f"v{v}"
-  c = get_changelog()
-  n = release_notes(c)
-  c = replace_unreleased(c, v)
-  if push != "true":
-    v = repo.ref
-    t = v
-    repo.dist_file(CHANGELOG, c)
-  elif push == "true":
-    print(f"Pushing changes for v{v}")
-    repo.publish(t, CHANGELOG, c)    
-  save_github_output(n, v, t)
-  repo.dist_file('notes.md', n)
+  gha = GithubRepo(token)
+  project = Project()
+  t = project.latest_tag
+  pr_notes = gha.generate_release_notes(str(t), "v0.2.32")
+  cl_notes = project.release_notes(str(t))
+  print(pr_notes["body"])
+  # v = project.bump_version(action)
+  # t = f"v{v}"
+  # c = get_changelog()
+  # n = release_notes(c)
+  # c = replace_unreleased(c, v)
+  # if push != "true":
+  #   v = repo.ref
+  #   t = v
+  #   repo.dist_file(CHANGELOG, c)
+  # elif push == "true":
+  #   print(f"Pushing changes for v{v}")
+  #   repo.publish(t, CHANGELOG, c)    
+  # save_github_output(n, v, t)
+  # repo.dist_file('notes.md', n)
   
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(

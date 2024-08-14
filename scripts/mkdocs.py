@@ -1,10 +1,14 @@
 import os
+import sys
 import shutil
 import logging, re
 from jinja2 import Template
 from jinja2.filters import FILTERS
 from duplocloud.commander import ep
 import duplocloud.args as args
+
+# add current dir to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 log = logging.getLogger('mkdocs')
 doc_dir = './dist/docs'
@@ -61,6 +65,9 @@ def string_or_class_name_filter(input):
     return input
   else:
     return getattr(input, "__name__", str(input))
+  
+def hello_filter(input):
+  return f"Hello {input}"
 
 def on_startup(**kwargs):
   copy_static()
@@ -76,11 +83,13 @@ def on_config(config, **kwargs):
   FILTERS['cli_arg'] = cli_arg_filter
   FILTERS['list_to_csv'] = list_to_csv_filter
   FILTERS['string_or_class_name'] = string_or_class_name_filter
+  FILTERS['hello_there'] = hello_filter
   return config
 
 def on_page_markdown(markdown, page, **kwargs):
   """Save the page meta data to be used in the page_meta_filter"""
   global page_meta
   page_meta = page.meta
-  return markdown
+  t = Template(markdown)
+  return t.render(**page_meta)
 

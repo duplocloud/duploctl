@@ -42,6 +42,7 @@ hooks:
 nav:
 - Readme: index.md
 - Overview: Home.md
+- Installation: Installation.md
 - Resources:
   - JIT: Jit.md
   - Infrastructure: Infrastructure.md
