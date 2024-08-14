@@ -54,11 +54,13 @@ class GithubRepo:
     })
     return r.json()
   
-  def generate_release_notes(self, tag_name, from_tag=None):
+  def generate_release_notes(self, tag_name, previous_tag_name=None, target_commitish=None):
     body = {
       "tag_name": tag_name
     }
-    if from_tag:
-      body["previous_tag_name"] = from_tag
+    if previous_tag_name:
+      body["previous_tag_name"] = previous_tag_name
+    if target_commitish:
+      body["target_commitish"] = target_commitish
     r = requests.post(f"{self.url}/releases/generate-notes", headers=self.headers, json=body)
     return r.json()

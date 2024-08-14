@@ -5,37 +5,55 @@ import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(HERE))
 from gha import GithubRepo
-from project import Project
+from project import Project, CHANGELOG
 
-def save_github_output(version, tag):
-  """Save the tag and version in github output file"""
-  outputs = os.environ.get('GITHUB_OUTPUT', './.github/output')
-  with open(outputs, 'a') as f:
-    f.write(f"version={version}\n")
-    f.write(f"tag={tag}\n")
+class Versionizer:
+  def __init__(self, action, token=None):
+    self.gha = GithubRepo(token)
+    self.project = Project()
+    self.last_version = str(self.project.latest_tag)
+    self.ref = str(self.project.ref)
+    self.action = action
+    self.pushed = False
+    self.changelog = None
+    self.notes = None
+    self.__next_version = None
 
-def publish(action, push, token):
-  gha = GithubRepo(token)
-  project = Project()
-  t = project.latest_tag
-  pr_notes = gha.generate_release_notes(str(t), "v0.2.32")
-  cl_notes = project.release_notes(str(t))
-  print(pr_notes["body"])
-  # v = project.bump_version(action)
-  # t = f"v{v}"
-  # c = get_changelog()
-  # n = release_notes(c)
-  # c = replace_unreleased(c, v)
-  # if push != "true":
-  #   v = repo.ref
-  #   t = v
-  #   repo.dist_file(CHANGELOG, c)
-  # elif push == "true":
-  #   print(f"Pushing changes for v{v}")
-  #   repo.publish(t, CHANGELOG, c)    
-  # save_github_output(n, v, t)
-  # repo.dist_file('notes.md', n)
+  @property 
+  def next_version(self):
+    if not self.__next_version:
+      self.__next_version = str(self.project.bump_version(self.action))
+    return self.__next_version
+
+  def build_release_notes(self, save=True):
+    v = self.next_version
+    lv = self.last_version
+    cl_notes = self.project.release_notes()
+    pr_notes = self.gha.generate_release_notes(f"v{v}", f"v{lv}", self.ref)
+    inst_notes = self.project.install_notes(v)
+    notes = "\n".join([cl_notes, pr_notes["body"], inst_notes])
+    if save:
+      self.project.dist_file('notes.md', notes)
+    self.notes = notes
   
+  def reset_changelog(self, save=True):
+    c = self.project.reset_changelog(self.next_version)
+    if save:
+      self.project.dist_file(CHANGELOG, c)
+    self.changelog = c
+
+  def publish(self):
+    if not self.pushed:
+      self.gha.publish(f"v{self.next_version}", CHANGELOG, self.changelog)
+      self.pushed = True
+
+  def save_github_output(self):
+    """Save the tag and version in github output file"""
+    tag = f"v{self.next_version}" if self.pushed else self.ref
+    outputs = os.environ.get('GITHUB_OUTPUT', './.github/output')
+    with open(outputs, 'a') as f:
+      f.write(f"tag={tag}\n")
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
     prog='version-bumper',
@@ -43,6 +61,11 @@ if __name__ == '__main__':
   )
   parser.add_argument('--action', type=str, help='The type of version bump to perform.', default="patch")
   parser.add_argument('--push', type=str, help='Push to remote?', default="false")
-  parser.add_argument('--token', type=str, help='Github token', default=os.environ.get('GITHUB_TOKEN'))
+  parser.add_argument('--token', type=str, help='Github token', default=os.getenv('GITHUB_TOKEN', None))
   args = parser.parse_args()
-  publish(**vars(args))
+  v = Versionizer(args.action, args.token)
+  v.build_release_notes()
+  v.reset_changelog()
+  if args.push == "true":
+    v.publish()
+  v.save_github_output()

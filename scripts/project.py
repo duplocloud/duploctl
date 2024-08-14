@@ -3,8 +3,10 @@ from packaging.version import Version
 import semver
 import os
 import datetime
+from jinja2 import Template
 
 CHANGELOG = 'CHANGELOG.md'
+REPO_URL = "https://github.com/duplocloud/duploctl"
 
 class Project:
   def __init__(self):
@@ -63,6 +65,12 @@ class Project:
       if inblock:
         msg.append(line.strip())
     return "\n".join(msg)
+  
+  def install_notes(self, version):
+    # get the install.md file within the wiki folder
+    with open("wiki/Installation.md") as f:
+      tpl = Template(f.read())
+      return tpl.render(version=version, repo_url=REPO_URL)
   
   def reset_changelog(self, version):
     unreleased = "## [Unreleased]"

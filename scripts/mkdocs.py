@@ -6,20 +6,22 @@ from jinja2 import Template
 from jinja2.filters import FILTERS
 from duplocloud.commander import ep
 import duplocloud.args as args
-
-# add current dir to path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(HERE))
+from project import Project, REPO_URL
 
 log = logging.getLogger('mkdocs')
 doc_dir = './dist/docs'
 page_meta = None
+version = None
 
 include_pages = [
   "CONTRIBUTING.md",
   "CHANGELOG.md",
   "CODE_OF_CONDUCT.md",
   "SECURITY.md",
-  "LICENSE",
+  "LICENSE=License.md",
+  "README.md=index.md"
 ]
 
 ignored = [
@@ -42,8 +44,13 @@ kind: {kind}
 ::: {ref}
 """)
     
-def gen_include_page(file):
-  page = file if file.endswith('.md') else file + '.md'
+def gen_include_page(include):
+  parts = include.split('=')
+  if len(parts) == 2:
+    file, page = parts
+  else:
+    file = parts[0]
+    page = file
   fp = f"{doc_dir}/{page}"
   if not os.path.exists(fp):
     with open(fp, 'w') as f:
@@ -65,11 +72,11 @@ def string_or_class_name_filter(input):
     return input
   else:
     return getattr(input, "__name__", str(input))
-  
-def hello_filter(input):
-  return f"Hello {input}"
 
 def on_startup(**kwargs):
+  global version
+  project = Project()
+  version = str(project.latest_tag)
   copy_static()
   for e in ep:
     if e.name not in ignored:
@@ -83,7 +90,6 @@ def on_config(config, **kwargs):
   FILTERS['cli_arg'] = cli_arg_filter
   FILTERS['list_to_csv'] = list_to_csv_filter
   FILTERS['string_or_class_name'] = string_or_class_name_filter
-  FILTERS['hello_there'] = hello_filter
   return config
 
 def on_page_markdown(markdown, page, **kwargs):
@@ -91,5 +97,8 @@ def on_page_markdown(markdown, page, **kwargs):
   global page_meta
   page_meta = page.meta
   t = Template(markdown)
-  return t.render(**page_meta)
+  return t.render(
+    version=version, 
+    repo_url=REPO_URL, 
+    **page_meta)
 
