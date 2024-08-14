@@ -9,6 +9,8 @@ sys.path.append(os.path.dirname(HERE))
 from gha import GithubRepo
 from project import Project, CHANGELOG
 
+logging.basicConfig(level=logging.INFO)
+
 class Versionizer:
   def __init__(self, action, token=None):
     self.logger = logging.getLogger('versionizer')
