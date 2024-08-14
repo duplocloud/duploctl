@@ -39,7 +39,7 @@ on:
 
 jobs:
   version:
-    name: Version
+    name: Bump
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.bump.outputs.tag }}
