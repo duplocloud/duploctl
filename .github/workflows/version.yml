@@ -54,6 +54,7 @@ jobs:
         fetch-depth: 0
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
+        submodules: "true"
         
     - name: Bump Version
       id: bump

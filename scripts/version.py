@@ -2,6 +2,7 @@
 import argparse
 import sys
 import os
+from importlib.metadata import version
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(HERE))
 from gha import GithubRepo
@@ -31,7 +32,11 @@ class Versionizer:
     cl_notes = self.project.release_notes()
     pr_notes = self.gha.generate_release_notes(f"v{v}", f"v{lv}", self.ref)
     inst_notes = self.project.install_notes(v)
-    notes = "\n".join([cl_notes, pr_notes["body"], inst_notes])
+    notes = "\n".join([
+      cl_notes, 
+      pr_notes["body"], 
+      "\n## Installation",
+      inst_notes])
     if save:
       self.project.dist_file('notes.md', notes)
     self.notes = notes
@@ -50,9 +55,11 @@ class Versionizer:
   def save_github_output(self):
     """Save the tag and version in github output file"""
     tag = f"v{self.next_version}" if self.pushed else self.ref
+    version = self.next_version if self.pushed else version('duplocloud-client')
     outputs = os.environ.get('GITHUB_OUTPUT', './.github/output')
     with open(outputs, 'a') as f:
       f.write(f"tag={tag}\n")
+      f.write(f"version={version}\n")
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(

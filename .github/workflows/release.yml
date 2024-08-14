@@ -150,49 +150,6 @@ jobs:
 
           ${{ env.RELEASE_NOTES }}
 
-          ### Installation
-
-          PIP PyPi: 
-          [duplocloud-client](https://pypi.org/project/duplocloud-client/${{ steps.info.outputs.VERSION }}/)
-          ```sh
-          pip install duplocloud-client==${{ steps.info.outputs.VERSION }}
-          ```
-
-          PIP Sdist:
-          The dowload below named `${{ steps.info.outputs.PACKAGE_NAME }}.tar.gz` is the sdist of the package. 
-          ```sh
-          pip install ${{ steps.info.outputs.RELEASE_URL }}/${{ steps.info.outputs.PACKAGE_NAME }}.tar.gz
-          ```
-          
-          PIP From Source:  
-          Install directly from the version tag on GitHub. 
-          ```sh
-          pip install git+${{ steps.info.outputs.REPO_URL }}.git@${{ steps.info.outputs.GIT_TAG }}
-          ```
-
-          Dockerhub:  
-          [duplocloud/duploctl:${{ steps.info.outputs.GIT_TAG }}](https://hub.docker.com/r/duplocloud/duploctl)
-          ```sh
-          docker pull duplocloud/duploctl:${{ steps.info.outputs.GIT_TAG }}
-          ```
-
-          Install CLI to Path Linux:
-          ```sh
-          curl -s -L ${{ steps.info.outputs.RELEASE_URL }}/duploctl-${{ steps.info.outputs.VERSION }}-linux-amd64.tar.gz | tar xvz - -C /usr/local/bin
-          ```
-
-          Homebrew single binary:
-          ```sh
-          brew install duplocloud/tap/duploctl
-          ```
-
-          Homebrew with PIP:
-          ```sh
-          brew install duplocloud/tap/duploctl --with-pip
-          ```
-          
-          Build: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.25.0
