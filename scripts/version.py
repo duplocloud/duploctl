@@ -2,7 +2,8 @@
 import argparse
 import sys
 import os
-from importlib.metadata import version
+import logging
+import importlib.metadata as meta
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(HERE))
 from gha import GithubRepo
@@ -10,6 +11,7 @@ from project import Project, CHANGELOG
 
 class Versionizer:
   def __init__(self, action, token=None):
+    self.logger = logging.getLogger('versionizer')
     self.gha = GithubRepo(token)
     self.project = Project()
     self.last_version = str(self.project.latest_tag)
@@ -27,6 +29,7 @@ class Versionizer:
     return self.__next_version
 
   def build_release_notes(self, save=True):
+    self.logger.info("Building release notes")
     v = self.next_version
     lv = self.last_version
     cl_notes = self.project.release_notes()
@@ -42,6 +45,7 @@ class Versionizer:
     self.notes = notes
   
   def reset_changelog(self, save=True):
+    self.logger.info(f"Resetting changelog")
     c = self.project.reset_changelog(self.next_version)
     if save:
       self.project.dist_file(CHANGELOG, c)
@@ -49,14 +53,16 @@ class Versionizer:
 
   def publish(self):
     if not self.pushed:
+      self.logger.info(f"Publishing new version {self.next_version}")
       self.gha.publish(f"v{self.next_version}", CHANGELOG, self.changelog)
       self.pushed = True
 
   def save_github_output(self):
     """Save the tag and version in github output file"""
     tag = f"v{self.next_version}" if self.pushed else self.ref
-    version = self.next_version if self.pushed else version('duplocloud-client')
+    version = self.next_version if self.pushed else meta.version('duplocloud-client')
     outputs = os.environ.get('GITHUB_OUTPUT', './.github/output')
+    self.logger.info(f"Saving Outputs: tag={tag} version={version}")
     with open(outputs, 'a') as f:
       f.write(f"tag={tag}\n")
       f.write(f"version={version}\n")

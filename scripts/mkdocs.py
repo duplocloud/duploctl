@@ -1,7 +1,8 @@
 import os
 import sys
 import shutil
-import logging, re
+import logging
+import re
 from jinja2 import Template
 from jinja2.filters import FILTERS
 from duplocloud.commander import ep
