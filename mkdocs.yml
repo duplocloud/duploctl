@@ -1,6 +1,7 @@
 site_name: Duploctl Wiki
 
-docs_dir: dist/docs
+# becomes dist/docs on_startup
+docs_dir: wiki
 site_dir: dist/site
 
 watch:
@@ -43,30 +44,7 @@ nav:
 - Readme: index.md
 - Overview: Home.md
 - Installation: Installation.md
-- Resources:
-  - JIT: Jit.md
-  - Infrastructure: Infrastructure.md
-  - Plan: Plan.md
-  - Tenants: Tenant.md
-  - Autoscaling Groups: Asg.md
-  - Hosts: Hosts.md
-  - Lambda: Lambda.md
-  - Service: Service.md
-  - CronJobs: CronJob.md
-  - Ingress: Ingress.md
-  - CloudFront: CloudFront.md
-  - Secret: Secret.md
-  - ConfigMap: ConfigMap.md
-  - User: User.md
-  - System: System.md
-  - Version: Version.md
-  - S3: S3.md
-  - PVC: PersistentVolumeClaim.md
-  - StorageClass: StorageClass.md
-  - Job: Job.md
-  - RDS: RDS.md
-  - Pod: Pod.md
-  - ECS: EcsService.md
+# resources are injected here
 - Module:
   - Client: Client.md
   - Commander: Commander.md
