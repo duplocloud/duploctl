@@ -169,13 +169,13 @@ class DuploClient():
     return DuploClient(host=host, token=token, tenant=tenant)
 
   @property
-  def settings(self):
+  def settings(self) -> dict:
     """Get Config
 
     Get the Duplo config as a dict. This is accessed as a lazy loaded property.
 
     Returns:
-      The config as a dict.
+      settings: The config as a dict.
     """
     if self.__config is None:
       if not os.path.exists(self.config_file):
@@ -435,18 +435,18 @@ Available Resources:
     except jmespath.exceptions.JMESPathTypeError as e:
       raise DuploError("Invalid jmespath query", 500) from e
     
-  def load(self, resource: str) -> T:
+  def load(self, kind: str) -> T:
     """Load Resource
       
     Load a resource class from the entry points.
 
     Args:
-      name: The name of the service.
+      kind: The name of the service.
 
     Returns:
-      The instantiated service with a reference to this client.
+      kind: The instantiated service with a reference to this client.
     """
-    svc = load_resource(resource)
+    svc = load_resource(kind)
     return svc(self)
   
   def format(self, data: dict) -> str:

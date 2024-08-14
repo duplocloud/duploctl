@@ -14,7 +14,7 @@ class DuploVersion():
     ```
   
   Returns:
-    version: The Duplo version.
+    version (dict): The Duplo version.
   """
   def __init__(self, duplo: DuploClient):
     self.duplo = duplo

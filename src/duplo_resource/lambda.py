@@ -140,9 +140,9 @@ class DuploLambda(DuploTenantResourceV2):
 
   @Command()
   def update_s3(self, 
-                   name: args.NAME, 
-                   bucket: args.S3BUCKET,
-                   key: args.S3KEY) -> dict:
+                name: args.NAME, 
+                bucket: args.S3BUCKET,
+                key: args.S3KEY) -> dict:
     """Update the s3 bucket and key of a lambda.
 
     Usage: CLI Usage
@@ -152,8 +152,8 @@ class DuploLambda(DuploTenantResourceV2):
     
     Args:
       name: The name of the lambda to update.
-      s3bucket: The s3 bucket to use for the lambda.
-      s3key: The s3 key (file path) to use for the lambda.
+      bucket: The s3 bucket to use for the lambda.
+      key: The s3 key (file path) to use for the lambda.
     """
     tenant_id = self.tenant["TenantId"]
     data = {

@@ -37,7 +37,7 @@ class DuploEcsService(DuploTenantResourceV2):
       raise DuploError(f"ECS Service '{name}' not found", 404)
   
   @Command()
-  def list_task_def_family(self):
+  def list_task_def_family(self) -> dict:
     """List ECS Task Definitions
     
     Retrieve a list of all ECS task definitions in a tenant.
@@ -49,7 +49,7 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Returns:
-      A list of ECS task definitions.
+      task_def_family: A list of ECS task definitions.
     """
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/taskDefFamily"
@@ -144,7 +144,7 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def update_image(self, 
                    name: args.NAME, 
-                   image: args.IMAGE):
+                   image: args.IMAGE) -> dict:
     """Update the image for an ECS service.
 
     Example:
@@ -154,10 +154,10 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Args:
-      name (str): The name of the ECS service to update.
-      task_definition (str): The new task definition to use.
+      name: The name of the ECS service to update.
+      image: The new image to use.
     Returns:
-      The updated ECS object.
+      ecs: The updated ECS object.
     Raises:
         DuploError: If the ECS service could not be updated.
     """
