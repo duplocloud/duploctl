@@ -7,6 +7,7 @@
     "redhat.vscode-yaml",
     "samuelcolvin.jinjahtml",
     "tamasfe.even-better-toml",
-    "github.vscode-pull-request-github"
+    "github.vscode-pull-request-github",
+    "charliermarsh.ruff"
   ]
 }

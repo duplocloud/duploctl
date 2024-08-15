@@ -1,4 +1,4 @@
-name: Validate
+name: Pull Request
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Make sure changes are logged
-      uses: tarides/changelog-check-action@v2
+      uses: tarides/changelog-check-action@v3
       with:
         changelog: CHANGELOG.md
 
@@ -22,6 +22,7 @@ jobs:
     secrets: inherit
     with:
       push: false
+      codescan: false
 
   unit_test:
     name: Test

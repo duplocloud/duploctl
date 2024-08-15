@@ -452,7 +452,10 @@ class DuploTenant(DuploResource):
     }
 
   @Command()
-  def start(self, name: args.NAME = None, wait: args.WAIT=False, exclude: args.EXCLUDE=None):
+  def start(self, 
+            name: args.NAME = None, 
+            wait: args.WAIT=False, 
+            exclude: args.EXCLUDE=None) -> dict:
     """Start Tenant All Resources
 
     Starts all resources of a tenant.
@@ -505,7 +508,10 @@ class DuploTenant(DuploResource):
     }
 
   @Command()
-  def stop(self, name: args.NAME = None, wait: args.WAIT=False, exclude: args.EXCLUDE=None):
+  def stop(self, 
+           name: args.NAME = None, 
+           wait: args.WAIT=False, 
+           exclude: args.EXCLUDE=None) -> dict:
     """Stop Tenant All Resources
 
     Stops all resources of a tenant.
@@ -573,7 +579,7 @@ class DuploTenant(DuploResource):
 
   @Command()
   def dns_config(self, 
-                 name: args.NAME=None):
+                 name: args.NAME=None) -> dict:
     """Tenant DNS Config
 
     Retrieve DNS configuration for a tenant by name..
@@ -587,7 +593,7 @@ class DuploTenant(DuploResource):
       name: The name of the tenant.
 
     Returns:
-      dict: A dictionary containing the DNS configuration of the tenant.
+      dns_config: A dictionary containing the DNS configuration of the tenant.
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
@@ -596,7 +602,7 @@ class DuploTenant(DuploResource):
 
   @Command()
   def add_user(self, 
-    name: args.NAME) -> dict:
+               name: args.NAME) -> dict:
     """Add User to Tenant
     
     Usage: CLI Usage
@@ -606,7 +612,6 @@ class DuploTenant(DuploResource):
 
     Args:
       name: The name of the user to add to the tenant.
-      tenant: The name of the tenant to add the user to.
 
     Returns:
       message: A message indicating the user was added to the tenant.
@@ -635,7 +640,6 @@ class DuploTenant(DuploResource):
 
     Args:
       name: The name of the user to remove from the tenant.
-      tenant: The name of the tenant to remove the user from.
 
     Returns:
       message: A message indicating the user was removed from the tenant.

@@ -322,7 +322,7 @@ class DuploService(DuploTenantResourceV2):
   
   @Command()
   def bulk_update_image(self, 
-                  serviceimage: args.SERVICEIMAGE) -> dict:
+                        serviceimage: args.SERVICEIMAGE) -> dict:
     """Update multiple services.
 
     Bulk update the image of a services.
@@ -333,7 +333,7 @@ class DuploService(DuploTenantResourceV2):
       ```
     
     Args:
-      serviceimage/-S (string): takes n sets of two arguments, service name and image name. e.g -S service1 image1:tag -S service2 image2:tag
+      serviceimage: takes n sets of two arguments, service name and image name. e.g -S service1 image1:tag -S service2 image2:tag
     """
     payload = []
     for i in serviceimage:

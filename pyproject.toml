@@ -39,7 +39,8 @@ build = [
   "pyinstaller",
   "toml",
   "semver",
-  "GitPython"
+  "GitPython",
+  "Jinja2"
 ]
 test = [
   "pytest",

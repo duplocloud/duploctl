@@ -30,12 +30,14 @@ class DuploCronJob(DuploTenantResourceV3):
   @Command()
   def update_schedule(self, 
                       name: args.NAME, 
-                      cronschedule: args.CRONSCHEDULE):
+                      cronschedule: args.CRONSCHEDULE) -> dict:
     """Update the schedule of a cronjob.
     
     Args:
-      name (str): The name of the cronjob to update.
-      schedule (str): The new schedule to use for the cronjob.
+      name: The name of the cronjob to update.
+      cronschedule: The new schedule to use for the cronjob.
+    Returns:
+      message: A success message.
     """
     cronjob = self.find(name)
     cronjob["spec"]["schedule"] = cronschedule

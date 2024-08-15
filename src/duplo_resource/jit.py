@@ -312,7 +312,7 @@ class DuploJit(DuploResource):
   
   @Command()
   def k8s_context(self, 
-                  planId: args.PLAN = None):
+                  planId: args.PLAN = None) -> dict:
     """Get k8s context
     
     Gets context based on planId or tenant name or admin or nonadmin. 
@@ -321,7 +321,7 @@ class DuploJit(DuploResource):
       planId: The planId of the infrastructure.
     
     Returns:
-      dict: The k8s context.
+      context: The k8s context.
     """
     tenant = None
     tenant_id = self.duplo.tenantid

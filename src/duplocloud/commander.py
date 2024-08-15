@@ -23,7 +23,7 @@ def Resource(name: str):
     return cls
   return decorator
 
-def Command(*aliases):
+def Command(*aliases) -> Callable:
   """Command decorator
 
   This decorator is used to register a function as a command. It will
@@ -40,7 +40,7 @@ def Command(*aliases):
     ```
   
   Returns:
-    The decorated function.
+    decorator: The decorated function.
 
   """
   def decorator(function: Callable):

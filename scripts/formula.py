@@ -2,24 +2,26 @@
 import argparse
 import sys
 import os
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(HERE))
 import requests
 import toml
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(HERE))
 # from importlib.metadata import version
 from gha import GithubRepo
+from project import Project
 
 class HomebrewFormula:
 
   def __init__(self, token, tag=None):
     self.repo = GithubRepo(token, "homebrew-tap")
+    self.project = Project()
     f = open('pyproject.toml')
     self.pyproject = toml.load(f)
     self.repo_url = self.pyproject['project']['urls']['Repository']
     self.description = self.pyproject['project']['description']
     self.tpl_file = 'scripts/formula.tpl.rb'
     self.out_file = 'duploctl.rb'
-    self.version = tag.replace("v", "") if tag else self.repo.latest_tag()
+    self.version = tag.replace("v", "") if tag else self.project.latest_tag
 
   def publish(self, push="false"):
     formula = self.build_formula()
@@ -28,7 +30,7 @@ class HomebrewFormula:
       print("Pushing to remote")
       self.repo.publish(f"duploctl-v{self.version}", 'Formula/duploctl.rb', formula)
     else:
-      self.repo.dist_file(self.out_file, formula)
+      self.project.dist_file(self.out_file, formula)
 
   def make_resource(self, requirement):
     name, version = requirement.split("==")

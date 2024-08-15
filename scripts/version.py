@@ -1,69 +1,96 @@
 #!/usr/bin/env python3
-import datetime
 import argparse
 import sys
 import os
+import logging
+import importlib.metadata as meta
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(HERE))
 from gha import GithubRepo
+from project import Project, CHANGELOG
 
-UNRELEASED = "## [Unreleased]"
-CHANGELOG = 'CHANGELOG.md'
+logging.basicConfig(level=logging.INFO)
 
-def get_changelog():
-  with open(CHANGELOG, 'r') as f:
-    return f.read()
+class Versionizer:
+  def __init__(self, action, token=None):
+    self.logger = logging.getLogger('versionizer')
+    self.gha = GithubRepo(token)
+    self.project = Project()
+    self.last_version = str(self.project.latest_tag)
+    self.ref = str(self.project.ref)
+    self.action = action
+    self.pushed = False
+    self.changelog = None
+    self.notes = None
+    self.__next_version = None
+
+  @property 
+  def next_version(self):
+    if not self.__next_version:
+      self.__next_version = str(self.project.bump_version(self.action))
+    return self.__next_version
+
+  def build_release_notes(self, save=True):
+    self.logger.info("Building release notes")
+    v = self.next_version
+    lv = self.last_version
+    cl_notes = self.project.release_notes()
+    pr_notes = self.gha.generate_release_notes(f"v{v}", f"v{lv}", self.ref)
+    inst_notes = self.project.install_notes(v)
+    notes = "\n".join([
+      cl_notes, 
+      pr_notes["body"], 
+      "\n## Installation",
+      inst_notes])
+    if save:
+      self.project.dist_file('notes.md', notes)
+    self.notes = notes
   
-def release_notes(changelog):
-  inblock = False
-  msg = []
-  for line in changelog.splitlines():
-    if line.startswith(UNRELEASED):
-      inblock = True
-      continue
-    if inblock and line.startswith("## ["):
-      break
-    if inblock:
-      msg.append(line.strip())
-  return "\n".join(msg)
+  def reset_changelog(self, save=True):
+    self.logger.info(f"Resetting changelog")
+    c = self.project.reset_changelog(self.next_version)
+    if save:
+      self.project.dist_file(CHANGELOG, c)
+    self.changelog = c
 
-def replace_unreleased(changelog, version):
-  # get todays date formatted like 2023-03-05
-  date = datetime.datetime.now().strftime("%Y-%m-%d")
-  new_notes = f"{UNRELEASED}\n\n## [{version}] - {date}"
-  return changelog.replace(UNRELEASED, new_notes)
+  def publish(self):
+    if not self.pushed:
+      self.logger.info(f"Publishing new version {self.next_version}")
+      self.gha.publish(f"v{self.next_version}", CHANGELOG, self.changelog)
+      self.pushed = True
 
-def save_github_output(notes, version, tag):
-  """Save the tag and version in github output file"""
-  outputs = os.environ.get('GITHUB_OUTPUT', './.github/output')
-  with open(outputs, 'a') as f:
-    f.write(f"version={version}\n")
-    f.write(f"tag={tag}\n")
+  def save_github_output(self):
+    """Save the tag and version in github output file"""
+    tag = f"v{self.next_version}" if self.pushed else self.ref
+    version = self.next_version if self.pushed else meta.version('duplocloud-client')
+    outputs = os.environ.get('GITHUB_OUTPUT', './.github/output')
+    self.logger.info(f"Saving Outputs: tag={tag} version={version}")
+    with open(outputs, 'a') as f:
+      f.write(f"tag={tag}\n")
+      f.write(f"version={version}\n")
 
-def publish(action, push, token):
-  repo = GithubRepo(token)
-  v = repo.bump_version(action)
-  t = f"v{v}"
-  c = get_changelog()
-  n = release_notes(c)
-  c = replace_unreleased(c, v)
-  if push != "true":
-    v = repo.ref
-    t = v
-    repo.dist_file(CHANGELOG, c)
-  elif push == "true":
-    print(f"Pushing changes for v{v}")
-    repo.publish(t, CHANGELOG, c)    
-  save_github_output(n, v, t)
-  repo.dist_file('notes.md', n)
-  
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
     prog='version-bumper',
     description='A duploctl version bumper.',
   )
-  parser.add_argument('--action', type=str, help='The type of version bump to perform.', default="patch")
-  parser.add_argument('--push', type=str, help='Push to remote?', default="false")
-  parser.add_argument('--token', type=str, help='Github token', default=os.environ.get('GITHUB_TOKEN'))
+  parser.add_argument('--action', 
+                      type=str, 
+                      help='The type of version bump to perform.', 
+                      choices=['major', 'minor', 'patch'], 
+                      default="patch")
+  parser.add_argument('--push', 
+                      type=str, 
+                      help='Push to remote?', 
+                      default="false")
+  parser.add_argument('--token', 
+                      type=str, 
+                      help='Github token', 
+                      default=os.getenv('GITHUB_TOKEN', None))
   args = parser.parse_args()
-  publish(**vars(args))
+  v = Versionizer(args.action, args.token)
+  v.build_release_notes()
+  v.reset_changelog()
+  if args.push == "true":
+    v.publish()
+  v.save_github_output()

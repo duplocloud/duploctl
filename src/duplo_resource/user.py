@@ -27,7 +27,7 @@ class DuploUser(DuploResource):
   
   @Command()
   def create(self, 
-             body: args.BODY):
+             body: args.BODY) -> dict:
     """Create a new user.
 
     Usage: CLI Usage

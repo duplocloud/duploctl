@@ -187,7 +187,7 @@ class DuploTenantResourceV3(DuploResource):
   
   @Command()
   def find(self, 
-           name: args.NAME):
+           name: args.NAME) -> dict:
     """Find {{kind}} resources by name.
 
     Usage: cli usage
@@ -219,8 +219,10 @@ class DuploTenantResourceV3(DuploResource):
     
     Args:
       name: The name of the {{kind}} resource to delete.
+
     Returns: 
       message: A success message.
+
     Raises:
       DuploError: If the {{kind}} resource could not be found or deleted. 
     """
@@ -233,7 +235,7 @@ class DuploTenantResourceV3(DuploResource):
   def create(self, 
              body: args.BODY,
              wait: args.WAIT=False,
-             wait_check: callable=None):
+             wait_check: callable=None) -> dict:
     """Create a {{kind}} resource.
 
     Usage: CLI Usage
@@ -256,8 +258,10 @@ class DuploTenantResourceV3(DuploResource):
       body: The resource to create.
       wait: Wait for the resource to be created.
       wait_check: A callable function to check if the resource
+
     Returns: 
-      Success message.
+      message: Success message.
+
     Raises:
       DuploError: If the resource could not be created.
     """

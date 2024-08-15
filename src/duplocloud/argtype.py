@@ -1,7 +1,7 @@
 """
 This module contains the customizations to the Argparse library. 
 """
-from typing import NewType
+from typing import NewType, Any, List
 import argparse
 import yaml
 import json 
@@ -23,9 +23,9 @@ class Arg(NewType):
     ```
   """
   def __init__(self, 
-              name, 
-              *flags, 
-              type=str, 
+              name: str, 
+              *flags: List[str], 
+              type: Any=str, 
               action: str=None, 
               nargs: str=None, 
               const: str=None, 
@@ -33,16 +33,16 @@ class Arg(NewType):
               choices=None, 
               required: bool=None, 
               help: str=None, 
-              metavar=None, 
+              metavar: tuple=None, 
               dest: str=None,
-              version=None,
+              version: bool=None,
               env: str=None):
     """Initialize ArgType
 
     Args:
       name: The name of the argument.
       type: The type of the argument.
-      flag: The flag to use for the argument.
+      flags: The flag to use for the argument.
       action: The action to use for the argument.
       nargs: The number of arguments to use for the argument.
       const: The constant to use for the argument.

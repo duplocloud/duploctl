@@ -42,7 +42,6 @@ class DuploHosts(DuploTenantResourceV2):
     Args:
       body: The resource to create.
       wait: Wait for the resource to be created.
-      wait_check: A callable function to check if the resource
 
     Returns: 
       message: Success message.
@@ -71,7 +70,7 @@ class DuploHosts(DuploTenantResourceV2):
   @Command()
   def delete(self,
              name: args.NAME,
-             wait: args.WAIT=False):
+             wait: args.WAIT=False) -> dict:
     """Delete a host.
     
     Deletes a host by name. If the host is running, it will be stopped before deletion.
@@ -111,8 +110,8 @@ class DuploHosts(DuploTenantResourceV2):
   
   @Command()
   def stop(self,
-             name: args.NAME,
-             wait: args.WAIT=False):
+           name: args.NAME,
+           wait: args.WAIT=False) -> dict:
     """Stop a host.
     
     Stops a host by name. If the host is already stopped, it will return a success message.
@@ -150,7 +149,7 @@ class DuploHosts(DuploTenantResourceV2):
   @Command()
   def start(self,
              name: args.NAME,
-             wait: args.WAIT=False):
+             wait: args.WAIT=False) -> dict:
     """Start a host.
     
     Starts a host by name. If the host is already running, it will return a success message.
@@ -187,7 +186,7 @@ class DuploHosts(DuploTenantResourceV2):
   
   @Command()
   def reboot(self,
-             name: args.NAME):
+             name: args.NAME) -> dict:
     """Reboot a host
     
     Reboots a host by name.
