@@ -18,6 +18,7 @@ jobs:
     steps:
 
     - name: Setup
+      id: setup
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         install: ".[build,test]"
@@ -26,13 +27,24 @@ jobs:
         private-key: ${{ secrets.GH_APP_KEY }}
     
     - name: Test with pytest
-      run: pytest src --junit-xml=test-results.xml -m unit
+      run: >-
+        pytest src 
+        --cov-report xml:dist/coverage.xml
+        --junit-xml=dist/test-results.xml 
+        --markers unit
 
-    - name: Surface failing tests
-      if: always()
+    - name: Pytest Summary Report
+      if: always() && matrix.python-version == vars.PY_VERSION
       uses: pmeier/pytest-results-action@main
       with:
         path: test-results.xml
         summary: true
         display-options: fEX
         fail-on-empty: true
+
+    - name: Pytest Coverage Report
+      if: always() && matrix.python-version == vars.PY_VERSION
+      uses: orgoro/coverage@v3.2
+      with:
+        coverageFile: path/to/coverage.xml
+        token: ${{ steps.setup.outputs.token }}
