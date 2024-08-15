@@ -14,6 +14,10 @@ on:
         description: Tag to push
         required: false
         type: string
+      codescan:
+        description: Perform code scan?
+        default: true
+        type: boolean
   workflow_call: 
     inputs:
       push:
@@ -24,6 +28,10 @@ on:
         description: Tag to push
         required: false
         type: string
+      codescan:
+        description: Perform code scan?
+        default: true
+        type: boolean
     secrets:
       PYPI_API_TOKEN:
         description: PyPi token
@@ -68,6 +76,8 @@ jobs:
 
     # Now do codequality checks with CodeQL
     - name: Initialize CodeQL
+      # if codescan is true or it is the default branch
+      if: inputs.codescan || github.ref == 'refs/heads/main'
       uses: github/codeql-action/init@v3
       with:
         languages: python
@@ -76,6 +86,7 @@ jobs:
 
     - name: Perform CodeQL Analysis
       id: analysis
+      if: inputs.codescan || github.ref == 'refs/heads/main'
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:python"
@@ -89,8 +100,8 @@ jobs:
         path: requirements.txt
 
     - name: Save Sarif File
+      if: inputs.push && (inputs.codescan || github.ref == 'refs/heads/main')
       uses: actions/upload-artifact@v4
-      if: inputs.push
       with:
         name: sarif
         path: ${{ steps.analysis.outputs.sarif-output }}

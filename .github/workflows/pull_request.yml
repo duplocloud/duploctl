@@ -16,6 +16,14 @@ jobs:
       with:
         changelog: CHANGELOG.md
 
+  quality:
+    name: Test
+    uses: ./.github/workflows/quality.yml
+    secrets: inherit
+    with:
+      push: false
+      codescan: false
+
   unit_test:
     name: Test
     uses: ./.github/workflows/test_unit.yml
