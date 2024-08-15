@@ -37,7 +37,7 @@ jobs:
       if: always() && matrix.python-version == vars.PY_VERSION
       uses: pmeier/pytest-results-action@main
       with:
-        path: test-results.xml
+        path: dist/test-results.xml
         summary: true
         display-options: fEX
         fail-on-empty: true
@@ -46,5 +46,5 @@ jobs:
       if: always() && matrix.python-version == vars.PY_VERSION
       uses: orgoro/coverage@v3.2
       with:
-        coverageFile: path/to/coverage.xml
+        coverageFile: dist/coverage.xml
         token: ${{ steps.setup.outputs.token }}
