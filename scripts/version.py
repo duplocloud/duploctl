@@ -74,9 +74,19 @@ if __name__ == '__main__':
     prog='version-bumper',
     description='A duploctl version bumper.',
   )
-  parser.add_argument('--action', type=str, help='The type of version bump to perform.', default="patch")
-  parser.add_argument('--push', type=str, help='Push to remote?', default="false")
-  parser.add_argument('--token', type=str, help='Github token', default=os.getenv('GITHUB_TOKEN', None))
+  parser.add_argument('--action', 
+                      type=str, 
+                      help='The type of version bump to perform.', 
+                      choices=['major', 'minor', 'patch'], 
+                      default="patch")
+  parser.add_argument('--push', 
+                      type=str, 
+                      help='Push to remote?', 
+                      default="false")
+  parser.add_argument('--token', 
+                      type=str, 
+                      help='Github token', 
+                      default=os.getenv('GITHUB_TOKEN', None))
   args = parser.parse_args()
   v = Versionizer(args.action, args.token)
   v.build_release_notes()
