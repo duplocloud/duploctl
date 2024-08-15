@@ -42,6 +42,7 @@ jobs:
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
+        fetch-tags: true
         install: ".[build,docs]"
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}

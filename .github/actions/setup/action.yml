@@ -7,6 +7,9 @@ inputs:
   fetch-depth:
     description: The depth of the git checkout
     required: false
+  fetch-tags: 
+    description: Whether to fetch tags
+    required: false
   install:
     description: Arguments to pass to the pip install
     required: false
@@ -49,6 +52,7 @@ runs:
     with:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
+      fetch-tags: ${{ inputs.fetch-tags }}
       token: ${{ steps.app-token.outputs.token }}
       submodules: ${{ inputs.submodules }}
 
