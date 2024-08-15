@@ -29,9 +29,9 @@ jobs:
     - name: Test with pytest
       run: >-
         pytest src 
-        --cov-report xml:dist/coverage.xml
+        --cov-report=xml:dist/coverage.xml
         --junit-xml=dist/test-results.xml 
-        --markers unit
+        -m unit
 
     - name: Pytest Summary Report
       if: always() && matrix.python-version == vars.PY_VERSION
