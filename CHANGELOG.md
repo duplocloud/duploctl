@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - Include generated Github release notes in the release description
  - Install instructions in the docs
+ - Cleaned up pipeline and added test reporting into the PRs
 
 ### Fixed 
 
  - Fixed update_pod_label subcommand functionality for service.
+ - fixed many little issues with the docs like misspelled args, unneeded extra ones, and even missing types
 
 ## [0.2.33] - 2024-08-12
 
