@@ -12,11 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Include generated Github release notes in the release description
  - Install instructions in the docs
  - Cleaned up pipeline and added test reporting into the PRs
+ - Configmaps and secrets can be created with data values `--from-file` and `--from-literal`. The result can be displayed with `--dry-run`. Both are a key=value pair but files can simply default the key to the filename.
 
 ### Fixed 
 
  - Fixed update_pod_label subcommand functionality for service.
  - fixed many little issues with the docs like misspelled args, unneeded extra ones, and even missing types
+ - discovered why Args were not renaming based on the function arg.
 
 ## [0.2.33] - 2024-08-12
 
