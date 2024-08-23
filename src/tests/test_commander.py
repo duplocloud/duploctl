@@ -1,11 +1,14 @@
+import pathlib
 import pytest 
 # import unittest
 import argparse
 from duplocloud.commander import schema, resources, Command, get_parser, aliased_method, extract_args, available_resources, load_resource
-from duplocloud.argtype import Arg
+from duplocloud.argtype import Arg, DataMapAction
 from duplocloud.errors import DuploError
 # from duplo_resource.service import DuploService
 # from duplocloud.resource import DuploResource
+
+dir = pathlib.Path(__file__).parent.resolve()
 
 NAME = Arg("name", 
             help='A test name arg')
@@ -96,3 +99,22 @@ def test_arg_type():
 def test_aliased_command():
   method = aliased_method(SomeResource, "test")
   assert method == "tester"
+
+@pytest.mark.unit
+def test_datamap_action():
+  fname = "password.txt"
+  password = "verysecretpassword"
+  fpath = f"{dir}/files/{fname}"
+  p = argparse.ArgumentParser()
+  p.add_argument("--from-file", "--from-literal", dest="data", action=DataMapAction)
+  args = [
+    "--from-file", fpath,
+    "--from-file", f"renamed={fpath}",
+    "--from-literal", "foo=bar"
+  ]
+  ns = p.parse_args(args)
+  assert ns.data == {
+    "password.txt": password,
+    "renamed": password,
+    "foo": "bar"
+  }

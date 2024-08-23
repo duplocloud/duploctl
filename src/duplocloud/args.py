@@ -1,6 +1,6 @@
 import argparse
 import logging
-from .argtype import Arg, YamlAction, JsonPatchAction
+from .argtype import Arg, YamlAction, JsonPatchAction, DataMapAction
 from .commander import available_resources, available_formats, VERSION
 
 # the global args for the CLI
@@ -72,6 +72,19 @@ BODY = Arg("file", "-f", "--cli-input",
             help='A file to read the input from',
             type=argparse.FileType('r'),
             action=YamlAction)
+"""File Body  
+
+This is the file path to a file with the specified resources body within. Each Resource will have it's own schema for the body. This is a yaml/json file that will be parsed and used as the body of the request. View the docs for each individual resource to see the schema for the body.
+"""
+
+DATAMAP = Arg("fromfile","--from-file", "--from-literal",
+            help='A file or literal value to add to the data map',
+            action=DataMapAction)
+
+DRYRUN = Arg("dryrun", "--dry-run",
+            help='Do not submit any changes to the server',
+            type=bool,
+            action='store_true')
 
 ARN = Arg("aws-arn", "--arn",
            help='The aws arn',
