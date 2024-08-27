@@ -2,20 +2,19 @@ services:
 
   duploctl: &base
     image: &image duplocloud/duploctl:latest
-    build: &build
+    build: 
       target: runner
-      args:
+      args: &args
         PY_VERSION: ${PY_VERSION:-3.12}
       tags:
       - *image
       - duplocloud/duploctl:${GIT_SHA:-latest}
       - duplocloud/duploctl:${GIT_REF:-latest}
       - duplocloud/duploctl:${GIT_TAG:-latest}
-      platforms: &platforms
-      - linux/amd64
-      - linux/arm64
-      x-bake: &bake
-        platforms: *platforms
+      x-bake: 
+        platforms: &platforms
+        - linux/amd64
+        - linux/arm64
         cache-to: type=gha,scope=runner,mode=max
         cache-from: type=gha,scope=runner
     container_name: duploctl
@@ -23,37 +22,17 @@ services:
       DUPLO_HOST: ${DUPLO_HOST:-}
       DUPLO_TOKEN: ${DUPLO_TOKEN:-}
       DUPLO_TENANT: ${DUPLO_TENANT:-}
-    # command:
-    # - version
+      DUPLO_OUTPUT: yaml
 
   duploctl-bin:
     <<: *base
     container_name: duploctl-bin
-    image: &binImage duplocloud/duploctl:bin
+    image: duplocloud/duploctl:bin
     build:
-      <<: *build
       target: bin
-      tags:
-      - *binImage
+      args: *args
       x-bake:
-        <<: *bake
+        platforms: *platforms
         output: type=local,dest=./dist
         cache-to: type=gha,scope=installer,mode=max
         cache-from: type=gha,scope=installer
-
-  duploctl-dev:
-    image: duplocloud/duploctl:dev
-    build:
-      target: dev
-    volumes:
-    # Update this to wherever you want VS Code to mount the folder of your project
-    - .:/workspaces:cached
-
-    # Uncomment the next four lines if you will use a ptrace-based debugger like C++, Go, and Rust.
-    # cap_add:
-    #   - SYS_PTRACE
-    # security_opt:
-    #   - seccomp:unconfined
-
-    # Overrides default command so things don't shut down after the process ends.
-    command: sleep infinity

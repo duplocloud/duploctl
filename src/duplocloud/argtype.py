@@ -80,7 +80,7 @@ class Arg(NewType):
     if self.positional:
       # return the name
       return [self.__name__]
-    return [*self.__flags, f"--{self.__name__}"]
+    return [f"--{self.__name__}", *self.__flags]
   @property
   def positional(self):
     return len(self.__flags) == 0
@@ -145,3 +145,38 @@ class JsonPatchAction(argparse._AppendAction):
     elif op in ["copy", "move"]:
       patch = {"op": op, "from": key, "path": validate_key(value[1])}
     super().__call__(parser, namespace, patch, option_string)
+
+class DataMapAction(argparse.Action):
+  def __init__(self, option_strings, dest, nargs='+', **kwargs):
+    super(DataMapAction, self).__init__(option_strings, dest, nargs=nargs, **kwargs)
+    self.__filetype = argparse.FileType()
+  def __call__(self, parser, namespace, values, option_string=None):
+    key = None 
+    value = None
+    items = getattr(namespace, self.dest, None)
+    data = items if items else {}
+    if option_string == "--from-file":
+      key, value = self.__file_value(values[0])
+    elif option_string == "--from-literal":
+      key, value = self.__literal_value(values[0])
+    data[key] = value
+    setattr(namespace, self.dest, data)
+
+  def __file_value(self, string):
+    key = None
+    fpath = None
+    parts = string.split("=", 1)
+    if len(parts) == 1:
+      fpath = parts[0]
+      key = "stdin" if fpath == "-" else os.path.basename(fpath)
+    elif len(parts) == 2:
+      key, fpath = parts
+    f = self.__filetype(fpath)
+    value = f.read().strip()
+    return [key, value]
+  
+  def __literal_value(self, string):
+    parts = string.split("=", 1)
+    if len(parts) != 2:
+      raise argparse.ArgumentTypeError("Literal values must be in the format key=value")
+    return parts

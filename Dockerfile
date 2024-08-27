@@ -48,3 +48,5 @@ RUN pip install --no-cache-dir ./dist/*.whl && \
 
 # Set the entrypoint command for the container
 ENTRYPOINT ["duploctl"]
+
+CMD [ "version" ]
