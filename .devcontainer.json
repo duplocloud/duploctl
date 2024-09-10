@@ -42,7 +42,10 @@
 				"ms-python.debugpy",
 				"redhat.vscode-yaml",
 				"charliermarsh.ruff"
-			]
+			],
+			"settings": {
+				"python.defaultInterpreterPath": "/usr/local/bin/python"
+			}
 		}
 	}
 
