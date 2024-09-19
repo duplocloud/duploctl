@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - discovered why Args were not renaming based on the function arg.
  - Case insensitive tenant name comparison. 
  - Fixed issue where a services otherDockerConfig was cleared on updates. 
-
+ - Fixed issue where ecs update image was removing secrets,commands and env variables
 ## [0.2.33] - 2024-08-12
 
 ### Added 
