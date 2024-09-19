@@ -117,7 +117,7 @@ class DuploTenant(DuploResource):
       ref = id or self.duplo.tenantid
     else:
       key = "AccountName"
-      ref = name or self.duplo.tenant
+      ref = name.lower() if name else self.duplo.tenant
     try:
       return [t for t in self.list() if t[key] == ref][0]
     except IndexError:
