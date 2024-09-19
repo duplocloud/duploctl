@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - fixed many little issues with the docs like misspelled args, unneeded extra ones, and even missing types
  - discovered why Args were not renaming based on the function arg.
  - Case insensitive tenant name comparison. 
+ - Fixed issue where a services otherDockerConfig was cleared on updates. 
 
 ## [0.2.33] - 2024-08-12
 

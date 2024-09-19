@@ -78,6 +78,7 @@ class DuploService(DuploTenantResourceV2):
     if ((ttags := body["Template"].get("AllocationTags", None))
         and not body.get("AllocationTags", None)):
       body["AllocationTags"] = ttags
+    body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
     self.duplo.post(self.endpoint("ReplicationControllerChangeAll"), body)
     if wait:
       self.wait(old, body)
