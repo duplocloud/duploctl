@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-VERSION="2.317.0"
+VERSION="2.319.1"
 DOWNLOAD="https://github.com/actions/runner/releases/download"
 PACKAGE="actions-runner-osx-arm64-${VERSION}.tar.gz"
-SHA=70b765f32062de395a35676579e25ab433270d7367feb8da85dcfe42560feaba
+SHA=af6a2fba35cc63415693ebfb969b4d7a9d59158e1f3587daf498d0df534bf56f
 
 # Download, verify, and extract the runner
 mkdir actions-runner && cd actions-runner
