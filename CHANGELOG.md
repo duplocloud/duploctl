@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Fixed update_pod_label subcommand functionality for service.
  - fixed many little issues with the docs like misspelled args, unneeded extra ones, and even missing types
  - discovered why Args were not renaming based on the function arg.
+ - Case insensitive tenant name comparison. 
 
 ## [0.2.33] - 2024-08-12
 
