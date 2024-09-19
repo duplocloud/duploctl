@@ -189,4 +189,7 @@ class DuploEcsService(DuploTenantResourceV2):
       "Name": container_def["Name"],
       "PortMappings": container_def.get("PortMappings", []),
       "LogConfiguration": container_def.get("LogConfiguration", {}),
+      "Environment": container_def.get("Environment", {}),
+      "Command": container_def.get("Command", {}),
+      "Secrets": container_def.get("Secrets", {}),
     }
