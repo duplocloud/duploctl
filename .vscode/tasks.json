@@ -141,6 +141,18 @@
       "type": "process",
       "command": "${command:python.interpreterPath}",
       "args": [ "-m", "mkdocs", "serve" ],
+    },
+    {
+      "label": "GHA Runner",
+      "detail": "Run a Githb Actions Runner locally",
+      "group": "build",
+      "icon": {
+        "color": "terminal.ansiBlack",
+        "id": "github-action"
+      },
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": [ "-m", "mkdocs", "serve" ],
     }
   ]
 }
