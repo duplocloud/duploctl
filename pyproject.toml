@@ -35,6 +35,7 @@ build = [
   "invoke",
   "setuptools_scm",
   "build",
+  "wheel",
   "twine",
   "pyinstaller",
   "toml",
