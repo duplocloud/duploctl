@@ -147,12 +147,11 @@
       "detail": "Run a Githb Actions Runner locally",
       "group": "build",
       "icon": {
-        "color": "terminal.ansiBlack",
+        "color": "terminal.ansiYellow",
         "id": "github-action"
       },
       "type": "process",
-      "command": "${command:python.interpreterPath}",
-      "args": [ "-m", "mkdocs", "serve" ],
+      "command": "actions-runner/run.sh",
     }
   ]
 }
