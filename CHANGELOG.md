@@ -7,11 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.36] - 2024-09-24
+### Fixed
 
-### Added
-
-- Added logic to CronJob Update to set `isAnyHostAllowed`
+- Fixed CronJob Update by adding missing logic to set `isAnyHostAllowed`. This is due to a the object returned from the `GET` request being slightly different to the object expected in the `PUT/POST` request.
 
 ## [0.2.35] - 2024-09-20
 
@@ -57,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for tenant start/stop
 
 ### Updates
+
 - changed handling of tenant arg in user resource
 - add reference yaml for users
 - changed client error handling to display docstrings on bad input
