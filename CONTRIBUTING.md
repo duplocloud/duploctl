@@ -49,21 +49,25 @@ This is a public repo, one cannot simply trust that a commit came from who it sa
 ## Building Artifacts
 
 Build the pip package. This will cache in the build folder and the final output will be in the dist folder. This package is deployed to [pypi](https://pypi.org/project/duplocloud-client/).
+
 ```sh
 python -m build
 ```
 
 Building a plugin. These plugins don't necessarily need to be on pypi. They are just included alongside the release in Github. The example below shows how to build the AWS plugin. Simply replace `aws` with whatever folder name is in the [`plugins`](./plugins/) directory.
+
 ```sh
 python -m build plugins/aws/ -o=dist
 ```
 
 Create a single binary build for the cli using pyinstaller. These are ultimately included in the Github release so Homebrew can use them. Check out the [`scripts/installer.spec`](./scripts/installer.spec) file for the pyinstaller configuration and the [`installer.yml`](./.github/workflows/installer.yml) workflow for more details.
+
 ```sh
 ./scripts/installer.spec
 ```
 
 Build the Homebrew formula from a tagged release. Normally only the pipeline will run this script which does properly choose the right git tag before running. This ensures the pip dependencies are correct when building the formula.
+
 ```sh
 ./scripts/formula.py v0.2.15
 ```
@@ -87,15 +91,19 @@ When Ready to publish a new version live, go to the [publish.yml](https://github
 The docker file uses a couple of stages to do a few different tasks. Mainly the official image is the runner target. The bin target is for generating multiarch binaries.
 
 Build the main image locally for your machine using compose.
+
 ```sh
 docker compose build duploctl
 ```
+
 Or use bake to for a multiarch image. You just can't export images that are not your arch locally. So use compose to actually build the image locally.
+
 ```sh
 docker buildx bake duploctl
 ```
 
 Use buildx to build the multiarch binaries. This will output the binaries to the `dist` folder. See the Pyinstaller section above for more details on building the binaries. This runs the Pyinstaller script inside the docker container and outputs the built binaries to the local directory. This only works for linux binaries, Windows is a big maybe.
+
 ```sh
 docker buildx bake duploctl-bin
 ```
@@ -105,10 +113,13 @@ docker buildx bake duploctl-bin
 The homebrew formula is built from the `scripts/formula.py` script. This script will use the current git tag to build the formula.
 
 First you need to get the frozen requirements for the formula. This is done by running the following command. This will do all local dependencies including dev only dependencies. The pipeline will make sure to only include the necessary dependencies.
+
 ```sh
 pip freeze --exclude-editable > requirements.txt
 ```
+
 Then generate the formula using the current git tag.
+
 ```sh
 ./scripts/formula.py
 ```
