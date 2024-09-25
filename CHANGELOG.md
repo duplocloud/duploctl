@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.36] - 2024-09-25
+
 ### Fixed
 
 - Fixed CronJob Update by adding missing logic to set `isAnyHostAllowed`. This is due to a the object returned from the `GET` request being slightly different to the object expected in the `PUT/POST` request.
