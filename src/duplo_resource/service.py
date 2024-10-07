@@ -233,6 +233,7 @@ class DuploService(DuploTenantResourceV2):
       setvar/-V (list): A list of key value pairs to set as environment variables.
       
       strategy/strat (str): The merge strategy to use for env vars. Valid options are "merge" or "replace".  Default is merge.
+
       deletevar/-D (list): A list of keys to delete from the environment variables.
     """
     # Returns an array of key and value mappings with provided keys
@@ -257,18 +258,14 @@ class DuploService(DuploTenantResourceV2):
                              " no environment variables defined, should use "
                              " \"replace\". Proceeding anyway")
       currentEnv = []
-    newEnv = []
     case_format = detect_case_format(currentEnv)
     if strategy == 'merge':
-      # Attempt to merge with capital N Name key
       try:
         if case_format == "title":
-          if setvar is not None:
-            newEnv = new_env_vars(setvar)
+          newEnv = new_env_vars(setvar) if setvar is not None else []
           d = {env['Name']: env for env in currentEnv + newEnv}
         elif case_format == "lower":
-          if setvar is not None:
-            newEnv = new_env_vars(setvar, key_name="name", value_name="value")
+          newEnv = new_env_vars(setvar, key_name="name", value_name="value") if setvar is not None else []
           d = {env['name']: env for env in currentEnv + newEnv}
         else:
           self.duplo.logger.warn("Possible attempt to merge env vars with"
@@ -276,19 +273,21 @@ class DuploService(DuploTenantResourceV2):
                                  " Normalzing to capitalized"
                                  " \"Name\" and \"Value\"")
           norm_currentEnv = [{k.capitalize(): v for k, v in env.items()} for env in currentEnv]
-          if setvar is not None:
-            newEnv = new_env_vars(setvar)
+          newEnv = new_env_vars(setvar,) if setvar is not None else []
           d = {env['Name']: env for env in norm_currentEnv + newEnv}
       except KeyError:
         raise DuploError("Could not merge new and existing environment variables")
       mergedvars = list(d.values())
       currentDockerconfig['Env'] = mergedvars
     else:
-      newEnv = new_env_vars(setvar)
+      newEnv = new_env_vars(setvar,) if setvar is not None else []
       currentDockerconfig['Env'] = newEnv
     if deletevar is not None:
       for key in deletevar:
-        currentDockerconfig['Env'] = [d for d in currentDockerconfig['Env'] if d['Name'] != key]
+        try:
+          currentDockerconfig['Env'] = [d for d in currentDockerconfig['Env'] if d['Name'] != key]
+        except KeyError:
+          currentDockerconfig['Env'] = [d for d in currentDockerconfig['Env'] if d['name'] != key] 
     payload = {
       "Name": name,
       "OtherDockerConfig": dumps(currentDockerconfig),
