@@ -173,7 +173,7 @@ SETVAR = Arg("setvar", "-V",
             nargs=2,
             metavar=('key', 'value'))
 
-STRATEGY = Arg("-strategy", "-strat",
+STRATEGY = Arg("strategy", "-strat",
             help='The merge strategy to use for env vars. Valid options are \"merge\" or \"replace\".  Default is merge.',
             choices=['merge', 'replace'],
             default = 'merge')

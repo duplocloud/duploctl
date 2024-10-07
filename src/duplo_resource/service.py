@@ -229,27 +229,62 @@ class DuploService(DuploTenantResourceV2):
       ```
     Args:
       name (str): The name of the service to update.
+
       setvar/-V (list): A list of key value pairs to set as environment variables.
+      
       strategy/strat (str): The merge strategy to use for env vars. Valid options are "merge" or "replace".  Default is merge.
       deletevar/-D (list): A list of keys to delete from the environment variables.
     """
-    service = self.find(name)
+    # Returns an array of key and value mappings with provided keys
+    def new_env_vars(setvar, key_name="Name", value_name="Value"):
+      return [{key_name: i[0], value_name: i[1]} for i in setvar]
+  
+    def detect_case_format(env_list):
+      # Check if the environment variables are using upper, lower, or mixed case for Name and Value
+      if all('Name' in env and 'Value' in env for env in env_list):
+          return "title"
+      elif all('name' in env and 'value' in env for env in env_list):
+          return "lower"
+      # No consistent standard
+      return "mixed"
     
+    service = self.find(name)
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
     currentEnv = currentDockerconfig.get("Env", [])
+    # Check if user is attempting to merge against a null Env. If so, set currentEnv to empty.
     if currentEnv is None and strategy == "merge":
-      raise DuploError(
-        f"Cannot merge {name} service environment because it is empty, "
-        'please use "--strategy replace" to set new environment variables'
-    )
+      self.duplo.logger.warn("Specified \"merge\" strategy on a service with"
+                             " no environment variables defined, should use "
+                             " \"replace\". Proceeding anyway")
+      currentEnv = []
     newEnv = []
-    if setvar is not None:
-      newEnv = [{"Name": i[0], "Value": i[1]} for i in setvar]
+    case_format = detect_case_format(currentEnv)
     if strategy == 'merge':
-      d = {d['Name']: d for d in currentEnv + newEnv}
+      # Attempt to merge with capital N Name key
+      try:
+        if case_format == "title":
+          if setvar is not None:
+            newEnv = new_env_vars(setvar)
+          d = {env['Name']: env for env in currentEnv + newEnv}
+        elif case_format == "lower":
+          if setvar is not None:
+            newEnv = new_env_vars(setvar, key_name="name", value_name="value")
+          d = {env['name']: env for env in currentEnv + newEnv}
+        else:
+          self.duplo.logger.warn("Possible attempt to merge env vars with"
+                                 " inconsistent Name/Value key case."
+                                 " Normalzing to capitalized"
+                                 " \"Name\" and \"Value\"")
+          norm_currentEnv = [{k.capitalize(): v for k, v in env.items()} for env in currentEnv]
+          if setvar is not None:
+            newEnv = new_env_vars(setvar)
+          d = {env['Name']: env for env in norm_currentEnv + newEnv}
+      except KeyError:
+        raise DuploError("Could not merge new and existing environment variables")
       mergedvars = list(d.values())
       currentDockerconfig['Env'] = mergedvars
     else:
+      newEnv = new_env_vars(setvar)
       currentDockerconfig['Env'] = newEnv
     if deletevar is not None:
       for key in deletevar:
