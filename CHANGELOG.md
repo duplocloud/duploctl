@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+  - Fixed handling of case in name/value keys in environment variables as backend permits both.
+  - Fixes issue in service update argument where strategy required three dashes.
+  - Gracefully handles situations where user attempts to merge with a service that has no existing env vars.
+
 ## [0.2.36] - 2024-09-25
 
 ### Fixed
