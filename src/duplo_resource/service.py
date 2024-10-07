@@ -237,6 +237,11 @@ class DuploService(DuploTenantResourceV2):
     
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
     currentEnv = currentDockerconfig.get("Env", [])
+    if currentEnv is None and strategy == "merge":
+      raise DuploError(
+        f"Cannot merge {name} service environment because it is empty, "
+        'please use "--strategy replace" to set new environment variables'
+    )
     newEnv = []
     if setvar is not None:
       newEnv = [{"Name": i[0], "Value": i[1]} for i in setvar]
