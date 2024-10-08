@@ -280,7 +280,7 @@ class DuploService(DuploTenantResourceV2):
       mergedvars = list(d.values())
       currentDockerconfig['Env'] = mergedvars
     else:
-      newEnv = new_env_vars(setvar,) if setvar is not None else []
+      newEnv = new_env_vars(setvar) if setvar is not None else []
       currentDockerconfig['Env'] = newEnv
     if deletevar is not None:
       for key in deletevar:
