@@ -30,9 +30,9 @@ class DuploClient():
 
   Example: Using injected client to load a service.
       ```python
-      from duplocloud.client import DuploClient  
-      from duplocloud.resource import DuploResource  
-      from duplocloud.errors import DuploError  
+      from duplocloud.client import DuploClient
+      from duplocloud.resource import DuploResource
+      from duplocloud.errors import DuploError
 
       class DuploSomeService(DuploResource):
         def __init__(self, duplo: DuploClient):
@@ -41,7 +41,7 @@ class DuploClient():
       ```
   """
   @Command()
-  def __init__(self, 
+  def __init__(self,
                host: args.HOST=None,
                token: args.TOKEN=None,
                tenant: args.TENANT=None,
@@ -59,7 +59,7 @@ class DuploClient():
                output: args.OUTPUT="json",
                loglevel: args.LOGLEVEL="WARN"):
     """DuploClient Constructor
-    
+
     Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each ofthe arguments are annotated types that are used by argparse to create the command line arguments.
 
     Args:
@@ -84,11 +84,11 @@ class DuploClient():
       duplo (DuploClient): An instance of a DuploClient.
     """
     # forces the given context to be used
-    if ctx: 
+    if ctx:
       host = None
       token = None
     # ignore the given token with interactive mode
-    if token and interactive: 
+    if token and interactive:
       token = None
     # if a tenant id was given, the tenant name must be ignored
     if tenant_id:
@@ -135,12 +135,12 @@ class DuploClient():
     env, xtra = p.parse_known_args()
     duplo = DuploClient(**vars(env))
     return duplo, xtra
-  
+
   @staticmethod
-  def from_args(*args: str): 
+  def from_args(*args: str):
     """DuploClient from Environment
 
-    Create a DuploClient from an array of global client arguments. 
+    Create a DuploClient from an array of global client arguments.
 
     Args:
       args: An array of global client arguments aligning with the DuploClient constructor.
@@ -153,17 +153,17 @@ class DuploClient():
     env = p.parse_args(args)
     duplo = DuploClient(**vars(env))
     return duplo
-  
+
   @staticmethod
   def from_creds(host: str, token: str, tenant: str):
     """Create a DuploClient from credentials.
-    
+
     Args:
       host: The host of the Duplo instance.
       token: The token to use for authentication.
       tenant: The tenant to use.
 
-    Returns:  
+    Returns:
       duplo (DuploClient): The DuploClient.
     """
     return DuploClient(host=host, token=token, tenant=tenant)
@@ -183,12 +183,12 @@ class DuploClient():
       with open(self.config_file, "r") as f:
         self.__config = yaml.safe_load(f)
     return self.__config
-  
+
   @property
   def context(self) -> dict:
     """Get Config Context
-    
-    Get the current context from the Duplo config. This is accessed as a lazy loaded property. 
+
+    Get the current context from the Duplo config. This is accessed as a lazy loaded property.
 
     Returns:
       The context as a dict.
@@ -202,12 +202,12 @@ class DuploClient():
       return [c for c in s["contexts"] if c["name"] == ctx][0]
     except IndexError:
       raise DuploError(f"Portal '{ctx}' not found in config", 500)
-    
+
   @property
   def host(self) -> str:
     """Get Host
-    
-    Get the host from the Duplo config. This is accessed as a lazy loaded property. 
+
+    Get the host from the Duplo config. This is accessed as a lazy loaded property.
     If the host is some kind of falsey value, it will attempt to use the context.
 
     Returns:
@@ -216,11 +216,11 @@ class DuploClient():
     if not self.__host:
       self.use_context()
     return self.__host
-  
-  @property 
+
+  @property
   def token(self) -> str:
     """Get Token
-    
+
     Returns the configured token. If interactive mode is enabled, an attempt will be made to get the token interactively. Ultimately, the token is required and if it is not set, an error will be raised.
     This is accessed as a lazy loaded property.
 
@@ -234,12 +234,12 @@ class DuploClient():
     if not self.__token:
       raise DuploError("Token for Duplo portal is required", 500)
     return self.__token
-  
+
   @property
   def tenant(self) -> str:
     """Get Tenant
-    
-    Get the tenant from the Duplo config. This is accessed as a lazy loaded property. 
+
+    Get the tenant from the Duplo config. This is accessed as a lazy loaded property.
     If the tenant is some kind of falsey value, it will attempt to use the context.
 
     Returns:
@@ -248,18 +248,18 @@ class DuploClient():
     if not self.host:
       raise DuploError("Host for Duplo portal is required", 500)
     return self.__tenant
-  
+
   @tenant.setter
   def tenant(self, value: str) -> None:
     """Set Tenant
-    
+
     Set the tenant for this Duplo client. This will override the tenant in the config.
 
     Args:
       value: The tenant to set.
     """
     self.__tenant = value
-  
+
   def __str__(self) -> str:
      return f"""
 Host: {self.host}
@@ -269,13 +269,13 @@ Config: {self.config_file}
 Cache: {self.cache_dir}
 Version: {VERSION}
 Path: {sys.argv[0]}
-Available Resources: 
+Available Resources:
   {", ".join(available_resources())}
 """.strip()
-  
+
   def __call__(self, resource: str=None, *args):
     """Run a service command.
-    
+
     Args:
       resource: The name of the resource.
       command: The command to run.
@@ -291,7 +291,7 @@ Available Resources:
     except TypeError:
       if (r.__doc__):
         raise DuploError(r.__doc__, 400)
-      else: 
+      else:
         traceback.print_exc()
         raise DuploError(f"No docstring found, error calling command {resource} : Traceback printed", 400)
 
@@ -299,10 +299,10 @@ Available Resources:
       return None
     d = self.filter(d)
     return self.format(d)
-  
+
   def logger_for(self, name: str=None) -> logging.Logger:
     """Create a Default Logger
-    
+
     Create a default logger for the given name. This will create a logger with the name 'duplo' and add a console output handler.
 
     Args:
@@ -316,7 +316,7 @@ Available Resources:
     logger = logging.getLogger(name)
     lvl = logging.getLevelName(self.loglevel)
     logger.setLevel(lvl)
-    formatter = logging.Formatter("%(levelname)s %(message)s")
+    formatter = logging.Formatter("%(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     if (logger.hasHandlers()):
@@ -329,7 +329,7 @@ Available Resources:
     """Get a Duplo resource.
 
     This request is cached for 60 seconds.
-    
+
     Args:
       path: The path to the resource.
     Returns:
@@ -348,10 +348,10 @@ Available Resources:
     except requests.exceptions.RequestException as e:
       raise DuploError("Error connecting to Duplo with a request exception", 500) from e
     return self.__validate_response(response)
-  
+
   def post(self, path: str, data: dict={}):
     """Post data to a Duplo resource.
-    
+
     Args:
       path: The path to the resource.
       data: The data to post.
@@ -365,10 +365,10 @@ Available Resources:
       json = data
     )
     return self.__validate_response(response)
-  
+
   def put(self, path: str, data: dict={}):
     """Put data to a Duplo resource.
-    
+
     Args:
       path: The path to the resource.
       data: The data to post.
@@ -382,10 +382,10 @@ Available Resources:
       json = data
     )
     return self.__validate_response(response)
-  
+
   def delete(self, path: str):
     """Delete a Duplo resource.
-    
+
     Args:
       path: The path to the resource.
     Returns:
@@ -397,10 +397,10 @@ Available Resources:
       timeout = self.timeout
     )
     return self.__validate_response(response)
-  
+
   def jsonpatch(self, data, patches):
     """Json Patch
-    
+
     Apply a json patch to a resource.
 
     Args:
@@ -419,8 +419,8 @@ Available Resources:
     """Query data
 
     Uses the jmespath library to query data.
-    Set the query to use on the property. 
-    
+    Set the query to use on the property.
+
     Args:
       data: The data to query.
     Returns:
@@ -434,10 +434,10 @@ Available Resources:
       raise DuploError("Invalid jmespath query", 500) from e
     except jmespath.exceptions.JMESPathTypeError as e:
       raise DuploError("Invalid jmespath query", 500) from e
-    
+
   def load(self, kind: str) -> T:
     """Load Resource
-      
+
     Load a resource class from the entry points.
 
     Args:
@@ -448,10 +448,10 @@ Available Resources:
     """
     svc = load_resource(kind)
     return svc(self)
-  
+
   def format(self, data: dict) -> str:
     """Format data.
-    
+
     Args:
       data: The data to format.
     Returns:
@@ -459,10 +459,10 @@ Available Resources:
     """
     fmt = load_format(self.output)
     return fmt(data)
-  
+
   def use_context(self, name: str = None) -> None:
     """Use Context
-    
+
     Use the specified context from the Duplo config.
 
     Args:
@@ -482,12 +482,12 @@ Available Resources:
     self.isadmin = ctx.get("admin", False)
     self.nocache = ctx.get("nocache", False)
     # only tenant can be overridden by the args/env
-    
+
   def get_cached_item(self, key: str) -> dict:
     """Get Cached Item
-    
-    Get a cached item from the cache directory. The files are all json. 
-    This checks if the file exists and raises an expired cache if it does not. 
+
+    Get a cached item from the cache directory. The files are all json.
+    This checks if the file exists and raises an expired cache if it does not.
     Finally the file is read and returned as a JSON object. If anything goes wrong, an expired cache is raised because it's easy enough to rebuild it than to try and fix it.
 
     Args:
@@ -504,11 +504,11 @@ Available Resources:
         return json.load(f)
     except json.JSONDecodeError:
       raise DuploExpiredCache(key)
-    
+
   def set_cached_item(self, key: str, data: dict) -> None:
     """Set Cached Item
-    
-    Set a cached item in the cache directory. The files are all json. 
+
+    Set a cached item in the cache directory. The files are all json.
     This writes the data to the file as a JSON object.
 
     Args:
@@ -523,9 +523,9 @@ Available Resources:
 
   def interactive_token(self) -> str:
     """Interactive Token
-    
-    Performs an interactive login for the configured host. The cache will be checked for a token and if it is expired, it will perform an interactive login and cache the token. The cache may be disabled by setting the nocache flag. 
-    
+
+    Performs an interactive login for the configured host. The cache will be checked for a token and if it is expired, it will perform an interactive login and cache the token. The cache may be disabled by setting the nocache flag.
+
     Returns:
       The token as a string.
     """
@@ -541,12 +541,12 @@ Available Resources:
       c = self.__token_cache(t)
       self.set_cached_item(k, c)
     return t
-  
+
   def cached_token(self, key: str) -> str:
     """Cached Token
-    
-    Get a cached token from the cache directory. This checks if the file exists and raises a 404 if it does not. 
-    Finally the file is read and returned as a JSON object. 
+
+    Get a cached token from the cache directory. This checks if the file exists and raises a 404 if it does not.
+    Finally the file is read and returned as a JSON object.
     The Expiration key looks like: "2024-01-12T18:51:48Z" in the popular iso8601 format.
 
     Args:
@@ -560,10 +560,10 @@ Available Resources:
       if not self.expired(exp):
         return t
     raise DuploExpiredCache(key)
-  
+
   def request_token(self) -> str:
     """Request Token from Browser
-    
+
     Perform an interactive login to the specified host. Opens a temporary web browser to the login page and starts a local server to receive the token. When the user authorizes the request in the browser, the token is received and the server is shutdown.
 
     Returns:
@@ -581,7 +581,7 @@ Available Resources:
 
   def cache_key_for(self, name: str) -> str:
     """Cache Key For
-    
+
     Get the cache key for the given name. This is a simple string concatenation of the host and the name.
 
     Args:
@@ -596,10 +596,10 @@ Available Resources:
       parts.append("admin")
     parts.append(name)
     return ",".join(parts)
-  
+
   def expiration(self, hours: int = 1) -> str:
     """Expiration
-    
+
     Get the expiration time for the given number of hours. This is a simple calculation of the current time plus the number of hours.
 
     Args:
@@ -610,10 +610,10 @@ Available Resources:
     """
 
     return (datetime.now(timezone.utc) + timedelta(hours=hours)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
-  
+
   def expired(self, exp: str = None) -> bool:
     """Expired
-    
+
     Check if the given expiration time is expired. This is a simple comparison of the current time and the expiration time.
 
     Args:
@@ -625,11 +625,11 @@ Available Resources:
     if exp is None:
       return True
     return datetime.now(timezone.utc) > datetime.fromisoformat(exp)
-  
+
   def build_command(self, *args) -> list[str]:
     """Context Args
-    
-    Build a comamnd using the current context. 
+
+    Build a comamnd using the current context.
 
     Returns:
       The context args as a dict.
@@ -650,10 +650,10 @@ Available Resources:
       cmd.append("--token")
       cmd.append(self.token)
     return cmd
-  
+
   def disable_get_cache(self) -> None:
     """Disable Get Cache
-    
+
     Disable the get cache for this client. This is useful for testing.
     Disable by setting the __ttl_cache to None.
     """
@@ -666,45 +666,45 @@ Available Resources:
       "Expiration": self.expiration(),
       "NeedOTP": otp
     }
-  
+
   def __headers(self) -> dict:
     t = self.token
     return {
       'Content-Type': 'application/json',
       'Authorization': f"Bearer {t}"
     }
-  
+
   def __validate_response(self, response: requests.Response) -> requests.Response:
     """Validate a response from Duplo.
-    
+
     Args:
       response: The response to validate.
     Raises:
-      DuploError: If the response was not 200. 
+      DuploError: If the response was not 200.
     Returns:
       The response as a JSON object.
     """
     # contentType = response.headers.get('content-type', 'application/json').split(';')[0]
     if 200 <= response.status_code < 300:
       return response
-    
+
     if response.status_code == 404:
       raise DuploError("Resource not found", response.status_code)
-    
+
     if response.status_code == 401:
       raise DuploError(response.text, response.status_code)
-    
+
     if response.status_code == 403:
-      raise DuploError("Unauthorized", response.status_code)  
-    
+      raise DuploError("Unauthorized", response.status_code)
+
     if response.status_code == 400:
       raise DuploError(response.text, response.status_code)
 
     raise DuploError("Duplo responded with an error", response.status_code)
-    
+
   def __sanitize_host(self, host: str) -> str:
     """Sanitize Host
-    
+
     Sanitize the host using urlparse. This will ensure that the host is a valid URL and that it is using HTTPS.
 
     Args:
@@ -716,5 +716,3 @@ Available Resources:
       return None
     url = urlparse(host)
     return f"https://{url.netloc}"
-  
-  

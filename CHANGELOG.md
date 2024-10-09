@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Updated
+
+- Updated Logger to not print Log level as all pod logs were coming in as `WARNING`
+
 ## [0.2.36] - 2024-09-25
 
 ### Fixed
