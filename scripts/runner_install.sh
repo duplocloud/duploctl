@@ -15,5 +15,10 @@ echo "$GH_RUNNER_SHA  $PACKAGE" | shasum -a 256 -c
 tar xzf "./$PACKAGE"
 
 # configure and run
-./config.sh --url https://github.com/duplocloud/duploctl --token "$GH_RUNNER_TOKEN"
+./config.sh \
+  --url https://github.com/duplocloud/duploctl \
+  --token "$GH_RUNNER_TOKEN" \
+  --labels "self-hosted,macOS,arm64,darwin" \
+  --name "${USER}-mac" \
+  --unattended 
 ./run.sh
