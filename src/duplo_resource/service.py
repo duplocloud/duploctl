@@ -196,23 +196,25 @@ class DuploService(DuploTenantResourceV2):
     """
     service = self.find(name)
     current_image =  self.image_from_body(service)
-    data = None
+    data = {
+      "Name": name,
+      "Image": image,
+      "AllocationTags": service["Template"].get("AllocationTags", "")
+    }
 
-    # needed before update starts, not needed if not waiting
+    # needed before the update so we know how many pods to wait for
     if wait:
       service["Replicaset"] = self.current_replicaset(name)
 
+    # if the tag is the same, reboot to pull new code, otherwise actual update
     if(current_image == image):
       self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
     else:
-      data = {
-        "Name": name,
-        "Image": image,
-        "AllocationTags": service["Template"].get("AllocationTags", "")
-      }
       self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
+      
     if wait:
       self.wait(service, data)
+
     return {"message": f"Successfully updated image for service '{name}'"}
  
   @Command()

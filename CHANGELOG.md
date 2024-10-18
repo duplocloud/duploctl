@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
   - Fixed handling of case in name/value keys in environment variables as backend permits both.
   - Fixes issue in service update argument where strategy required three dashes.
   - Gracefully handles situations where user attempts to merge with a service that has no existing env vars.
+  - Fixed issue where the wait flag would cause an error when updating an image and the images were the same. 
+  - Fixed issue when updating an image and the image was the same, it would not report the last deployed by when and who
 
 ## [0.2.36] - 2024-09-25
 
