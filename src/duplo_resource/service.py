@@ -206,11 +206,10 @@ class DuploService(DuploTenantResourceV2):
     if wait:
       service["Replicaset"] = self.current_replicaset(name)
 
-    # if the tag is the same, we need to reboot the service so the new code is pulled
+    # if the tag is the same, reboot to pull new code, otherwise actual update
     if(current_image == image):
       self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
     else:
-      # do the actual update
       self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
       
     if wait:
