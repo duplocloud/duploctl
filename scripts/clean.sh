@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 rm -rf \
-  dist build \
+  dist build actions-runner \
   .coverage .pytest_cache .tmp \
   *.egg-info src/*.egg-info **/__pycache__ \
   .direnv
