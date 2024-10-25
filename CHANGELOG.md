@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+  - much better local installer for gha actions
+
 ## [0.2.37] - 2024-10-18
 
 ### Fixed

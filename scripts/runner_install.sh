@@ -1,8 +1,47 @@
 #!/usr/bin/env bash
 
 # https://github.com/actions/runner/releases
-# make sure to set the token
-# export GH_RUNNER_TOKEN=
+# make sure to set the token as an environment variable or pass it as an argument
+GH_RUNNER_TOKEN="${1:-$GH_RUNNER_TOKEN}"
+
+# check if this computer is osx, linux, or win and set the value of GH_RUNNER_OS
+case "$(uname -s)" in
+  Darwin)
+    GH_RUNNER_OS="osx"
+    GH_RUNNER_EXTRA_LABELS="macOS,darwin"
+    ;;
+  Linux)
+    GH_RUNNER_OS="linux"
+    GH_RUNNER_EXTRA_LABELS="nix"
+    ;;
+  CYGWIN*|MINGW32*|MSYS*)
+    GH_RUNNER_OS="win"
+    GH_RUNNER_EXTRA_LABELS="windows"
+    ;;
+  *)
+    echo "Unsupported OS"
+    exit 1
+    ;;
+esac
+
+# check if this is arm64 or x64 and set the value of GH_RUNNER_ARCH
+case "$(uname -m)" in
+  arm64)
+    GH_RUNNER_ARCH="arm64"
+    ;;
+  x86_64)
+    GH_RUNNER_ARCH="x64"
+    ;;
+  *)
+    echo "Unsupported ARCH"
+    exit 1
+    ;;
+esac
+
+# runner config details
+GH_RUNNER_DIR="actions-runner"
+GH_RUNNER_LABELS="self-hosted,$GH_RUNNER_ARCH,$GH_RUNNER_OS,$GH_RUNNER_EXTRA_LABELS"
+GH_RUNNER_NAME="${USER}-${GH_RUNNER_OS}"
 
 GH_RUNNER_API="https://api.github.com/repos/actions/runner/releases/latest"
 GH_RUNNER_URL="https://github.com/actions/runner/releases"
@@ -18,18 +57,33 @@ GH_RUNNER_SHA="$(echo "$GH_RUNNER_RELEASE_BODY" | grep "\- $GH_RUNNER_PACKAGE <"
 GH_RUNNER_SHA="${GH_RUNNER_SHA#*-->}"
 GH_RUNNER_SHA="${GH_RUNNER_SHA%<\!--*}"
 
+# if the directory already exists, remove it, then create and enter it
+echo "Preparing working directory in $GH_RUNNER_DIR"
+rm -rf "$GH_RUNNER_DIR"
+mkdir -p "$GH_RUNNER_DIR"
+cd "$GH_RUNNER_DIR" || exit
+
 # Download, verify, and extract the runner
-mkdir -p actions-runner 
-cd actions-runner || exit
+echo "Installing runner"
 curl -o "$GH_RUNNER_PACKAGE" -L "$GH_RUNNER_DOWNLOAD"
 echo "$GH_RUNNER_SHA  $GH_RUNNER_PACKAGE" | shasum -a 256 -c
 tar xzf "./$GH_RUNNER_PACKAGE"
 
-# configure and run
+# register the runner
 ./config.sh \
   --url https://github.com/duplocloud/duploctl \
   --token "$GH_RUNNER_TOKEN" \
-  --labels "self-hosted,macOS,arm64,darwin" \
-  --name "${USER}-mac" \
-  --unattended 
-./run.sh
+  --labels $GH_RUNNER_LABELS \
+  --name "$GH_RUNNER_NAME" \
+  --runnergroup "default" \
+  --unattended
+
+cat <<EOF
+Runner Confguration:
+  name: $GH_RUNNER_NAME
+  labels: $GH_RUNNER_LABELS
+  version: $GH_RUNNER_VERSION
+EOF
+
+# cleanup
+rm -f "$GH_RUNNER_PACKAGE"
