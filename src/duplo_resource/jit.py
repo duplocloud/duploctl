@@ -11,6 +11,11 @@ import webbrowser
 from datetime import datetime
 import jwt
 
+INSTALL_HINT = """
+Install duploctl for use with kubectl by following
+https://cli.duplocloud.com/Jit/
+"""
+
 @Resource("jit")
 class DuploJit(DuploResource):
   """Just In Time (JIT) Resource
@@ -111,126 +116,6 @@ class DuploJit(DuploResource):
       self.duplo.set_cached_item(k, sts)
     sts["Version"] = 1
     return sts
-
-  @Command()
-  def k8s(self,
-          planId: args.PLAN = None) -> dict:
-    """Kubernetes JIT Exec Credentials
-    
-    Provides a full exec credential for kubectl. The default return is a valid exec credential for the kubectl CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant. 
-    An admin can pass the `--plan` or else it will be discovered from the chosen tenant. A non admin must 
-    choose a tenant. 
-
-    Usage:  
-      ```sh
-      duploctl jit k8s
-      ```
-
-    Args:
-      planId: The planId aka name the infrastructure.
-
-    Returns:
-      credentials: A Kubernetes client [ExecCredential](https://kubernetes.io/docs/reference/config-api/client-authentication.v1beta1/).
-    """
-    # either plan or tenant in cache key
-    pt = planId or self.duplo.tenant or self.duplo.tenantid
-    k = self.duplo.cache_key_for(f"plan,{pt},k8s-creds")
-    creds = None
-    try:
-      if self.duplo.nocache:
-        ctx = self.k8s_context(planId)
-        creds = self.__k8s_exec_credential(ctx)
-      else:
-        creds = self.duplo.get_cached_item(k)
-        exp = creds.get("status", {}).get("expirationTimestamp", None)
-        if self.duplo.expired(exp):
-          raise DuploExpiredCache(k)
-    except DuploExpiredCache:
-      ctx = self.k8s_context(planId)
-      creds = self.__k8s_exec_credential(ctx)
-      self.duplo.set_cached_item(k, creds)
-    return creds
-
-  @Command()
-  def update_kubeconfig(self,
-                        planId: args.PLAN = None,
-                        save: bool = True) -> dict:
-    """Update Kubeconfig
-    
-    Update the kubeconfig file with a new context. This will add a new context to the kubeconfig file. This will honor the `KUBECONFIG` environment variable if it is set. The generated command will inherit the `--host`, `--admin`, and `--interactive` flags from the current command. 
-
-    Usage:
-      ```sh
-      duploctl jit update_kubeconfig --plan myplan
-      ```
-
-    Example: Add Admin Context
-      Run this command to add an admin context.
-      ```sh
-      duploctl jit update_kubeconfig --plan myplan --admin --interactive
-      ```
-      This generates the following user credential process in the kubeconfig file.
-      ```yaml
-      users:
-      - name: myplan
-        user:
-          exec:
-            apiVersion: client.authentication.k8s.io/v1beta1
-            args:
-            - jit
-            - k8s
-            - --plan
-            - myplan
-            - --host
-            - https://myportal.duplocloud.net
-            - --admin
-            - --interactive
-            command: duploctl
-            env: null
-            installHint: |2
-
-              Install duploctl for use with kubectl by following
-              https://github.com/duplocloud/duploctl
-            interactiveMode: IfAvailable
-            provideClusterInfo: false
-      ```
-
-    Args:
-      planId: The planId of the infrastructure.
-      save: Save the kubeconfig file. This is a code only option. 
-    
-    Returns:
-      msg: The message that the kubeconfig was updated. Unless save is False, then the kubeconfig is returned.
-    """
-    # first get the kubeconfig file and parse it
-    kubeconfig_path = os.environ.get("KUBECONFIG", f"{Path.home()}/.kube/config")
-    kubeconfig = (yaml.safe_load(open(kubeconfig_path, "r")) 
-                  if os.path.exists(kubeconfig_path) 
-                  else self.__empty_kubeconfig())
-    # load the cluster config info
-    ctx = self.k8s_context(planId)
-    if self.duplo.isadmin:
-      ctx["Name"] = ctx["Name"].removeprefix("duploinfra-")
-      ctx["cmd_arg"] = "--plan"
-    else:
-      if self.duplo.tenantid:
-        ctx["Name"] = self.duplo.tenantid
-        ctx["cmd_arg"] = "--tenant-id"
-      else:
-        ctx["Name"] = self.duplo.tenant
-        ctx["cmd_arg"] = "--tenant"
-    # add the cluster, user, and context to the kubeconfig
-    self.__add_to_kubeconfig("clusters", self.__cluster_config(ctx), kubeconfig)
-    self.__add_to_kubeconfig("users", self.__user_config(ctx), kubeconfig)
-    self.__add_to_kubeconfig("contexts", self.__context_config(ctx), kubeconfig)
-    kubeconfig["current-context"] = ctx["Name"]
-    if save:
-      # write the kubeconfig back to the file
-      with open(kubeconfig_path, "w") as f:
-        yaml.safe_dump(kubeconfig, f)
-      return {"message": f"kubeconfig updated successfully to {kubeconfig_path}"}
-    else:
-      return kubeconfig
   
   @Command()
   def update_aws_config(self,
@@ -309,6 +194,126 @@ class DuploJit(DuploResource):
     return {
       "message": "Opening AWS console in browser"
     }
+
+  @Command()
+  def k8s(self,
+          planId: args.PLAN = None) -> dict:
+    """Kubernetes JIT Exec Credentials
+    
+    Provides a full exec credential for kubectl. The default return is a valid exec credential for the kubectl CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant. 
+    An admin can pass the `--plan` or else it will be discovered from the chosen tenant. A non admin must 
+    choose a tenant. 
+
+    Usage:  
+      ```sh
+      duploctl jit k8s
+      ```
+
+    Args:
+      planId: The planId aka name the infrastructure.
+
+    Returns:
+      credentials: A Kubernetes client [ExecCredential](https://kubernetes.io/docs/reference/config-api/client-authentication.v1beta1/).
+    """
+    # either plan or tenant in cache key
+    pt = planId or self.duplo.tenant or self.duplo.tenantid
+    k = self.duplo.cache_key_for(f"plan,{pt},k8s-creds")
+    creds = None
+    try:
+      if self.duplo.nocache:
+        ctx = self.k8s_context(planId)
+        creds = self.__k8s_exec_credential(ctx)
+      else:
+        creds = self.duplo.get_cached_item(k)
+        exp = creds.get("status", {}).get("expirationTimestamp", None)
+        if self.duplo.expired(exp):
+          raise DuploExpiredCache(k)
+    except DuploExpiredCache:
+      ctx = self.k8s_context(planId)
+      creds = self.__k8s_exec_credential(ctx)
+      self.duplo.set_cached_item(k, creds)
+    return creds
+
+  @Command()
+  def update_kubeconfig(self,
+                        name: args.NAME = None,
+                        planId: args.PLAN = None,
+                        save: bool = True) -> dict:
+    """Update Kubeconfig
+    
+    Update the kubeconfig file with a new context. This will add a new context to the kubeconfig file. This will honor the `KUBECONFIG` environment variable if it is set. The generated command will inherit the `--host`, `--admin`, and `--interactive` flags from the current command. 
+
+    Usage:
+      ```sh
+      duploctl jit update_kubeconfig --plan myplan
+      ```
+
+    Example: Add Admin Context
+      Run this command to add an admin context.
+      ```sh
+      duploctl jit update_kubeconfig --plan myplan --admin --interactive
+      ```
+      This generates the following user credential process in the kubeconfig file.
+      ```yaml
+      users:
+      - name: myplan
+        user:
+          exec:
+            apiVersion: client.authentication.k8s.io/v1beta1
+            args:
+            - jit
+            - k8s
+            - --plan
+            - myplan
+            - --host
+            - https://myportal.duplocloud.net
+            - --admin
+            - --interactive
+            command: duploctl
+            env: null
+            installHint: |2
+
+              Install duploctl for use with kubectl by following
+              https://github.com/duplocloud/duploctl
+            interactiveMode: IfAvailable
+            provideClusterInfo: false
+      ```
+
+    Args:
+      planId: The planId of the infrastructure.
+      save: Save the kubeconfig file. This is a code only option. 
+    
+    Returns:
+      msg: The message that the kubeconfig was updated. Unless save is False, then the kubeconfig is returned.
+    """
+    # first get the kubeconfig file and parse it
+    kubeconfig_path = os.environ.get("KUBECONFIG", f"{Path.home()}/.kube/config")
+    kubeconfig = (yaml.safe_load(open(kubeconfig_path, "r")) 
+                  if os.path.exists(kubeconfig_path) 
+                  else self.__empty_kubeconfig())
+    # load the cluster config info
+    ctx = self.k8s_context(planId)
+    ctx["PlanID"] = planId or ctx["Name"].removeprefix("duploinfra-")
+    ctx["ARGS"] = ["jit", "k8s"]
+    if self.duplo.isadmin:
+      ctx["Name"] = name or ctx["PlanID"]
+      ctx["ARGS"].extend(["--plan", ctx["PlanID"]])
+      if self.duplo.tenant:
+        ctx["DefaultNamespace"] = f"duploservices-{self.duplo.tenant}"
+    else:
+      ctx["Name"] = name or self.duplo.tenantid or self.duplo.tenant
+    # add the cluster, user, and context to the kubeconfig
+    self.__add_to_kubeconfig("clusters", self.__cluster_config(ctx), kubeconfig)
+    self.__add_to_kubeconfig("users", self.__user_config(ctx), kubeconfig)
+    self.__add_to_kubeconfig("contexts", self.__context_config(ctx), kubeconfig)
+    kubeconfig["current-context"] = ctx["Name"]
+    if save:
+      # write the kubeconfig back to the file
+      with open(kubeconfig_path, "w") as f:
+        yaml.safe_dump(kubeconfig, f)
+      return {"message": f"kubeconfig updated successfully to {kubeconfig_path}"}
+    else:
+      return kubeconfig
   
   @Command()
   def k8s_context(self, 
@@ -386,22 +391,19 @@ class DuploJit(DuploResource):
     else:
       cluster["insecure-skip-tls-verify"] = True
     return {
-      "name": ctx["Name"],
+      "name": ctx["PlanID"],
       "cluster": cluster
     }
   
   def __user_config(self, ctx):
     """Build a kubeconfig user object"""
-    cmd = self.duplo.build_command("jit", "k8s", ctx["cmd_arg"], ctx["Name"])
+    cmd = self.duplo.build_command(*ctx["ARGS"])
     return {
       "name": ctx["Name"],
       "user": {
         "exec": {
           "apiVersion": "client.authentication.k8s.io/v1beta1",
-          "installHint": """
-Install duploctl for use with kubectl by following
-https://github.com/duplocloud/duploctl
-""",
+          "installHint": INSTALL_HINT,
           "command": "duploctl",
           "args": cmd
         }
@@ -413,7 +415,7 @@ https://github.com/duplocloud/duploctl
     return {
       "name": ctx["Name"],
       "context": {
-        "cluster": ctx["Name"],
+        "cluster": ctx["PlanID"],
         "user": ctx["Name"],
         "namespace": ctx["DefaultNamespace"]
       }
@@ -421,8 +423,17 @@ https://github.com/duplocloud/duploctl
   
   def __add_to_kubeconfig(self, section, item, kubeconfig):
     """Add an item to a kubeconfig section if it is not already present"""
-    if item not in kubeconfig[section]:
+    exists = False
+    for i in kubeconfig[section]:
+      if i["name"] == item["name"]:
+        exists = True
+        i.update(item)
+        break
+    if not exists:
       kubeconfig[section].append(item)
+    # existing = next((i for i in kubeconfig[section] if i["name"] == item["name"]), None)
+    # if not existing:
+    #   kubeconfig[section].append(item)
 
   def __empty_kubeconfig(self):
     return {
