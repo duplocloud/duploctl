@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
   - fixed the duplicating user section in the update kubeconfig command.
+  - fixed the wait on bulk update image.
 
 ## [0.2.37] - 2024-10-18
 
