@@ -364,31 +364,38 @@ class DuploService(DuploTenantResourceV2):
   
   @Command()
   def bulk_update_image(self, 
-                        serviceimage: args.SERVICEIMAGE) -> dict:
-    """Update multiple services.
+                        serviceimage: args.SERVICEIMAGE,
+                        wait: args.WAIT = False) -> dict:
+    """
+    Bulk update the image of multiple services.
 
-    Bulk update the image of a services.
-
-    Usage: Basic CLI Use
-      ```sh
-      duploctl service bulk_update_image -S <service-name-1> <image-name-1> -S <service-name-2> <image-name-2>
-      ```
-    
     Args:
-      serviceimage: takes n sets of two arguments, service name and image name. e.g -S service1 image1:tag -S service2 image2:tag
+      serviceimage: Takes n sets of two arguments, service name and image name. 
+                    e.g., -S service1 image1:tag -S service2 image2:tag
+      wait: Boolean flag to wait for service updates.
     """
     payload = []
-    for i in serviceimage:
-      servicepair = dict([i])
-      for name, image in servicepair.items():
-        payloaditem = {}
-        service = self.find(name)
-        allocation_tags = service["Template"]["AllocationTags"]
-        payloaditem["Name"] = name
-        payloaditem["Image"] = image
-        payloaditem["AllocationTags"] = allocation_tags
-        payload.append(payloaditem)
+    wait_list = []
+    for name, image in serviceimage.items():
+      service = self.find(name)
+      payload_item = {
+          "Name": name,
+          "Image": image,
+          "AllocationTags": service["Template"]["AllocationTags"]
+      }
+      payload.append(payload_item)
+      if wait:
+        wait_list.append({
+          "old": service,
+          "updated": payload_item
+        })
+
     self.duplo.post(self.endpoint("ReplicationControllerBulkChangeAll"), payload)
+
+    if wait:
+      for update_info in wait_list:
+        self.wait(**update_info)
+
     return {"message": "Successfully updated images for services"}
 
   @Command()
