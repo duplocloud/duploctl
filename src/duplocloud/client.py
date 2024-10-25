@@ -635,10 +635,20 @@ Available Resources:
       The context args as a dict.
     """
     cmd = list(args)
+    # host is always needed
     cmd.append("--host")
     cmd.append(self.host)
+    # tenant name or id or not at all
+    if self.tenantid:
+      cmd.append("--tenant-id")
+      cmd.append(self.tenantid)
+    elif self.tenant:
+      cmd.append("--tenant")
+      cmd.append(self.tenant)
+    # only when admin
     if self.isadmin:
       cmd.append("--admin")
+    # interactive settings or token
     if self.interactive:
       cmd.append("--interactive")
       if self.nocache:
