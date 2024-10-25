@@ -4,7 +4,7 @@
 # make sure to set the token as an environment variable or pass it as an argument
 GH_RUNNER_TOKEN="${1:-$GH_RUNNER_TOKEN}"
 
-# check if this computer is osx, linux, or win and set the value of GH_RUNNER_OS
+# discover the os
 case "$(uname -s)" in
   Darwin)
     GH_RUNNER_OS="osx"
@@ -24,7 +24,7 @@ case "$(uname -s)" in
     ;;
 esac
 
-# check if this is arm64 or x64 and set the value of GH_RUNNER_ARCH
+# discover the architecture
 case "$(uname -m)" in
   arm64)
     GH_RUNNER_ARCH="arm64"
@@ -39,16 +39,19 @@ case "$(uname -m)" in
 esac
 
 # runner config details
-GH_RUNNER_DIR="actions-runner"
+GH_RUNNER="actions-runner"
 GH_RUNNER_LABELS="self-hosted,$GH_RUNNER_ARCH,$GH_RUNNER_OS,$GH_RUNNER_EXTRA_LABELS"
 GH_RUNNER_NAME="${USER}-${GH_RUNNER_OS}"
 
+# get release and version details
 GH_RUNNER_API="https://api.github.com/repos/actions/runner/releases/latest"
-GH_RUNNER_URL="https://github.com/actions/runner/releases"
 GH_RUNNER_RELEASE="$(curl -s $GH_RUNNER_API)"
 GH_RUNNER_VERSION="$(echo "$GH_RUNNER_RELEASE" | jq -r '.tag_name')"
 GH_RUNNER_VERSION="${GH_RUNNER_VERSION:1}"
-GH_RUNNER_PACKAGE="actions-runner-osx-arm64-${GH_RUNNER_VERSION}.tar.gz"
+
+# download package details
+GH_RUNNER_URL="https://github.com/actions/runner/releases"
+GH_RUNNER_PACKAGE="${GH_RUNNER}-${GH_RUNNER_OS}-$GH_RUNNER_ARCH-${GH_RUNNER_VERSION}.tar.gz"
 GH_RUNNER_DOWNLOAD="$GH_RUNNER_URL/download/v${GH_RUNNER_VERSION}/${GH_RUNNER_PACKAGE}"
 
 # discover the sha from the release notes
@@ -58,10 +61,10 @@ GH_RUNNER_SHA="${GH_RUNNER_SHA#*-->}"
 GH_RUNNER_SHA="${GH_RUNNER_SHA%<\!--*}"
 
 # if the directory already exists, remove it, then create and enter it
-echo "Preparing working directory in $GH_RUNNER_DIR"
-rm -rf "$GH_RUNNER_DIR"
-mkdir -p "$GH_RUNNER_DIR"
-cd "$GH_RUNNER_DIR" || exit
+echo "Preparing working directory in $GH_RUNNER"
+rm -rf "$GH_RUNNER"
+mkdir -p "$GH_RUNNER"
+cd "$GH_RUNNER" || exit
 
 # Download, verify, and extract the runner
 echo "Installing runner"
