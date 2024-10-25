@@ -431,9 +431,6 @@ class DuploJit(DuploResource):
         break
     if not exists:
       kubeconfig[section].append(item)
-    # existing = next((i for i in kubeconfig[section] if i["name"] == item["name"]), None)
-    # if not existing:
-    #   kubeconfig[section].append(item)
 
   def __empty_kubeconfig(self):
     return {
