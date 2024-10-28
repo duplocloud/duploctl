@@ -152,6 +152,28 @@
       },
       "type": "process",
       "command": "actions-runner/run.sh",
+    },
+    {
+      "label": "GHA Runner Install",
+      "detail": "Install the GHA Runner locally",
+      "group": "build",
+      "icon": {
+        "color": "terminal.ansiYellow",
+        "id": "github-action"
+      },
+      "type": "process",
+      "command": "scripts/runner_install.sh",
+      "args": [
+        "${input:runner-token}"
+      ],
+      "echoCommand": true
+    }
+  ],
+  "inputs": [
+    {
+      "id": "runner-token",
+      "type": "promptString",
+      "description": "Enter the GHA Runner Token"
     }
   ]
 }
