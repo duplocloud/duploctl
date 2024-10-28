@@ -6,6 +6,34 @@
       "IMAGE": "duplocloud/duploctl",
     }
   },
+  "inputs": [
+    {
+      "id": "runner-token",
+      "type": "promptString",
+      "description": "Enter the GHA Runner Token"
+    },
+    {
+      "id": "action",
+      "type": "pickString",
+      "description": "Select the action to perform",
+      "default": "patch",
+      "options": [
+        "patch",
+        "minor",
+        "major"
+      ]
+    },
+    {
+      "id": "push",
+      "type": "pickString",
+      "description": "Push the changes to the remote",
+      "default": "false",
+      "options": [
+        "true",
+        "false"
+      ]
+    }
+  ],
   "tasks": [
     {
       "type": "process",
@@ -167,13 +195,21 @@
         "${input:runner-token}"
       ],
       "echoCommand": true
-    }
-  ],
-  "inputs": [
+    },
     {
-      "id": "runner-token",
-      "type": "promptString",
-      "description": "Enter the GHA Runner Token"
+      "label": "Bump Version",
+      "detail": "Bump the version and release the package",
+      "group": "build",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "file-binary"
+      },
+      "type": "process",
+      "command": "scripts/bump.sh",
+      "args": [
+        "${input:action}",
+        "${input:push}"
+      ]
     }
   ]
 }
