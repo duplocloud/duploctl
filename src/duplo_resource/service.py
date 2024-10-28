@@ -369,6 +369,11 @@ class DuploService(DuploTenantResourceV2):
     """
     Bulk update the image of multiple services.
 
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service bulk_update_image -S <service-name-1> <image-name-1> -S <service-name-2> <image-name-2>
+      ```
+
     Args:
       serviceimage: Takes n sets of two arguments, service name and image name. 
                     e.g., -S service1 image1:tag -S service2 image2:tag
