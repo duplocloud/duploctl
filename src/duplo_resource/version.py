@@ -18,21 +18,28 @@ class DuploVersion():
   """
   def __init__(self, duplo: DuploClient):
     self.duplo = duplo
+    self.paths = {
+      "ui": "build-metadata.json", 
+      "frontdoor": "frontdoor/build-metadata.json",
+      "backend": "v3/version",
+      "auth": "v3/auth/version",
+      "katkit": "v3/katkit/version",
+      "billing": "v3/billing/version",
+      "security": "v3/security/version"
+    }
     
   def __call__(self) -> dict:
-    ui = None
-    server = None
-    v = {
-      "cli": version('duplocloud-client')
+    v = {}
+    # first get cli version then server versions
+    v["cli"] = {
+      "tag": version('duplocloud-client')
     }
-    try:
-      ui = self.duplo.get("build-metadata.json")
-      server = self.duplo.get("v3/version")
-    except Exception:
-      pass
-    finally:
-      if ui:
-        v["ui"] = ui.json()
-      if server:
-        v["server"] = server.json()
+    for (name, path) in self.paths.items():
+      try:
+        res = self.duplo.get(path).json()
+      except Exception as e:
+        self.duplo.logger.error(f"Failed to get version for {path}: {e}")
+        res = {"error": str(e)}
+      finally:
+        v[name] = res
     return v

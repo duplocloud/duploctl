@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Update Kubeconfig now has a name argument to name the user/context anything you want.
   - Update Kubeconfig will always name the server after the Plan. This will share the same server for all tenants in the same plan. Also prevents unnecessary duplicates of the same server.
   - Update kubeconfig will update the sections instead of skipping if they already exist. For example you can switch to interactive mode.
+  - Added more duplo component versions to the version command.
 
 ### Fixed
 
