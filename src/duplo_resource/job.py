@@ -32,9 +32,6 @@ class DuploJob(DuploTenantResourceV3):
       if fsct > 0:
         d = "\n".join([f["Description"] for f in fs])
         raise DuploFailedResource(f"Pod {pod['InstanceId']} raised {fsct} faults.\n{d}")
-      # for f in faults:
-      #   if f["Resource"].get("Name", None) == pod["InstanceId"]:
-      #     raise DuploFailedResource(f"Pod {pod['InstanceId']} raised a fault.\n{f['Description']}")
     def wait_check():
       nonlocal a, s, f
       job = self.find(name)
