@@ -22,6 +22,16 @@ class DuploJob(DuploTenantResourceV3):
     a = 0
     s = 0
     f = 0
+    def check_pod_faults(pod, faults):
+      """Check if the pod has any faults.
+      
+      This is for aws and gke because the faults are at the pod level.
+      """
+      fs = [f for f in faults if f["Resource"].get("Name", None) == pod["InstanceId"]]
+      fsct = len(fs)
+      if fsct > 0:
+        d = "\n".join([f["Description"] for f in fs])
+        raise DuploFailedResource(f"Pod {pod['InstanceId']} raised {fsct} faults.\n{d}")
     def wait_check():
       nonlocal a, s, f
       job = self.find(name)
@@ -41,15 +51,18 @@ class DuploJob(DuploTenantResourceV3):
       # make sure we can get pods and logs first
       pods_exist = (active > 0 or succeeded > 0 or failed > 0)
       pods = self.pods(name)
-      if pods_exist and len(pods) == 0:
-        raise DuploError(f"Job {name} has no pods {pods_exist} {len(pods)}")
-      # display the logs
+      podct = len(pods)
+      if pods_exist and podct == 0:
+        raise DuploError(f"Job {name} has no pods {pods_exist} {podct}")
+      # check for any faults and show the logs if we can
+      faults = self.tenant_svc.faults(id=self.tenant_id)
       for pod in pods:
+        check_pod_faults(pod, faults)
         self.__pod_svc.logs(pod=pod)
       # make sure we got all of the logs
       pod_count = active + succeeded + failed
-      if len(pods) != pod_count:
-        raise DuploError(f"Expected {pod_count} pods, got {len(pods)}")
+      if podct != pod_count:
+        raise DuploError(f"Expected {pod_count} pods, got {podct}")
       if len(fail) > 0:
         raise DuploFailedResource(f"Job {name} failed with {fail[0]['reason']}: {fail[0]['message']}")
       
@@ -77,5 +90,5 @@ class DuploJob(DuploTenantResourceV3):
     pods = self.__pod_svc.list()
     return [
       pod for pod in pods
-      if pod["Name"] == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:batch/v1/Job"
+      if pod.get("Name", None) == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:batch/v1/Job"
     ]
