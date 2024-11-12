@@ -1,0 +1,13 @@
+apiVersion: duplocloud.net/v1alpha1
+kind: RDS
+metadata:
+  name: mydb01
+spec:
+  MasterUsername: fuzlletonnian
+  MasterPassword: superstrongpassword
+  Engine: 0
+  EngineVersion: 8.0.36
+  AllocatedStorage: 30
+  Cloud: 0
+  StorageType: gp3
+  SizeEx: db.t3.small

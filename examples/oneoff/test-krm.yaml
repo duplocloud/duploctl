@@ -1,0 +1,10 @@
+apiVersion: cubizoid
+kind: TestKrm
+metadata:
+  name: test-krm
+  annotations:
+    config.kubernetes.io/function: |
+      exec: 
+        path: ./test-krm.py
+spec:
+  message: Hello cruel world . . .

@@ -251,3 +251,8 @@ class DuploRDS(DuploTenantResourceV3):
     if not name.startswith("duplo"):
       name = "duplo" + name
     return name
+  
+  def from_krm(self, item):
+    body = item["spec"]
+    body["Identifier"] = item.get("metadata", {}).get("name", None)
+    return body

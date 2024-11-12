@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: duplocloud.net/v1
 kind: ConfigMap
 metadata:
   name: duploctl

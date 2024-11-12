@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: test-krm
+  annotations:
+    kubernetes.io/description: |
+      Shows off how to make a one off plugin using this framework. 
+generators:
+- test-krm.yaml
+configMapGenerator:
+- name: example-config
+  literals:
+  - foo=bar
+resources:
+- rds.yaml

@@ -59,6 +59,9 @@ class DuploResource():
     else:
       raise DuploError("Timed out waiting", 404)
     
+  def from_krm(self, krm):
+    return krm
+    
 class DuploResourceV2(DuploResource):
 
   def name_from_body(self, body):
@@ -273,7 +276,8 @@ class DuploTenantResourceV3(DuploResource):
   
   @Command()
   def update(self, 
-             body: args.BODY):
+             body: args.BODY,
+             wait: args.WAIT = False) -> dict:
     """Update a V3 resource by name.
     
     Args:
@@ -295,9 +299,9 @@ class DuploTenantResourceV3(DuploResource):
     name = self.name_from_body(body)
     try:
       self.find(name)
-      return self.update(name, body, wait)
+      return self.update(body=body, wait=wait)
     except DuploError:
-      return self.create(body, wait)
+      return self.create(body=body, wait=wait)
   
   def name_from_body(self, body):
     return body["metadata"]["name"]
