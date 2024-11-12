@@ -65,7 +65,7 @@ jobs:
         GIT_TAG: ${{ inputs.tag }}
       with:
         type: bake
-        target: duploctl
+        target: duploctl-base
         push: ${{ inputs.push }}
         docker-username: ${{ secrets.DOCKER_USERNAME }}
         docker-password: ${{ secrets.DOCKER_PASSWORD }}

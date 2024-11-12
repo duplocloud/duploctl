@@ -91,7 +91,7 @@
       "group": "build",
       "command": "docker",
       "args": [
-        "buildx", "bake", "duploctl"
+        "buildx", "bake", "duploctl-base"
       ]
     },
     {

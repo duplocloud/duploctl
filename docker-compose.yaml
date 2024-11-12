@@ -1,6 +1,6 @@
 services:
 
-  duploctl: &base
+  duploctl-base: &base
     image: &image duplocloud/duploctl:latest
     build: 
       target: runner

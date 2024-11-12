@@ -99,7 +99,7 @@ docker compose build duploctl
 Or use bake to for a multiarch image. You just can't export images that are not your arch locally. So use compose to actually build the image locally.
 
 ```sh
-docker buildx bake duploctl
+docker buildx bake duploctl-base
 ```
 
 Use buildx to build the multiarch binaries. This will output the binaries to the `dist` folder. See the Pyinstaller section above for more details on building the binaries. This runs the Pyinstaller script inside the docker container and outputs the built binaries to the local directory. This only works for linux binaries, Windows is a big maybe.
