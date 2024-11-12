@@ -32,10 +32,10 @@ services:
       args:
         PY_VERSION: ${PY_VERSION:-3.12}
       tags:
-        - duplocloud/duploctl:latest
-        - duplocloud/duploctl:${GIT_SHA:-latest}
-        - duplocloud/duploctl:${GIT_REF:-latest}
-        - duplocloud/duploctl:${GIT_TAG:-latest}
+      - duplocloud/duploctl:latest
+      - duplocloud/duploctl:${GIT_SHA:-latest}
+      - duplocloud/duploctl:${GIT_REF:-latest}
+      - duplocloud/duploctl:${GIT_TAG:-latest}
       x-bake:
         platforms:
         - linux/amd64
