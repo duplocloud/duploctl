@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.39] - 2024-11-12
+
 ### Fixed
   
   - Issue with wait breaking when a pod didn't have the `Name` key
