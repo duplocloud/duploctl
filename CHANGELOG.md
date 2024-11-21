@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.40] - 2024-11-21
+
   - Removed potential cyclic dependencies in `docker-compose.yaml` by explicitly defining inherited sections
   
 ## [0.2.39] - 2024-11-12
