@@ -7,13 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+  - Removed potential cyclic dependencies in `docker-compose.yaml` by explicitly defining inherited sections
+  
 ## [0.2.39] - 2024-11-12
 
 ### Fixed
   
   - Issue with wait breaking when a pod didn't have the `Name` key
   - Jobs were not failing gracefully when waiting for completion but faults were present for pods on the job
-  - Removed potential cyclic dependencies in `docker-compose.yaml` by explicitly defining inherited sections
 
 ## [0.2.38] - 2024-10-28
 
