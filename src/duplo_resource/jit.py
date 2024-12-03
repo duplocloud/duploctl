@@ -55,7 +55,7 @@ class DuploJit(DuploResource):
     Get the GCP JWT token for the current user. This is the token that is used to authenticate with the GCP API. 
 
     Example: Using for gcloud cli access
-      Here is how to set the needed enviornment variables for the gcloud cli.
+      Here is how to set the needed environment variables for the gcloud cli.
 
       ```sh
       for i in $(duploctl jit gcp -q '{CLOUDSDK_AUTH_ACCESS_TOKEN: Token, CLOUDSDK_CORE_PROJECT: ProjectId}' -o env); do export $i; done
