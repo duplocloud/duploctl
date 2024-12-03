@@ -47,6 +47,47 @@ class DuploJit(DuploResource):
       token: The JWT token.
     """
     return {"token": self.duplo.token}
+  
+  @Command()
+  def gcp(self, nocache: bool = None) -> dict:
+    """GCP Access Token
+    
+    Get the GCP JWT token for the current user. This is the token that is used to authenticate with the GCP API. 
+
+    Example: Using for gcloud cli access
+      Here is how to set the needed enviornment variables for the gcloud cli.
+
+      ```sh
+      for i in $(duploctl jit gcp -q '{CLOUDSDK_AUTH_ACCESS_TOKEN: Token, CLOUDSDK_CORE_PROJECT: ProjectId}' -o env); do export $i; done
+      ```
+
+    Usage:  
+      ```sh
+      duploctl jit gcp
+      ```
+
+    Returns:
+      token: The GCP JWT token.
+    """
+    k = self.duplo.cache_key_for("gcp-creds")
+    nc = nocache if nocache is not None else self.duplo.nocache
+    t = self.duplo.load("tenant")
+    tenant = t.find()
+    path = f"v3/admin/google/{tenant['TenantId']}/apiToken"
+    # try and get those creds
+    try:
+      if nc:
+        sts = self.duplo.get(path).json()
+      else:
+        sts = self.duplo.get_cached_item(k)
+        if self.duplo.expired(sts.get("Expiration", None)):
+          raise DuploExpiredCache(k)
+    except DuploExpiredCache:
+      sts = self.duplo.get(path).json()
+      if "Expiration" not in sts:
+        sts["Expiration"] = self.duplo.expiration()
+      self.duplo.set_cached_item(k, sts)
+    return sts
 
   @Command()
   def aws(self, nocache: bool = None) -> dict:

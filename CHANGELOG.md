@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- gcp jit command with example cli usage
+
 ## [0.2.40] - 2024-11-21
+
+### Fixed
 
   - Removed potential cyclic dependencies in `docker-compose.yaml` by explicitly defining inherited sections
   
