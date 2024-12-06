@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.41] - 2024-12-06
+
 ### Added
 
 - gcp jit command with example cli usage
