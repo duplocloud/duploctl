@@ -52,7 +52,7 @@ class DuploJit(DuploResource):
   def gcp(self, nocache: bool = None) -> dict:
     """GCP Access Token
     
-    Get the GCP JWT token for the current user. This is the token that is used to authenticate with the GCP API. 
+    Get the GCP JWT token for the current user. This is the token that is used to authenticate with the GCP API. You must be an admin to use this feature.  
 
     Example: Using for gcloud cli access
       Here is how to set the needed environment variables for the gcloud cli.
