@@ -18,15 +18,40 @@ class DuploParam(DuploTenantResourceV3):
              name: args.NAME=None,
              body: args.BODY=None,
              paramtype: args.SSM_PARAM_TYPE=None,
-             value: args.RAW_CONTENT=None,
+             value: args.PARAM_CONTENT=None,
              dryrun: args.DRYRUN=False,
              wait: args.WAIT=False) -> dict:
-    """Create an SSM Parameter"""
+    """Create an SSM Parameter
+    Usage: cli usage
+      ```sh
+      duploctl ssm_param create <name> -pval <value> -ptype <String|SecureString|StringList>
+      ```
+    
+    Args:
+      name: The name of the SSM Parameter to find.
+      -ptype/--parametertype: The type of parameter to create, must be String, SecureString, or StringList
+      -pval/--parametervalue: Arbitrary text to set in the parameter.  StringList expects comma separated values.
+      -body: path to a raw json/yaml post body, e.g:
+      ```
+      {
+        "Type": "String",
+        "Value": "myvalue",
+        "Name": "MyStringParameter"
+      }
+      ```
+
+    Returns: 
+      resource: The SSM Parameter object.
+      
+    Raises:
+      DuploError: If the SSM Parameter could not be found.
+    """
     if not body and (not name or not paramtype):
       raise DuploError("name and parameter type are required when body is not provided")
     if not body:
       body = {}
-    body['Type'] = paramtype
+    if 'Type' not in body:
+      body['Type'] = paramtype
     # also make sure the data key is present
     if 'Value' not in body:
       body['Value'] = {}
@@ -77,18 +102,32 @@ class DuploParam(DuploTenantResourceV3):
   def update(self, 
              strategy: args.STRATEGY,
              name: args.NAME=None,
-             value: args.RAW_CONTENT=None,
+             value: args.PARAM_CONTENT=None,
              dryrun: args.DRYRUN=False,
              wait: args.WAIT=False) -> dict:
-    """Update an SSM Parameter."""
+    """Update an SSM Parameter.
+    Usage: cli usage
+      ```sh
+      duploctl ssm_param update <name> -pval <newvalue>
+      ```
+    
+    Args:
+      name: The name of the SSM Parameter to find.
+      -strat/--strategy: whether to merge or overwrite StringList Parameters (default is merge, not used for SecureString or String params)
+      -pval/--parametervalue: The new value for the SSM Parameter.  Overwrites existing unless merging with StringList parameters.
+
+    Returns: 
+      resource: The SSM Parameter object.
+      
+    Raises:
+      DuploError: If the SSM Parameter could not be found.
+    """
     current=self.find(name)
     body=current
     if strategy=='merge' and current['Type']=="StringList":
       current_value = current['Value'].split(',')
       current_value.append(value)
-      print(body)
       body['Value'] = ','.join(current_value)
-      print(body)
     else:
       body['Value'] = value
     return super().update(body)

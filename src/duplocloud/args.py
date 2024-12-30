@@ -246,15 +246,15 @@ CONTENT_DIR = Arg('content', '--content-dir',
             default='dist',
             env='DUPLO_CONTENT')
 
-SSM_PARAM_TYPE = Arg("paramtype", "-ptype",
+SSM_PARAM_TYPE = Arg("parametertype", "-ptype",
             help='The type of parameter to create',
             choices=['String', 'StringList', 'SecureString'],
             default='String')
 
-RAW_CONTENT = Arg('paramvalue', '-pvalue',
-            help='Arbitrary text to add')
+PARAM_CONTENT = Arg('parametervalue', '-pval',
+            help='Arbitrary text to add to the parameter')
 
 SHOW_SENSITIVE = Arg('showsensitive', '-show',
-            help='Return sensitive values. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT',
+            help='Return sensitive values to output. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT/LOG FILES',
             type=bool,
             action='store_true')
