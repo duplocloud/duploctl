@@ -28,7 +28,7 @@ class DuploParam(DuploTenantResourceV3):
       ```
     
     Args:
-      name: The name of the SSM Parameter to find.
+      name: The name of the SSM Parameter to create.
       -ptype/--parametertype: The type of parameter to create, must be String, SecureString, or StringList
       -pval/--parametervalue: Arbitrary text to set in the parameter.  StringList expects comma separated values.
       -body: path to a raw json/yaml post body, e.g:
@@ -44,7 +44,7 @@ class DuploParam(DuploTenantResourceV3):
       resource: The SSM Parameter object.
       
     Raises:
-      DuploError: If the SSM Parameter could not be found.
+      DuploError: If the SSM Parameter already exists.
     """
     # Make sure the user passes name and value, or a body (from file). Paramtype is defaulted to string.
     if not body and (not name or not value):
@@ -70,7 +70,7 @@ class DuploParam(DuploTenantResourceV3):
   def find(self, 
            name: args.NAME,
            show_sensitive: args.SHOW_SENSITIVE=False) -> dict:
-    """Find SSM Parameter resources by name
+    """Find SSM Parameter resources by name and return it's content
 
     Usage: cli usage
       ```sh
@@ -119,7 +119,7 @@ class DuploParam(DuploTenantResourceV3):
       resource: The SSM Parameter object.
       
     Raises:
-      DuploError: If the SSM Parameter could not be found.
+      DuploError: If the SSM Parameter could not be found or doesn't exist.
     """
     body=self.find(name)
     if strategy=='merge' and body['Type']=="StringList":
