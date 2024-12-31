@@ -87,7 +87,7 @@ class DuploParam(DuploTenantResourceV3):
     Raises:
       DuploError: If the SSM Parameter could not be found.
     """
-    response = self.duplo.get(self.endpoint(name))
+    response = self.duplo.get(self.endpo int(name))
     if response.json()['Type']=="SecureString" and not show_sensitive:
       obfuscated_response=response.json()
       sensitive_len=len(response.json()["Value"])
@@ -99,8 +99,8 @@ class DuploParam(DuploTenantResourceV3):
     
   @Command()
   def update(self, 
-             strategy: args.STRATEGY,
              name: args.NAME=None,
+             strategy: args.STRATEGY='merge',
              value: args.PARAM_CONTENT=None,
              dryrun: args.DRYRUN=False,
              wait: args.WAIT=False) -> dict:
