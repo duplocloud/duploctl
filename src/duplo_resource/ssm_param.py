@@ -46,11 +46,13 @@ class DuploParam(DuploTenantResourceV3):
     Raises:
       DuploError: If the SSM Parameter could not be found.
     """
-    if not body and (not name or not paramtype):
-      raise DuploError("name and parameter type are required when body is not provided")
+    # Make sure the user passes name and value, or a body (from file). Paramtype is defaulted to string.
+    if not body and (not name or not value):
+      raise DuploError("name and parameter value are required when body is not provided")
     if not body:
       body = {}
-    if 'Type' not in body:
+    # If the user passed in settings, use them.  Otherwise use what's in the file.
+    if paramtype:
       body['Type'] = paramtype
     if name:
       body['Name'] = name
