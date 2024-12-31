@@ -87,7 +87,7 @@ class DuploParam(DuploTenantResourceV3):
     Raises:
       DuploError: If the SSM Parameter could not be found.
     """
-    response = self.duplo.get(self.endpo int(name))
+    response = self.duplo.get(self.endpoint(name))
     if response.json()['Type']=="SecureString" and not show_sensitive:
       obfuscated_response=response.json()
       sensitive_len=len(response.json()["Value"])
