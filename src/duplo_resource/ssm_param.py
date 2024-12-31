@@ -52,9 +52,6 @@ class DuploParam(DuploTenantResourceV3):
       body = {}
     if 'Type' not in body:
       body['Type'] = paramtype
-    # also make sure the data key is present
-    if 'Value' not in body:
-      body['Value'] = {}
     if name:
       body['Name'] = name
     if value:
@@ -122,10 +119,9 @@ class DuploParam(DuploTenantResourceV3):
     Raises:
       DuploError: If the SSM Parameter could not be found.
     """
-    current=self.find(name)
-    body=current
-    if strategy=='merge' and current['Type']=="StringList":
-      current_value = current['Value'].split(',')
+    body=self.find(name)
+    if strategy=='merge' and body['Type']=="StringList":
+      current_value = body['Value'].split(',')
       current_value.append(value)
       body['Value'] = ','.join(current_value)
     else:
