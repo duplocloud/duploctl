@@ -174,7 +174,7 @@ SETVAR = Arg("setvar", "-V",
             metavar=('key', 'value'))
 
 STRATEGY = Arg("strategy", "-strat",
-            help='The merge strategy to use for env vars. Valid options are \"merge\" or \"replace\".  Default is merge.',
+            help='The merge strategy to use. Valid options are \"merge\" or \"replace\".  Default is merge.',
             choices=['merge', 'replace'],
             default = 'merge')
 
@@ -245,3 +245,17 @@ CONTENT_DIR = Arg('content', '--content-dir',
             help='The content directory for a website.',
             default='dist',
             env='DUPLO_CONTENT')
+
+SSM_PARAM_TYPE = Arg("parametertype", "-ptype",
+            help='The type of parameter to create',
+            choices=['String', 'StringList', 'SecureString'],
+            default='String')
+
+PARAM_CONTENT = Arg('parametervalue', '-pval',
+            help='Arbitrary text to add to the parameter')
+
+SHOW_SENSITIVE = Arg('showsensitive', '-show',
+            help='Return sensitive values to output. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT/LOG FILES',
+            type=bool,
+            action='store_true')
+            
