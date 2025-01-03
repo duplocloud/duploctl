@@ -33,7 +33,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
       ```
       {
         Name: "test2", 
-        SecretString: "{"Foo": "Bar"}"
+        SecretString: '{"Foo": "Bar", "Biz":"Baz"}'
       }
       ```
 
@@ -86,7 +86,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
       obfuscated_response=response.json()
       sensitive_len=len(response.json()["SecretString"])
       placeholder="*"
-      obfuscated_response["Value"]=placeholder * sensitive_len
+      obfuscated_response["SecretString"]=placeholder * sensitive_len
       return obfuscated_response
     else:
       return response.json()
