@@ -20,7 +20,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
              value: args.PARAM_CONTENT=None,
              dryrun: args.DRYRUN=False,
              wait: args.WAIT=False) -> dict:
-    """Create an AWS Secrets Manager Secret
+    """Create an AWS Secretmanager Secret
     Usage: cli usage
       ```sh
       duploctl aws_secret create <name> -pval <value>
@@ -28,7 +28,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
     
     Args:
       name: The name of the AWS Secret to create.
-      -pval/--parametervalue: Arbitrary text to set in the psecret.
+      -pval/--parametervalue: Arbitrary text to set in the AWS secret.
       -body: path to a raw json/yaml post body, e.g:
       ```
       {
@@ -38,12 +38,12 @@ class DuploAwsSecret(DuploTenantResourceV3):
       ```
 
     Returns: 
-      resource: The secret object.
+      resource: The AWS secret object.
       
     Raises:
-      DuploError: If the secret already exists.
+      DuploError: If the AWS secret already exists.
     """
-    # Make sure the user passes name and value, or a body (from file). Paramtype is defaulted to string.
+    # Make sure the user passes name and value, or a body (from file).
     if not body and (not name or not value):
       raise DuploError("name and value are required when body is not provided")
     if not body:
@@ -64,22 +64,22 @@ class DuploAwsSecret(DuploTenantResourceV3):
   def find(self, 
            name: args.NAME,
            show_sensitive: args.SHOW_SENSITIVE=False) -> dict:
-    """Find secret by name and return it's content
+    """Find as AWS Secretmanager secret by name and return it's content
 
     Usage: cli usage
       ```sh
-      duploctl secret find <name>
+      duploctl aws_secret find <name>
       ```
     
     Args:
-      name: The name of the secret to find.
-      -show/--showsensitive: Display value of SecureString parameters
+      name: The name of the AWS secret to find.
+      -show/--showsensitive: Display value of the secretstring field
 
     Returns: 
-      resource: The secret object.
+      resource: The AWS secret object.
       
     Raises:
-      DuploError: If the secret could not be found.
+      DuploError: If the AWS secret could not be found.
     """
     response = self.duplo.get(self.endpoint(name))
     if not show_sensitive:
@@ -97,21 +97,21 @@ class DuploAwsSecret(DuploTenantResourceV3):
              value: args.PARAM_CONTENT=None,
              dryrun: args.DRYRUN=False,
              wait: args.WAIT=False) -> dict:
-    """Update a secret.
+    """Update an AWS Secretmanager secret.
     Usage: cli usage
       ```sh
-      duploctl ssm_param update <name> -pval <newvalue>
+      duploctl aws_secret update <name> -pval <newvalue>
       ```
     
     Args:
-      name: The name of the SSM Parameter to find.
-      -pval/--parametervalue: The new value for the SSM Parameter.  Overwrites existing unless merging with StringList parameters.
+      name: The name of the AWS secret to find.
+      -pval/--parametervalue: The new value for the AWS secret.  This overwrites the existing value!
 
     Returns: 
-      resource: The secret object.
+      resource: The AWS secret object.
       
     Raises:
-      DuploError: If the secret could not be found or doesn't exist.
+      DuploError: If the AWS secret could not be found or doesn't exist.
     """
     body=self.find(name)
     body['SecretString'] = value
