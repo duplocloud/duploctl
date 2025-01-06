@@ -221,4 +221,8 @@ class DuploLambda(DuploTenantResourceV2):
     }
     # Send the update request
     response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunctionConfiguration", data)
-    return {"message": f"Successfully updated environment variables for lambda '{name}'"}
+    # Check the response status code
+    if response.status_code == 200:
+        return {"message": f"Successfully updated environment variables for lambda '{name}'"}
+    else:
+        return {"message": f"Failed to update environment variables for lambda '{name}'"}
