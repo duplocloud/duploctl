@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
  - Added support for SSM Parameter CRUD operations.
+ - Added support for updating the environment variables of a lambda.
 
 ## [0.2.41] - 2024-12-06
 

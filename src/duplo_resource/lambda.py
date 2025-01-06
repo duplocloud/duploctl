@@ -170,3 +170,55 @@ class DuploLambda(DuploTenantResourceV2):
     if not name.startswith(prefix):
       name = f"{prefix}-{name}"
     return name
+
+  @Command()
+  def update_env(self,
+               name: args.NAME,
+               setvar: args.SETVAR,
+               strategy: args.STRATEGY,
+               deletevar: args.DELETEVAR) -> dict:
+    """Update the environment variables of a lambda. If lambda has no environment variables set, use -strat replace to set new values.
+    Usage: Basic CLI Use
+      ```sh
+      duploctl lambda update_env <lambda-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --setvar env-key3 env-val3 -strat merge
+    Args:
+      name (str): The name of the lambda to update.
+
+      setvar/-V (list): A list of key-value pairs to set as environment variables.
+
+      strategy/strat (str): The merge strategy to use for env vars. Valid options are "merge" or "replace". Default is merge.
+
+      deletevar/-D (list): A list of keys to delete from the environment variables.
+    """
+    tenant_id = self.tenant["TenantId"]
+    # Helper function to format new environment variables
+    def new_env_vars(setvar):
+        return [{"Name": i[0], "Value": i[1]} for i in setvar]
+    # Find the current lambda and its environment variables
+    current_lambda = self.find(name)
+    currentEnv = current_lambda.get('Environment', {}).get('Variables', {})
+    # Convert currentEnv to a list of dicts for easier manipulation
+    currentEnvList = [{"Name": k, "Value": v} for k, v in currentEnv.items()]
+    if strategy == 'merge':
+        # Merge new variables with existing ones
+        newEnv = new_env_vars(setvar) if setvar else []
+        mergedEnvDict = {env['Name']: env for env in currentEnvList + newEnv}
+        mergedEnvList = list(mergedEnvDict.values())
+    else:
+        # Replace existing variables with new ones
+        mergedEnvList = new_env_vars(setvar) if setvar else []
+    # Handle deletion of variables
+    if deletevar:
+        mergedEnvList = [env for env in mergedEnvList if env['Name'] not in deletevar]
+    # Convert back to a dictionary for AWS Lambda compatibility
+    updatedEnvDict = {env['Name']: env['Value'] for env in mergedEnvList}
+    # Construct the payload for updating the lambda
+    data = {
+        "FunctionName": name,
+        "Environment": {
+            "Variables": updatedEnvDict
+        }
+    }
+    # Send the update request
+    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunctionConfiguration", data)
+    return {"message": f"Successfully updated environment variables for lambda '{name}'"}
