@@ -4,8 +4,8 @@ from duplocloud.errors import DuploError
 from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Command, Resource
 
-@Resource("aws_secret")
-class DuploAwsSecret(DuploTenantResourceV3):
+@Resource("secret")
+class DuploSecret(DuploTenantResourceV3):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "k8s/secret")
