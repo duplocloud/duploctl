@@ -405,7 +405,8 @@ class DuploService(DuploTenantResourceV2):
 
   @Command()
   def restart(self, 
-              name: args.NAME) -> dict:
+              name: args.NAME,
+              wait: args.WAIT = False) -> dict:
     """Restart a service.
 
     Restart a service.
@@ -417,6 +418,7 @@ class DuploService(DuploTenantResourceV2):
     
     Args:
       name: The name of the service to restart.
+      wait: Boolean flag to wait for service updates.
 
     Returns: 
       A success message if the service was restarted successfully.
@@ -425,11 +427,15 @@ class DuploService(DuploTenantResourceV2):
       DuploError: If the service could not be restarted.
     """
     self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
+    if wait:
+      service = self.find(name)
+      self.wait(service, service)
     return {"message": f"Successfully restarted service '{name}'"}
   
   @Command()
   def stop(self, 
-           name: args.NAME) -> dict:
+           name: args.NAME,
+           wait: args.WAIT = False) -> dict:
     """Stop a service.
 
     Stop a service.
@@ -440,7 +446,8 @@ class DuploService(DuploTenantResourceV2):
       ```
     
     Args:
-      name (str): The name of the service to stop.  
+      name (str): The name of the service to stop.
+      wait: Boolean flag to wait for service updates.
 
     Returns: 
       A success message if the service was stopped successfully.  
@@ -449,11 +456,15 @@ class DuploService(DuploTenantResourceV2):
       DuploError: If the service could not be stopped.  
     """
     self.duplo.post(self.endpoint(f"ReplicationControllerStop/{name}"))
+    if wait:
+      service = self.find(name)
+      self.wait(service, service)
     return {"message": f"Successfully stopped service '{name}'"}
   
   @Command()
   def start(self, 
-            name: args.NAME) -> dict:
+            name: args.NAME,
+            wait: args.WAIT = False) -> dict:
     """Start a service.
 
     Start a service.
@@ -465,6 +476,7 @@ class DuploService(DuploTenantResourceV2):
     
     Args:
       name (str): The name of the service to start.
+      wait: Boolean flag to wait for service updates.
 
     Returns: 
       A success message if the service was started successfully.
@@ -473,6 +485,9 @@ class DuploService(DuploTenantResourceV2):
       DuploError: If the service could not be started.
     """
     self.duplo.post(self.endpoint(f"ReplicationControllerstart/{name}"))
+    if wait:
+      service = self.find(name)
+      self.wait(service, service)
     return {"message": f"Successfully started service '{name}'"}
 
   @Command()
