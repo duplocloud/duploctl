@@ -161,6 +161,32 @@ S3BUCKET = Arg("bucket",
 S3KEY = Arg("key",
             help='The s3 key to use')
 
+HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
+            help='The health check URL')
+
+PORT = Arg("port", "--port",
+            help='Port')
+
+EXTERNAL_PORT = Arg("external-port", "--external-port",
+            help='The external port')
+
+PROTOCOL = Arg("protocol", "--protocol",
+            help='The protocol')
+
+LOAD_BALANCER_TYPE = Arg("lb-type", "--lb-type",
+            help='The type of load balancer. Valid options are [ApplicationLB, K8ClusterIP, K8NodePort, NetworkLB, TargetGroupOnly].',
+            choices=['ApplicationLB', 'K8ClusterIP', 'K8NodePort', 'NetworkLB', 'TargetGroupOnly'])
+
+LOAD_BALANCER_VISIBILITY = Arg("visibility", "--visibility",
+            help='The visibility of load balancer. Valid options are \"Public\" or \"Internal Only\".  Default is Public.',
+            choices=['Public', 'Internal Only'],
+            default = 'Public')
+
+LOAD_BALANCER_MODE = Arg("mode", "--mode",
+            help='The mode of load balancer. Valid options are \"DockerMode\" or \"Native App\".  Default is DockerMode.',
+            choices=['DockerMode', 'Native App'],
+            default = 'DockerMode')
+
 SERVICEIMAGE = Arg("serviceimage", "-S",
             help='takes two arguments, a service name and an image:tag',
             action='append',
