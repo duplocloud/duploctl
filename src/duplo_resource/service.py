@@ -708,7 +708,7 @@ class DuploService(DuploTenantResourceV2):
         "IsInternal": visibility == "private",
         "IsNative": mode == "native-app",
         "Protocol": protocol,
-        "HealthCheckUrl": health_check_url if lb_type != "NetworkLB" else None,
+        "HealthCheckUrl": health_check_url if lb_type != "networklb" else None,
         "ReplicationControllerName": name
     }
 
