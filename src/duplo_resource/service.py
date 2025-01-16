@@ -676,7 +676,7 @@ class DuploService(DuploTenantResourceV2):
 
     Args:
         container-port (int): The internal port of the container to expose.
-        external-port (int): The external port exposed by the load balancer. This is not used for TargetGroupOnly or K8ClusterIP load balancer types.
+        external-port (int): The external port exposed by the load balancer. This is not used for targetgrouponly or k8clusterip load balancer types.
         lb-type (str): The load balancer type. Valid options are ['applicationlb', 'k8clusterip', 'k8nodeport', 'networklb', 'targetgrouponly'].
         protocol (str): The protocol to use, based on `lb_type`
           - applicationlb: http, https
@@ -686,7 +686,7 @@ class DuploService(DuploTenantResourceV2):
           - k8nodeport: tcp, udp
         visibility (str): The load balancer visibility. Valid options are 'public' or 'private'.
         mode (str): The load balancer application mode. Valid options are 'docker-mode' or 'native-app'.
-        health_check_url (str): The health check URL path. This must be empty for NetworkLB, as it does not support health check paths.
+        health_check_url (str): The health check URL path. This must be empty for networklb, as it does not support health check paths.
     """
     service = self.find(name)
     tenant_id = service["TenantId"]
