@@ -175,7 +175,7 @@ PROTOCOL = Arg("protocol", "--protocol",
             choices=['http','https','tcp','udp','tls'])
 
 LOAD_BALANCER_TYPE = Arg("lb-type", "--lb-type",
-            help='The type of load balancer. Valid options are [ApplicationLB, K8ClusterIP, K8NodePort, NetworkLB, TargetGroupOnly].',
+            help='The type of load balancer. Valid options are [applicationlb, k8clusterip, k8nodeport, networklb, targetgrouponly].',
             choices=['applicationlb', 'k8clusterip', 'k8nodeport', 'networklb', 'targetgrouponly'])
 
 LOAD_BALANCER_VISIBILITY = Arg("visibility", "--visibility",
