@@ -654,3 +654,63 @@ class DuploService(DuploTenantResourceV2):
 
   def name_from_body(self, body):
     return body["Name"]
+
+  @Command()
+  def expose(self,
+             name: args.NAME,
+             container_port: args.CONTAINER_PORT=None,
+             external_port: args.EXTERNAL_PORT=None,
+             lb_type: args.LOAD_BALANCER_TYPE=None,
+             protocol: args.PROTOCOL=None,
+             visibility: args.LOAD_BALANCER_VISIBILITY="public",
+             mode: args.LOAD_BALANCER_MODE="docker-mode",
+             health_check_url: args.HEALTH_CHECK_URL=None) -> dict:
+    """
+    Expose a service.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service expose <service-name> --lb-type applicationlb --container-port 80 --external-port 80  \
+                             --visibility public --mode docker-mode --health-check-url / --protocol http
+      ```
+
+    Args:
+        container-port (int): The internal port of the container to expose.
+        external-port (int): The external port exposed by the load balancer. This is not used for targetgrouponly or k8clusterip load balancer types.
+        lb-type (str): The load balancer type. Valid options are ['applicationlb', 'k8clusterip', 'k8nodeport', 'networklb', 'targetgrouponly'].
+        protocol (str): The protocol to use, based on `lb_type`
+          - applicationlb: http, https
+          - networklb: tcp, udp, tls
+          - targetgrouponly: http, https
+          - k8clusterip: tcp, udp
+          - k8nodeport: tcp, udp
+        visibility (str): The load balancer visibility. Valid options are 'public' or 'private'.
+        mode (str): The load balancer application mode. Valid options are 'docker-mode' or 'native-app'.
+        health_check_url (str): The health check URL path. This must be empty for networklb, as it does not support health check paths.
+    """
+    service = self.find(name)
+    tenant_id = service["TenantId"]
+    lb_type_map = {
+      "applicationlb": 1,
+      "k8clusterip": 3,
+      "k8nodeport": 4,
+      "networklb": 6,
+      "targetgrouponly": 7
+    }
+
+    if lb_type not in lb_type_map:
+      raise DuploError(f"Invalid lb_type: {lb_type}. Must be one of {list(lb_type_map.keys())}")
+
+    payload = {
+        "LbType": lb_type_map[lb_type],
+        "Port": container_port,
+        "ExternalPort": external_port if external_port is not None else None,
+        "IsInternal": visibility == "private",
+        "IsNative": mode == "native-app",
+        "Protocol": protocol,
+        "HealthCheckUrl": health_check_url if lb_type != "networklb" else None,
+        "ReplicationControllerName": name
+    }
+
+    self.duplo.post(f"subscriptions/{tenant_id}/LBConfigurationUpdate", payload)
+    return {"message": f"Successfully exposed service '{name}'"}
