@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
  - Added support for SSM Parameter CRUD operations.
+ - Added support for AWS Secrets Manager
  - Added support for updating the environment variables of a lambda.
  - start, stop, restart for service with `--wait`
  - Added support for configuring a load balancer for a service.
