@@ -164,28 +164,29 @@ S3KEY = Arg("key",
 HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
             help='The health check URL')
 
-PORT = Arg("port", "--port",
-            help='Port')
+CONTAINER_PORT = Arg("container-port", "--container-port",
+            help='Container port')
 
 EXTERNAL_PORT = Arg("external-port", "--external-port",
             help='The external port')
 
 PROTOCOL = Arg("protocol", "--protocol",
-            help='The protocol')
+            help='The protocol',
+            choices=['http','https','tcp','udp','tls'])
 
 LOAD_BALANCER_TYPE = Arg("lb-type", "--lb-type",
             help='The type of load balancer. Valid options are [ApplicationLB, K8ClusterIP, K8NodePort, NetworkLB, TargetGroupOnly].',
-            choices=['ApplicationLB', 'K8ClusterIP', 'K8NodePort', 'NetworkLB', 'TargetGroupOnly'])
+            choices=['applicationlb', 'k8clusterip', 'k8nodeport', 'networklb', 'targetgrouponly'])
 
 LOAD_BALANCER_VISIBILITY = Arg("visibility", "--visibility",
-            help='The visibility of load balancer. Valid options are \"Public\" or \"Internal Only\".  Default is Public.',
-            choices=['Public', 'Internal Only'],
-            default = 'Public')
+            help='The visibility of load balancer. Valid options are \"public\" or \"private\".  Default is public.',
+            choices=['public', 'private'],
+            default = 'public')
 
 LOAD_BALANCER_MODE = Arg("mode", "--mode",
-            help='The mode of load balancer. Valid options are \"DockerMode\" or \"Native App\".  Default is DockerMode.',
-            choices=['DockerMode', 'Native App'],
-            default = 'DockerMode')
+            help='The mode of load balancer. Valid options are \"docker-mode\" or \"native-app\".  Default is docker-mode.',
+            choices=['docker-mode', 'native-app'],
+            default = 'docker-mode')
 
 SERVICEIMAGE = Arg("serviceimage", "-S",
             help='takes two arguments, a service name and an image:tag',

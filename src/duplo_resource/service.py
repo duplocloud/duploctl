@@ -658,59 +658,59 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def expose(self,
              name: args.NAME,
-             port: args.PORT=None,
+             container_port: args.CONTAINER_PORT=None,
              external_port: args.EXTERNAL_PORT=None,
              lb_type: args.LOAD_BALANCER_TYPE=None,
              protocol: args.PROTOCOL=None,
-             visibility: args.LOAD_BALANCER_VISIBILITY="Public",
-             mode: args.LOAD_BALANCER_MODE="DockerMode",
+             visibility: args.LOAD_BALANCER_VISIBILITY="public",
+             mode: args.LOAD_BALANCER_MODE="docker-mode",
              health_check_url: args.HEALTH_CHECK_URL=None) -> dict:
     """
     Expose a service.
 
     Usage: Basic CLI Use
       ```sh
-      duploctl service expose <service-name> --lb-type ApplicationLB --port 80 --external-port 80  \
-                             --visibility Public --mode DockerMode --health-check-url / --protocol http
+      duploctl service expose <service-name> --lb-type applicationlb --container-port 80 --external-port 80  \
+                             --visibility public --mode docker-mode --health-check-url / --protocol http
       ```
 
     Args:
-        port (int): The container port.
-        external_port (int): The external port (not used for certain LbTypes).
-        lb_type (str): The load balancer type. Valid options are ['ApplicationLB', 'K8ClusterIP', 'K8NodePort', 'NetworkLB', 'TargetGroupOnly'].
-        protocol (str): The protocol used.
-        visibility (str): Visibility (Internal Only or Public).
-        mode (str): Application mode (DockerMode or Native App).
-        health_check_url (str): The health check URL (not used for certain LbTypes).
+        container-port (int): The internal port of the container to expose.
+        external-port (int): The external port exposed by the load balancer. This is not used for TargetGroupOnly or K8ClusterIP load balancer types.
+        lb-type (str): The load balancer type. Valid options are ['applicationlb', 'k8clusterip', 'k8nodeport', 'networklb', 'targetgrouponly'].
+        protocol (str): The protocol to use, based on `lb_type`
+          - applicationlb: http, https
+          - networklb: tcp, udp, tls
+          - targetgrouponly: http, https
+          - k8clusterip: tcp, udp
+          - k8nodeport: tcp, udp
+        visibility (str): The load balancer visibility. Valid options are 'public' or 'private'.
+        mode (str): The load balancer application mode. Valid options are 'docker-mode' or 'native-app'.
+        health_check_url (str): The health check URL path. This must be empty for NetworkLB, as it does not support health check paths.
     """
     service = self.find(name)
     tenant_id = service["TenantId"]
     lb_type_map = {
-      "ApplicationLB": 1,
-      "K8ClusterIP": 3,
-      "K8NodePort": 4,
-      "NetworkLB": 6,
-      "TargetGroupOnly": 7
+      "applicationlb": 1,
+      "k8clusterip": 3,
+      "k8nodeport": 4,
+      "networklb": 6,
+      "targetgrouponly": 7
     }
+
     if lb_type not in lb_type_map:
-        raise ValueError(f"Invalid lb_type: {lb_type}. Must be one of {list(lb_type_map.keys())}")
+      raise DuploError(f"Invalid lb_type: {lb_type}. Must be one of {list(lb_type_map.keys())}")
 
     payload = {
         "LbType": lb_type_map[lb_type],
-        "Port": port,
+        "Port": container_port,
         "ExternalPort": external_port if external_port is not None else None,
-        "IsInternal": visibility == "Internal Only",
-        "IsNative": mode == "Native App",
+        "IsInternal": visibility == "private",
+        "IsNative": mode == "native-app",
         "Protocol": protocol,
         "HealthCheckUrl": health_check_url if lb_type != "NetworkLB" else None,
         "ReplicationControllerName": name
     }
-    response = self.duplo.post(f"subscriptions/{tenant_id}/LBConfigurationUpdate", payload)
-    if response.ok:
-      return {"message": f"Successfully exposed service '{name}'"}
-    else:
-      return {
-        "message": f"Failed to exposed service '{name}'",
-        "status_code": response.status_code,
-        "error": response.text
-      }
+
+    self.duplo.post(f"subscriptions/{tenant_id}/LBConfigurationUpdate", payload)
+    return {"message": f"Successfully exposed service '{name}'"}
