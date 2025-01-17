@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.42] - 2025-01-17
+
  - Added support for SSM Parameter CRUD operations.
  - Added support for AWS Secrets Manager
  - Added support for updating the environment variables of a lambda.
