@@ -118,7 +118,6 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
       DuploError: If the ECS service could not be updated.
     """
-    print("update")
     tenant_id = self.tenant["TenantId"]
     path = f"subscriptions/{tenant_id}/UpdateEcsService"
     self.duplo.post(path, body)
@@ -136,13 +135,9 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
       DuploError: If the ECS task definition could not be updated.
     """
-    print("update_taskdef")
-    #print(body)
     tenant_id = self.tenant["TenantId"]
     path = f"subscriptions/{tenant_id}/UpdateEcsTaskDefinition"
     b = self.__ecs_task_def_body(body)
-    print("Final Body")
-    print(b)
     response = self.duplo.post(path, b)
     return {"arn": response.json()}
 
@@ -166,21 +161,14 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
         DuploError: If the ECS service could not be updated.
     """
-    print('update_image')
     svc = self.find(name)
-    print('svc')
-    #print(svc)
     tdf = self.find_def_by_arn(svc["TaskDefinition"])
     tdf["ContainerDefinitions"][0]["Image"] = image
-    print("tdf")
-    #print(tdf)
     arn = self.update_taskdef(tdf)["arn"]
     svc["TaskDefinition"] = arn
     return self.update(svc)
 
   def __ecs_task_def_body(self, task_def):
-    print("__ecs_task_def_body")
-    #print(task_def)
     containers = [
       self.__ecs_container_update_body(c) 
       for c in task_def.get("ContainerDefinitions", [])
@@ -195,32 +183,20 @@ class DuploEcsService(DuploTenantResourceV2):
     }
   
   def __ecs_container_update_body(self, container_def):
-    print("__ecs_container_update_body")
-    print(container_def)
-    return {
+    update_body = {
         "Essential": container_def.get("Essential") if "Essential" in container_def else None,
         "Image": container_def.get("Image") if "Image" in container_def else None,
         "Name": container_def.get("Name") if "Name" in container_def else None,
         "PortMappings": container_def.get("PortMappings", []) if container_def.get("PortMappings") is not None else [],
-        "LogConfiguration": container_def.get("LogConfiguration", {}) if container_def.get("LogConfiguration") is not None else {},
         "Environment": container_def.get("Environment", {}) if container_def.get("Environment") is not None else {},
         "Command": container_def.get("Command", {}) if container_def.get("Command") is not None else {},
         "Secrets": container_def.get("Secrets", {}) if container_def.get("Secrets") is not None else {},
     }
-    # update_body = {
-    #     "Essential": container_def.get("Essential") if "Essential" in container_def else None,
-    #     "Image": container_def.get("Image") if "Image" in container_def else None,
-    #     "Name": container_def.get("Name") if "Name" in container_def else None,
-    #     "PortMappings": container_def.get("PortMappings", []) if container_def.get("PortMappings") is not None else [],
-    #     "Environment": container_def.get("Environment", {}) if container_def.get("Environment") is not None else {},
-    #     "Command": container_def.get("Command", {}) if container_def.get("Command") is not None else {},
-    #     "Secrets": container_def.get("Secrets", {}) if container_def.get("Secrets") is not None else {},
-    # }
     
-    # # Add LogConfiguration only if it exists in container_def
-    # if "LogConfiguration" in container_def:
-    #     update_body["LogConfiguration"] = container_def["LogConfiguration"]
-    # # Add LogConfiguration only if it exists in container_def
-    # if "FirelensConfiguration" in container_def:
-    #     update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
-    #return update_body
+    # Add LogConfiguration only if it exists in container_def
+    if "LogConfiguration" in container_def:
+        update_body["LogConfiguration"] = container_def["LogConfiguration"]
+    # Add LogConfiguration only if it exists in container_def
+    if "FirelensConfiguration" in container_def:
+        update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
+    return update_body
