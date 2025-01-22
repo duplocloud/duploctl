@@ -184,13 +184,13 @@ class DuploEcsService(DuploTenantResourceV2):
   
   def __ecs_container_update_body(self, container_def):
     update_body = {
-        "Essential": container_def.get("Essential") if "Essential" in container_def else None,
-        "Image": container_def.get("Image") if "Image" in container_def else None,
-        "Name": container_def.get("Name") if "Name" in container_def else None,
-        "PortMappings": container_def.get("PortMappings", []) if container_def.get("PortMappings") is not None else [],
-        "Environment": container_def.get("Environment", {}) if container_def.get("Environment") is not None else {},
-        "Command": container_def.get("Command", {}) if container_def.get("Command") is not None else {},
-        "Secrets": container_def.get("Secrets", {}) if container_def.get("Secrets") is not None else {},
+        "Essential": container_def.get("Essential"),
+        "Image": container_def.get("Image") ,
+        "Name": container_def.get("Name") ,
+        "PortMappings": container_def.get("PortMappings", []) ,
+        "Environment": container_def.get("Environment", {}) ,
+        "Command": container_def.get("Command", {}) ,
+        "Secrets": container_def.get("Secrets", {}) ,
     }
     
     # Add LogConfiguration only if it exists in container_def
