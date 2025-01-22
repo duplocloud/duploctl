@@ -7,13 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.42] - 2025-01-17
+### Added  
 
- - Added support for SSM Parameter CRUD operations.
- - Added support for AWS Secrets Manager
- - Added support for updating the environment variables of a lambda.
- - start, stop, restart for service with `--wait`
- - Added support for configuring a load balancer for a service.
+  - Added support for updating the environment variables of a lambda.
+  - Added support for SSM Parameter CRUD operations.
+  - Added support for AWS Secrets Manager
+  - Added support for configuring a load balancer for a service.
+  - start, stop, restart for service with `--wait`
+
+### Fixed  
+
+  - Fixed duploctl ecs update_image service bug
 
 ## [0.2.41] - 2024-12-06
 

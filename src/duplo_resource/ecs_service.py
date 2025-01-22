@@ -183,13 +183,20 @@ class DuploEcsService(DuploTenantResourceV2):
     }
   
   def __ecs_container_update_body(self, container_def):
-    return {
-      "Essential": container_def["Essential"],
-      "Image": container_def["Image"],
-      "Name": container_def["Name"],
-      "PortMappings": container_def.get("PortMappings", []),
-      "LogConfiguration": container_def.get("LogConfiguration", {}),
-      "Environment": container_def.get("Environment", {}),
-      "Command": container_def.get("Command", {}),
-      "Secrets": container_def.get("Secrets", {}),
+    update_body = {
+        "Essential": container_def.get("Essential"),
+        "Image": container_def.get("Image") ,
+        "Name": container_def.get("Name") ,
+        "PortMappings": container_def.get("PortMappings", []) ,
+        "Environment": container_def.get("Environment", {}) ,
+        "Command": container_def.get("Command", {}) ,
+        "Secrets": container_def.get("Secrets", {}) ,
     }
+    
+    # Add LogConfiguration only if it exists in container_def
+    if "LogConfiguration" in container_def:
+        update_body["LogConfiguration"] = container_def["LogConfiguration"]
+    # Add FirelensConfiguration only if it exists in container_def
+    if "FirelensConfiguration" in container_def:
+        update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
+    return update_body
