@@ -196,7 +196,7 @@ class DuploEcsService(DuploTenantResourceV2):
     # Add LogConfiguration only if it exists in container_def
     if "LogConfiguration" in container_def:
         update_body["LogConfiguration"] = container_def["LogConfiguration"]
-    # Add LogConfiguration only if it exists in container_def
+    # Add FirelensConfiguration only if it exists in container_def
     if "FirelensConfiguration" in container_def:
         update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
     return update_body
