@@ -237,6 +237,11 @@ WAIT = Arg("wait", "-w",
            type=bool,
            action='store_true')
 
+ALL = Arg("all", "--all",
+           help='Boolean flag to select all. Defaults to False.',
+           type=bool,
+           action='store_true')
+
 SIZE = Arg("size",
            help='The instance size to use')
 
@@ -260,6 +265,10 @@ IMMEDIATE = Arg("immediate", "-i",
 
 TARGET = Arg("target", "--target-name",
              help='The target name to use')
+
+TARGETS = Arg("targets", "--targets",
+             nargs='+',
+             help='The list of targets')
 
 TIME = Arg("time", "--time",
            help='The time to use')

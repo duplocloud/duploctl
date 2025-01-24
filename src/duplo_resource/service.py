@@ -36,6 +36,52 @@ class DuploService(DuploTenantResourceV2):
     self.__old = None
     self.__updates = None
     self.__old_replicaset = None
+
+  def _validate_args(self, name, all, targets):
+    if sum(bool(x) for x in [name, all, targets]) > 1:
+      raise DuploError("You can only specify one of: a service name, the '--all' flag, or the '--targets' flag.")
+    if not any([name, all, targets]):
+      raise DuploError("You must specify a service name, use the '--all' flag, or provide '--targets'.")
+
+  def _process_service(self, action, service_name, results, wait):
+    """Helper function to process a service action (start/stop) and handle errors."""
+    try:
+      endpoint_action = "ReplicationController" + action.capitalize()
+      response = self.duplo.post(self.endpoint(f"{endpoint_action}/{service_name}"))
+
+      if response.status_code == 200:
+        results["success"].append(service_name)
+        if wait:
+          service = self.find(service_name)
+          self.wait(service, service)
+      else:
+        results["errors"].append(
+          {"service": service_name, "error": f"Unexpected response: {response}"}
+        )
+    except Exception as e:
+      results["errors"].append({"service": service_name, "error": str(e)})
+
+  def _perform_action(self, action, name=None, all=False, targets=None, wait=False):
+    """Generic method to perform a start or stop action on services."""
+    self._validate_args(name, all, targets)
+
+    results = {"success": [], "errors": []}
+
+    if all:
+      services = self.list()
+      for service in services:
+        service_name = service["Name"]
+        self._process_service(action, service_name, results, wait)
+    elif targets:
+      for service_name in targets:
+        self._process_service(action, service_name, results, wait)
+    else:
+      self._process_service(action, name, results, wait)
+
+    return {
+      "message": f"Service {action} operation completed.",
+      "details": results,
+    }
     
   @Command()
   def update(self, 
@@ -433,8 +479,10 @@ class DuploService(DuploTenantResourceV2):
     return {"message": f"Successfully restarted service '{name}'"}
   
   @Command()
-  def stop(self, 
-           name: args.NAME,
+  def stop(self,
+           name: args.NAME = None,
+           all: args.ALL = False,
+           targets: args.TARGETS = None,
            wait: args.WAIT = False) -> dict:
     """Stop a service.
 
@@ -443,27 +491,29 @@ class DuploService(DuploTenantResourceV2):
     Usage: Basic CLI Use
       ```sh
       duploctl service stop <service-name>
+      duploctl service stop --all
+      duploctl service stop --targets service1 service2 service3
       ```
-    
+
     Args:
       name (str): The name of the service to stop.
+      all (bool): Boolean flag to stop all services. Defaults to False.
+      targets (list[str]): List of service names to stop. Cannot be used with name or all.
       wait: Boolean flag to wait for service updates.
 
     Returns: 
-      A success message if the service was stopped successfully.  
+      A summary containing services that were stopped successfully and those that encountered errors.
       
     Raises:
-      DuploError: If the service could not be stopped.  
+      DuploError: If the service could not be stopped.
     """
-    self.duplo.post(self.endpoint(f"ReplicationControllerStop/{name}"))
-    if wait:
-      service = self.find(name)
-      self.wait(service, service)
-    return {"message": f"Successfully stopped service '{name}'"}
-  
+    return self._perform_action("Stop", name, all, targets, wait)
+
   @Command()
-  def start(self, 
-            name: args.NAME,
+  def start(self,
+            name: args.NAME = None,
+            all: args.ALL = False,
+            targets: args.TARGETS = None,
             wait: args.WAIT = False) -> dict:
     """Start a service.
 
@@ -472,23 +522,23 @@ class DuploService(DuploTenantResourceV2):
     Usage: Basic CLI Use
       ```sh
       duploctl service start <service-name>
+      duploctl service start --all
+      duploctl service start --targets service1 service2 service3
       ```
     
     Args:
       name (str): The name of the service to start.
+      all (bool): Boolean flag to start all services. Defaults to False.
+      targets (list[str]): List of service names to start. Cannot be used with name or all.
       wait: Boolean flag to wait for service updates.
 
     Returns: 
-      A success message if the service was started successfully.
+      A summary containing services that were started successfully and those that encountered errors.
 
     Raises:
       DuploError: If the service could not be started.
     """
-    self.duplo.post(self.endpoint(f"ReplicationControllerstart/{name}"))
-    if wait:
-      service = self.find(name)
-      self.wait(service, service)
-    return {"message": f"Successfully started service '{name}'"}
+    return self._perform_action("start", name, all, targets, wait)
 
   @Command()
   def pods(self, 
