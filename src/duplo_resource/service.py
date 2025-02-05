@@ -794,5 +794,5 @@ class DuploService(DuploTenantResourceV2):
     api_endpoint = f"v3/subscriptions/{tenant_id}/containers/replicationController/{name}/rollback"
     if to_revision:
       api_endpoint += f"/{to_revision}"
-    response = self.duplo.put(api_endpoint)
+    self.duplo.put(api_endpoint)
     return {"message": f"Successfully rolled back service '{name}'"}
