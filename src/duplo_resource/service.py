@@ -222,7 +222,8 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def update_image(self, 
                    name: args.NAME, 
-                   image: args.IMAGE,
+                   container: args.CONTAINER = None,
+                   image: args.IMAGE = None,
                    wait: args.WAIT = False) -> dict:
     """Update the image of a service.
 
@@ -231,37 +232,53 @@ class DuploService(DuploTenantResourceV2):
     Usage: Basic CLI Use
       ```sh
       duploctl service update_image <service-name> <image-name>
+      duploctl service update_image <service-name> --container <side-car-container> <image-name>
       ```
     
     Args:
       name: The name of the service to update.
       image: The new image to use for the service.
+      container: The name of the sidecar container to update image.
 
     Returns:
       message: Success message
     """
     service = self.find(name)
-    current_image =  self.image_from_body(service)
-    data = {
-      "Name": name,
-      "Image": image,
-      "AllocationTags": service["Template"].get("AllocationTags", "")
-    }
+    data = {}
 
-    # needed before the update so we know how many pods to wait for
-    if wait:
-      service["Replicaset"] = self.current_replicaset(name)
+    if container:
+      other_docker_config = loads(service["Template"]["OtherDockerConfig"])
+      additional_containers = other_docker_config.get("additionalContainers", [])
 
-    # if the tag is the same, reboot to pull new code, otherwise actual update
-    if(current_image == image):
-      self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
+      container_found = False
+      for c in additional_containers:
+        if c["name"] == container:
+          c["image"] = image
+          container_found = True
+          break
+
+      if not container_found:
+        return {"error": f"Side-car container '{container}' not found in service '{name}'"}
+
+      data = {
+        "Name": name,
+        "OtherDockerConfig": dumps(other_docker_config),
+        "AllocationTags": service["Template"].get("AllocationTags", "")
+      }
+
     else:
-      self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
-      
+      data = {
+        "Name": name,
+        "Image": image,
+        "AllocationTags": service["Template"].get("AllocationTags", "")
+      }
+
+    self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
+
     if wait:
       self.wait(service, data)
 
-    return {"message": f"Successfully updated image for service '{name}'"}
+    return {"message": f"Successfully updated image for {'container ' + container if container else 'service'} '{name}'"}
  
   @Command()
   def update_env(self, 

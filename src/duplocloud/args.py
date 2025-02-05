@@ -167,6 +167,9 @@ HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
 CONTAINER_PORT = Arg("container-port", "--container-port",
             help='Container port')
 
+CONTAINER = Arg("container", "--container", "-C",
+            help='The side-car container name')
+
 EXTERNAL_PORT = Arg("external-port", "--external-port",
             help='The external port')
 
