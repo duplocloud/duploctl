@@ -222,8 +222,9 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def update_image(self, 
                    name: args.NAME, 
-                   container: args.CONTAINER = None,
                    image: args.IMAGE = None,
+                   container: args.CONTAINER = None,
+                   container_image: args.CONTAINER_IMAGE = None,
                    wait: args.WAIT = False) -> dict:
     """Update the image of a service.
 
@@ -231,29 +232,34 @@ class DuploService(DuploTenantResourceV2):
 
     Usage: Basic CLI Use
       ```sh
-      duploctl service update_image <service-name> <image-name>
-      duploctl service update_image <service-name> --container <side-car-container> <image-name>
+      duploctl service update_image <service-name> <service-image>
+      duploctl service update_image <service-name> --container <side-car-container> --container-image <container-image>
       ```
     
     Args:
       name: The name of the service to update.
       image: The new image to use for the service.
       container: The name of the sidecar container to update image.
+      container_image: The new image of the sidecar container to update.
+      wait: Whether to wait for the update to complete.
 
     Returns:
       message: Success message
     """
+    if (image and (container or container_image)) or (not image and (container is None or container_image is None)):
+      return {"error": "Provide either <service-image> OR both --container <container-name> and --container-image <container-image>, but not both."}
+
     service = self.find(name)
     data = {}
 
-    if container:
+    if container and container_image:
       other_docker_config = loads(service["Template"]["OtherDockerConfig"])
       additional_containers = other_docker_config.get("additionalContainers", [])
 
       container_found = False
       for c in additional_containers:
         if c["name"] == container:
-          c["image"] = image
+          c["image"] = container_image
           container_found = True
           break
 
