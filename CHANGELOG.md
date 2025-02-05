@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Added enhancements to the start/stop service to select all services or specific ones.
+- Added support for service rollback with a specific revision.
 
 ## [0.2.44] - 2025-01-22
 

@@ -764,3 +764,35 @@ class DuploService(DuploTenantResourceV2):
 
     self.duplo.post(f"subscriptions/{tenant_id}/LBConfigurationUpdate", payload)
     return {"message": f"Successfully exposed service '{name}'"}
+
+  @Command()
+  def rollout(self,
+              name: args.NAME,
+              to_revision: args.TO_REVISION = None) -> dict:
+    """Rollback Service
+
+    Roll back a service to a specific revision (if provided) or the last known good state.
+
+    Usage:
+      ```sh
+      duploctl service rollout <service-name>
+      duploctl service rollout <service-name> --to-revision 2
+      ```
+
+    Args:
+        name (str): The name of the service to roll back.
+        to_revision (int, optional): The revision number to roll back to.
+
+    Returns:
+        A success message indicating the rollback status.
+
+    Raises:
+      DuploError: If the service could not be rollback.
+    """
+    service = self.find(name)
+    tenant_id = service["TenantId"]
+    api_endpoint = f"v3/subscriptions/{tenant_id}/containers/replicationController/{name}/rollback"
+    if to_revision:
+      api_endpoint += f"/{to_revision}"
+    response = self.duplo.put(api_endpoint)
+    return {"message": f"Successfully rolled back service '{name}'"}
