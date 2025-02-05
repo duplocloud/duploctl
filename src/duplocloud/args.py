@@ -153,6 +153,7 @@ NAME = Arg("name",
             help='The resource name')
 
 IMAGE = Arg("image", 
+            nargs='?',
             help='The image to use')
 
 S3BUCKET = Arg("bucket",
@@ -166,6 +167,12 @@ HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
 
 CONTAINER_PORT = Arg("container-port", "--container-port",
             help='Container port')
+
+CONTAINER = Arg("container", "--container", "-C",
+            help='The side-car container name')
+
+CONTAINER_IMAGE = Arg("container-image", "--container-image",
+            help='The side-car container image')
 
 EXTERNAL_PORT = Arg("external-port", "--external-port",
             help='The external port')

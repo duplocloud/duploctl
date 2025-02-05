@@ -222,7 +222,9 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def update_image(self, 
                    name: args.NAME, 
-                   image: args.IMAGE,
+                   image: args.IMAGE = None,
+                   container: args.CONTAINER = None,
+                   container_image: args.CONTAINER_IMAGE = None,
                    wait: args.WAIT = False) -> dict:
     """Update the image of a service.
 
@@ -230,38 +232,59 @@ class DuploService(DuploTenantResourceV2):
 
     Usage: Basic CLI Use
       ```sh
-      duploctl service update_image <service-name> <image-name>
+      duploctl service update_image <service-name> <service-image>
+      duploctl service update_image <service-name> --container <side-car-container> --container-image <container-image>
       ```
     
     Args:
       name: The name of the service to update.
       image: The new image to use for the service.
+      container: The name of the sidecar container to update image.
+      container_image: The new image of the sidecar container to update.
+      wait: Whether to wait for the update to complete.
 
     Returns:
       message: Success message
     """
+    if (image and (container or container_image)) or (not image and (container is None or container_image is None)):
+      return {"error": "Provide either <service-image> OR both --container <container-name> and --container-image <container-image>, but not both."}
+
     service = self.find(name)
-    current_image =  self.image_from_body(service)
-    data = {
-      "Name": name,
-      "Image": image,
-      "AllocationTags": service["Template"].get("AllocationTags", "")
-    }
+    data = {}
 
-    # needed before the update so we know how many pods to wait for
-    if wait:
-      service["Replicaset"] = self.current_replicaset(name)
+    if container and container_image:
+      other_docker_config = loads(service["Template"]["OtherDockerConfig"])
+      additional_containers = other_docker_config.get("additionalContainers", [])
 
-    # if the tag is the same, reboot to pull new code, otherwise actual update
-    if(current_image == image):
-      self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
+      container_found = False
+      for c in additional_containers:
+        if c["name"] == container:
+          c["image"] = container_image
+          container_found = True
+          break
+
+      if not container_found:
+        return {"error": f"Side-car container '{container}' not found in service '{name}'"}
+
+      data = {
+        "Name": name,
+        "OtherDockerConfig": dumps(other_docker_config),
+        "AllocationTags": service["Template"].get("AllocationTags", "")
+      }
+
     else:
-      self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
-      
+      data = {
+        "Name": name,
+        "Image": image,
+        "AllocationTags": service["Template"].get("AllocationTags", "")
+      }
+
+    self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
+
     if wait:
       self.wait(service, data)
 
-    return {"message": f"Successfully updated image for service '{name}'"}
+    return {"message": f"Successfully updated image for {'container ' + container if container else 'service'} '{name}'"}
  
   @Command()
   def update_env(self, 
