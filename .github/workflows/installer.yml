@@ -98,7 +98,7 @@ jobs:
     - name: Buildx MultiArch Installer
       if: matrix.os.multiarch
       id: installer-multiarch
-      uses: duplocloud/actions/build-image@main
+      uses: duplocloud/actions/build-image@build-image-registry-fix
       env:
         GIT_TAG: ${{ steps.info.outputs.GIT_TAG }}
       with:
