@@ -766,7 +766,7 @@ class DuploService(DuploTenantResourceV2):
     return {"message": f"Successfully exposed service '{name}'"}
 
   @Command()
-  def rollout(self,
+  def rollback(self,
               name: args.NAME,
               to_revision: args.TO_REVISION = None) -> dict:
     """Rollback Service
@@ -775,8 +775,8 @@ class DuploService(DuploTenantResourceV2):
 
     Usage:
       ```sh
-      duploctl service rollout <service-name>
-      duploctl service rollout <service-name> --to-revision 2
+      duploctl service rollback <service-name>
+      duploctl service rollback <service-name> --to-revision 2
       ```
 
     Args:
