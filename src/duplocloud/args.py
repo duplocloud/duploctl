@@ -165,6 +165,9 @@ S3KEY = Arg("key",
 HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
             help='The health check URL')
 
+TO_REVISION = Arg("revision", "--to-revision",
+            help='The revision to rollback to')
+
 CONTAINER_PORT = Arg("container-port", "--container-port",
             help='Container port')
 
