@@ -153,6 +153,7 @@ NAME = Arg("name",
             help='The resource name')
 
 IMAGE = Arg("image", 
+            nargs='?',
             help='The image to use')
 
 S3BUCKET = Arg("bucket",
@@ -169,6 +170,15 @@ TO_REVISION = Arg("revision", "--to-revision",
 
 CONTAINER_PORT = Arg("container-port", "--container-port",
             help='Container port')
+
+CONTAINER = Arg("container", "--container", "-C",
+            help='The container name')
+
+CONTAINER_IMAGE = Arg("container-image", "--container-image",
+            help='a key and value to set as a side-car container name and image',
+            action='append',
+            nargs=2,
+            metavar=('key', 'value'))
 
 EXTERNAL_PORT = Arg("external-port", "--external-port",
             help='The external port')
