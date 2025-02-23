@@ -336,6 +336,7 @@ Available Resources:
       The resource as a JSON object.
     """
     try:
+      print(f"{self.host}/{path}")
       response = requests.get(
         url = f"{self.host}/{path}",
         headers = self.__headers(),
