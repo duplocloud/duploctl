@@ -270,12 +270,6 @@ class AI(DuploTenantResourceV2):
         return "AI tool testing - Not yet implemented"
 
     @Command()
-    def tool_push(self):
-        """Push an AI tool to repository"""
-        # TODO: Implement tool pushing
-        return "AI tool pushing - Not yet implemented"
-
-    @Command()
     def tool_create(self):
         """Create an AI tool definition from tool.json"""
         try:
@@ -311,6 +305,5 @@ class AI(DuploTenantResourceV2):
         print("    tool package                     - Package and upload an AI tool as a zip to S3")
         print("    tool run                         - Run an AI tool as a docker container")
         print("    tool test                        - Test an AI tool")
-        print("    tool push                        - Push a build (docker image) to a registry")
         print("    agent <agent_name> --add-tool    - Add a tool to an agent")
         print("    agent <agent_name> --build       - Build an AI agent as a docker image")
