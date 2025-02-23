@@ -65,7 +65,13 @@ class AI:
                 },
                 no_input=False
             )
-            return f"Successfully initialized new AI tool '{project_name}' from template"
+            # Get the actual project directory name (it might be different from project_name due to slugification)
+            project_dir = project_name.lower().replace(' ', '-')
+            if os.path.exists(project_dir):
+                print(f"\nSuccessfully initialized new AI tool '{project_name}' from template")
+                print(f"\nTo enter the '{project_name}' project directory, run:")
+                print(f"cd {project_dir}")
+                
         except Exception as e:
             return f"Failed to initialize AI tool: {str(e)}"
 
