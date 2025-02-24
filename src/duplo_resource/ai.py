@@ -458,6 +458,104 @@ class AI(DuploTenantResourceV2):
         except Exception as e:
             return f"Failed to create AI tool definition: {str(e)}"
 
+    @Command()
+    def tool_list(self):
+        """List all AI tools
+        
+        Usage:
+            duploctl ai tool list
+            
+        Returns:
+            str: Formatted table of AI tools
+        """
+        t = self.duplo.load("tenant")
+        tenant = t.find()
+        
+        try:
+            response = self.duplo.get(f"proxy/ai-studio/v1/aistudio/toolDefinitions/{tenant['TenantId']}")
+            tools = json.loads(response.content.decode('utf-8'))
+            
+            max_name_len = max(len(tool.get('name', '')) for tool in tools)
+            name_width = max(max_name_len, 4)
+            
+            # Create the header
+            header = f"{'NAME':{name_width}}"
+            separator = f"{'-' * name_width}"
+            
+            # Create the rows
+            rows = []
+            for tool in tools:
+                name = tool.get('name', '')
+                row = f"{name:{name_width}}"
+                rows.append(row)
+            
+            # Combine all parts
+            table = '\n'.join([header, separator] + rows)
+            print(table)
+            
+            return
+        except Exception as e:
+            return f"Failed to list tools: {str(e)}"
+
+    @Command()
+    def tool_show(self, tool_name: args.NAME):
+        """Show detailed information about a specific AI tool
+        
+        Args:
+            tool_name: Name of the AI tool to show details for
+            
+        Usage:
+            duploctl ai tool show <tool_name>
+            
+        Returns:
+            str: Formatted table showing tool details
+        """
+        t = self.duplo.load("tenant")
+        tenant = t.find()
+        
+        try:
+            response = self.duplo.get(f"proxy/ai-studio/v1/aistudio/toolDefinitions/{tenant['TenantId']}/{tool_name}")
+            
+            if response is None:
+                return f"Tool '{tool_name}' not found"
+                
+            # Parse the response content
+            tool_info = json.loads(response.content.decode('utf-8'))
+            
+            # Prepare the data for display
+            details = [
+                ("Name", tool_name),
+                ("deploymentEnvVars", tool_info.get('deploymentEnvVars', 'N/A')),
+                ("buildEnvVars", tool_info.get('buildEnvVars', 'N/A')),
+                ("package", tool_info.get('package', 'N/A')),
+                ("metaData", tool_info.get('metaData', 'N/A')),
+                ("Last Modified", tool_info.get('lastModified', 'N/A'))
+            ]
+            
+            # Find the maximum lengths for formatting
+            max_key_len = max(len(key) for key, _ in details)
+            max_value_len = max(len(str(value)) for _, value in details)
+            
+            # Set minimum column widths
+            key_width = max(max_key_len, 12)     # 'PROPERTY' header length
+            value_width = max(max_value_len, 5)  # 'VALUE' header length
+            
+            # Create the header
+            header = f"{'PROPERTY':{key_width}} | {'VALUE':{value_width}}"
+            separator = f"{'-' * key_width}-+-{'-' * value_width}"
+            
+            # Create the rows
+            rows = [f"{key:{key_width}} | {str(value):{value_width}}" for key, value in details]
+            
+            # Combine all parts
+            table = '\n'.join([header, separator] + rows)
+            print(table)
+            
+            return
+            
+        except Exception as e:
+            return f"Failed to show tool details: {str(e)}"
+
     def help(self):
         """Show AI tool help"""
         print("Available AI commands:")
@@ -466,6 +564,8 @@ class AI(DuploTenantResourceV2):
         print("    tool package                                 - Package and upload an AI tool as a zip to S3")
         print("    tool run                                     - Run an AI tool as a docker container")
         print("    tool test                                    - Test an AI tool")
+        print("    tool list                                    - List all AI tools")
+        print("    tool show <tool_name>                        - Show details for a tool")
         print("    agent <agent_name> --add-tool <tool_name>    - Add a tool to an agent")
         print("    agent <agent_name> --build                   - Build an AI agent as a docker image")
         print("    agent list                                   - List all AI agents")
