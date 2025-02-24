@@ -50,32 +50,156 @@ class AI(DuploTenantResourceV2):
         """Manage AI agents
         
         Usage:
-            duploctl ai agent <agent_name> --add-tool <tool_name>
-            duploctl ai agent --build <agent_name>
+            duploctl ai agent list                           # List all agents
+            duploctl ai agent show <agent_name>             # Show agent details
+            duploctl ai agent <agent_name>                   # Show agent details (alternative)
+            duploctl ai agent <agent_name> --add-tool <tool_name>  # Add a tool to an agent
+            duploctl ai agent <agent_name> --build         # Build a specific agent
         """
         if first_arg is None:
             return self.help()
 
-        # Check if first argument is a command (starts with --)
+        # Handle global commands that don't require an agent name
+        if first_arg == "list":
+            return self.agent_list()
+            
+        # Handle 'show' command format: duploctl ai agent show <agent_name>
+        if first_arg == "show":
+            if second_arg is None:
+                raise ValueError("Agent name is required for show command")
+            return self.agent_show(second_arg)
+
+        # Handle agent-specific commands
         if first_arg.startswith('--'):
+            # Command comes first, agent name second (e.g., --build agent_name)
             command = first_arg.lstrip('-').replace('-', '_')
             agent_name = second_arg
             if agent_name is None:
                 raise ValueError(f"Agent name is required for command: {first_arg}")
         else:
+            # Agent name comes first
             agent_name = first_arg
-            command = second_arg.lstrip('-').replace('-', '_') if second_arg else None
-            
-        if command is None:
-            # TODO: Show agent details when no command is provided
-            return f"Showing details for agent: {agent_name} (not implemented)"
+            if second_arg is None:
+                # Show agent details when no command is provided
+                return self.agent_show(agent_name)
+            if not second_arg.startswith('--'):
+                raise ValueError(f"Invalid command format. Use --command format (e.g., --add-tool, --build)")
+            command = second_arg.lstrip('-').replace('-', '_')
         
         method = f"agent_{command}"
-        print(method)
         if hasattr(self, method):
             return getattr(self, method)(agent_name, *agent_args)
         else:
-            raise ValueError(f"Unknown AI agent command: {command}. Available commands: --add-tool, --build")
+            raise ValueError(f"Unknown AI agent command: {command}. Available commands: list, show, --add-tool, --build")
+
+    @Command()
+    def agent_list(self):
+        """List all AI agents
+        
+        Usage:
+            duploctl ai agent list
+            
+        Returns:
+            str: Formatted table of AI agents and their tools
+        """
+        t = self.duplo.load("tenant")
+        tenant = t.find()
+        
+        try:
+            response = self.duplo.get(f"proxy/ai-studio/v1/aistudio/agentDefinitions/{tenant['TenantId']}")
+            
+            # Parse the response content from bytes to JSON
+            agents = json.loads(response.content.decode('utf-8'))
+            
+            # Find the maximum lengths for formatting
+            max_name_len = max(len(agent.get('name', '')) for agent in agents)
+            max_tools_len = max(len(', '.join(agent.get('toolDefinitions', []))) for agent in agents)
+            
+            # Set minimum column widths
+            name_width = max(max_name_len, 5)  # 'AGENT' header length
+            tools_width = max(max_tools_len, 5)  # 'TOOLS' header length
+            
+            # Create the header
+            header = f"{'AGENT':{name_width}} | {'TOOLS':{tools_width}}"
+            separator = f"{'-' * name_width}-+-{'-' * tools_width}"
+            
+            # Create the rows
+            rows = []
+            for agent in agents:
+                name = agent.get('name', '')
+                tools = ', '.join(agent.get('toolDefinitions', []))
+                row = f"{name:{name_width}} | {tools:{tools_width}}"
+                rows.append(row)
+            
+            # Combine all parts
+            table = '\n'.join([header, separator] + rows)
+            print(table)
+            
+            return
+        except Exception as e:
+            return f"Failed to list agents: {str(e)}"
+            
+    @Command()
+    def agent_show(self, agent_name: args.NAME):
+        """Show detailed information about a specific AI agent
+        
+        Args:
+            agent_name: Name of the AI agent to show details for
+            
+        Usage:
+            duploctl ai agent show <agent_name>
+            
+        Returns:
+            str: Formatted table showing agent details
+        """
+        t = self.duplo.load("tenant")
+        tenant = t.find()
+        
+        try:
+            response = self.duplo.get(f"proxy/ai-studio/v1/aistudio/agentDefinitions/{tenant['TenantId']}/{agent_name}")
+            
+            if response is None:
+                return f"Agent '{agent_name}' not found"
+                
+            # Parse the response content
+            agent_info = json.loads(response.content.decode('utf-8'))
+            
+            # Prepare the data for display
+            details = [
+                ("Name", agent_name),
+                ("Type", agent_info.get('agentType', 'N/A')),
+                ("Provider", agent_info.get('provider', 'N/A')),
+                ("Model", agent_info.get('model_Id', 'N/A')),
+                ("Tools", ", ".join(agent_info.get('toolDefinitions', []))),
+                ("Temperature", agent_info.get('temperature', 'N/A')),
+                ("Max Tokens", agent_info.get('max_Token', 'N/A')),
+                ("Last Modified", agent_info.get('lastModified', 'N/A'))
+            ]
+            
+            # Find the maximum lengths for formatting
+            max_key_len = max(len(key) for key, _ in details)
+            max_value_len = max(len(str(value)) for _, value in details)
+            
+            # Set minimum column widths
+            key_width = max(max_key_len, 12)     # 'PROPERTY' header length
+            value_width = max(max_value_len, 5)  # 'VALUE' header length
+            
+            # Create the header
+            header = f"{'PROPERTY':{key_width}} | {'VALUE':{value_width}}"
+            separator = f"{'-' * key_width}-+-{'-' * value_width}"
+            
+            # Create the rows
+            rows = [f"{key:{key_width}} | {str(value):{value_width}}" for key, value in details]
+            
+            # Combine all parts
+            table = '\n'.join([header, separator] + rows)
+            print(table)
+            
+            # Return empty string since we're printing the table
+            return
+            
+        except Exception as e:
+            return f"Failed to get agent details: {str(e)}"
 
     @Command()
     def agent_build(self, agent_name: args.NAME):
@@ -251,17 +375,54 @@ class AI(DuploTenantResourceV2):
         Raises:
             Exception: If unable to fetch the build settings
         """
-        # TODO: make this dynamic!!!
-        settings_path = "proxy/ai-studio/v1/aistudio/settings/ea73f43c-dda3-4fb5-998d-54f262238225/default-agent-build-settings/metadata"
+        t = self.duplo.load("tenant")
+        tenant = t.find()
+        settings_path = f"proxy/ai-studio/v1/aistudio/settings/{tenant['TenantId']}/default-agent-build-settings/metadata"
         response = self.duplo.get(settings_path)
         settings = response.json()
         return settings['agent-build-artifact-storage']
 
     @Command()
     def tool_run(self):
-        """Run an AI tool"""
-        # TODO: Implement tool running
-        return "AI tool running - Not yet implemented"
+        """Run an AI tool
+        
+        This command checks if you are in a directory with a tool.json file and runs
+        the AI tool container with the appropriate configuration.
+        
+        Usage:
+            duploctl ai tool run
+        """
+        # Check if tool.json exists in current directory
+        if not os.path.exists('tool.json'):
+            raise Exception("No tool.json found in current directory")
+            
+        # Get AWS credentials using JIT service
+        jit_svc = self.duplo.load("jit")
+        creds = jit_svc.aws()
+        
+        # Run the container with AWS credentials and mounted config
+        cmd = [
+            'podman', 'run',
+            '-e', f'AGENT_BUILD_CONFIG_PATH=/tmp/tool/build.json',
+            '-e', f'ENVIRONMENT=dev',
+            '-e', f'AWS_DEFAULT_REGION={creds.get("Region", "us-east-1")}',
+            '-e', f'AWS_ACCESS_KEY_ID={creds.get("AccessKeyId")}',
+            '-e', f'AWS_SECRET_ACCESS_KEY={creds.get("SecretAccessKey")}',
+            '-e', f'AWS_SESSION_TOKEN={creds.get("SessionToken")}',
+            '-e', "FLASK_ENV=development",
+            '-e', "FLASK_DEBUG=true",
+            '-v', f'{os.getcwd()}:/tmp/tool/',
+            '-p', '30000:5000',
+            '938690564755.dkr.ecr.us-east-1.amazonaws.com/duplo-langchain:latest'
+        ]
+        
+        # Execute the command
+        try:
+            import subprocess
+            subprocess.run(cmd, check=True)
+            return "AI tool completed successfully"
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"AI tool failed with exit code {e.returncode}")
 
     @Command()
     def tool_test(self):
@@ -307,3 +468,4 @@ class AI(DuploTenantResourceV2):
         print("    tool test                        - Test an AI tool")
         print("    agent <agent_name> --add-tool    - Add a tool to an agent")
         print("    agent <agent_name> --build       - Build an AI agent as a docker image")
+        print("    agent list        - List all AI agents")
