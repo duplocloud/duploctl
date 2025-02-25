@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.45] - 2025-02-25
+
 - Added enhancements to the start/stop service to select all services or specific ones.
 - Added enhancement to update_image service to also update the sidecar container image.
 - Added support for service rollback with a specific revision.
