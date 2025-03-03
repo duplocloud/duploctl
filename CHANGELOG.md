@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed 
+
+ - Fixed issue where AgentPlatform key needed to be copied up to the top level of the service object 
+
 ## [0.2.45] - 2025-02-25
 
 - Added enhancements to the start/stop service to select all services or specific ones.
