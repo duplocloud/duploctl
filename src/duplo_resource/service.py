@@ -125,6 +125,7 @@ class DuploService(DuploTenantResourceV2):
         and not body.get("AllocationTags", None)):
       body["AllocationTags"] = ttags
     body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
+    body["AgentPlatform"] = body["Template"].get("AgentPlatform", 0)
     self.duplo.post(self.endpoint("ReplicationControllerChangeAll"), body)
     if wait:
       self.wait(old, body)
