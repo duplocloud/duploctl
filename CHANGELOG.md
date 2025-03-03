@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.46] - 2025-03-03
+
 ### Fixed 
 
  - Fixed issue where AgentPlatform key needed to be copied up to the top level of the service object 
