@@ -213,6 +213,12 @@ SETVAR = Arg("setvar", "-V",
             nargs=2,
             metavar=('key', 'value'))
 
+SETMETA = Arg("setmeta", "-V",
+            help='A key value and type for the metadata.',
+            action='append',
+            nargs=3,
+            metavar=('key', 'type', 'value'))
+
 STRATEGY = Arg("strategy", "-strat",
             help='The merge strategy to use. Valid options are \"merge\" or \"replace\".  Default is merge.',
             choices=['merge', 'replace'],
