@@ -225,6 +225,7 @@ class DuploService(DuploTenantResourceV2):
                    name: args.NAME, 
                    image: args.IMAGE = None,
                    container_image: args.CONTAINER_IMAGE = None,
+                   init_container_image: args.INIT_CONTAINER_IMAGE = None,
                    wait: args.WAIT = False) -> dict:
     """Update the image of a service.
 
@@ -232,34 +233,39 @@ class DuploService(DuploTenantResourceV2):
       ```sh
       duploctl service update_image <service-name> <service-image>
       duploctl service update_image <service-name> --container-image <side-car-container> <container-image>
+      duploctl service update_image <service-name> --init-container-image <init-container> <init-container-image>
       ```
-    
+
     Args:
       name: The name of the service to update.
       image: The new image to use for the service.
       container_image: A list of key-value pairs to set as sidecar container image.
+      init_container_image: A list of key-value pairs to set as init container image.
       wait: Whether to wait for the update to complete.
 
     Returns:
       message: Success message
     """
-    if image and container_image:
-      raise DuploError("Provide either <service-image> OR --container-image <side-car-container> <container-image>, but not both.")
-    if not image and not container_image:
-      raise DuploError("Provide either <service-image> or --container-image <side-car-container> <container-image>.")
+    if [image, container_image, init_container_image].count(None) != 2:
+      raise DuploError("Provide a service image, container images, or init container images.")
 
     service = self.find(name)
     data = {}
     updated_containers = []
     not_found_containers = []
 
-    if container_image:
+    if not image:
       other_docker_config = loads(service["Template"].get("OtherDockerConfig", "{}"))
-      additional_containers = other_docker_config.get("additionalContainers", [])
+      if container_image:
+        images = container_image
+        containers = other_docker_config.get("additionalContainers", [])
+      elif init_container_image:
+        images = init_container_image
+        containers = other_docker_config.get("initContainers", [])
 
-      for key, value in container_image:
+      for key, value in images:
         container_found = False
-        for c in additional_containers:
+        for c in containers:
           if c["name"] == key:
             c["image"] = value
             updated_containers.append(key)
@@ -269,7 +275,7 @@ class DuploService(DuploTenantResourceV2):
           not_found_containers.append(key)
 
       if not updated_containers:
-        raise DuploError(f"No matching side-car containers found in service '{name}'")
+        raise DuploError(f"No matching containers found in service '{name}'")
 
       data = {
         "Name": name,
@@ -291,9 +297,9 @@ class DuploService(DuploTenantResourceV2):
 
     response_message = "Successfully updated image for service."
     if updated_containers:
-      response_message += f" Updated side-car containers: {', '.join(updated_containers)}."
+      response_message += f" Updated containers: {', '.join(updated_containers)}."
     if not_found_containers:
-      response_message += f" Could not find side-car containers: {', '.join(not_found_containers)}."
+      response_message += f" Could not find containers: {', '.join(not_found_containers)}."
 
     return {"message": response_message}
  
