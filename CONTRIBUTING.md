@@ -16,7 +16,7 @@ Here is a good start for a decent `.envrc` file.
 
 ```sh
 source_up .envrc # only when this is under a parent workspace containing a .envrc file
-layout python3 # creates the python venv using direnv
+layout python3 # creates the python venv using direnv and sets the VIRTUAL_ENV environment variable to use it
 PATH_add ./scripts # adds the scripts folder to the path
 
 # this localizes the entire duploctl environment so all is generated within the config folder
@@ -30,21 +30,13 @@ export DUPLO_CACHE="${DUPLO_HOME}/cache"
 
 ## Installation
 
-As always, create an activate a [venv](https://docs.python.org/3/library/venv.html).
-
-```sh
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-```
-
 Install dependencies in editable mode so you can use step through debugging. All of the optional dependencies are included within the square brackets. You can see what they all are in the [`pyproject.toml`](pyproject.toml) file.
 
 ```sh
 pip install --editable '.[build,test,aws,docs]'
 ```
 
-Now, running `duploctl` will execute the code in your repo clone. If you installed `duploctl` via Homebrew, the Homebrew install may take precedence.
+Now, running `duploctl` will execute the code in your repo clone.
 
 The unit tests are a good starting place for development.
 
