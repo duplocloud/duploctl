@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed 
+
+- Added a generic exception block to handle any unexpected errors that are not instances of DuploError.
+
 ### Added
 
 - Support init containers in the update_image subcommand for services.
