@@ -200,3 +200,51 @@ class DuploEcsService(DuploTenantResourceV2):
     if "FirelensConfiguration" in container_def:
         update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
     return update_body
+  
+  @Command()
+  def list_tasks(self,
+                 name: args.NAME) -> list:
+    """List tasks for an ECS service.
+    """
+    tenant_id = self.tenant["TenantId"]
+    path = f"v3/subscriptions/{tenant_id}/aws/ecsTasks/{name}"
+    res = self.duplo.get(path)
+    return res.json()
+  
+  @Command()
+  def run_task(self, 
+               name: args.NAME,
+               replicas: args.REPLICAS,
+               wait: args.WAIT) -> dict:
+    """Run a task for an ECS service."
+
+    Execute a task based on some definition. 
+
+    Args:
+      name: The name of the ECS service to run the task for.
+      replicas: The number of replicas to run.
+      wait: Whether to wait for the task to complete.
+    Returns:
+      message: A message indicating the task has been run.
+    """
+    td = self.find_def(name)
+    tenant_id = self.tenant["TenantId"]
+    path = f"v3/subscriptions/{tenant_id}/aws/runEcsTask"
+    body = {
+      "TaskDefinition": td["TaskDefinitionArn"], 
+      "Count": replicas if replicas else 1
+    }
+    res = self.duplo.post(path, body)
+    if wait:
+      self.wait(lambda: self.wait_on_task(name))
+    return res.json()
+
+  @Command()
+  def wait_on_task(self,
+                   name: args.NAME) -> None: 
+    """Wait for an ECS task to complete."""
+    tasks = self.list_tasks(name)
+    # filter the tasks down to any where the DesiredStatus and LastStatus are different
+    running_tasks = [t for t in tasks if t["DesiredStatus"] != t["LastStatus"]]
+    if len(running_tasks) > 0:
+      raise DuploError(f"Service {name} waiting for replicas update", 400)
