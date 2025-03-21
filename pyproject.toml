@@ -51,7 +51,8 @@ test = [
   "pytest-isort",
   "pytest-cov",
   "pytest-dependency",
-  "pytest-order"
+  "pytest-order",
+  "pytest-mock"
 ]
 aws = [
   "boto3>=1.34.83"

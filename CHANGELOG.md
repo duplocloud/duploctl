@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Added few tests for tenant.
+### Added
+
+- Support init containers in the update_image subcommand for services.
+- Added integration tests for missing tenant methods: list_users, billing, region, and dns_config.
 
 ## [0.2.46] - 2025-03-03
 

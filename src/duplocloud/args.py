@@ -180,6 +180,12 @@ CONTAINER_IMAGE = Arg("container-image", "--container-image",
             nargs=2,
             metavar=('key', 'value'))
 
+INIT_CONTAINER_IMAGE = Arg("init-container-image", "--init-container-image",
+            help='a key and value to set as an init container name and image',
+            action='append',
+            nargs=2,
+            metavar=('key', 'value'))
+
 EXTERNAL_PORT = Arg("external-port", "--external-port",
             help='The external port')
 

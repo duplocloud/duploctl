@@ -10,13 +10,13 @@ Clone the repo with the wiki submodule. The wiki submodule contains the static c
 git clone --recurse-submodules git@github.com:duplocloud/duploctl.git
 ```
 
-## Direnv Setup
+## [Direnv](https://github.com/direnv/direnv) Setup
 
 Here is a good start for a decent `.envrc` file.
 
 ```sh
 source_up .envrc # only when this is under a parent workspace containing a .envrc file
-layout python3 # creates the python venv using direnv
+layout python3 # creates the python venv using direnv and sets the VIRTUAL_ENV environment variable to use it
 PATH_add ./scripts # adds the scripts folder to the path
 
 # this localizes the entire duploctl environment so all is generated within the config folder
@@ -35,6 +35,16 @@ Install dependencies in editable mode so you can use step through debugging. All
 ```sh
 pip install --editable '.[build,test,aws,docs]'
 ```
+
+Now, running `duploctl` will execute the code in your repo clone.
+
+The unit tests are a good starting place for development.
+
+```sh
+pytest src -m unit
+```
+
+⚠️ There are also integration tests. If you run with `-m integration` or without `-m` and you have a valid `duploctl` configuration (e.g. `DUPLO_TOKEN`, etc.), these tests will create resources in your portal.
 
 ## Changelog
 
