@@ -77,3 +77,38 @@ class TestTenant:
     except DuploError as e:
       pytest.fail(f"Failed to delete tenant: {e}")
 
+  @pytest.mark.integration
+  def test_list_users(self, duplo):
+    r = duplo.load("tenant")
+    try:
+      users = r("list_users", "default")
+    except DuploError as e:
+      pytest.fail(f"Failed to list users: {e}")
+    assert isinstance(users, list)
+
+  @pytest.mark.integration
+  def test_billing(self, duplo):
+    r = duplo.load("tenant")
+    try:
+      billing = r("billing", "default")
+    except DuploError as e:
+      pytest.fail(f"Failed to get billing info: {e}")
+    assert isinstance(billing, dict)
+
+  @pytest.mark.integration
+  def test_region(self, duplo):
+    r = duplo.load("tenant")
+    try:
+      region = r("region", "default")
+    except DuploError as e:
+      pytest.fail(f"Failed to get region: {e}")
+    assert "region" in region
+
+  @pytest.mark.integration
+  def test_dns_config(self, duplo):
+    r = duplo.load("tenant")
+    try:
+      dns = r("dns_config", "default")
+    except DuploError as e:
+      pytest.fail(f"Failed to get DNS config: {e}")
+    assert isinstance(dns, dict)
