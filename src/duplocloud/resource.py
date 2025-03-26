@@ -139,6 +139,15 @@ class DuploTenantResourceV2(DuploResourceV2):
         self.__tenant_id = self.tenant["TenantId"]
     return self.__tenant_id
   
+  def prefixed_name(self, name: str) -> str:
+    """Make sure name is prefixed
+    """
+    tenant_name = self.tenant["AccountName"]
+    prefix = f"duploservices-{tenant_name}-"
+    if not name.startswith(prefix):
+      name = f"{prefix}{name}"
+    return name
+  
   def endpoint(self, path: str=None):
     return f"subscriptions/{self.tenant_id}/{path}"
   

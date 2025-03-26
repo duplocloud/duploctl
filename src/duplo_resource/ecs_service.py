@@ -12,7 +12,7 @@ class DuploEcsService(DuploTenantResourceV2):
     super().__init__(duplo)
 
   @Command()
-  def list(self):
+  def list_services(self):
     """Retrieve a list of all ECS services in a tenant."""
     tenant_id = self.tenant["TenantId"]
     url = f"subscriptions/{tenant_id}/GetEcsServices"
@@ -20,21 +20,36 @@ class DuploEcsService(DuploTenantResourceV2):
     return response.json()
   
   @Command()
-  def find(self, 
+  def find_service_family(self, 
            name: args.NAME):
-    """Find a ECS service by name.
+    """Find an ECS Services task definition family by name.
 
     Args:
-      name (str): The name of the ECS service to find.
+      name (str): The name of the ECS task definition to find.
     Returns:
-      The ECS service object.
+      The ECS task definition object.
     Raises:
-      DuploError: If the ECS service could not be found.
+      DuploError: If the ECS task definition could not be found.
     """
-    try:
-      return [s for s in self.list() if s["Name"] == name][0]
-    except IndexError:
-      raise DuploError(f"ECS Service '{name}' not found", 404)
+    tenant_id = self.tenant["TenantId"]
+    path = f"v3/subscriptions/{tenant_id}/aws/ecs/service/taskDefFamily/{name}"
+    response = self.duplo.get(path)
+    return response.json()
+  
+  @Command()
+  def delete_service(self,
+                     name: args.NAME) -> dict:
+    """Delete an ECS service.
+
+    Args:
+      name: The name of the ECS service to delete.
+    Returns:
+      message: A message indicating the service has been deleted.
+    """
+    tenant_id = self.tenant["TenantId"]
+    path = f"subscriptions/{tenant_id}/DeleteEcsService/{name}"
+    response = self.duplo.post(path, {})
+    return response.json()
   
   @Command()
   def list_task_def_family(self) -> dict:
@@ -68,6 +83,7 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
+    name = self.prefixed_name(name)
     tdf = self.find_task_def_family(name)
     arn = tdf["VersionArns"][-1]
     return self.find_def_by_arn(arn)
@@ -84,8 +100,7 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
-    tenant_id = self.tenant["TenantId"]
-    path = f"subscriptions/{tenant_id}/FindEcsTaskDefinition"
+    path = self.endpoint("FindEcsTaskDefinition")
     response = self.duplo.post(path, {"Arn": arn})
     return response.json()
       
@@ -101,13 +116,14 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
+    name = self.prefixed_name(name)
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/taskDefFamily/{name}"
     response = self.duplo.get(path)
     return response.json()
-  
+    
   @Command()
-  def update(self, 
+  def update_service(self, 
              body: args.BODY):
     """Update an ECS service.
 
@@ -118,8 +134,7 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
       DuploError: If the ECS service could not be updated.
     """
-    tenant_id = self.tenant["TenantId"]
-    path = f"subscriptions/{tenant_id}/UpdateEcsService"
+    path = self.endpoint("UpdateEcsService")
     self.duplo.post(path, body)
     return {"message": "ECS Service updated"}
   
@@ -135,8 +150,7 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
       DuploError: If the ECS task definition could not be updated.
     """
-    tenant_id = self.tenant["TenantId"]
-    path = f"subscriptions/{tenant_id}/UpdateEcsTaskDefinition"
+    path = self.endpoint("UpdateEcsTaskDefinition")
     b = self.__ecs_task_def_body(body)
     response = self.duplo.post(path, b)
     return {"arn": response.json()}
@@ -144,7 +158,8 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def update_image(self, 
                    name: args.NAME, 
-                   image: args.IMAGE) -> dict:
+                   image: args.IMAGE,
+                   wait: args.WAIT) -> dict:
     """Update the image for an ECS service.
 
     Example:
@@ -161,12 +176,26 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
         DuploError: If the ECS service could not be updated.
     """
-    svc = self.find(name)
-    tdf = self.find_def_by_arn(svc["TaskDefinition"])
+    name = self.prefixed_name(name)
+    tdf = self.find_def(name) 
     tdf["ContainerDefinitions"][0]["Image"] = image
     arn = self.update_taskdef(tdf)["arn"]
-    svc["TaskDefinition"] = arn
-    return self.update(svc)
+    msg = "Updating a task definition and its corresponding service."
+    svc = None
+    try:
+      svcFam = self.find_service_family(name)
+      svc = svcFam["DuploEcsService"]
+      svc["TaskDefinition"] = arn
+    except DuploError:
+      msg = "No Service Configured, only the definition is updated."
+    # run update here so the errors bubble up correctly
+    if svc: 
+      self.update_service(svc)
+      if wait:
+        self.wait(lambda: self.wait_on_task(name))
+    return {
+      "message": msg
+    }
 
   def __ecs_task_def_body(self, task_def):
     containers = [
@@ -200,3 +229,50 @@ class DuploEcsService(DuploTenantResourceV2):
     if "FirelensConfiguration" in container_def:
         update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
     return update_body
+  
+  @Command()
+  def list_tasks(self,
+                 name: args.NAME) -> list:
+    """List tasks for an ECS service.
+    """
+    tenant_id = self.tenant["TenantId"]
+    path = f"v3/subscriptions/{tenant_id}/aws/ecsTasks/{name}"
+    res = self.duplo.get(path)
+    return res.json()
+  
+  @Command()
+  def run_task(self, 
+               name: args.NAME,
+               replicas: args.REPLICAS,
+               wait: args.WAIT) -> dict:
+    """Run a task for an ECS service."
+
+    Execute a task based on some definition. 
+
+    Args:
+      name: The name of the ECS service to run the task for.
+      replicas: The number of replicas to run.
+      wait: Whether to wait for the task to complete.
+    Returns:
+      message: A message indicating the task has been run.
+    """
+    td = self.find_def(name)
+    tenant_id = self.tenant["TenantId"]
+    path = f"v3/subscriptions/{tenant_id}/aws/runEcsTask"
+    body = {
+      "TaskDefinition": td["TaskDefinitionArn"], 
+      "Count": replicas if replicas else 1
+    }
+    res = self.duplo.post(path, body)
+    if wait:
+      self.wait(lambda: self.wait_on_task(name))
+    return res.json()
+
+  def wait_on_task(self,
+                   name: str) -> None: 
+    """Wait for an ECS task to complete."""
+    tasks = self.list_tasks(name)
+    # filter the tasks down to any where the DesiredStatus and LastStatus are different
+    running_tasks = [t for t in tasks if t["DesiredStatus"] != t["LastStatus"]]
+    if len(running_tasks) > 0:
+      raise DuploError(f"Service {name} waiting for replicas update", 400)

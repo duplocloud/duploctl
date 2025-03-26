@@ -1,0 +1,25 @@
+Name: myapp
+DnsPrfx: ecs01-myapp
+Replicas: 1
+IsTargetGroupOnly: false
+HealthCheckGracePeriodSeconds: 0
+OldTaskDefinitionBufferSize: 10
+LBConfigurations:
+- IsInternal: true
+  Protocol: http
+  LbType: 1
+  BeProtocolVersion: HTTP1
+  TgCount: 1
+  HealthCheckConfig:
+    HealthyThresholdCount: 
+    UnhealthyThresholdCount: 
+    HealthCheckTimeoutSeconds: 
+    HealthCheckIntervalSeconds: 
+    HttpSuccessCode: 
+    GrpcSuccessCode: 
+  Port: 80
+  ExternalPort: 443
+  HealthCheckUrl: "/"
+  CertificateArn: arn:aws:acm:us-west-2:1234567890:certificate/bigid
+CapacityProviderStrategy: []
+TaskDefinition: arn:aws:ecs:us-west-2:1234567890:task-definition/duploservices-ecs01-myapp:1
