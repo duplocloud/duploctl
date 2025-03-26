@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed 
+
+- Added a generic exception block to handle any unexpected errors that are not instances of DuploError.
+
+### Added
+
+- Support init containers in the update_image subcommand for services.
+- Added integration tests for missing tenant methods: list_users, billing, region, and dns_config.
+- Added unit tests for missing service methods: create, delete, start, restart and stop.
+
 ## [0.2.46] - 2025-03-03
 
 ### Fixed 
