@@ -158,7 +158,8 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def update_image(self, 
                    name: args.NAME, 
-                   image: args.IMAGE) -> dict:
+                   image: args.IMAGE,
+                   wait: args.WAIT) -> dict:
     """Update the image for an ECS service.
 
     Example:
@@ -179,15 +180,19 @@ class DuploEcsService(DuploTenantResourceV2):
     tdf = self.find_def(name) 
     tdf["ContainerDefinitions"][0]["Image"] = image
     arn = self.update_taskdef(tdf)["arn"]
-    msg = "Updating a task definition and it's corresponding service."
+    msg = "Updating a task definition and its corresponding service."
+    svc = None
     try:
       svcFam = self.find_service_family(name)
       svc = svcFam["DuploEcsService"]
       svc["TaskDefinition"] = arn
-      # erm, these errors should bubble up but they are probably getting suppressed because the two previous lines should be suppressed, however this line can only happen if there is actually a service
-      self.update_service(svc)
     except DuploError:
       msg = "No Service Configured, only the definition is updated."
+    # run update here so the errors bubble up correctly
+    if svc: 
+      self.update_service(svc)
+      if wait:
+        self.wait(lambda: self.wait_on_task(name))
     return {
       "message": msg
     }
@@ -263,9 +268,8 @@ class DuploEcsService(DuploTenantResourceV2):
       self.wait(lambda: self.wait_on_task(name))
     return res.json()
 
-  @Command()
   def wait_on_task(self,
-                   name: args.NAME) -> None: 
+                   name: str) -> None: 
     """Wait for an ECS task to complete."""
     tasks = self.list_tasks(name)
     # filter the tasks down to any where the DesiredStatus and LastStatus are different
