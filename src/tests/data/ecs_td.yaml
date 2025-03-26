@@ -1,0 +1,48 @@
+Family: myapp
+Cpu: '256'
+Memory: '512'
+ContainerDefinitions:
+- Essential: true
+  Image: nginx:latest
+  Name: myapp
+  Environment:
+  - Name: FOO
+    Value: bar
+  Command:
+  - sleep
+  - '500000'
+  HealthCheck:
+    command:
+    - CMD-SHELL
+    - curl -f http://localhost/ || exit 1
+    interval: 20
+    timeout: 5
+    retries: 10
+    startPeriod: 20
+  Secrets:
+  - Name: MYSECRET
+    ValueFrom: somearn
+  - Name: DB_HOST
+    ValueFrom: 'arn:aws:secretsmanager:us-west-2:2432432434343:secret:db-secret:DB_HOST::'
+  PortMappings:
+  - Protocol:
+      Value: tcp
+    ContainerPort: 80
+    HostPort: 80
+  LogConfiguration:
+    LogDriver:
+      Value: awslogs
+    Options:
+      awslogs-create-group: 'true'
+      awslogs-group: "/ecs/duploservices-nonprod-api"
+      awslogs-region: us-west-2
+      awslogs-stream-prefix: ecs
+    SecretOptions: []
+InferenceAccelerators: []
+NetworkMode:
+  Value: awsvpc
+RuntimePlatform:
+  CpuArchitecture:
+    Value: X86_64
+  OperatingSystemFamily:
+    Value: LINUX
