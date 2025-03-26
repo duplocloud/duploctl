@@ -59,4 +59,4 @@ class TestAwsSecret:
         """Test deleting an AWS secret."""
         r, secret_name = aws_secret_resource
         response = execute_test(r.delete, secret_name)
-        assert response.get("message") == f"aws/secret/{secret_name} deleted"
+        assert response.get("message") == f"Successfully deleted secret '{secret_name}'"
