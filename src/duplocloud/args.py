@@ -152,6 +152,10 @@ NAME = Arg("name",
             nargs='?',
             help='The resource name')
 
+DISTRIBUTION_ID = Arg("distribution_id", 
+            nargs='?',
+            help='The distribution id')
+
 IMAGE = Arg("image", 
             nargs='?',
             help='The image to use')

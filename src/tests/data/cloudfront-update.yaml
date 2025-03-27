@@ -1,0 +1,97 @@
+UseOAIIdentity: true
+ProcessS3OriginPolicy: true
+Id: 
+DistributionConfig:
+  Aliases:
+    Items: []
+    Quantity: 0
+  CacheBehaviors:
+    Items: []
+    Quantity: 0
+  CallerReference: 
+  Comment: duplo-cloudfront
+  ContinuousDeploymentPolicyId: ""
+  CustomErrorResponses:
+    Items: []
+    Quantity: 0
+  DefaultCacheBehavior:
+    AllowedMethods:
+      CachedMethods:
+        Items:
+          - HEAD
+          - GET
+        Quantity: 2
+      Items:
+        - HEAD
+        - GET
+      Quantity: 2
+    CachePolicyId: ""
+    Compress: true
+    FieldLevelEncryptionId: ""
+    FunctionAssociations:
+      Items: []
+      Quantity: 0
+    LambdaFunctionAssociations:
+      Items: []
+      Quantity: 0
+    SmoothStreaming: false
+    TargetOriginId: 
+    TrustedKeyGroups:
+      Enabled: false
+      Items: []
+      Quantity: 0
+    TrustedSigners:
+      Enabled: false
+      Items: []
+      Quantity: 0
+    ViewerProtocolPolicy:
+      Value: redirect-to-https
+  DefaultRootObject: main.html
+  Enabled: true
+  HttpVersion:
+    Value: http2
+  IsIPV6Enabled: true
+  Logging:
+    Bucket: ""
+    Enabled: false
+    IncludeCookies: false
+    Prefix: ""
+  OriginGroups:
+    Items: []
+    Quantity: 0
+  Origins:
+    Items:
+      - ConnectionAttempts: 3
+        ConnectionTimeout: 10
+        CustomHeaders:
+          Items: []
+          Quantity: 0
+        DomainName: ""
+        Id: ""
+        OriginAccessControlId: ""
+        OriginPath: ""
+        OriginShield:
+          Enabled: false
+        S3OriginConfig:
+          OriginAccessIdentity: ""
+    Quantity: 1
+  PriceClass:
+    Value: PriceClass_All
+  Restrictions:
+    GeoRestriction:
+      Items: []
+      Quantity: 0
+      RestrictionType:
+        Value: none
+  Staging: false
+  ViewerCertificate:
+    ACMCertificateArn: ""
+    Certificate: ""
+    CertificateSource:
+      Value: acm
+    CloudFrontDefaultCertificate: false
+    MinimumProtocolVersion:
+      Value: TLSv1.2_2021
+    SSLSupportMethod:
+      Value: sni-only
+  WebACLId: ""
