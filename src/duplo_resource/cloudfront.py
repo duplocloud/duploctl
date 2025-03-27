@@ -26,7 +26,6 @@ class CloudFront(DuploTenantResourceV3):
 
       for attempt in range(max_attempts):
         try:
-          elapsed_time = time.time() - start_time
           status_response = self.find(distribution_id)
           status = status_response.get("Distribution", {}).get("Status", "Unknown").lower()
           if status != prev_status:
@@ -54,12 +53,9 @@ class CloudFront(DuploTenantResourceV3):
       Returns:
           dict: The service object.
       """
-      try:
-        response = self.duplo.get(self.endpoint(name=distribution_id))
-        response.raise_for_status()
-        return response.json()
-      except Exception as e:
-        raise DuploError(f"Could not find CloudFront distribution {distribution_id}")
+      response = self.duplo.get(self.endpoint(name=distribution_id))
+      response.raise_for_status()
+      return response.json()
 
     @Command()
     def create(self, body: args.BODY, wait: args.WAIT = False):
@@ -189,12 +185,9 @@ class CloudFront(DuploTenantResourceV3):
       Returns:
           dict: Confirmation message.
       """
-      try:
-        response = self.duplo.delete(self.endpoint(distribution_id))
-        response.raise_for_status()
-        return {"message": f"CloudFront distribution {distribution_id} deleted"}
-      except Exception as e:
-        raise DuploError(f"Could not delete CloudFront distribution {distribution_id}")
+      response = self.duplo.delete(self.endpoint(distribution_id))
+      response.raise_for_status()
+      return {"message": f"CloudFront distribution {distribution_id} deleted"}
 
     @Command()
     def get_status(self, distribution_id: args.DISTRIBUTION_ID):
@@ -211,11 +204,8 @@ class CloudFront(DuploTenantResourceV3):
       Raises:
           DuploError: If the CloudFront distribution could not be found or lacks a status.
       """
-      try:
-        response = self.find(distribution_id)
-        status = response.get("Distribution", {}).get("Status")
-        if status is None:
-            raise DuploError(f"Status not found for CloudFront distribution {distribution_id}")
-        return status
-      except Exception as e:
-        raise DuploError(f"Failed to get status for CloudFront distribution {distribution_id}")
+      response = self.find(distribution_id)
+      status = response.get("Distribution", {}).get("Status")
+      if status is None:
+        raise DuploError(f"Status not found for CloudFront distribution {distribution_id}")
+      return status
