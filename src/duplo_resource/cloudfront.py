@@ -20,7 +20,6 @@ class CloudFront(DuploTenantResourceV3):
       """
       Waits for the CloudFront distribution to be in 'Deployed' status.
       """
-      start_time = time.time()
       prev_status = None
       max_attempts = self.wait_timeout // 60
 
