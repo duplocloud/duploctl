@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added unit tests for missing service methods: create, delete, start, restart and stop.
 - Added integration tests for missing ASG methods: list, find, create, update, delete and scale.
 - Added integration tests for AWS Secret methods: find, create, update and delete.
+- Added configmap commands (find, delete, update) with integration tests.
 
 ## [0.2.46] - 2025-03-03
 
