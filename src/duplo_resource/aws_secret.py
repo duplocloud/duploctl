@@ -116,3 +116,27 @@ class DuploAwsSecret(DuploTenantResourceV3):
     body=self.find(name)
     body['SecretString'] = value
     return super().update(body)
+
+  @Command()
+  def delete(self,
+             name: args.NAME) -> dict:
+    """Delete an AWS Secretmanager secret.
+
+    Deletes an AWS Secretmanager secret by name.
+
+    Usage: cli
+      ```sh
+      duploctl aws_secret delete <name>
+      ```
+
+    Args:
+      name: The name of an AWS Secretmanager secret to delete.
+      wait: Wait for an AWS Secretmanager secret to be deleted.
+
+    Returns:
+      message: A success message.
+    """
+    super().delete(name)
+    return {
+      "message": f"Successfully deleted secret '{name}'"
+    }

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ECS run task for a task definition. `duploctl ecs run_task myapp`
 - ECS update image will now update just a task definition and a corresponding service if there is one.
 - A generic method for making sure a name is prefixed. This means you can give a short or long name and the cli will use either. 
+- Added integration tests for missing ASG methods: list, find, create, update, delete and scale.
+- Added integration tests for AWS Secret methods: find, create, update and delete.
 
 ## [0.2.46] - 2025-03-03
 
