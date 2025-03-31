@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed 
 
+- Patch config file into test_at_least_host so it doesn't depend on a specific local setup.
 - Added a generic exception block to handle any unexpected errors that are not instances of DuploError.
 
 ### Added
