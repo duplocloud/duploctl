@@ -119,19 +119,6 @@ class CloudFront(DuploTenantResourceV3):
         raise DuploError(f"Failed to update CloudFront distribution: {e}")
 
     @Command()
-    def list(self):
-      """List CloudFront distributions.
-      Usage:
-        ```sh
-        duploctl cloudfront list
-        ```
-      Returns:
-          list: A list of all cloudfronts.
-      """
-      response = self.duplo.get(self.endpoint())
-      return response.json()
-
-    @Command()
     def disable(self, distribution_id: args.DISTRIBUTION_ID, wait: args.WAIT=False):
       """
       Disable a CloudFront distribution.
