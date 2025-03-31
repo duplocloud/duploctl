@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed 
 
+- Patch config file into test_at_least_host so it doesn't depend on a specific local setup.
 - Added a generic exception block to handle any unexpected errors that are not instances of DuploError.
 
 ### Added
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added unit tests for missing service methods: create, delete, start, restart and stop.
 - Added integration tests for missing ASG methods: list, find, create, update, delete and scale.
 - Added integration tests for AWS Secret methods: find, create, update and delete.
+- Added configmap commands (find, delete, update) with integration tests.
 - Added cloudfront commands (find, enable, update, get_status) and fixed existing commands (create, list, disable, delete) with integration tests.
 
 ## [0.2.46] - 2025-03-03
