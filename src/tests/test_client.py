@@ -15,8 +15,25 @@ def test_new_config():
   assert c.host == "https://example.duplocloud.net"
 
 @pytest.mark.unit
-def test_at_least_host():
+def test_at_least_host(mocker):
   """No Host Gets Error"""
+
+  # Patch in a mock of the client's config file so this test doesn't depend on a specific local setup.
+  # Alternatively, we could set the config_file arg of DuploClient to a YAML in the tests/files directory. A mock
+  # exercises the constructor's default (and requires no changes to the test this was added to fix).
+  duplo_config_file = '''
+---
+current-context: this
+contexts:
+- name: this
+  tenant: none
+  token: none
+
+  # Host not set to intentionally trigger the expected error.
+  # host: localhost
+'''
+  mocker.patch('builtins.open', mocker.mock_open(read_data=duplo_config_file))
+
   duplo = DuploClient()
   with pytest.raises(DuploError) as e:
     duplo.token

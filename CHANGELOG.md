@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed 
 
+- Patch config file into test_at_least_host so it doesn't depend on a specific local setup.
 - Added a generic exception block to handle any unexpected errors that are not instances of DuploError.
+- Existing ingress commands (create, update) with missing integration tests.
 
 ### Added
 
@@ -21,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A generic method for making sure a name is prefixed. This means you can give a short or long name and the cli will use either. 
 - Added integration tests for missing ASG methods: list, find, create, update, delete and scale.
 - Added integration tests for AWS Secret methods: find, create, update and delete.
+- Added configmap commands (find, delete, update) with integration tests.
 
 ## [0.2.46] - 2025-03-03
 
