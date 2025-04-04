@@ -67,7 +67,7 @@ class CloudFront(DuploTenantResourceV3):
         if not distribution_id:
           raise ValueError("Failed to retrieve CloudFront Distribution ID from response.")
         if wait:
-          self.wait(lambda: (data := self.wait_check(distribution_id)) is not None, 1200)
+          self.wait(lambda: self.wait_check(distribution_id) is not None, 1200)
         return data
       except Exception as e:
         raise DuploError(f"Failed to create CloudFront distribution: {e}")
@@ -98,7 +98,7 @@ class CloudFront(DuploTenantResourceV3):
         if not distribution_id:
           raise ValueError("Failed to retrieve CloudFront Distribution ID from response.")
         if wait:
-          self.wait(lambda: (data := self.wait_check(distribution_id)) is not None, 1200)
+          self.wait(lambda: self.wait_check(distribution_id) is not None, 1200)
         return data
       except Exception as e:
         raise DuploError(f"Failed to update CloudFront distribution: {e}")
@@ -120,7 +120,7 @@ class CloudFront(DuploTenantResourceV3):
       body = {"Id":distribution_id,"DistributionConfig":{"Disabled":"true"}}
       response = self.duplo.put(self.endpoint(), body)
       if wait:
-        self.wait(lambda: (data := self.wait_check(distribution_id)) is not None, 1200)
+        self.wait(lambda: self.wait_check(distribution_id) is not None, 1200)
       return response.json()
     
     @Command()
@@ -140,7 +140,7 @@ class CloudFront(DuploTenantResourceV3):
       body = {"Id":distribution_id,"DistributionConfig":{"Enabled":"true"}}
       response = self.duplo.put(self.endpoint(), body)
       if wait:
-        self.wait(lambda: (data := self.wait_check(distribution_id)) is not None, 1200)
+        self.wait(lambda: self.wait_check(distribution_id) is not None, 1200)
       return response.json()
 
     @Command()
