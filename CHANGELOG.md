@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support init containers in the update_image subcommand for services.
 - Added integration tests for missing tenant methods: list_users, billing, region, and dns_config.
 - Added unit tests for missing service methods: create, delete, start, restart and stop.
+- ECS run task for a task definition. `duploctl ecs run_task myapp`
+- ECS update image will now update just a task definition and a corresponding service if there is one.
+- A generic method for making sure a name is prefixed. This means you can give a short or long name and the cli will use either. 
 - Added integration tests for missing ASG methods: list, find, create, update, delete and scale.
 - Added integration tests for AWS Secret methods: find, create, update and delete.
 - Added configmap commands (find, delete, update) with integration tests.
