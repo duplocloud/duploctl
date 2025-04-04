@@ -1,7 +1,5 @@
 import pytest
 import time
-import yaml
-import pathlib
 from duplocloud.errors import DuploError
 from .conftest import get_test_data
 
@@ -20,12 +18,6 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
-def get_test_data(name) -> dict:
-  dir = pathlib.Path(__file__).parent.resolve()
-  f = f"{dir}/data/{name}.yaml"
-  with open(f, 'r') as stream:
-    return yaml.safe_load(stream)
-
 @pytest.mark.usefixtures("cloudfront_resource")
 class TestCloudFront:
 
@@ -37,13 +29,10 @@ class TestCloudFront:
         r = cloudfront_resource
         body = get_test_data("cloudfront-create")
         response = execute_test(r.create, body=body, wait=True)
-        print(response)
-        assert "Distribution" in response, "Missing 'Distribution' key in response"
-        assert "Id" in response["Distribution"], "CloudFront distribution ID missing in response"
-        assert response["Distribution"]["Status"] == "Deployed", "CloudFront distribution not deployed"
-        request.cls.cloudfront_id = response["Distribution"]["Id"]
+        status_response = execute_test(r.get_status, distribution_id=response["Id"])
+        assert status_response == "Deployed", "CloudFront distribution not deployed"
+        request.cls.cloudfront_id = response["Id"]
         print(f"CloudFront Created! ID: {request.cls.cloudfront_id}")
-        time.sleep(10)
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="class")
@@ -57,9 +46,8 @@ class TestCloudFront:
         update_body["Id"] = self.cloudfront_id
         update_body["DistributionConfig"]["CallerReference"] = cloudfront["Distribution"]["DistributionConfig"]["CallerReference"]
         response = execute_test(r.update, body=update_body, wait=True)
-        assert "Distribution" in response, "Missing 'Distribution' key in response"
-        assert response["Distribution"]["Id"] == self.cloudfront_id, "CloudFront ID mismatch after update"
-        assert response["Distribution"]["Status"] == "Deployed", "CloudFront distribution not deployed after update"
+        status_response = execute_test(r.get_status, distribution_id=response["Id"])
+        assert status_response == "Deployed", "CloudFront distribution not deployed after update"
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")

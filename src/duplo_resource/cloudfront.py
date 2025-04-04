@@ -1,43 +1,27 @@
-import time
-import logging
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV3
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploFailedResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 
 @Resource("cloudfront")
 class CloudFront(DuploTenantResourceV3):
 
     def __init__(self, duplo: DuploClient):
       super().__init__(duplo, "aws/cloudFrontDistribution")
-      self.wait_timeout = 1200
 
     def wait_check(self, distribution_id):
       """
       Waits for the CloudFront distribution to be in 'Deployed' status.
       """
-      prev_status = None
-      max_attempts = self.wait_timeout // 60
-
-      for attempt in range(max_attempts):
-        try:
-          status_response = self.find(distribution_id)
-          status = status_response.get("Distribution", {}).get("Status", "Unknown").lower()
-          if status != prev_status:
-            prev_status = status
-          if status == "deployed":
-            return status_response
-          elif status in ["failed", "error"]:
-            raise RuntimeError(f"CloudFront distribution {distribution_id} failed to deploy.")
-        except Exception as e:
-          logging.error(f"Error checking CloudFront status: {e}")
-          raise
-        time.sleep(60)
-      raise TimeoutError(f"Timed out waiting for CloudFront {distribution_id} to be deployed.")
+      status_response = self.find(distribution_id)
+      status = status_response.get("Distribution", {}).get("Status", "Unknown").lower()
+      if status == "deployed":
+        return status_response
+      elif status in ["failed", "error"]:
+        raise DuploFailedResource(f"CloudFront distribution {distribution_id} failed to deploy.")
+      else:
+        raise DuploError(f"Timed out waiting for CloudFront {distribution_id} to be deployed.")
 
     @Command()
     def find(self, distribution_id: args.DISTRIBUTION_ID):
@@ -74,6 +58,7 @@ class CloudFront(DuploTenantResourceV3):
       Returns:
           dict: The created distribution details.
       """
+      data = None
       try:
         response = self.duplo.post(self.endpoint(), body)
         response.raise_for_status()
@@ -82,7 +67,7 @@ class CloudFront(DuploTenantResourceV3):
         if not distribution_id:
           raise ValueError("Failed to retrieve CloudFront Distribution ID from response.")
         if wait:
-          return self.wait_check(distribution_id)
+          self.wait(lambda: (data := self.wait_check(distribution_id)) is not None, 1200)
         return data
       except Exception as e:
         raise DuploError(f"Failed to create CloudFront distribution: {e}")
@@ -113,7 +98,7 @@ class CloudFront(DuploTenantResourceV3):
         if not distribution_id:
           raise ValueError("Failed to retrieve CloudFront Distribution ID from response.")
         if wait:
-          return self.wait_check(distribution_id)
+          self.wait(lambda: (data := self.wait_check(distribution_id)) is not None, 1200)
         return data
       except Exception as e:
         raise DuploError(f"Failed to update CloudFront distribution: {e}")
@@ -135,7 +120,7 @@ class CloudFront(DuploTenantResourceV3):
       body = {"Id":distribution_id,"DistributionConfig":{"Disabled":"true"}}
       response = self.duplo.put(self.endpoint(), body)
       if wait:
-        self.wait_check(distribution_id)
+        self.wait(lambda: (data := self.wait_check(distribution_id)) is not None, 1200)
       return response.json()
     
     @Command()
@@ -155,7 +140,7 @@ class CloudFront(DuploTenantResourceV3):
       body = {"Id":distribution_id,"DistributionConfig":{"Enabled":"true"}}
       response = self.duplo.put(self.endpoint(), body)
       if wait:
-        self.wait_check(distribution_id)
+        self.wait(lambda: (data := self.wait_check(distribution_id)) is not None, 1200)
       return response.json()
 
     @Command()
