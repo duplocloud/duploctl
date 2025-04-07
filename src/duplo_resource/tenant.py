@@ -658,3 +658,30 @@ class DuploTenant(DuploResource):
     else:
       return f"User '{name}' removed from tenant '{self.duplo.tenant}'"
     
+  @Command()
+  def get_metadata(self, name: args.NAME=None):
+    """Get Tenant Metadata
+    
+    Get the metadata for the tenant.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl tenant get_metadata
+      ```
+
+    Returns:
+      metadata: The metadata for the tenant.
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"admin/GetTenantConfigData/{tenant_id}")
+    return response.json()
+
+  @Command()
+  def set_metadata(self,
+                   name: args.NAME=None,
+                   metadata: args.METADATA=[],
+                   deletes: args.DELETES=[]) -> dict:
+    """Set Tenant Metadata"
+    """
+    current = self.get_metadata(name)
