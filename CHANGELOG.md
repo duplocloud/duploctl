@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.47] - 2025-04-07
+
 ### Fixed 
 
 - Patch config file into test_at_least_host so it doesn't depend on a specific local setup.
