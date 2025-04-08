@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added DuploStillWaiting class to reflect scenarios where a command waits too long for a resource operation to complete.
+
 ## [0.2.47] - 2025-04-07
 
 ### Fixed 

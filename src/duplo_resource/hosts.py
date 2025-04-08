@@ -1,6 +1,6 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV2
-from duplocloud.errors import DuploError, DuploFailedResource
+from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -55,7 +55,7 @@ class DuploHosts(DuploTenantResourceV2):
       if h["Status"] != "running":
         if h["Status"] != "pending":
           raise DuploFailedResource(f"Host '{name}' failed to create.")
-        raise DuploError(f"Host '{name}' not ready", 404)
+        raise DuploStillWaiting(f"Host '{name}' not ready")
     # let's get started
     if body.get("ImageId", None) is None:
       body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
@@ -100,7 +100,7 @@ class DuploHosts(DuploTenantResourceV2):
         else:
           raise DuploFailedResource(f"Host '{name}' failed to delete.")
       if h["Status"] == "shutting-down" or h["Status"] == "running":
-        raise DuploError(f"Host '{name}' not terminated", 404)
+        raise DuploStillWaiting(f"Host '{name}' not terminated")
     if wait:
       self.wait(wait_check, 500)
     return {
@@ -138,7 +138,7 @@ class DuploHosts(DuploTenantResourceV2):
       if h["Status"] != "stopped":
         if h["Status"] != "stopping":
           raise DuploFailedResource(f"Host '{name}' failed to stop.")
-        raise DuploError(f"Host '{name}' not ready", 404)
+        raise DuploStillWaiting(f"Host '{name}' not ready")
     if wait:
       self.wait(wait_check, 500)
     return {
@@ -176,7 +176,7 @@ class DuploHosts(DuploTenantResourceV2):
       if h["Status"] != "running":
         if h["Status"] != "pending":
           raise DuploFailedResource(f"Host '{name}' failed to stop.")
-        raise DuploError(f"Host '{name}' not ready", 404)
+        raise DuploStillWaiting(f"Host '{name}' not ready")
     if wait:
       self.wait(wait_check, 500)
     return {
