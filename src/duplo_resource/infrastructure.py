@@ -1,5 +1,5 @@
 from duplocloud.client import DuploClient
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploFailedResource, DuploStillWaiting
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
