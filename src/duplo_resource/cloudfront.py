@@ -1,6 +1,6 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV3
-from duplocloud.errors import DuploError, DuploFailedResource
+from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -21,7 +21,7 @@ class CloudFront(DuploTenantResourceV3):
       elif status in ["failed", "error"]:
         raise DuploFailedResource(f"CloudFront distribution {distribution_id} failed to deploy.")
       else:
-        raise DuploError(f"Timed out waiting for CloudFront {distribution_id} to be deployed.")
+        raise DuploStillWaiting(f"Timed out waiting for CloudFront {distribution_id} to be deployed.")
 
     @Command()
     def find(self, distribution_id: args.DISTRIBUTION_ID):

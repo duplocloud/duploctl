@@ -1,5 +1,5 @@
 from duplocloud.client import DuploClient
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploStillWaiting
 from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -31,7 +31,7 @@ class DuploRDS(DuploTenantResourceV3):
         s = status
         self.duplo.logger.warn(f"DB instance {name} is {status}")
       if status != "available":
-        raise DuploError(None)
+        raise DuploStillWaiting(f"DB instance '{name}' is waiting for status 'available'")
     super().create(body, wait, wait_check)
 
   @Command()
@@ -57,7 +57,7 @@ class DuploRDS(DuploTenantResourceV3):
     def wait_check():
       i = self.find(name)
       if i["InstanceStatus"] in ["stopping","available"]:
-        raise DuploError(f"DB instance {name} is still stopping")
+        raise DuploStillWaiting(f"DB instance {name} is still stopping")
     self.duplo.post(self.endpoint(name, "stop"))
     if wait:
       self.wait(wait_check, 1800, 10)
@@ -73,7 +73,7 @@ class DuploRDS(DuploTenantResourceV3):
     def wait_check():
       i = self.find(name)
       if i["InstanceStatus"] in ["starting"]:
-        raise DuploError(f"DB instance {name} is still starting")
+        raise DuploStillWaiting(f"DB instance {name} is still starting")
     self.duplo.post(self.endpoint(name, "start"))
     if wait:
       self.wait(wait_check, 1800, 10)
@@ -94,7 +94,7 @@ class DuploRDS(DuploTenantResourceV3):
         rebooting = True
       if i["InstanceStatus"] == "available" and rebooting:
         return True # finally rebooting is a success
-      raise DuploError(f"DB instance {name} is still rebooting")
+      raise DuploStillWaiting(f"DB instance {name} is still rebooting")
     # Reboot the instance
     self.duplo.post(self.endpoint(name, "reboot"))
     if wait:
