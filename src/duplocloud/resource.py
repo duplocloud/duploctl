@@ -1,6 +1,6 @@
 from . import args
 from .client import DuploClient
-from .errors import DuploError, DuploFailedResource
+from .errors import DuploError, DuploFailedResource, DuploStillWaiting
 from .commander import get_parser, extract_args, Command
 import math
 import time
@@ -57,7 +57,7 @@ class DuploResource():
       except KeyboardInterrupt as e:
         raise e
     else:
-      raise DuploError("Timed out waiting", 404)
+      raise DuploStillWaiting("Timed out waiting")
     
 class DuploResourceV2(DuploResource):
 

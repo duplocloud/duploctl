@@ -48,7 +48,7 @@ class DuploInfrastructure(DuploResource):
         # stop waiting if the status contains failed
         if "Failed" in s:
           raise DuploFailedResource(f"Infrastructure '{name} - {s}'")
-        raise DuploStillWaiting(None)
+        raise DuploStillWaiting(f"Infrastructure '{name}' is waiting for status Complete")
     self.duplo.post("adminproxy/CreateInfrastructureConfig", body)
     if wait:
       self.wait(wait_check, 1800, 20)

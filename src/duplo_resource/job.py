@@ -68,7 +68,7 @@ class DuploJob(DuploTenantResourceV3):
       
       # if none have completed, keep waiting
       if not len(cpl) > 0:
-        raise DuploStillWaiting(f"Job {name} not complete {cpl}")
+        raise DuploStillWaiting(f"Job '{name}' is waiting for 'Complete' condition")
     super().create(body, wait, wait_check)
     return {
       "message": f"Job {name} ran successfully."

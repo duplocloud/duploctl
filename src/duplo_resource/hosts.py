@@ -55,7 +55,7 @@ class DuploHosts(DuploTenantResourceV2):
       if h["Status"] != "running":
         if h["Status"] != "pending":
           raise DuploFailedResource(f"Host '{name}' failed to create.")
-        raise DuploStillWaiting(f"Host '{name}' not ready")
+        raise DuploStillWaiting(f"Host '{name}' is waiting")
     # let's get started
     if body.get("ImageId", None) is None:
       body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
@@ -100,7 +100,7 @@ class DuploHosts(DuploTenantResourceV2):
         else:
           raise DuploFailedResource(f"Host '{name}' failed to delete.")
       if h["Status"] == "shutting-down" or h["Status"] == "running":
-        raise DuploStillWaiting(f"Host '{name}' not terminated")
+        raise DuploStillWaiting(f"Host '{name}' is waiting for termination")
     if wait:
       self.wait(wait_check, 500)
     return {
@@ -138,7 +138,7 @@ class DuploHosts(DuploTenantResourceV2):
       if h["Status"] != "stopped":
         if h["Status"] != "stopping":
           raise DuploFailedResource(f"Host '{name}' failed to stop.")
-        raise DuploStillWaiting(f"Host '{name}' not ready")
+        raise DuploStillWaiting(f"Host '{name}' is waiting for status stopped")
     if wait:
       self.wait(wait_check, 500)
     return {
@@ -176,7 +176,7 @@ class DuploHosts(DuploTenantResourceV2):
       if h["Status"] != "running":
         if h["Status"] != "pending":
           raise DuploFailedResource(f"Host '{name}' failed to stop.")
-        raise DuploStillWaiting(f"Host '{name}' not ready")
+        raise DuploStillWaiting(f"Host '{name}' is waiting for status running")
     if wait:
       self.wait(wait_check, 500)
     return {
