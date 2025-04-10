@@ -50,7 +50,7 @@ class DuploResource():
         break
       except DuploFailedResource as e:
         raise e
-      except DuploError as e:
+      except DuploStillWaiting as e:
         if e.message:
           self.duplo.logger.debug(e)
         time.sleep(poll)
