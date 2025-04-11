@@ -6,9 +6,6 @@ resources = [
   "hosts",
   "asg",
   "cronjob", 
-  "job",
-  "secret",
-  "configmap",
   "lambda",
   "rds",
   "rds::rds-read"

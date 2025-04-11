@@ -9,7 +9,7 @@ DistributionConfig:
     Items: []
     Quantity: 0
   CallerReference: 
-  Comment: duplo-cloudfront
+  Comment: duploservices-shantanu-cloudfront
   ContinuousDeploymentPolicyId: ""
   CustomErrorResponses:
     Items: []
@@ -25,7 +25,7 @@ DistributionConfig:
         - HEAD
         - GET
       Quantity: 2
-    CachePolicyId: ""
+    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
     Compress: true
     FieldLevelEncryptionId: ""
     FunctionAssociations:
@@ -35,7 +35,7 @@ DistributionConfig:
       Items: []
       Quantity: 0
     SmoothStreaming: false
-    TargetOriginId: 
+    TargetOriginId: duploservices-shantanu-lambda-884446924812.s3.us-east-2.amazonaws.com
     TrustedKeyGroups:
       Enabled: false
       Items: []
@@ -66,14 +66,14 @@ DistributionConfig:
         CustomHeaders:
           Items: []
           Quantity: 0
-        DomainName: ""
-        Id: ""
+        DomainName: duploservices-shantanu-lambda-884446924812.s3.us-east-2.amazonaws.com
+        Id: duploservices-shantanu-lambda-884446924812.s3.us-east-2.amazonaws.com
         OriginAccessControlId: ""
         OriginPath: ""
         OriginShield:
           Enabled: false
         S3OriginConfig:
-          OriginAccessIdentity: ""
+          OriginAccessIdentity: origin-access-identity/cloudfront/E2M2VMOU4CTXR1
     Quantity: 1
   PriceClass:
     Value: PriceClass_All
@@ -85,8 +85,8 @@ DistributionConfig:
         Value: none
   Staging: false
   ViewerCertificate:
-    ACMCertificateArn: ""
-    Certificate: ""
+    ACMCertificateArn: arn:aws:acm:us-east-1:884446924812:certificate/cd4ed002-5577-4110-99a6-cc18a99e12fc
+    Certificate: arn:aws:acm:us-east-1:884446924812:certificate/cd4ed002-5577-4110-99a6-cc18a99e12fc
     CertificateSource:
       Value: acm
     CloudFrontDefaultCertificate: false

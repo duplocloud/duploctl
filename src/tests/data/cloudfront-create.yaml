@@ -7,13 +7,13 @@ DistributionConfig:
   ViewerCertificate:
     MinimumProtocolVersion:
       Value: "TLSv1.2_2021"
-    ACMCertificateArn: ""
+    ACMCertificateArn: "arn:aws:acm:us-east-1:884446924812:certificate/cd4ed002-5577-4110-99a6-cc18a99e12fc"
     SSLSupportMethod:
       Value: "sni-only"
   Origins:
     Items:
-      - DomainName: ""
-        Id: ""
+      - DomainName: "duploservices-shantanu-lambda-884446924812.s3.us-east-2.amazonaws.com"
+        Id: "duploservices-shantanu-lambda-884446924812.s3.us-east-2.amazonaws.com"
     Quantity: 1
   CacheBehaviors:
     Items: []
@@ -30,7 +30,7 @@ DistributionConfig:
       Items: []
       Quantity: 0
     Compress: true
-    TargetOriginId: ""
-    CachePolicyId: ""
-  Comment: "duplo-cloudfront"
+    TargetOriginId: "duploservices-shantanu-lambda-884446924812.s3.us-east-2.amazonaws.com"
+    CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  Comment: "cloudfront"
 CorsAllowedHostNames: []

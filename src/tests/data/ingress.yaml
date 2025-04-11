@@ -6,17 +6,17 @@ lbConfig:
       - 443
     http:
       - 80
-  dnsPrefix: "duploctl"
+  dnsPrefix: "shantanu"
   isPublic: true
-  certArn:
+  certArn: "arn:aws:acm:us-west-2:884446924812:certificate/be266594-4f7a-4bda-aa2b-ffa6c5e20a0c"
 rules:
   - path: "/"
     pathType: "Prefix"
     serviceName: "nginx"
     port: 80
-    host: "duploctl-nginx.duplocloud.net"
+    host: "shantanu-nginx.qa-aws.duplocloud.net"
     portName: null
-name: "duploctl"
+name: "ingress"
 ingressClassName: "alb"
 otherSpecs:
   tls: []
