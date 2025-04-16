@@ -42,10 +42,15 @@ class DuploConfigMap(DuploTenantResourceV3):
       duploctl configmap create -f configmap.yaml
       ```
 
-    Example: Create a ConfigMap by specifying key-value pairs as literals..
+    Example: Create a ConfigMap by specifying key-value pairs as literals.
       ```sh
       duploctl configmap create <configmap-name> --from-literal Key1="Val1" --from-literal Key2="Val2"
-      ```      
+      ```
+
+    Example: Create a ConfigMap from a file.
+      ```sh
+      duploctl configmap create <configmap-name> --from-file config-map.txt
+      ```
 
     Args:
       name: Name of the ConfigMap. Required if `body` is not provided.
@@ -125,6 +130,11 @@ class DuploConfigMap(DuploTenantResourceV3):
     Example: Update a ConfigMap by specifying key-value pairs as literals.
       ```sh
       duploctl configmap update <configmap-name> --from-literal Key1="Val1" --from-literal Key2="Val2"
+      ```
+
+    Example: Update a ConfigMap from a file.
+      ```sh
+      duploctl configmap update <configmap-name> --from-file config-map.txt
       ```
 
     Args:
