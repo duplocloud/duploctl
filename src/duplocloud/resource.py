@@ -288,9 +288,13 @@ class DuploTenantResourceV3(DuploResource):
     """Update a V3 resource by name.
     
     Args:
-      body (str): The resource to update.
+      name: The name of the resource to update.
+      body: The resource to update.
+      patches: The patches to apply to the resource.
+
     Returns: 
-      Success message.
+      message: Success message.
+
     Raises:
       DuploError: If the resource could not be created.
     """
