@@ -15,8 +15,7 @@ class DuploConfigMap(DuploTenantResourceV3):
              name: args.NAME=None,
              body: args.BODY=None,
              data: args.DATAMAP=None,
-             dryrun: args.DRYRUN=False,
-             wait: args.WAIT=False) -> dict:
+             dryrun: args.DRYRUN=False,) -> dict:
     """Create a Configmap resource.
 
     Creates a new ConfigMap resource with the specified metadata and data entries.
@@ -57,7 +56,6 @@ class DuploConfigMap(DuploTenantResourceV3):
       body: The complete ConfigMap resource definition.
       data: Data to merge into the ConfigMap.
       dryrun: Do not submit any changes to the server.
-      wait: Wait for the resource to be created.
 
     Returns:
       message: The created resource or success message.
@@ -82,7 +80,7 @@ class DuploConfigMap(DuploTenantResourceV3):
     if dryrun:
       return body
     else:
-      return super().create(body, wait=wait)
+      return super().create(body)
 
   @Command()
   def update(self,
@@ -159,8 +157,6 @@ class DuploConfigMap(DuploTenantResourceV3):
         raise DuploError("Provided 'name' must match 'metadata.name' in the body.")
     else:
      body = self.find(name)
-     if not body:
-        raise DuploError(f"ConfigMap '{name}' not found.")
 
     body.setdefault('data', {}).update(data or {})
     return body if dryrun else super().update(name=name, body=body, patches=patches)
@@ -184,10 +180,16 @@ class DuploConfigMap(DuploTenantResourceV3):
       message: The resource content or success message.
 
     Raises:
-      DuploError: If the ConfigMap could not be found.
+      DuploError: ConfigMap not found.
     """
-    response = self.duplo.get(self.endpoint(name))
-    return response.json()
+    try:
+      response = self.duplo.get(self.endpoint(name))
+    except DuploError as e:
+      raise DuploError(f"Failed to find ConfigMap '{name}': {str(e)}")
+    body = response.json()
+    if not body:
+      raise DuploError(f"ConfigMap '{name}' not found.")
+    return body
 
   @Command()
   def delete(self,
