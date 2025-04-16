@@ -182,7 +182,7 @@ class DuploRDS(DuploTenantResourceV3):
       "EnableIAMDatabaseAuthentication": enable,
       "ApplyImmediately": immediate
     }
-    self.update(body)
+    self.update(name=name, body=body)
     return {
       "message": f"IAM authentication for DB instance {name} is {enable}"
     }
@@ -198,7 +198,7 @@ class DuploRDS(DuploTenantResourceV3):
       "SkipFinalSnapshot": not enable,
       "ApplyImmediately": immediate
     }
-    self.update(body)
+    self.update(name=name, body=body)
     return {
       "message": f"Final Snapshot for DB instance {name} is {enable}"
     }
@@ -240,7 +240,7 @@ class DuploRDS(DuploTenantResourceV3):
       "BackupRetentionPeriod": days,
       "ApplyImmediately": immediate
     }
-    self.update(body)
+    self.update(name=name, body=body)
     return {
       "message": f"DB instance {name} retention period set to {days} days"
     }

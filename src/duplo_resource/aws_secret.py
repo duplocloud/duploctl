@@ -115,7 +115,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
     """
     body=self.find(name)
     body['SecretString'] = value
-    return super().update(body)
+    return super().update(name=name, body=body)
 
   @Command()
   def delete(self,

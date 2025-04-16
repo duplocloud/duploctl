@@ -282,7 +282,8 @@ class DuploTenantResourceV3(DuploResource):
   
   @Command()
   def update(self, 
-             body: args.BODY,
+             name: args.NAME = None,
+             body: args.BODY = None,
              patches: args.PATCHES = None,):
     """Update a V3 resource by name.
     
@@ -295,7 +296,7 @@ class DuploTenantResourceV3(DuploResource):
     """
     if patches:
       body = self.duplo.jsonpatch(body, patches)
-    name = self.name_from_body(body)
+    name if name is not None else self.name_from_body(body)
     response = self.duplo.put(self.endpoint(name), body)
     return response.json()
   
@@ -308,7 +309,7 @@ class DuploTenantResourceV3(DuploResource):
     name = self.name_from_body(body)
     try:
       self.find(name)
-      return self.update(name, body, wait,patches)
+      return self.update(name=name, body=body, patches=patches)
     except DuploError:
       return self.create(body, wait)
   
