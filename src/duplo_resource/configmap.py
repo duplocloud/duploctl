@@ -18,30 +18,43 @@ class DuploConfigMap(DuploTenantResourceV3):
              dryrun: args.DRYRUN=False,
              wait: args.WAIT=False) -> dict:
     """Create a Configmap resource.
+
     Usage: CLI Usage
       ```sh
-      duploctl configmap create -f 'configmap.yaml'
+      duploctl configmap create -f configmap.yaml
       ```
       Contents of the `configmap.yaml` file
       ```yaml
       --8<-- "src/tests/data/configmap.yaml"
       ```
-    Example: One liner example
+    <b>Examples:</b>
+
+    - Example 1: Create a ConfigMap using a one-liner.
       ```sh
       echo \"\"\"
       --8<-- "src/tests/data/configmap.yaml"
       \"\"\" | duploctl configmap create -f -
       ```
-    Args:
-      name: The name to set the configmap to.
-      body: The resource to create.
-      data: The data to add to the configmap.
-      dryrun: Do not submit any changes to the server.
-      wait: Wait for the resource to be created.
-    Returns: 
-      dict: The created resource or success message.
-    Raises:
-      DuploError: If the Configmap could not be created.
+    - Example 2: Create a ConfigMap using a file.
+      ```sh
+      duploctl configmap create -f configmap.yaml
+      ```
+
+    <b>Args:</b>
+
+      `name (str, optional)`: Name of the ConfigMap. Required if `body` is not provided.\n
+      `body (dict, optional)`: The complete ConfigMap resource definition.\n
+      `data (dict, optional)`: Data to merge into the ConfigMap.\n
+      `dryrun`: Do not submit any changes to the server.\n
+      `wait`: Wait for the resource to be created.
+
+    <b>Returns:</b>
+
+      `dict`: The created resource or success message.
+
+    <b>Raises:</b>
+
+      `DuploError`: If the Configmap could not be created.
     """
     if not name and not body:
       raise DuploError("Name is required when body is not provided")
@@ -67,34 +80,57 @@ class DuploConfigMap(DuploTenantResourceV3):
              name: args.NAME,
              body: args.BODY=None,
              data: args.DATAMAP=None,
+             patches: args.PATCHES = None,
              dryrun: args.DRYRUN=False) -> dict:
     """
     Update a ConfigMap resource.
+
     Usage: CLI Usage
       ```sh
-      duploctl configmap update -f 'configmap.yaml'
+      duploctl configmap update -f configmap.yaml
       ```
       Contents of the `configmap.yaml` file
       ```yaml
       --8<-- "src/tests/data/configmap.yaml"
       ```
-    Example: One liner example
+    <b>Examples:</b> 
+    
+    - Example 1: Update configmap using a one-liner.
       ```sh
       echo \"\"\"
       --8<-- "src/tests/data/configmap.yaml"
       \"\"\" | duploctl configmap update -f -
       ```
-    Args:
-      name (str, optional): Name of the ConfigMap. Required if `body` is not provided.
-      body (dict, optional): The complete ConfigMap resource definition.
-      data (dict, optional): Data to merge into the ConfigMap.
-      dryrun (bool, optional): If True, return the modified ConfigMap without applying changes.
+    - Example 2: Add new key in the configmap.
+      ```sh
+      duploctl configmap update <configmap-name> --add data.NewKey NewValue
+      ```
+    - Example 3: Update existing key from the configmap.
+      ```sh
+      duploctl configmap update <configmap-name> --replace data.ExistingKey NewValue
+      ```
+    - Example 4: Delete existing key from the configmap.
+      ```sh
+      duploctl configmap update <configmap-name> --remove data.ExistingKey
+      ```
 
-    Returns:
-      dict: The updated ConfigMap or a success message.
+    <b>Args:</b>
 
-    Raises:
-      DuploError: If the ConfigMap update fails.
+      `name (str, optional)`: Name of the ConfigMap. Required if `body` is not provided.\n
+      `body (dict, optional)`: The complete ConfigMap resource definition.\n
+      `data (dict, optional)`: Data to merge into the ConfigMap.\n
+      `patches`: A list of JSON patches as args to apply to the service.
+        The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
+        Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
+      `dryrun (bool, optional)`: If True, return the modified ConfigMap without applying changes.
+
+    <b> Returns:</b>
+
+      `dict`: The updated ConfigMap or a success message.
+
+    <b> Raises:</b>
+
+      `DuploError`: If the ConfigMap update fails.
     """
     if not name:
       raise DuploError("'name' is required.")
@@ -102,24 +138,34 @@ class DuploConfigMap(DuploTenantResourceV3):
       if 'metadata' not in body or body['metadata'].get('name') != name:
         raise DuploError("Provided 'name' must match 'metadata.name' in the body.")
     else:
-      body = {'metadata': {'name': name}, 'data': {}}
+     body = self.find(name)
+     if not body:
+        raise DuploError(f"ConfigMap '{name}' not found.")
+
     body.setdefault('data', {}).update(data or {})
-    return body if dryrun else super().update(body)
+    return body if dryrun else super().update(body,patches=patches)
 
   @Command()
   def find(self,
            name: args.NAME) -> dict:
-    """Find a ConfigMap by name and return it's content.
+    """Find a ConfigMap by name and view its content.
+
     Usage: cli usage
       ```sh
       duploctl configmap find <name>
       ```
-    Args:
-      name: The name of the ConfigMap to find.
-    Returns:
-      dict: The resource content or success message.
-    Raises:
-      DuploError: If the ConfigMap could not be found.
+
+    <b>Args:</b>
+
+      `name:` The name of the ConfigMap to find.
+
+    <b>Returns:</b>
+
+      `dict:` The resource content or success message.
+
+    <b>Raises:</b>
+
+      `DuploError:` If the ConfigMap could not be found.
     """
     response = self.duplo.get(self.endpoint(name))
     return response.json()
@@ -127,16 +173,21 @@ class DuploConfigMap(DuploTenantResourceV3):
   @Command()
   def delete(self,
              name: args.NAME) -> dict:
-    """Delete a ConfigMap.
-    Deletes a ConfigMap by name.
+    """
+    Deletes the specified ConfigMap by name.
+
     Usage: cli
       ```sh
       duploctl configmap delete <name>
       ```
-    Args:
-      name: The name of a ConfigMap to delete.
-    Returns:
-      message: A success message.
+
+    <b>Args:</b>
+
+      `name:` The name of a ConfigMap to delete.
+
+    <b>Returns:</b>
+
+      `message:` Returns a success message if deleted successfully; otherwise, an error.
     """
     super().delete(name)
     return {
