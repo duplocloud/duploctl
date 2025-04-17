@@ -180,10 +180,7 @@ class DuploConfigMap(DuploTenantResourceV3):
       response = self.duplo.get(self.endpoint(name))
     except DuploError as e:
       raise DuploError(f"Failed to find ConfigMap '{name}': {str(e)}")
-    body = response.json()
-    if not body:
-      raise DuploError(f"ConfigMap '{name}' not found.")
-    return body
+    return response.json()
 
   @Command()
   def delete(self,
