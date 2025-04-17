@@ -300,8 +300,7 @@ class DuploTenantResourceV3(DuploResource):
     """
     if not name and not body:
       raise DuploError("Name is required when body is not provided")
-    if body is None:
-      body = self.find(name)
+    body = body or self.find(name)
     if patches:
       body = self.duplo.jsonpatch(body, patches)
     name = name if name else self.name_from_body(body)
