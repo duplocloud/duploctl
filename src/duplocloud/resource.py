@@ -298,9 +298,11 @@ class DuploTenantResourceV3(DuploResource):
     Raises:
       DuploError: If the resource could not be created.
     """
+    if body is None:
+      body = self.find(name)
     if patches:
       body = self.duplo.jsonpatch(body, patches)
-    name if name is not None else self.name_from_body(body)
+    name = name if name else self.name_from_body(body)
     response = self.duplo.put(self.endpoint(name), body)
     return response.json()
   
