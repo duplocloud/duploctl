@@ -68,7 +68,7 @@ class DuploIngress(DuploTenantResourceV3):
 
     Usage: CLI Usage
       ```sh
-      duploctl configmap update -f ingress.yaml
+      duploctl ingress update -f ingress.yaml
       ```
       Contents of the `ingress.yaml` file
       ```yaml
