@@ -150,15 +150,9 @@ class DuploConfigMap(DuploTenantResourceV3):
     Raises:
       DuploError: If the ConfigMap update fails.
     """
-    if not name:
-      raise DuploError("'name' is required.")
-    if body:
-      if 'metadata' not in body or body['metadata'].get('name') != name:
-        raise DuploError("Provided 'name' must match 'metadata.name' in the body.")
-    else:
-     body = self.find(name)
-
-    body.setdefault('data', {}).update(data or {})
+    if data:
+      body = self.find(name)
+      body.setdefault('data', {}).update(data or {})
     return body if dryrun else super().update(name=name, body=body, patches=patches)
 
   @Command()

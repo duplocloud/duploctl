@@ -298,6 +298,8 @@ class DuploTenantResourceV3(DuploResource):
     Raises:
       DuploError: If the resource could not be created.
     """
+    if not name and not body:
+      raise DuploError("Name is required when body is not provided")
     if body is None:
       body = self.find(name)
     if patches:
