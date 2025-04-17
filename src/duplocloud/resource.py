@@ -282,29 +282,41 @@ class DuploTenantResourceV3(DuploResource):
   
   @Command()
   def update(self, 
-             body: args.BODY):
+             name: args.NAME = None,
+             body: args.BODY = None,
+             patches: args.PATCHES = None,):
     """Update a V3 resource by name.
     
     Args:
-      body (str): The resource to update.
+      name: The name of the resource to update.
+      body: The resource to update.
+      patches: The patches to apply to the resource.
+
     Returns: 
-      Success message.
+      message: Success message.
+
     Raises:
       DuploError: If the resource could not be created.
     """
-    name = self.name_from_body(body)
+    if not name and not body:
+      raise DuploError("Name is required when body is not provided")
+    body = body or self.find(name)
+    if patches:
+      body = self.duplo.jsonpatch(body, patches)
+    name = name if name else self.name_from_body(body)
     response = self.duplo.put(self.endpoint(name), body)
     return response.json()
   
   @Command()
   def apply(self,
              body: args.BODY,
-             wait: args.WAIT = False):
+             wait: args.WAIT = False,
+             patches: args.PATCHES = None,):
     """Apply a service."""
     name = self.name_from_body(body)
     try:
       self.find(name)
-      return self.update(name, body, wait)
+      return self.update(name=name, body=body, patches=patches)
     except DuploError:
       return self.create(body, wait)
   

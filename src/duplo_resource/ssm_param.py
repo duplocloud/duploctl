@@ -128,4 +128,4 @@ class DuploParam(DuploTenantResourceV3):
       body['Value'] = ','.join(current_value)
     else:
       body['Value'] = value
-    return super().update(body)
+    return super().update(name=name, body=body)
