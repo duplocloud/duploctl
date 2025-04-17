@@ -18,7 +18,7 @@ class DuploConfigMap(DuploTenantResourceV3):
              dryrun: args.DRYRUN=False,) -> dict:
     """Create a Configmap resource.
 
-    Creates a new ConfigMap resource with the specified metadata and data entries.
+    Creates a ConfigMap with the given metadata and key-value data pairs.
 
     Usage: CLI Usage
       ```sh
