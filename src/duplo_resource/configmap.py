@@ -151,6 +151,8 @@ class DuploConfigMap(DuploTenantResourceV3):
       DuploError: If the ConfigMap update fails.
     """
     if data:
+      if not name:
+        raise DuploError("Name is required when body is not provided")
       body = self.find(name)
       body.setdefault('data', {}).update(data or {})
     return body if dryrun else super().update(name=name, body=body, patches=patches)

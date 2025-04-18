@@ -20,7 +20,41 @@ class DuploSecret(DuploTenantResourceV3):
              data: args.DATAMAP=None,
              dryrun: args.DRYRUN=False,
              wait: args.WAIT=False) -> dict:
-    """Create a Secret"""
+    """Create a Secret
+
+    Create a new Kubernetes secret managed through DuploCloud.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl secret create -f secret.yaml
+      ```
+      Contents of the `secret.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/secret.yaml"
+      ```
+
+    Example: Create a secret using a one-liner.
+      ```sh
+      echo \"\"\"
+      --8<-- "src/tests/data/secret.yaml"
+      \"\"\" | duploctl secret create -f -
+      ```
+
+    Example: Create a secret using a file.
+      ```sh
+      duploctl secret create -f secret.yaml
+      ```
+
+    Example: Create a secret by specifying key-value pairs as literals.
+      ```sh
+      duploctl secret create <secret-name> --from-literal Key1="Val1" --from-literal Key2="Val2"
+      ```
+
+    Example: Create a secret from a file.
+      ```sh
+      duploctl secret create <secret-name> --from-file secret-map.txt
+      ```
+    """
     if not name and not body:
       raise DuploError("Name is required when body is not provided")
     if not body:
@@ -36,3 +70,82 @@ class DuploSecret(DuploTenantResourceV3):
       return body
     else:
       return super().create(body, wait=wait)
+
+  @Command()
+  def update(self,
+             name: args.NAME,
+             body: args.BODY=None,
+             data: args.DATAMAP=None,
+             patches: args.PATCHES = None,
+             dryrun: args.DRYRUN=False) -> dict:
+    """Updates a secret resource.
+
+    Updates an existing Kubernetes Secret resource with new or modified data.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl secret update -f secret.yaml
+      ```
+      Contents of the `secret.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/secret.yaml"
+      ```
+
+    Example: Update secret using a one-liner.
+      ```sh
+      echo \"\"\"
+      --8<-- "src/tests/data/secret.yaml"
+      \"\"\" | duploctl secret update -f -
+      ```
+
+    Example: Add new keys in the secret.
+      ```sh
+      duploctl secret update <secret-name> --add SecretData.NewKey1 NewValue1 --add SecretData.NewKey2 NewValue2
+      ```
+
+    Example: Update existing keys from the secret.
+      ```sh
+      duploctl secret update <secret-name> --replace SecretData.ExistingKey1 NewValue1 --replace SecretData.ExistingKey2 NewValue2
+      ```
+
+    Example: Delete existing keys from the secret.
+      ```sh
+      duploctl secret update <secret-name> --remove SecretData.ExistingKey1 --remove SecretData.ExistingKey2
+      ```
+
+    Example: Update a secret by specifying key-value pairs as literals.
+      ```sh
+      duploctl secret update <secret-name> --from-literal Key1="Val1" --from-literal Key2="Val2"
+      ```
+
+    Example: Update a secret from a file.
+      ```sh
+      duploctl secret update <secret-name> --from-file secret.txt
+      ```
+
+    Example: Adds labels and annotations to an existing Secret resource.
+      ```sh
+      duploctl secret update <secret-name> --add SecretLabels.NewLabelKey NewLabelVal --add SecretAnnotations.NewAnnotation AnnotationVal
+      ```
+
+    Args:
+      name: Name of the secret. Required if `body` is not provided.\n
+      body: The complete secret resource definition.\n
+      data: Data to merge into the secret.\n
+      patches: A list of JSON patches as args to apply to the service.
+        The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
+        Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
+      dryrun (bool, optional): If True, return the modified secret without applying changes.
+
+    Returns:
+      message: The updated secret or a success message.
+
+    Raises:
+      DuploError: If the secret update fails.
+    """
+    if data:
+      if not name:
+        raise DuploError("Name is required when body is not provided")
+      body = self.find(name)
+      body.setdefault('SecretData', {}).update(data or {})
+    return body if dryrun else super().update(name=name, body=body, patches=patches)
