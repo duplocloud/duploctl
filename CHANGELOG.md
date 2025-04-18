@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Patching support and docs enhancements were added for an Ingress.
+- Patching support and docs enhancements were added for the ConfigMap resource.
+- Patching support and docs enhancements were added for an Ingress resource.
 
 ## [0.2.47] - 2025-04-07
 
