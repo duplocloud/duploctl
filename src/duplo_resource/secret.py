@@ -6,6 +6,13 @@ from duplocloud.commander import Command, Resource
 
 @Resource("secret")
 class DuploSecret(DuploTenantResourceV3):
+  """Kubernetes Secrets
+  
+  This class provides methods to manage Kubernetes Secrets in DuploCloud.
+  
+  See more details at: 
+  https://docs.duplocloud.com/docs/kubernetes-overview/configs-and-secrets/setting-kubernetes-secrets
+  """
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "k8s/secret")
@@ -124,8 +131,9 @@ class DuploSecret(DuploTenantResourceV3):
       ```
 
     Example: Adds labels and annotations to an existing Secret resource.
+      Since annotations and labels do have dots and tildes, there is some special syntax here.
       ```sh
-      duploctl secret update <secret-name> --add SecretLabels.NewLabelKey NewLabelVal --add SecretAnnotations.NewAnnotation AnnotationVal
+      duploctl secret update <secret-name> --add /SecretLabels/my.label~0/foo NewLabelVal --add SecretAnnotations.NewAnnotation AnnotationVal
       ```
 
     Args:

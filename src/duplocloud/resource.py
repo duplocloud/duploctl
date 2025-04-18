@@ -311,8 +311,27 @@ class DuploTenantResourceV3(DuploResource):
   def apply(self,
              body: args.BODY,
              wait: args.WAIT = False,
-             patches: args.PATCHES = None,):
-    """Apply a service."""
+             patches: args.PATCHES = None,) -> dict:
+    """Apply a {{kind}}
+    
+    Create or Update a {{kind}} resource with Duplocloud cli. 
+
+    Usage: CLI Usage
+      ```sh
+      duploctl {{kind | lower}} apply -f '{{kind | lower}}.yaml'
+      ```
+      Contents of the `{{kind|lower}}.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/{{kind|lower}}.yaml"
+      ```
+    
+    Args:
+      body: The resource to apply.
+      wait: Wait for the resource to be created.
+      patches: The patches to apply to the resource.
+    Returns:
+      message: Success message.
+    """
     name = self.name_from_body(body)
     try:
       self.find(name)
