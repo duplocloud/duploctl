@@ -149,3 +149,53 @@ class DuploSecret(DuploTenantResourceV3):
       body = self.find(name)
       body.setdefault('SecretData', {}).update(data or {})
     return body if dryrun else super().update(name=name, body=body, patches=patches)
+
+  @Command()
+  def find(self,
+           name: args.NAME) -> dict:
+    """Find a Secret.
+
+    Retrieve details of a specific kubernetes Secret by name
+
+    Usage: cli usage
+      ```sh
+      duploctl secret find <name>
+      ```
+
+    Args:
+      name: The name of the secret to find.
+
+    Returns:
+      message: The resource content or success message.
+
+    Raises:
+      DuploError: Secret not found.
+    """
+    try:
+      response = self.duplo.get(self.endpoint(name))
+    except DuploError as e:
+      raise DuploError(f"Failed to find secret '{name}': {str(e)}")
+    return response.json()
+
+  @Command()
+  def delete(self,
+             name: args.NAME) -> dict:
+    """Delete Secret
+
+    Deletes the specified Secret by name.
+
+    Usage: cli
+      ```sh
+      duploctl secret delete <name>
+      ```
+
+    Args:
+      name: The name of a Secret to delete.
+
+    Returns:
+      message: Returns a success message if deleted successfully; otherwise, an error.
+    """
+    super().delete(name)
+    return {
+      "message": f"Successfully deleted secret '{name}'"
+    }
