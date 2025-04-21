@@ -124,7 +124,7 @@ class JsonPatchAction(argparse._AppendAction):
     super().__init__(opts, dest, nargs=nargs, metavar=metavar, **kwargs)
   def __call__(self, parser, namespace, value, option_string=None):
     def validate_key(key):
-      key = key.replace(".", "/").replace("[", "/").replace("]", "")
+      key = key.replace("[", "/").replace("]", "")
       key = "/" + key if key[0] != "/" else key
       return key
     def validate_value(v):

@@ -6,7 +6,14 @@ import duplocloud.args as args
 
 @Resource("configmap")
 class DuploConfigMap(DuploTenantResourceV3):
+  """Kubernetes ConfigMaps
   
+  This class offers methods to manage Kubernetes ConfigMaps within DuploCloud.
+
+  See more details at:
+  https://docs.duplocloud.com/docs/kubernetes-overview/configs-and-secrets
+  """
+
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "k8s/configmap")
 
@@ -112,17 +119,17 @@ class DuploConfigMap(DuploTenantResourceV3):
 
     Example: Add new key in the configmap.
       ```sh
-      duploctl configmap update <configmap-name> --add data.NewKey NewValue
+      duploctl configmap update <configmap-name> --add /data/NewKey NewValue
       ```
 
     Example: Update existing key from the configmap.
       ```sh
-      duploctl configmap update <configmap-name> --replace data.ExistingKey NewValue
+      duploctl configmap update <configmap-name> --replace /data/ExistingKey NewValue
       ```
 
     Example: Delete existing key from the configmap.
       ```sh
-      duploctl configmap update <configmap-name> --remove data.ExistingKey
+      duploctl configmap update <configmap-name> --remove /data/ExistingKey
       ```
 
     Example: Update a ConfigMap by specifying key-value pairs as literals.
