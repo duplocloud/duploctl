@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Patching support and docs enhancements were added for the ConfigMap resource.
+- bulk_update_image to handle serviceimage input as a list of [name, image] pairs instead of a dict.
 
 ## [0.2.47] - 2025-04-07
 
