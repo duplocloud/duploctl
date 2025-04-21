@@ -107,17 +107,17 @@ class DuploSecret(DuploTenantResourceV3):
 
     Example: Add new keys in the secret.
       ```sh
-      duploctl secret update <secret-name> --add SecretData.NewKey1 NewValue1 --add SecretData.NewKey2 NewValue2
+      duploctl secret update <secret-name> --add /SecretData/NewKey1 NewValue1 --add /SecretData/NewKey2 NewValue2
       ```
 
     Example: Update existing keys from the secret.
       ```sh
-      duploctl secret update <secret-name> --replace SecretData.ExistingKey1 NewValue1 --replace SecretData.ExistingKey2 NewValue2
+      duploctl secret update <secret-name> --replace /SecretData/ExistingKey1 NewValue1 --replace /SecretData/ExistingKey2 NewValue2
       ```
 
     Example: Delete existing keys from the secret.
       ```sh
-      duploctl secret update <secret-name> --remove SecretData.ExistingKey1 --remove SecretData.ExistingKey2
+      duploctl secret update <secret-name> --remove /SecretData/ExistingKey1 --remove /SecretData/ExistingKey2
       ```
 
     Example: Update a secret by specifying key-value pairs as literals.
