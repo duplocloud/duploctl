@@ -329,6 +329,7 @@ class DuploTenantResourceV3(DuploResource):
       body: The resource to apply.
       wait: Wait for the resource to be created.
       patches: The patches to apply to the resource.
+
     Returns:
       message: Success message.
     """
