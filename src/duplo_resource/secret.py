@@ -25,8 +25,7 @@ class DuploSecret(DuploTenantResourceV3):
              name: args.NAME=None,
              body: args.BODY=None,
              data: args.DATAMAP=None,
-             dryrun: args.DRYRUN=False,
-             wait: args.WAIT=False) -> dict:
+             dryrun: args.DRYRUN=False) -> dict:
     """Create a Secret
 
     Create a new Kubernetes secret managed through DuploCloud.
@@ -61,6 +60,18 @@ class DuploSecret(DuploTenantResourceV3):
       ```sh
       duploctl secret create <secret-name> --from-file secret-map.txt
       ```
+
+    Args:
+      name: Name of the secret. Required if `body` is not provided.
+      body: The complete secret resource definition.
+      data: Data to merge into the secret.
+      dryrun (bool, optional): If True, return the modified secret without applying changes.
+
+    Returns:
+      message: The updated secret or a success message.
+
+    Raises:
+      DuploError: If the secret create fails.
     """
     if not name and not body:
       raise DuploError("Name is required when body is not provided")
@@ -76,7 +87,7 @@ class DuploSecret(DuploTenantResourceV3):
     if dryrun:
       return body
     else:
-      return super().create(body, wait=wait)
+      return super().create(body)
 
   @Command()
   def update(self,
@@ -137,9 +148,9 @@ class DuploSecret(DuploTenantResourceV3):
       ```
 
     Args:
-      name: Name of the secret. Required if `body` is not provided.\n
-      body: The complete secret resource definition.\n
-      data: Data to merge into the secret.\n
+      name: Name of the secret. Required if `body` is not provided.
+      body: The complete secret resource definition.
+      data: Data to merge into the secret.
       patches: A list of JSON patches as args to apply to the service.
         The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
         Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.

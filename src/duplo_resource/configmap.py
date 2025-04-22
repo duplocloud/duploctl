@@ -143,9 +143,9 @@ class DuploConfigMap(DuploTenantResourceV3):
       ```
 
     Args:
-      name: Name of the ConfigMap. Required if `body` is not provided.\n
-      body: The complete ConfigMap resource definition.\n
-      data: Data to merge into the ConfigMap.\n
+      name: Name of the ConfigMap. Required if `body` is not provided.
+      body: The complete ConfigMap resource definition.
+      data: Data to merge into the ConfigMap.
       patches: A list of JSON patches as args to apply to the service.
         The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
         Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
