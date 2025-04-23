@@ -6,6 +6,12 @@ import duplocloud.args as args
 
 @Resource("ingress")
 class DuploIngress(DuploTenantResourceV3):
+  """Kubernetes Ingress
+
+  This class offers methods to manage Kubernetes Ingress within DuploCloud.
+  See more details at:
+  https://docs.duplocloud.com/docs/kubernetes-overview/ingress-loadbalancer
+  """
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "k8s/ingress")
@@ -64,7 +70,7 @@ class DuploIngress(DuploTenantResourceV3):
              patches: args.PATCHES = None) -> dict:
     """Update an Ingress resource.
 
-    Update an exisitng Ingress resource with the specified metadata and data entries.
+    Update an existing Ingress resource with the specified metadata and data entries.
 
     Usage: CLI Usage
       ```sh
@@ -92,6 +98,16 @@ class DuploIngress(DuploTenantResourceV3):
       duploctl ingress update <ingress-name> --replace rules/0.port <port>
       ```
 
+    Example: Update ingress by adding an additional rule.
+      ```sh
+      duploctl ingress update <ingress-name> --add rules/- '{"path":"/","pathType":"Prefix","serviceName":"<service-name>","port":80,"host":"<host>","portName":null}'
+      ```
+
+    Example: Update ingress by removing a rule.
+      ```sh
+      duploctl ingress update <ingress-name> --remove rules/0
+      ```
+
     Args:
       name: The name of the Ingress resource to update. Required if `body` is not provided.\n
       body: The complete Ingress resource definition.\n
@@ -105,8 +121,6 @@ class DuploIngress(DuploTenantResourceV3):
     Raises:
       DuploError: If the Ingress could not be updated.
     """
-    if (name is None and body is None):
-      raise DuploError("No arguments provided to update ingress", 400)
     if name and body:
       if 'name' not in body or body['name'] != name:
         raise DuploError("Provided 'name' must match 'name' in the body.")
