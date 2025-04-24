@@ -3,8 +3,6 @@ from duplocloud.errors import DuploError, DuploFailedResource
 from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
-from duplocloud.argtype import Arg
-import argparse
 
 @Resource("job")  # Decorator to define a resource
 class DuploJob(DuploTenantResourceV3):
