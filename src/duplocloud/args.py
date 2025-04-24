@@ -315,8 +315,16 @@ SSM_PARAM_TYPE = Arg("parametertype", "-ptype",
 PARAM_CONTENT = Arg('parametervalue', '-pval',
             help='Arbitrary text to add to the parameter')
 
+SUSPEND_JOB = Arg('suspend-job', '--suspend-job', '--resume-job',
+            help='Use --suspend-job to pause job execution or --resume-job to continue execution',
+            type=bool,
+            action=argparse.BooleanOptionalAction)
+
+TTL_SECONDS_AFTER_FINISHED = Arg('ttl-seconds', '--ttl-seconds-after-finished',
+            help='Time in seconds to automatically delete job after it finishes',
+            type=int)
+
 SHOW_SENSITIVE = Arg('showsensitive', '-show',
             help='Return sensitive values to output. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT/LOG FILES',
             type=bool,
             action='store_true')
-            

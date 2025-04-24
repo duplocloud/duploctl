@@ -33,33 +33,10 @@ class DuploJob(DuploTenantResourceV3):
       ```sh
       duploctl job create -f job.yaml
       ```
-      Contents of the `job.yaml` file should follow Kubernetes Job specification format:
-      ```yaml
-      metadata:
-        name: myjob
-      spec:
-        ttlSecondsAfterFinished: 86400
-        parallelism: 2
-        completions: 4
-        template:
-          spec:
-            restartPolicy: Never
-            containers:
-            - name: app
-              image: ubuntu:latest
-              command:
-              - /bin/bash
-              - -c
-              args:
-              - |
-                echo "Hello, World!"
-                sleep 10
-                echo "Goodbye, World!"
-      ```
 
     Example: Create a job and wait for it to complete
       ```sh
-      duploctl job create -f job.yaml --wait
+      duploctl job create -f src/tests/data/job.yaml --wait
       ```
 
     Args:
@@ -153,13 +130,8 @@ class DuploJob(DuploTenantResourceV3):
   def update(self,
              name: args.NAME,
              patches: args.PATCHES = None,
-             suspend_job: Arg('suspend-job', '--suspend-job', '--resume-job',
-                      help='Use --suspend-job to pause job execution or --resume-job to continue execution',
-                      type=bool,
-                      action=argparse.BooleanOptionalAction) = None,
-             ttl_seconds_after_finished: Arg('ttl-seconds', '--ttl-seconds-after-finished',
-                      help='Time in seconds to automatically delete job after it finishes',
-                      type=int) = None,
+             suspend_job: args.SUSPEND_JOB = None,
+             ttl_seconds_after_finished: args.TTL_SECONDS_AFTER_FINISHED = None,
              dryrun: args.DRYRUN = False) -> dict:
     """Update a Job resource.
 
