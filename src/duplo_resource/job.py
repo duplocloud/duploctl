@@ -157,7 +157,9 @@ class DuploJob(DuploTenantResourceV3):
                       help='Use --suspend-job to pause job execution or --resume-job to continue execution',
                       type=bool,
                       action=argparse.BooleanOptionalAction) = None,
-             ttl_seconds_after_finished: args.MAX = None,
+             ttl_seconds_after_finished: Arg('ttl-seconds', '--ttl-seconds-after-finished',
+                      help='Time in seconds to automatically delete job after it finishes',
+                      type=int) = None,
              dryrun: args.DRYRUN = False) -> dict:
     """Update a Job resource.
 
@@ -186,7 +188,7 @@ class DuploJob(DuploTenantResourceV3):
 
     Example: Change TTL after completion
       ```sh
-      duploctl job update <job-name> --max 3600
+      duploctl job update <job-name> --ttl-seconds-after-finished 3600
       ```
 
     Example: Use JSON patches to update fields
@@ -200,7 +202,7 @@ class DuploJob(DuploTenantResourceV3):
         The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
         Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
       suspend_job: Use `--suspend-job` to pause job execution or `--resume-job` to continue execution.
-      ttl_seconds_after_finished: Time in seconds to automatically delete job after it finishes (use `--max` flag).
+      ttl_seconds_after_finished: Time in seconds to automatically delete job after it finishes (use `--ttl-seconds-after-finished` flag).
       dryrun (bool, optional): If True, return the modified job without applying changes.
 
     Returns:
