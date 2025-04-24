@@ -48,13 +48,13 @@ class DuploIngress(DuploTenantResourceV3):
       ```
 
     Args:
-      body: The complete Ingress resource definition.
+      body: The complete Ingress resource definition including name, rules, and other configuration.
 
     Returns:
       message: The created resource or success message.
 
     Raises:
-      DuploError: If the Ingress could not be created.
+      DuploError: If the Ingress could not be created due to invalid configuration or API errors.
     """
     name = self.name_from_body(body)
     response = self.duplo.post(self.endpoint(), body)
@@ -71,6 +71,8 @@ class DuploIngress(DuploTenantResourceV3):
     """Update an Ingress resource.
 
     Update an existing Ingress resource with the specified metadata and data entries.
+    The update can be performed either by providing a complete resource definition or
+    by applying JSON patches to modify specific fields.
 
     Usage: CLI Usage
       ```sh
@@ -90,12 +92,12 @@ class DuploIngress(DuploTenantResourceV3):
 
     Example: Update dnsPrefix for an ingress.
       ```sh
-      duploctl ingress update <ingress-name> --replace lbConfig.dnsPrefix <value>
+      duploctl ingress update <ingress-name> --replace lbConfig/dnsPrefix <value>
       ```
 
     Example: Update port of a rule for an ingress.
       ```sh
-      duploctl ingress update <ingress-name> --replace rules/0.port <port>
+      duploctl ingress update <ingress-name> --replace rules/0/port <port>
       ```
 
     Example: Update ingress by adding an additional rule.
@@ -109,14 +111,14 @@ class DuploIngress(DuploTenantResourceV3):
       ```
 
     Args:
-      name: The name of the Ingress resource to update. Required if `body` is not provided.\n
-      body: The complete Ingress resource definition.\n
-      patches: A list of JSON patches as args to apply to the service.
+      name: The name of the Ingress resource to update. Required if `body` is not provided.
+      body: The complete Ingress resource definition with updated configuration.
+      patches: A list of JSON patches to apply to the Ingress resource.
         The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
         Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
 
     Returns:
-      message: The updated resource or success message.
+      message: The created resource or success message.
 
     Raises:
       DuploError: If the Ingress could not be updated.
