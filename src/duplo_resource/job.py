@@ -3,9 +3,17 @@ from duplocloud.errors import DuploError, DuploFailedResource
 from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
+from duplocloud.argtype import Arg
+import argparse
 
 @Resource("job")  # Decorator to define a resource
 class DuploJob(DuploTenantResourceV3):
+  """Kubernetes Jobs
+
+  This class offers methods to manage Kubernetes Jobs within DuploCloud.
+  See more details at:
+  https://docs.duplocloud.com/docs/kubernetes-overview/jobs
+  """
   
   def __init__(self, duplo: DuploClient):  # Constructor method
     super().__init__(duplo, "k8s/job")  
@@ -17,7 +25,55 @@ class DuploJob(DuploTenantResourceV3):
   def create(self, 
              body: args.BODY, 
              wait: args.WAIT = False):
-    """Create a job."""
+    """Create a Kubernetes Job.
+
+    Creates a new Kubernetes Job resource managed through DuploCloud.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl job create -f job.yaml
+      ```
+      Contents of the `job.yaml` file should follow Kubernetes Job specification format:
+      ```yaml
+      metadata:
+        name: myjob
+      spec:
+        ttlSecondsAfterFinished: 86400
+        parallelism: 2
+        completions: 4
+        template:
+          spec:
+            restartPolicy: Never
+            containers:
+            - name: app
+              image: ubuntu:latest
+              command:
+              - /bin/bash
+              - -c
+              args:
+              - |
+                echo "Hello, World!"
+                sleep 10
+                echo "Goodbye, World!"
+      ```
+
+    Example: Create a job and wait for it to complete
+      ```sh
+      duploctl job create -f job.yaml --wait
+      ```
+
+    Args:
+      body: The complete Job resource definition in YAML/JSON format.
+      wait (bool, optional): If True, wait for the job to complete before returning.
+          This is useful for short-running jobs where you want to see the results immediately.
+
+    Returns:
+      message: A success message if the job was created successfully.
+
+    Raises:
+      DuploError: If the job creation fails.
+      DuploFailedResource: If the job fails during execution (when wait=True).
+    """
     name = self.name_from_body(body)
     a = 0
     s = 0
@@ -92,3 +148,122 @@ class DuploJob(DuploTenantResourceV3):
       pod for pod in pods
       if pod.get("Name", None) == name and pod["ControlledBy"]["QualifiedType"] == "kubernetes:batch/v1/Job"
     ]
+
+  @Command()
+  def update(self,
+             name: args.NAME,
+             patches: args.PATCHES = None,
+             suspend_job: Arg('suspend-job', '--suspend-job', '--resume-job',
+                      help='Use --suspend-job to pause job execution or --resume-job to continue execution',
+                      type=bool,
+                      action=argparse.BooleanOptionalAction) = None,
+             ttl_seconds_after_finished: args.MAX = None,
+             dryrun: args.DRYRUN = False) -> dict:
+    """Update a Job resource.
+
+    Updates an existing Kubernetes Job with new values for mutable fields.
+    Note that many Job fields are immutable after creation, including:
+    - spec.template (the entire pod template)
+    - spec.selector
+    - spec.parallelism
+    - spec.completions
+    - spec.backoffLimit
+
+    Usage: CLI Usage
+      ```sh
+      duploctl job update <job-name> [options]
+      ```
+
+    Example: Suspend a running job
+      ```sh
+      duploctl job update <job-name> --suspend-job
+      ```
+
+    Example: Resume a suspended job
+      ```sh
+      duploctl job update <job-name> --resume-job
+      ```
+
+    Example: Change TTL after completion
+      ```sh
+      duploctl job update <job-name> --max 3600
+      ```
+
+    Example: Use JSON patches to update fields
+      ```sh
+      duploctl job update <job-name> --add /spec/suspend true
+      ```
+
+    Args:
+      name: Name of the job to update.
+      patches: A list of JSON patches to apply to the job.
+        The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
+        Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
+      suspend_job: Use `--suspend-job` to pause job execution or `--resume-job` to continue execution.
+      ttl_seconds_after_finished: Time in seconds to automatically delete job after it finishes (use `--max` flag).
+      dryrun (bool, optional): If True, return the modified job without applying changes.
+
+    Returns:
+      message: The updated job or a success message.
+
+    Raises:
+      DuploError: If the job update fails or attempts to modify immutable fields.
+    """
+    job = self.find(name)
+
+    # Apply explicit parameter updates if provided
+    if suspend_job is not None:
+      if patches is None:
+        patches = []
+
+      # Check if the suspend field exists in the job spec
+      suspend_exists = job.get('spec', {}).get('suspend') is not None
+
+      # Use 'add' if the field doesn't exist, 'replace' if it does
+      op = "replace" if suspend_exists else "add"
+
+      patches.append({
+        "op": op,
+        "path": "/spec/suspend",
+        "value": suspend_job
+      })
+
+    if ttl_seconds_after_finished is not None:
+      if patches is None:
+        patches = []
+
+      # Check if the ttlSecondsAfterFinished field exists in the job spec
+      ttl_exists = job.get('spec', {}).get('ttlSecondsAfterFinished') is not None
+
+      # Use 'add' if the field doesn't exist, 'replace' if it does
+      op = "replace" if ttl_exists else "add"
+
+      patches.append({
+        "op": op,
+        "path": "/spec/ttlSecondsAfterFinished",
+        "value": ttl_seconds_after_finished
+      })
+
+    # If no changes are requested, return the current job
+    if patches is None or len(patches) == 0:
+      return job
+
+    # Check for attempts to modify immutable fields
+    immutable_paths = [
+      "/spec/template",
+      "/spec/selector",
+      "/spec/parallelism",
+      "/spec/completions",
+      "/spec/backoffLimit"
+    ]
+
+    for patch in patches:
+      path = patch.get("path", "")
+      for immutable_path in immutable_paths:
+        if path.startswith(immutable_path):
+          raise DuploError(f"Cannot modify immutable field: {path}")
+
+    if dryrun:
+      return job
+
+    return super().update(name=name, patches=patches)

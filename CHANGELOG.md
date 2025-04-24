@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Patching support and docs enhancements were added for the ConfigMap resource.
 - Patching support and docs enhancements were added for the K8S Secret resource.
+- Patching support and docs enhancements were added for the K8S Jobs resource.
 - bulk_update_image to handle serviceimage input as a list of [name, image] pairs instead of a dict.
 
 ## [0.2.47] - 2025-04-07
