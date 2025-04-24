@@ -6,7 +6,14 @@ import duplocloud.args as args
 
 @Resource("configmap")
 class DuploConfigMap(DuploTenantResourceV3):
+  """Kubernetes ConfigMaps
   
+  This class offers methods to manage Kubernetes ConfigMaps within DuploCloud.
+
+  See more details at:
+  https://docs.duplocloud.com/docs/kubernetes-overview/configs-and-secrets
+  """
+
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "k8s/configmap")
 
@@ -112,17 +119,17 @@ class DuploConfigMap(DuploTenantResourceV3):
 
     Example: Add new key in the configmap.
       ```sh
-      duploctl configmap update <configmap-name> --add data.NewKey NewValue
+      duploctl configmap update <configmap-name> --add /data/NewKey NewValue
       ```
 
     Example: Update existing key from the configmap.
       ```sh
-      duploctl configmap update <configmap-name> --replace data.ExistingKey NewValue
+      duploctl configmap update <configmap-name> --replace /data/ExistingKey NewValue
       ```
 
     Example: Delete existing key from the configmap.
       ```sh
-      duploctl configmap update <configmap-name> --remove data.ExistingKey
+      duploctl configmap update <configmap-name> --remove /data/ExistingKey
       ```
 
     Example: Update a ConfigMap by specifying key-value pairs as literals.
@@ -136,9 +143,9 @@ class DuploConfigMap(DuploTenantResourceV3):
       ```
 
     Args:
-      name: Name of the ConfigMap. Required if `body` is not provided.\n
-      body: The complete ConfigMap resource definition.\n
-      data: Data to merge into the ConfigMap.\n
+      name: Name of the ConfigMap. Required if `body` is not provided.
+      body: The complete ConfigMap resource definition.
+      data: Data to merge into the ConfigMap.
       patches: A list of JSON patches as args to apply to the service.
         The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
         Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
@@ -151,6 +158,8 @@ class DuploConfigMap(DuploTenantResourceV3):
       DuploError: If the ConfigMap update fails.
     """
     if data:
+      if not name:
+        raise DuploError("Name is required when body is not provided")
       body = self.find(name)
       body.setdefault('data', {}).update(data or {})
     return body if dryrun else super().update(name=name, body=body, patches=patches)
