@@ -1,6 +1,7 @@
 import pytest
 import time
 from duplocloud.errors import DuploError
+from .conftest import get_test_data
 
 @pytest.fixture(scope="class")
 def asg_resource(duplo):
@@ -24,29 +25,9 @@ class TestAsg:
     @pytest.mark.order(1)
     def test_create_asg(self, asg_resource):
         r, asg_name = asg_resource
-        body = {
-            "FriendlyName": asg_name,
-            "Zone": 1,
-            "IsEbsOptimized": False,
-            "DesiredCapacity": 1,
-            "MinSize": 1,
-            "MaxSize": 2,
-            "MetaData": [
-                {"Key": "OsDiskSize", "Value": 30},
-                {"Key": "MetadataServiceOption", "Value": "enabled_v2_only"}
-            ],
-            "UseLaunchTemplate": True,
-            "CanScaleFromZero": False,
-            "IsUserDataCombined": True,
-            "KeyPairType": None,
-            "Capacity": "t3.small",
-            "Base64UserData": "",
-            "TagsCsv": "",
-            "AgentPlatform": 7,
-            "IsClusterAutoscaled": True,
-            "IsMinion": True
-        }
-        execute_test(r.create, body, wait=True)
+        body = get_test_data("asg")
+        response = execute_test(r.create, body=body, wait=True)
+        assert response["data"] == asg_name
         time.sleep(60)
 
     @pytest.mark.integration
@@ -63,7 +44,7 @@ class TestAsg:
     def test_update_asg(self, asg_resource):
         r, asg_name = asg_resource
         body = {"FriendlyName": asg_name, "MinSize": 2, "MaxSize": 3}
-        response = execute_test(r.update, body)
+        response = execute_test(r.update, body=body)
         assert "Successfully updated asg" in response["message"]
 
     @pytest.mark.integration

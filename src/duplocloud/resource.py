@@ -140,8 +140,6 @@ class DuploTenantResourceV2(DuploResourceV2):
     return self.__tenant_id
   
   def prefixed_name(self, name: str) -> str:
-    """Make sure name is prefixed
-    """
     tenant_name = self.tenant["AccountName"]
     prefix = f"duploservices-{tenant_name}-"
     if not name.startswith(prefix):
