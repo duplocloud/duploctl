@@ -208,7 +208,8 @@ class DuploEcsService(DuploTenantResourceV2):
       "Memory": task_def["Memory"],
       "InferenceAccelerators": task_def.get("InferenceAccelerators", []),
       "NetworkMode": task_def.get("NetworkMode", {}),
-      "ContainerDefinitions": containers
+      "ContainerDefinitions": containers,
+      "RuntimePlatform": task_def.get("RuntimePlatform", {})
     }
   
   def __ecs_container_update_body(self, container_def):
@@ -220,6 +221,7 @@ class DuploEcsService(DuploTenantResourceV2):
         "Environment": container_def.get("Environment", {}) ,
         "Command": container_def.get("Command", {}) ,
         "Secrets": container_def.get("Secrets", {}) ,
+        "EnvironmentFiles": container_def.get("EnvironmentFiles", {})
     }
     
     # Add LogConfiguration only if it exists in container_def
