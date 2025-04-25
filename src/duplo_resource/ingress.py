@@ -92,22 +92,22 @@ class DuploIngress(DuploTenantResourceV3):
 
     Example: Update dnsPrefix for an ingress.
       ```sh
-      duploctl ingress update <ingress-name> --replace lbConfig/dnsPrefix <value>
+      duploctl ingress update <ingress-name> --replace /lbConfig/dnsPrefix <value>
       ```
 
     Example: Update port of a rule for an ingress.
       ```sh
-      duploctl ingress update <ingress-name> --replace rules/0/port <port>
+      duploctl ingress update <ingress-name> --replace /rules/0/port <port>
       ```
 
     Example: Update ingress by adding an additional rule.
       ```sh
-      duploctl ingress update <ingress-name> --add rules/- '{"path":"/","pathType":"Prefix","serviceName":"<service-name>","port":80,"host":"<host>","portName":null}'
+      duploctl ingress update <ingress-name> --add /rules/- '{"path":"/","pathType":"Prefix","serviceName":"<service-name>","port":80,"host":"<host>","portName":null}'
       ```
 
     Example: Update ingress by removing a rule.
       ```sh
-      duploctl ingress update <ingress-name> --remove rules/0
+      duploctl ingress update <ingress-name> --remove /rules/0
       ```
 
     Args:
