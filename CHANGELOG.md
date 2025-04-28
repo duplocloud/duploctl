@@ -11,8 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added fields to the ecs service update task def to replace a bug 
 
-## [0.2.40] - 2025-04-25
-
 ## [0.2.49] - 2025-04-21
 
 ## [0.2.48] - 2025-04-21
