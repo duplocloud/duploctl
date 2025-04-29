@@ -36,7 +36,7 @@ class TestIngress:
         """Test updating an Ingress resource."""
         r = ingress_resource
         update_body = get_test_data("ingress")
-        response = execute_test(r.update, body=update_body)
+        response = execute_test(r.update, name=self.ingress_name, body=update_body)
         assert response.get("message") and f"Successfully Updated an Ingress '{update_body['name']}'" in response["message"], "Ingress updation failed"
 
     @pytest.mark.integration

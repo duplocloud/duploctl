@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added DuploStillWaiting class to reflect scenarios where a command waits too long for a resource operation to complete.
+- Added integration tests for k8 Secret resource.
+- Added a timeout parameter to the service update_image to control operation duration.
+
 ### Fixed
 
+- Docs enhancements were added for the Host resource with integration tests.
 - Added fields to the ecs service update task def to replace a bug 
-- Added a timeout parameter to the service update_image to control operation duration.
+- Patching support and docs enhancements were added for an ASG resource.
+- Patching support and docs enhancements were added for an Ingress resource.
 
 ## [0.2.49] - 2025-04-21
 
