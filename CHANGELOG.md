@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added integration tests for k8 Secret resource.
+
 ### Fixed
 
 - Added fields to the ecs service update task def to replace a bug 
