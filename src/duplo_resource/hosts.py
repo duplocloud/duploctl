@@ -12,6 +12,8 @@ class DuploHosts(DuploTenantResourceV2):
   lifecycle operations like creating, deleting, starting, stopping and rebooting hosts.
   Hosts can be created with specific configurations like instance type, AMI, and other
   parameters.
+
+  See more details at: https://docs.duplocloud.com/docs/welcome-to-duplocloud/application-focussed-interface/duplocloud-common-components/hosts
   """
   
   def __init__(self, duplo: DuploClient):
