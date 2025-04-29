@@ -8,7 +8,12 @@ import duplocloud.args as args
 class DuploHosts(DuploTenantResourceV2):
   """Manage Duplo Hosts
   
-  Duplo hosts are virtual machines that run your services. You can create, delete, start, stop, and reboot hosts.
+  Duplo hosts are virtual machines that run your services within a tenant. You can perform
+  lifecycle operations like creating, deleting, starting, stopping and rebooting hosts.
+  Hosts can be created with specific configurations like instance type, AMI, and other
+  parameters.
+
+  See more details at: https://docs.duplocloud.com/docs/welcome-to-duplocloud/application-focussed-interface/duplocloud-common-components/hosts
   """
   
   def __init__(self, duplo: DuploClient):
@@ -21,7 +26,9 @@ class DuploHosts(DuploTenantResourceV2):
   def create(self,
              body: args.BODY,
              wait: args.WAIT=False) -> dict:
-    """Create a Hosts resource.
+    """Create a Host resource.
+
+    Creates a new host in the tenant with the specified configuration.
 
     Usage: CLI Usage
       ```sh
@@ -32,7 +39,7 @@ class DuploHosts(DuploTenantResourceV2):
       --8<-- "src/tests/data/hosts.yaml"
       ```
 
-    Example: One liner example
+    Example: Create a host using a one-liner
       ```sh
       echo \"\"\"
       --8<-- "src/tests/data/hosts.yaml"
@@ -40,14 +47,15 @@ class DuploHosts(DuploTenantResourceV2):
       ```
     
     Args:
-      body: The resource to create.
-      wait: Wait for the resource to be created.
+      body: The host configuration including instance type, AMI, and other parameters.
+      wait: Whether to wait for the host to be fully created and running.
 
     Returns: 
-      message: Success message.
+      message: Success message and the instance ID of the created host.
 
     Raises:
-      DuploError: If the resource could not be created.
+      DuploError: If the host could not be created or the configuration is invalid.
+      DuploFailedResource: If the host creation process fails.
     """
     def wait_check():
       name = self.name_from_body(body)
@@ -73,19 +81,24 @@ class DuploHosts(DuploTenantResourceV2):
              wait: args.WAIT=False) -> dict:
     """Delete a host.
     
-    Deletes a host by name. If the host is running, it will be stopped before deletion.
+    Terminates a host by its name. This operation is irreversible and will
+    destroy all data on the instance.
 
-    Usage: cli
+    Usage: CLI Usage
       ```sh
       duploctl hosts delete <name>
       ```
     
     Args:
       name: The name of the host to delete.
-      wait: Wait for the host to be deleted.
+      wait: Whether to wait for the host to be fully terminated.
 
     Returns:
-      message: A success message.
+      message: Success message confirming the host deletion.
+
+    Raises:
+      DuploError: If the host does not exist or cannot be deleted.
+      DuploFailedResource: If the deletion process fails.
     """
     host = self.find(name)
     inst_id = host["InstanceId"]
@@ -114,19 +127,24 @@ class DuploHosts(DuploTenantResourceV2):
            wait: args.WAIT=False) -> dict:
     """Stop a host.
     
-    Stops a host by name. If the host is already stopped, it will return a success message.
+    Stops a running host. The instance can be restarted later using the start
+    command. Stopped instances do not incur compute charges but still incur storage costs.
 
-    Usage: cli
+    Usage: CLI Usage
       ```sh
       duploctl hosts stop <name>
       ```
     
     Args:
       name: The name of the host to stop.
-      wait: Wait for the host to stop.
+      wait: Whether to wait for the host to reach stopped state.
 
     Returns:
-      message: A success message.
+      message: Success message confirming the host has been stopped.
+
+    Raises:
+      DuploError: If the host does not exist or cannot be stopped.
+      DuploFailedResource: If the stop process fails.
     """
     host = self.find(name)
     inst_id = host["InstanceId"]
@@ -152,19 +170,24 @@ class DuploHosts(DuploTenantResourceV2):
              wait: args.WAIT=False) -> dict:
     """Start a host.
     
-    Starts a host by name. If the host is already running, it will return a success message.
+    Starts a stopped host. The instance will retain its configuration and data
+    from when it was stopped.
 
-    Usage: cli
+    Usage: CLI Usage
       ```sh
       duploctl hosts start <name>
       ```
     
     Args:
       name: The name of the host to start.
-      wait: Wait for the host to start.
+      wait: Whether to wait for the host to reach running state.
     
     Returns:
-      message: A success message.
+      message: Success message confirming the host has been started.
+
+    Raises:
+      DuploError: If the host does not exist or cannot be started.
+      DuploFailedResource: If the start process fails.
     """
     host = self.find(name)
     inst_id = host["InstanceId"]
@@ -187,11 +210,12 @@ class DuploHosts(DuploTenantResourceV2):
   @Command()
   def reboot(self,
              name: args.NAME) -> dict:
-    """Reboot a host
+    """Reboot a host.
     
-    Reboots a host by name.
+    Performs a graceful reboot of a host. This is equivalent to an operating
+    system reboot command. The instance ID and data are preserved.
 
-    Usage: cli
+    Usage: CLI Usage
       ```sh
       duploctl hosts reboot <name>
       ```
@@ -200,7 +224,10 @@ class DuploHosts(DuploTenantResourceV2):
       name: The name of the host to reboot.
     
     Returns:
-      message: A success message.
+      message: Success message confirming the reboot request.
+
+    Raises:
+      DuploError: If the host does not exist or cannot be rebooted.
     """
     host = self.find(name)
     inst_id = host["InstanceId"]

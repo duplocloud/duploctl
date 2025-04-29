@@ -467,7 +467,7 @@ class DuploService(DuploTenantResourceV2):
     """
     payload = []
     wait_list = []
-    for name, image in serviceimage.items():
+    for name, image in serviceimage:
       service = self.find(name)
       payload_item = {
           "Name": name,

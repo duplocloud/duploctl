@@ -28,7 +28,7 @@ class DuploCronJob(DuploTenantResourceV3):
     self._set_is_any_host_allowed(cronjob)
 
     cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]["image"] = image
-    self.update(cronjob)
+    self.update(name=name, body=cronjob)
     return {"message": f"Successfully updated image for cronjob '{name}'"}
 
   @Command()
@@ -49,7 +49,7 @@ class DuploCronJob(DuploTenantResourceV3):
     self._set_is_any_host_allowed(cronjob)
 
     cronjob["spec"]["schedule"] = cronschedule
-    self.update(cronjob)
+    self.update(name=name, body=cronjob)
     return {"message": f"Successfully updated cron-schedule for cronjob '{name}'"}
 
   def _set_is_any_host_allowed(self, cronjob: dict) -> None:
