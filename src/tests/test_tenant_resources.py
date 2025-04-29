@@ -7,7 +7,6 @@ resources = [
   "asg",
   "cronjob", 
   "job",
-  "secret",
   "configmap",
   "lambda",
   "rds",
