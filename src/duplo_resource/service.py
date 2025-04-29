@@ -1,7 +1,7 @@
 import time
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV2
-from duplocloud.errors import DuploError, DuploFailedResource
+from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 from json import dumps, loads
 import duplocloud.args as args
@@ -701,11 +701,11 @@ class DuploService(DuploTenantResourceV2):
       replicas = svc["Replicas"]
       # make sure the change has been applied
       if (image_changed and self.image_from_body(svc) != new_img):
-        raise DuploError(f"Service {name} waiting for image update", 400)
+        raise DuploStillWaiting(f"Service {name} waiting for image update")
       if (replicas_changed and replicas != new_replicas):
-        raise DuploError(f"Service {name} waiting for replicas update", 400)
+        raise DuploStillWaiting(f"Service {name} waiting for replicas update")
       if (conf_changed and svc["Template"].get("OtherDockerConfig", None) != new_conf):
-        raise DuploError(f"Service {name} waiting for pod to update", 400)
+        raise DuploStillWaiting(f"Service {name} waiting for pod to update")
       pods = self.pods(name)
       faults = self.tenant_svc.faults(id=self.tenant_id)
       running = 0
@@ -737,7 +737,7 @@ class DuploService(DuploTenantResourceV2):
 
       # make sure all the replicas are up
       if replicas != running:
-        raise DuploError(f"Service {name} waiting for pods {running}/{replicas}", 400)
+        raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{replicas}")
       
     # send to the base class to do the waiting
     super().wait(wait_check, 400, 11)

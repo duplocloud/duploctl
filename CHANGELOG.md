@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added DuploStillWaiting class to reflect scenarios where a command waits too long for a resource operation to complete.
 - Added integration tests for k8 Secret resource.
 
 ### Fixed

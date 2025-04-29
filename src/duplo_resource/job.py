@@ -1,5 +1,5 @@
 from duplocloud.client import DuploClient  # Importing necessary modules
-from duplocloud.errors import DuploError, DuploFailedResource
+from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -68,7 +68,7 @@ class DuploJob(DuploTenantResourceV3):
       
       # if none have completed, keep waiting
       if not len(cpl) > 0:
-        raise DuploError(f"Job {name} not complete {cpl}")
+        raise DuploStillWaiting(f"Job '{name}' is waiting for 'Complete' condition")
     super().create(body, wait, wait_check)
     return {
       "message": f"Job {name} ran successfully."
