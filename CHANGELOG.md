@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs enhancements were added for the Host resource with integration tests.
 - Added fields to the ecs service update task def to replace a bug 
 - Patching support and docs enhancements were added for an ASG resource.
+- Patching support and docs enhancements were added for an Ingress resource.
 
 ## [0.2.49] - 2025-04-21
 
