@@ -226,7 +226,8 @@ class DuploService(DuploTenantResourceV2):
                    image: args.IMAGE = None,
                    container_image: args.CONTAINER_IMAGE = None,
                    init_container_image: args.INIT_CONTAINER_IMAGE = None,
-                   wait: args.WAIT = False) -> dict:
+                   wait: args.WAIT = False,
+                   wait_timeout: args.WAIT_TIMEOUT = 400) -> dict:
     """Update the image of a service.
 
     Usage: Basic CLI Use
@@ -293,7 +294,7 @@ class DuploService(DuploTenantResourceV2):
     self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
 
     if wait:
-      self.wait(service, data)
+      self.wait(service, data, wait_timeout)
 
     response_message = "Successfully updated image for service."
     if updated_containers:
@@ -666,7 +667,7 @@ class DuploService(DuploTenantResourceV2):
     else:
       return body.get("DockerImage", body.get("Image", None))
 
-  def wait(self, old, updates):
+  def wait(self, old, updates, wait_timeout):
     """Wait for a service to update."""
     name = old["Name"]
     cloud = old["Template"]["Cloud"]
@@ -740,7 +741,7 @@ class DuploService(DuploTenantResourceV2):
         raise DuploError(f"Service {name} waiting for pods {running}/{replicas}", 400)
       
     # send to the base class to do the waiting
-    super().wait(wait_check, 400, 11)
+    super().wait(wait_check, wait_timeout, 11)
 
   def name_from_body(self, body):
     return body["Name"]

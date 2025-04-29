@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Added fields to the ecs service update task def to replace a bug 
+- Added a timeout parameter to the service update_image to control operation duration.
 
 ## [0.2.49] - 2025-04-21
 
