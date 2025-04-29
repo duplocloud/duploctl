@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added integration tests for k8 Secret resource.
 
+### Fixed
+
+- Added fields to the ecs service update task def to replace a bug 
+
 ## [0.2.49] - 2025-04-21
 
 ## [0.2.48] - 2025-04-21
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Patching support and docs enhancements were added for the ConfigMap resource.
 - Patching support and docs enhancements were added for the K8S Secret resource.
 - bulk_update_image to handle serviceimage input as a list of [name, image] pairs instead of a dict.
+- Patching support and docs enhancements were added for the K8S Secret resource.
 
 ## [0.2.47] - 2025-04-07
 
@@ -295,3 +300,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - jit commands are no longer admin by default, tenant level is now default
+
