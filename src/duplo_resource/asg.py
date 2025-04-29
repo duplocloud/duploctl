@@ -9,6 +9,8 @@ class DuploAsg(DuploTenantResourceV2):
   """Manage Duplo ASGs
 
   Duplo ASGs (Auto Scaling Groups) manage the number of hosts within a tenant, enabling automatic scaling of instances based on demand.
+
+  See more details at: https://docs.duplocloud.com/docs/overview/use-cases/hosts-vms/auto-scaling/auto-scaling-groups
   """
   
   def __init__(self, duplo: DuploClient):
