@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added integration tests for k8 Secret resource.
+
 ### Fixed
 
 - Docs enhancements were added for the Host resource with integration tests.
