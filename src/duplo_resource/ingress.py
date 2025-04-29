@@ -9,8 +9,8 @@ class DuploIngress(DuploTenantResourceV3):
   """Kubernetes Ingress
 
   This class offers methods to manage Kubernetes Ingress within DuploCloud.
-  See more details at:
-  https://docs.duplocloud.com/docs/kubernetes-overview/ingress-loadbalancer
+  
+  See more details at: https://docs.duplocloud.com/docs/kubernetes-overview/ingress-loadbalancer
   """
   
   def __init__(self, duplo: DuploClient):
