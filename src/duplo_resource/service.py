@@ -225,9 +225,7 @@ class DuploService(DuploTenantResourceV2):
                    name: args.NAME, 
                    image: args.IMAGE = None,
                    container_image: args.CONTAINER_IMAGE = None,
-                   init_container_image: args.INIT_CONTAINER_IMAGE = None,
-                   wait: args.WAIT = False,
-                   wait_timeout: args.WAIT_TIMEOUT = 400) -> dict:
+                   init_container_image: args.INIT_CONTAINER_IMAGE = None) -> dict:
     """Update the image of a service.
 
     Usage: Basic CLI Use
@@ -293,8 +291,8 @@ class DuploService(DuploTenantResourceV2):
 
     self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
 
-    if wait:
-      self.wait(service, data, wait_timeout)
+    if self.duplo.wait:
+      self.wait(service, data)
 
     response_message = "Successfully updated image for service."
     if updated_containers:
@@ -393,8 +391,7 @@ class DuploService(DuploTenantResourceV2):
                  name: args.NAME,
                  setvar: args.SETVAR,
                  strategy: args.STRATEGY,
-                 deletevar: args.DELETEVAR,
-                 wait: args.WAIT = False):    
+                 deletevar: args.DELETEVAR):    
   
     """Update the pod labels of a service. If service has no pod labels set, use -strat replace to set new values.
     Usage: Basic CLI Use
@@ -667,7 +664,7 @@ class DuploService(DuploTenantResourceV2):
     else:
       return body.get("DockerImage", body.get("Image", None))
 
-  def wait(self, old, updates, wait_timeout):
+  def wait(self, old, updates):
     """Wait for a service to update."""
     name = old["Name"]
     cloud = old["Template"]["Cloud"]
@@ -741,7 +738,7 @@ class DuploService(DuploTenantResourceV2):
         raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{replicas}")
       
     # send to the base class to do the waiting
-    super().wait(wait_check, wait_timeout, 11)
+    super().wait(wait_check, 3600, 11)
 
   def name_from_body(self, body):
     return body["Name"]

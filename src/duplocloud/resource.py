@@ -41,8 +41,7 @@ class DuploResource():
       return command(**pargs)
     return wrapped
   
-  def wait(self, wait_check: callable, timeout: int=None, poll: int=10):
-    timeout = timeout or self.duplo.timeout
+  def wait(self, wait_check: callable, timeout: int=3600, poll: int=10):
     exp = math.ceil(timeout / poll)
     for _ in range(exp):
       try:
@@ -58,7 +57,7 @@ class DuploResource():
         raise e
     else:
       raise DuploStillWaiting("Timed out waiting")
-    
+
 class DuploResourceV2(DuploResource):
 
   def name_from_body(self, body):

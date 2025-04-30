@@ -57,7 +57,8 @@ class DuploClient():
                isadmin: args.ISADMIN=False,
                query: args.QUERY=None,
                output: args.OUTPUT="json",
-               loglevel: args.LOGLEVEL="WARN"):
+               loglevel: args.LOGLEVEL="WARN",
+               wait: args.WAIT=False):
     """DuploClient Constructor
     
     Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each ofthe arguments are annotated types that are used by argparse to create the command line arguments.
@@ -115,6 +116,7 @@ class DuploClient():
     self.__ttl_cache = TTLCache(maxsize=128, ttl=10)
     self.loglevel = loglevel
     self.logger = self.logger_for()
+    self.wait = wait
 
   @staticmethod
   def from_env():
