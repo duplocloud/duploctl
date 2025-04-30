@@ -447,6 +447,68 @@ class DuploService(DuploTenantResourceV2):
       service["Replicaset"] = self.current_replicaset(name)
       self.wait(service, payload)
     return {"message": f"Successfully updated pod labels for service '{name}'"}
+
+
+  @Command()
+  def update_pod_annotation(self,
+                 name: args.NAME,
+                 setvar: args.SETVAR,
+                 strategy: args.STRATEGY,
+                 deletevar: args.DELETEVAR,
+                 wait: args.WAIT = False):    
+  
+    """Update the pod labels of a service. If service has no pod labels set, use -strat replace to set new values.
+    Usage: Basic CLI Use
+      ```sh
+      duploctl service update_pod_annotation <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --setvar env-key3 env-val3 -strat merge --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      duploctl service update_pod_annotation <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 -strat replace --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      duploctl service update_pod_annotation <service-name> --deletevar env-key1 --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      
+      ```
+    Args:
+      name: The name of the service to update.
+      setvar/-V: A list of key value pairs to set as environment variables.
+      strategy/strat: The merge strategy to use for env vars. Valid options are "merge" or "replace".  Default is merge.
+      deletevar/-D: A list of keys to delete from the environment variables.
+    """
+    service = self.find(name)
+    currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
+    currentAnnotations = currentDockerconfig.get("PodAnnotations", [])
+    newLabels = []
+    if setvar is not None:
+      newLabels = [{"Name": i[0], "Value": i[1]} for i in setvar]
+
+    # merge new labels in existing labels (append)
+    if strategy == 'merge':
+      mergedLabels = currentAnnotations
+      for vars in newLabels:
+        mergedLabels[vars["Name"]] = vars["Value"]
+      currentDockerconfig['PodAnnotations'] = mergedLabels
+
+    else:
+      # replace values of existing label
+      for label, value in currentDockerconfig['PodAnnotations'].items():
+        for vars in newLabels:
+          if vars["Name"] not in currentDockerconfig['PodAnnotations']:
+            annotation_name = vars["Name"]
+            raise DuploError(f"Service {name} does not have Pod Annotation '{annotation_name}', enter correct label.", 400)
+          if vars["Name"] == label:
+            currentDockerconfig['PodAnnotations'][label] = vars["Value"]
+
+    if deletevar is not None:
+      for key in deletevar:
+        del currentDockerconfig['PodAnnotations'][key]
+      
+    payload = {
+      "Name": name,
+      "OtherDockerConfig": dumps(currentDockerconfig),
+      "allocationTags": service["Template"].get("AllocationTags", "")
+    }
+    self.duplo.post(self.endpoint("ReplicationControllerChange"), payload)
+    if wait:
+      service["Replicaset"] = self.current_replicaset(name)
+      self.wait(service, payload)
+    return {"message": f"Successfully updated pod annotation for service '{name}'"}
   
   @Command()
   def bulk_update_image(self, 
