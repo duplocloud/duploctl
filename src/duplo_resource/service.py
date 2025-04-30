@@ -391,7 +391,8 @@ class DuploService(DuploTenantResourceV2):
                  name: args.NAME,
                  setvar: args.SETVAR,
                  strategy: args.STRATEGY,
-                 deletevar: args.DELETEVAR):    
+                 deletevar: args.DELETEVAR,
+                 wait: args.WAIT = False):
   
     """Update the pod labels of a service. If service has no pod labels set, use -strat replace to set new values.
     Usage: Basic CLI Use
