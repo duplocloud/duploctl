@@ -87,8 +87,7 @@ class DuploService(DuploTenantResourceV2):
   def update(self, 
              name: args.NAME,
              body: args.BODY = None,
-             patches: args.PATCHES = None,
-             wait: args.WAIT = False) -> dict:
+             patches: args.PATCHES = None) -> dict:
     """Update a service.
     
     Update the state of a service.
@@ -116,7 +115,7 @@ class DuploService(DuploTenantResourceV2):
       body = self.find(name)
     # before patching, save the original body if we need to wait
     old = None
-    if wait:
+    if self.duplo.wait:
       old = self.find(name) # should use the cache
       old["Replicaset"] = self.current_replicaset(name)
     if patches:
@@ -127,7 +126,7 @@ class DuploService(DuploTenantResourceV2):
     body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
     body["AgentPlatform"] = body["Template"].get("AgentPlatform", 0)
     self.duplo.post(self.endpoint("ReplicationControllerChangeAll"), body)
-    if wait:
+    if self.duplo.wait:
       self.wait(old, body)
     return {
       "message": f"Successfully updated service '{body['Name']}'"
@@ -135,8 +134,7 @@ class DuploService(DuploTenantResourceV2):
   
   @Command()
   def create(self,
-             body: args.BODY,
-             wait: args.WAIT = False) -> dict:
+             body: args.BODY) -> dict:
     """Create a service.
     
     Create a service in Duplocloud.
@@ -158,7 +156,7 @@ class DuploService(DuploTenantResourceV2):
       message: Success message.
     """
     self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
-    if wait:
+    if self.duplo.wait:
       self.wait(lambda: self.find(body["Name"]))
     return {
       "message": f"Successfully created service '{body['Name']}'"
@@ -194,8 +192,7 @@ class DuploService(DuploTenantResourceV2):
   @Command()
   def update_replicas(self, 
                       name: args.NAME,
-                      replica: args.REPLICAS,
-                      wait: args.WAIT = False) -> dict:
+                      replica: args.REPLICAS) -> dict:
     """Scale Service
 
     Update the number of replicas for a service.
@@ -216,7 +213,7 @@ class DuploService(DuploTenantResourceV2):
       "AllocationTags": service["Template"].get("AllocationTags", "")
     }
     self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
-    if wait:
+    if self.duplo.wait:
       self.wait(service, data)
     return {"message": f"Successfully updated replicas for service '{name}'"} 
   
@@ -307,8 +304,7 @@ class DuploService(DuploTenantResourceV2):
                  name: args.NAME,
                  setvar: args.SETVAR,
                  strategy: args.STRATEGY,
-                 deletevar: args.DELETEVAR,
-                 wait: args.WAIT = False) -> dict:
+                 deletevar: args.DELETEVAR) -> dict:
     """Update the environment variables of a service. If service has no environment variables set, use -strat replace to set new values.
     Usage: Basic CLI Use
       ```sh
@@ -381,7 +377,7 @@ class DuploService(DuploTenantResourceV2):
       "allocationTags": service["Template"].get("AllocationTags", "")
     }
     self.duplo.post(self.endpoint("ReplicationControllerChange"), payload)
-    if wait:
+    if self.duplo.wait:
       service["Replicaset"] = self.current_replicaset(name)
       self.wait(service, payload)
     return {"message": f"Successfully updated environment variables for service '{name}'"}
@@ -391,8 +387,7 @@ class DuploService(DuploTenantResourceV2):
                  name: args.NAME,
                  setvar: args.SETVAR,
                  strategy: args.STRATEGY,
-                 deletevar: args.DELETEVAR,
-                 wait: args.WAIT = False):
+                 deletevar: args.DELETEVAR):
   
     """Update the pod labels of a service. If service has no pod labels set, use -strat replace to set new values.
     Usage: Basic CLI Use
@@ -442,15 +437,14 @@ class DuploService(DuploTenantResourceV2):
       "allocationTags": service["Template"].get("AllocationTags", "")
     }
     self.duplo.post(self.endpoint("ReplicationControllerChange"), payload)
-    if wait:
+    if self.duplo.wait:
       service["Replicaset"] = self.current_replicaset(name)
       self.wait(service, payload)
     return {"message": f"Successfully updated pod labels for service '{name}'"}
   
   @Command()
   def bulk_update_image(self, 
-                        serviceimage: args.SERVICEIMAGE,
-                        wait: args.WAIT = False) -> dict:
+                        serviceimage: args.SERVICEIMAGE) -> dict:
     """
     Bulk update the image of multiple services.
 
@@ -474,7 +468,7 @@ class DuploService(DuploTenantResourceV2):
           "AllocationTags": service["Template"]["AllocationTags"]
       }
       payload.append(payload_item)
-      if wait:
+      if self.duplo.wait:
         wait_list.append({
           "old": service,
           "updated": payload_item
@@ -482,7 +476,7 @@ class DuploService(DuploTenantResourceV2):
 
     self.duplo.post(self.endpoint("ReplicationControllerBulkChangeAll"), payload)
 
-    if wait:
+    if self.duplo.wait:
       for update_info in wait_list:
         self.wait(**update_info)
 
@@ -490,8 +484,7 @@ class DuploService(DuploTenantResourceV2):
 
   @Command()
   def restart(self, 
-              name: args.NAME,
-              wait: args.WAIT = False) -> dict:
+              name: args.NAME) -> dict:
     """Restart a service.
 
     Restart a service.
@@ -512,7 +505,7 @@ class DuploService(DuploTenantResourceV2):
       DuploError: If the service could not be restarted.
     """
     self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
-    if wait:
+    if self.duplo.wait:
       service = self.find(name)
       self.wait(service, service)
     return {"message": f"Successfully restarted service '{name}'"}
@@ -521,8 +514,7 @@ class DuploService(DuploTenantResourceV2):
   def stop(self,
            name: args.NAME = None,
            all: args.ALL = False,
-           targets: args.TARGETS = None,
-           wait: args.WAIT = False) -> dict:
+           targets: args.TARGETS = None) -> dict:
     """Stop a service.
 
     Stop a service.
@@ -546,14 +538,13 @@ class DuploService(DuploTenantResourceV2):
     Raises:
       DuploError: If the service could not be stopped.
     """
-    return self._perform_action("Stop", name, all, targets, wait)
+    return self._perform_action("Stop", name, all, targets, self.duplo.wait)
 
   @Command()
   def start(self,
             name: args.NAME = None,
             all: args.ALL = False,
-            targets: args.TARGETS = None,
-            wait: args.WAIT = False) -> dict:
+            targets: args.TARGETS = None) -> dict:
     """Start a service.
 
     Start a service.
@@ -577,7 +568,7 @@ class DuploService(DuploTenantResourceV2):
     Raises:
       DuploError: If the service could not be started.
     """
-    return self._perform_action("start", name, all, targets, wait)
+    return self._perform_action("start", name, all, targets, self.duplo.wait)
 
   @Command()
   def pods(self, 
@@ -603,8 +594,7 @@ class DuploService(DuploTenantResourceV2):
   
   @Command()
   def logs(self,
-           name: args.NAME,
-           wait: args.WAIT = False) -> dict:
+           name: args.NAME) -> dict:
     """Service Logs
     
     Get the logs for a service.
@@ -623,7 +613,7 @@ class DuploService(DuploTenantResourceV2):
       pods = self.pods(name)
       for pod in pods:
         self.__pod_svc.logs(pod=pod)
-    if wait:
+    if self.duplo.wait:
       try:
         while True:
           show_logs()

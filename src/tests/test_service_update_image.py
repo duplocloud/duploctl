@@ -427,23 +427,3 @@ def test_post_data(service_definition, kwargs, post_data, mocker):
   mock_client = mocker.MagicMock()
   DuploService(mock_client).update_image(**kwargs)
   mock_client.post.assert_called_once_with(ANY, post_data)
-
-@pytest.mark.unit
-def test_wait_functionality(mocker):
-    service_definition = {'Template': {}}
-    mock_client = mocker.MagicMock()
-    service = DuploService(mock_client)
-    mocker.patch('duplo_resource.service.DuploService.find',
-                 mocker.MagicMock(return_value=service_definition))
-    mock_wait = mocker.patch('duplo_resource.service.DuploService.wait')
-    # Test wait functionality
-    service.update_image(
-        name='widget',
-        image='new:v2',
-        wait=True,
-        wait_timeout=300
-    )
-    mock_wait.assert_called_once()
-    args = mock_wait.call_args[0]
-    assert args[0] == service_definition
-    assert args[2] == 300
