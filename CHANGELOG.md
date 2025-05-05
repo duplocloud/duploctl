@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added DuploStillWaiting class to reflect scenarios where a command waits too long for a resource operation to complete.
 - Added integration tests for k8 Secret resource.
-- Added a timeout parameter to the service update_image to control operation duration.
+- Added wait flag as an argument to DuploClient.
 
 ### Fixed
 
