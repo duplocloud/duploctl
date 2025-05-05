@@ -19,8 +19,7 @@ class DuploParam(DuploTenantResourceV3):
              body: args.BODY=None,
              paramtype: args.SSM_PARAM_TYPE=None,
              value: args.PARAM_CONTENT=None,
-             dryrun: args.DRYRUN=False,
-             wait: args.WAIT=False) -> dict:
+             dryrun: args.DRYRUN=False) -> dict:
     """Create an SSM Parameter
     Usage: cli usage
       ```sh
@@ -61,7 +60,7 @@ class DuploParam(DuploTenantResourceV3):
     if dryrun:
       return body
     else:
-      return super().create(body, wait=wait)
+      return super().create(body, wait=self.duplo.wait)
 
   @Command()
   #Implement find with opt-in option to display sensitive data for secureString params. 
@@ -102,8 +101,7 @@ class DuploParam(DuploTenantResourceV3):
              name: args.NAME=None,
              strategy: args.STRATEGY='merge',
              value: args.PARAM_CONTENT=None,
-             dryrun: args.DRYRUN=False,
-             wait: args.WAIT=False) -> dict:
+             dryrun: args.DRYRUN=False) -> dict:
     """Update an SSM Parameter.
     Usage: cli usage
       ```sh

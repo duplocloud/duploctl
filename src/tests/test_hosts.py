@@ -7,6 +7,7 @@ from .conftest import get_test_data
 def hosts_resource(duplo, request):
     """Fixture to load the Hosts resource and define host name."""
     resource = duplo.load("hosts")
+    resource.duplo.wait = True
     tenant = resource.tenant["AccountName"]
     request.cls.host_name = f"duploservices-{tenant}-duplohost"
     return resource
@@ -25,7 +26,7 @@ class TestHosts:
     @pytest.mark.order(5)
     def test_create_host(self, hosts_resource):
         body = get_test_data("hosts")
-        response = execute_test(hosts_resource.create, body, wait=True)
+        response = execute_test(hosts_resource.create, body)
         assert "Successfully created host" in response["message"]
         time.sleep(60)
 
@@ -41,7 +42,7 @@ class TestHosts:
     @pytest.mark.dependency(depends=["create_host"], scope="session")
     @pytest.mark.order(7)
     def test_stop_host(self, hosts_resource):
-        response = execute_test(hosts_resource.stop, self.host_name, wait=True)
+        response = execute_test(hosts_resource.stop, self.host_name)
         assert "Successfully stopped host" in response["message"]
         host = execute_test(hosts_resource.find, self.host_name)
         assert host["Status"] == "stopped"
@@ -50,7 +51,7 @@ class TestHosts:
     @pytest.mark.dependency(depends=["create_host"], scope="session")
     @pytest.mark.order(8)
     def test_start_host(self, hosts_resource):
-        response = execute_test(hosts_resource.start, self.host_name, wait=True)
+        response = execute_test(hosts_resource.start, self.host_name)
         assert "Successfully started host" in response["message"]
         host = execute_test(hosts_resource.find, self.host_name)
         assert host["Status"] == "running"
@@ -69,5 +70,5 @@ class TestHosts:
     @pytest.mark.dependency(depends=["create_host"], scope="session")
     @pytest.mark.order(997)
     def test_delete_host(self, hosts_resource):
-        response = execute_test(hosts_resource.delete, self.host_name, wait=True)
+        response = execute_test(hosts_resource.delete, self.host_name)
         assert "Successfully deleted host" in response["message"]

@@ -62,8 +62,7 @@ class DuploAsg(DuploTenantResourceV2):
     
   @Command()
   def create(self,
-             body: args.BODY,
-             wait: args.WAIT=False) -> dict:
+             body: args.BODY) -> dict:
     """Create an ASG.
 
     Creates a new Auto Scaling Group with the specified configuration. The ASG will manage
@@ -103,7 +102,7 @@ class DuploAsg(DuploTenantResourceV2):
     res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     def wait_check():
       return self.find(name)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check)
     return {
       "message": f"Successfully created asg '{body['FriendlyName']}'",

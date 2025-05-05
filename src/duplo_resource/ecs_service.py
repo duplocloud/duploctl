@@ -158,8 +158,7 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def update_image(self, 
                    name: args.NAME, 
-                   image: args.IMAGE,
-                   wait: args.WAIT) -> dict:
+                   image: args.IMAGE) -> dict:
     """Update the image for an ECS service.
 
     Example:
@@ -191,7 +190,7 @@ class DuploEcsService(DuploTenantResourceV2):
     # run update here so the errors bubble up correctly
     if svc: 
       self.update_service(svc)
-      if wait:
+      if self.duplo.wait:
         self.wait(lambda: self.wait_on_task(name))
     return {
       "message": msg
@@ -245,8 +244,7 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def run_task(self, 
                name: args.NAME,
-               replicas: args.REPLICAS,
-               wait: args.WAIT) -> dict:
+               replicas: args.REPLICAS) -> dict:
     """Run a task for an ECS service."
 
     Execute a task based on some definition. 
@@ -266,7 +264,7 @@ class DuploEcsService(DuploTenantResourceV2):
       "Count": replicas if replicas else 1
     }
     res = self.duplo.post(path, body)
-    if wait:
+    if self.duplo.wait:
       self.wait(lambda: self.wait_on_task(name))
     return res.json()
 
