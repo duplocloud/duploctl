@@ -260,6 +260,10 @@ WAIT = Arg("wait", "-w",
            type=bool,
            action='store_true')
 
+WAIT_TIMEOUT = Arg("wait-timeout", "--wait-timeout",
+               help = 'Wait timeout for the operation to complete',
+               type = int)
+
 ALL = Arg("all", "--all",
            help='Boolean flag to select all. Defaults to False.',
            type=bool,

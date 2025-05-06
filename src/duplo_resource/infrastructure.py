@@ -32,8 +32,7 @@ class DuploInfrastructure(DuploResource):
   
   @Command()
   def create(self, 
-             body: args.BODY,
-             wait: args.WAIT=False):
+             body: args.BODY):
     """Create a new infrastructure."""
     status = None
     name = body["Name"]
@@ -50,7 +49,7 @@ class DuploInfrastructure(DuploResource):
           raise DuploFailedResource(f"Infrastructure '{name} - {s}'")
         raise DuploStillWaiting(f"Infrastructure '{name}' is waiting for status Complete")
     self.duplo.post("adminproxy/CreateInfrastructureConfig", body)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 1800, 20)
     return {
       "message": f"Infrastructure '{body['Name']}' created"

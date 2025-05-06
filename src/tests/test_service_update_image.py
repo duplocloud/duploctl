@@ -425,5 +425,6 @@ def test_post_data(service_definition, kwargs, post_data, mocker):
   )
   post_data = post_data
   mock_client = mocker.MagicMock()
+  mock_client.wait = False
   DuploService(mock_client).update_image(**kwargs)
   mock_client.post.assert_called_once_with(ANY, post_data)

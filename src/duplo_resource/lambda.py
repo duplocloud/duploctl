@@ -59,8 +59,7 @@ class DuploLambda(DuploTenantResourceV2):
     
   @Command()
   def create(self, 
-             body: args.BODY,
-             wait: args.WAIT = False) -> dict:
+             body: args.BODY) -> dict:
     """Create a new tenant.
 
     Usage: CLI Usage
@@ -84,7 +83,7 @@ class DuploLambda(DuploTenantResourceV2):
       self.find(name)
     tenant_id = self.tenant["TenantId"]
     self.duplo.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", body)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 400)
     return {
       "message": f"Lambda {body['FunctionName']} created"

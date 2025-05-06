@@ -7,6 +7,7 @@ from .conftest import get_test_data
 def asg_resource(duplo):
     """Fixture to load the ASG resource and define ASG name."""
     resource = duplo.load("asg")
+    resource.duplo.wait = True
     tenant = resource.tenant["AccountName"]
     asg_name = f"duploservices-{tenant}-duploctl"
     return resource, asg_name
@@ -26,7 +27,7 @@ class TestAsg:
     def test_create_asg(self, asg_resource):
         r, asg_name = asg_resource
         body = get_test_data("asg")
-        response = execute_test(r.create, body=body, wait=True)
+        response = execute_test(r.create, body=body)
         assert response["data"] == asg_name
         time.sleep(60)
 

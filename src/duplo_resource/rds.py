@@ -14,8 +14,7 @@ class DuploRDS(DuploTenantResourceV3):
 
   @Command()
   def create(self,
-             body: args.BODY,
-             wait: args.WAIT=False):
+             body: args.BODY):
     """Create a DB instance.
     
     Args:
@@ -32,7 +31,7 @@ class DuploRDS(DuploTenantResourceV3):
         self.duplo.logger.warn(f"DB instance {name} is {status}")
       if status != "available":
         raise DuploStillWaiting(f"DB instance '{name}' is waiting for status 'available'")
-    super().create(body, wait, wait_check)
+    super().create(body, self.duplo.wait, wait_check)
 
   @Command()
   def find_cluster(self,
@@ -51,15 +50,14 @@ class DuploRDS(DuploTenantResourceV3):
   
   @Command()
   def stop(self,
-           name: args.NAME,
-           wait: args.WAIT=False):
+           name: args.NAME):
     """Stop a DB instance."""
     def wait_check():
       i = self.find(name)
       if i["InstanceStatus"] in ["stopping","available"]:
         raise DuploStillWaiting(f"DB instance {name} is still stopping")
     self.duplo.post(self.endpoint(name, "stop"))
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 1800, 10)
     return {
       "message": "DB instance stopped"
@@ -67,15 +65,14 @@ class DuploRDS(DuploTenantResourceV3):
   
   @Command()
   def start(self,
-           name: args.NAME,
-           wait: args.WAIT=False):
+           name: args.NAME):
     """Start a DB instance."""
     def wait_check():
       i = self.find(name)
       if i["InstanceStatus"] in ["starting"]:
         raise DuploStillWaiting(f"DB instance {name} is still starting")
     self.duplo.post(self.endpoint(name, "start"))
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 1800, 10)
     return {
       "message": "DB instance started"
@@ -83,8 +80,7 @@ class DuploRDS(DuploTenantResourceV3):
   
   @Command()
   def reboot(self,
-             name: args.NAME,
-             wait: args.WAIT=False):
+             name: args.NAME):
     """Reboot a DB instance."""
     rebooting = False
     def wait_check():
@@ -97,7 +93,7 @@ class DuploRDS(DuploTenantResourceV3):
       raise DuploStillWaiting(f"DB instance {name} is still rebooting")
     # Reboot the instance
     self.duplo.post(self.endpoint(name, "reboot"))
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 1800, 10)
     return {
       "message": "DB instance rebooted"

@@ -15,8 +15,7 @@ class DuploJob(DuploTenantResourceV3):
 
   @Command()  
   def create(self, 
-             body: args.BODY, 
-             wait: args.WAIT = False):
+             body: args.BODY):
     """Create a job."""
     name = self.name_from_body(body)
     a = 0
@@ -69,7 +68,7 @@ class DuploJob(DuploTenantResourceV3):
       # if none have completed, keep waiting
       if not len(cpl) > 0:
         raise DuploStillWaiting(f"Job '{name}' is waiting for 'Complete' condition")
-    super().create(body, wait, wait_check)
+    super().create(body, self.duplo.wait, wait_check)
     return {
       "message": f"Job {name} ran successfully."
     }

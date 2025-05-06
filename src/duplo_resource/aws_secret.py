@@ -18,8 +18,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
              name: args.NAME=None,
              body: args.BODY=None,
              value: args.PARAM_CONTENT=None,
-             dryrun: args.DRYRUN=False,
-             wait: args.WAIT=False) -> dict:
+             dryrun: args.DRYRUN=False) -> dict:
     """Create an AWS Secretmanager Secret
     Usage: cli usage
       ```sh
@@ -56,7 +55,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
     if dryrun:
       return body
     else:
-      return super().create(body, wait=wait)
+      return super().create(body=body)
 
   @Command()
   #Implement find with opt-in option to display sensitive data. 
@@ -95,8 +94,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
   def update(self, 
              name: args.NAME=None,
              value: args.PARAM_CONTENT=None,
-             dryrun: args.DRYRUN=False,
-             wait: args.WAIT=False) -> dict:
+             dryrun: args.DRYRUN=False) -> dict:
     """Update an AWS Secretmanager secret.
     Usage: cli usage
       ```sh
@@ -115,6 +113,8 @@ class DuploAwsSecret(DuploTenantResourceV3):
     """
     body=self.find(name)
     body['SecretString'] = value
+    if dryrun:
+      return body
     return super().update(name=name, body=body)
 
   @Command()

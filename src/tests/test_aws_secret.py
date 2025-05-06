@@ -6,6 +6,7 @@ from duplocloud.errors import DuploError
 def aws_secret_resource(duplo):
     """Fixture to load the AWS Secret resource and define the secret name."""
     resource = duplo.load("aws_secret")
+    resource.duplo.wait = True
     tenant = resource.tenant["AccountName"]
     secret_name = f"duploservices-{tenant}-secret"
     return resource, secret_name
@@ -26,7 +27,7 @@ class TestAwsSecret:
         """Test creating an AWS secret."""
         r, secret_name = aws_secret_resource
         body = {"Name": secret_name, "SecretString": '{"foo": "bar"}'}
-        execute_test(r.create, name=secret_name, body=body, wait=True)
+        execute_test(r.create, name=secret_name, body=body)
         time.sleep(10)
 
     @pytest.mark.integration

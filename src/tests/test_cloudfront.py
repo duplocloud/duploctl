@@ -7,6 +7,7 @@ from .conftest import get_test_data
 def cloudfront_resource(duplo, request):
     """Fixture to load the CloudFront resource and ensure CloudFront ID persists across tests."""
     resource = duplo.load("cloudfront")
+    resource.duplo.wait = True
     tenant = resource.tenant["AccountName"]
     request.cls.cloudfront_id = None
     return resource
@@ -28,7 +29,7 @@ class TestCloudFront:
         """Test creating a CloudFront distribution and store ID at class level."""
         r = cloudfront_resource
         body = get_test_data("cloudfront-create")
-        response = execute_test(r.create, body=body, wait=True)
+        response = execute_test(r.create, body=body)
         status_response = execute_test(r.get_status, distribution_id=response["Id"])
         assert status_response == "Deployed", "CloudFront distribution not deployed"
         request.cls.cloudfront_id = response["Id"]
@@ -45,7 +46,7 @@ class TestCloudFront:
         cloudfront = execute_test(r.find, distribution_id=self.cloudfront_id)
         update_body["Id"] = self.cloudfront_id
         update_body["DistributionConfig"]["CallerReference"] = cloudfront["Distribution"]["DistributionConfig"]["CallerReference"]
-        response = execute_test(r.update, body=update_body, wait=True)
+        response = execute_test(r.update, body=update_body)
         status_response = execute_test(r.get_status, distribution_id=response["Id"])
         assert status_response == "Deployed", "CloudFront distribution not deployed after update"
 
@@ -66,7 +67,7 @@ class TestCloudFront:
         """Test disabling a CloudFront distribution."""
         r = cloudfront_resource
         assert self.cloudfront_id is not None, "CloudFront ID not found!"
-        execute_test(r.disable, distribution_id=self.cloudfront_id, wait=True)
+        execute_test(r.disable, distribution_id=self.cloudfront_id)
         status_response = execute_test(r.get_status, distribution_id=self.cloudfront_id)
         assert status_response == "Deployed", "CloudFront distribution was not disabled"
 
@@ -77,10 +78,10 @@ class TestCloudFront:
         """Test enabling a CloudFront distribution."""
         r = cloudfront_resource
         assert self.cloudfront_id is not None, "CloudFront ID not found!"
-        execute_test(r.enable, distribution_id=self.cloudfront_id, wait=True)
+        execute_test(r.enable, distribution_id=self.cloudfront_id)
         status_response = execute_test(r.get_status, distribution_id=self.cloudfront_id)
         assert status_response == "Deployed", "CloudFront distribution was not enabled"
-        execute_test(r.disable, distribution_id=self.cloudfront_id, wait=True)
+        execute_test(r.disable, distribution_id=self.cloudfront_id)
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")

@@ -24,8 +24,7 @@ class DuploHosts(DuploTenantResourceV2):
   
   @Command()
   def create(self,
-             body: args.BODY,
-             wait: args.WAIT=False) -> dict:
+             body: args.BODY) -> dict:
     """Create a Host resource.
 
     Creates a new host in the tenant with the specified configuration.
@@ -68,7 +67,7 @@ class DuploHosts(DuploTenantResourceV2):
     if body.get("ImageId", None) is None:
       body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
     res = self.duplo.post(self.endpoint("CreateNativeHost"), body)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check)
     return {
       "message": f"Successfully created host '{body['FriendlyName']}'",
@@ -77,8 +76,7 @@ class DuploHosts(DuploTenantResourceV2):
   
   @Command()
   def delete(self,
-             name: args.NAME,
-             wait: args.WAIT=False) -> dict:
+             name: args.NAME) -> dict:
     """Delete a host.
     
     Terminates a host by its name. This operation is irreversible and will
@@ -114,7 +112,7 @@ class DuploHosts(DuploTenantResourceV2):
           raise DuploFailedResource(f"Host '{name}' failed to delete.")
       if h["Status"] == "shutting-down" or h["Status"] == "running":
         raise DuploStillWaiting(f"Host '{name}' is waiting for termination")
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 500)
     return {
       "message": f"Successfully deleted host '{name}'",
@@ -123,8 +121,7 @@ class DuploHosts(DuploTenantResourceV2):
   
   @Command()
   def stop(self,
-           name: args.NAME,
-           wait: args.WAIT=False) -> dict:
+           name: args.NAME) -> dict:
     """Stop a host.
     
     Stops a running host. The instance can be restarted later using the start
@@ -157,7 +154,7 @@ class DuploHosts(DuploTenantResourceV2):
         if h["Status"] != "stopping":
           raise DuploFailedResource(f"Host '{name}' failed to stop.")
         raise DuploStillWaiting(f"Host '{name}' is waiting for status stopped")
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 500)
     return {
       "message": f"Successfully stopped host '{name}'",
@@ -166,8 +163,7 @@ class DuploHosts(DuploTenantResourceV2):
   
   @Command()
   def start(self,
-             name: args.NAME,
-             wait: args.WAIT=False) -> dict:
+             name: args.NAME) -> dict:
     """Start a host.
     
     Starts a stopped host. The instance will retain its configuration and data
@@ -200,7 +196,7 @@ class DuploHosts(DuploTenantResourceV2):
         if h["Status"] != "pending":
           raise DuploFailedResource(f"Host '{name}' failed to stop.")
         raise DuploStillWaiting(f"Host '{name}' is waiting for status running")
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 500)
     return {
       "message": f"Successfully started host '{name}'",
