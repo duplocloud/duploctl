@@ -7,7 +7,7 @@ from .conftest import get_test_data
 def job_resource(duplo):
     """Fixture to load the Job resource and define Job name."""
     resource = duplo.load("job")
-    resource.duplo.wait = False
+    resource.duplo.wait = True
     job_name = f"duploctl"
     return resource, job_name
 
