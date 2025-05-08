@@ -90,7 +90,7 @@ class DuploJob(DuploTenantResourceV3):
       pods = self.pods(name)
       podct = len(pods)
       if pods_exist and podct == 0:
-        raise DuploError(f"Job {name} has no pods {pods_exist} {podct}")
+        raise DuploStillWaiting(f"Job {name} has no pods {pods_exist} {podct}")
       # check for any faults and show the logs if we can
       faults = self.tenant_svc.faults(id=self.tenant_id)
       for pod in pods:
@@ -99,14 +99,14 @@ class DuploJob(DuploTenantResourceV3):
       # make sure we got all of the logs
       pod_count = active + succeeded + failed
       if podct != pod_count:
-        raise DuploError(f"Expected {pod_count} pods, got {podct}")
+        raise DuploStillWaiting(f"Expected {pod_count} pods, got {podct}")
       if len(fail) > 0:
         raise DuploFailedResource(f"Job {name} failed with {fail[0]['reason']}: {fail[0]['message']}")
       
       # if none have completed, keep waiting
       if not len(cpl) > 0:
         raise DuploStillWaiting(f"Job '{name}' is waiting for 'Complete' condition")
-    super().create(body, self.duplo.wait, wait_check)
+    super().create(body, wait_check)
     return {
       "message": f"Job {name} ran successfully."
     }
