@@ -57,7 +57,6 @@ class DuploJob(DuploTenantResourceV3):
     Raises:
       DuploError: If the Job could not be created due to invalid configuration.
       DuploFailedResource: If the Job's pods encounter faults during execution.
-      DuploStillWaiting: If waiting for Job completion.
     """
     name = self.name_from_body(body)
     a = 0
