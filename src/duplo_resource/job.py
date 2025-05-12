@@ -1,12 +1,17 @@
 from duplocloud.client import DuploClient  # Importing necessary modules
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploFailedResource, DuploStillWaiting
 from duplocloud.resource import DuploTenantResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 @Resource("job")  # Decorator to define a resource
 class DuploJob(DuploTenantResourceV3):
-  
+  """Manage Duplo Kubernetes Jobs
+
+  Duplo Jobs provide a way to run containerized tasks to completion in a Kubernetes cluster.
+
+  See more details at: https://docs.duplocloud.com/docs/kubernetes-overview/jobs
+  """
   def __init__(self, duplo: DuploClient):  # Constructor method
     super().__init__(duplo, "k8s/job")  
     self.wait_timeout = 1000
@@ -16,16 +21,48 @@ class DuploJob(DuploTenantResourceV3):
   @Command()  
   def create(self, 
              body: args.BODY):
-    """Create a job."""
+    """Create a Kubernetes Job.
+
+    Creates a new Job with the specified configuration. The Job will create pods
+    and ensure they complete successfully according to the completion criteria.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl job create -f job.yaml
+      ```
+      Contents of the `job.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/job.yaml"
+      ```
+    
+    Example: Create a Job using a one-liner.
+      ```sh
+      echo \"\"\"
+      --8<-- "src/tests/data/job.yaml"
+      \"\"\" | duploctl job create -f -
+      ```
+
+    Example: Create a Job using a file.
+      ```sh
+      duploctl job create -f job.yaml
+      ```
+
+    Args:
+      body: The complete Job configuration including container specs, completions,
+            and other parameters.
+
+    Returns:
+      message: Success message confirming the Job creation.
+
+    Raises:
+      DuploError: If the Job could not be created due to invalid configuration.
+      DuploFailedResource: If the Job's pods encounter faults during execution.
+    """
     name = self.name_from_body(body)
     a = 0
     s = 0
     f = 0
     def check_pod_faults(pod, faults):
-      """Check if the pod has any faults.
-      
-      This is for aws and gke because the faults are at the pod level.
-      """
       fs = [f for f in faults if f["Resource"].get("Name", None) == pod["InstanceId"]]
       fsct = len(fs)
       if fsct > 0:
@@ -52,7 +89,7 @@ class DuploJob(DuploTenantResourceV3):
       pods = self.pods(name)
       podct = len(pods)
       if pods_exist and podct == 0:
-        raise DuploError(f"Job {name} has no pods {pods_exist} {podct}")
+        raise DuploStillWaiting(f"Job {name} has no pods {pods_exist} {podct}")
       # check for any faults and show the logs if we can
       faults = self.tenant_svc.faults(id=self.tenant_id)
       for pod in pods:
@@ -61,14 +98,14 @@ class DuploJob(DuploTenantResourceV3):
       # make sure we got all of the logs
       pod_count = active + succeeded + failed
       if podct != pod_count:
-        raise DuploError(f"Expected {pod_count} pods, got {podct}")
+        raise DuploStillWaiting(f"Expected {pod_count} pods, got {podct}")
       if len(fail) > 0:
         raise DuploFailedResource(f"Job {name} failed with {fail[0]['reason']}: {fail[0]['message']}")
       
       # if none have completed, keep waiting
       if not len(cpl) > 0:
         raise DuploStillWaiting(f"Job '{name}' is waiting for 'Complete' condition")
-    super().create(body, self.duplo.wait, wait_check)
+    super().create(body, wait_check)
     return {
       "message": f"Job {name} ran successfully."
     }
@@ -77,14 +114,23 @@ class DuploJob(DuploTenantResourceV3):
   @Command()
   def pods(self, 
            name: args.NAME):
-    """Get the pods for a service.
-    
+    """List pods for a Job.
+
+    Retrieve all pods that are managed by the specified Job. The pods are filtered by the Job name.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl job pods <name>
+      ```
+
     Args:
-      name (str): The name of the service to get pods for.
-    Returns: 
-      A list of pods for the service.
+      name: The name of the Job to get pods for.
+
+    Returns:
+      list: A list of pods associated with the Job, including their status and metadata.
+
     Raises:
-      DuploError: If the service could not be found.
+      DuploError: If the Job could not be found or if there's an error retrieving pods.
     """
     pods = self.__pod_svc.list()
     return [

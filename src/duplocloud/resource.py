@@ -240,7 +240,6 @@ class DuploTenantResourceV3(DuploResource):
   @Command()
   def create(self, 
              body: args.BODY,
-             wait: args.WAIT=False,
              wait_check: callable=None) -> dict:
     """Create a {{kind}} resource.
 
@@ -273,7 +272,7 @@ class DuploTenantResourceV3(DuploResource):
     """
     name = self.name_from_body(body)
     response = self.duplo.post(self.endpoint(), body)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check or (lambda: self.find(name)), self.wait_timeout, self.wait_poll)
     return response.json()
   
