@@ -6,6 +6,22 @@ from duplocloud.commander import Command, Resource
 
 @Resource("aws_secret")
 class DuploAwsSecret(DuploTenantResourceV3):
+  """AWS Secretmanager Secret resource.
+  This resource allows you to create, find, update, and delete AWS Secretmanager secrets.
+
+  The entrypoint after the word `duploctl` may be `aws_secret` or `awssecret`. 
+
+  Usage:
+    ```sh
+    duploctl aws_secret <cmd> [options]
+    ```
+    or
+    ```sh
+    duploctl awssecret <cmd> [options]
+    ```
+
+  Manages [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) in the background. 
+  """
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "aws/secret")
