@@ -23,7 +23,44 @@ class DuploAwsSecret(DuploTenantResourceV3):
     super().__init__(duplo, "aws/secret")
   
   def name_from_body(self, body):
-    return body["Name"]
+    return body.get("Name", None)
+  
+  @Command()
+  #Implement find with opt-in option to display sensitive data. 
+  #Note that using find still returns the sensitive data!
+  def find(self, 
+           name: args.NAME,
+           show_sensitive: args.SHOW_SENSITIVE=False) -> dict:
+    """Find as AWS Secretmanager secret by name and return it's content
+
+    Usage: cli usage
+      ```sh
+      duploctl aws_secret find <name>
+      ```
+    
+    Args:
+      name: The name of the AWS secret to find.
+      show_sensitive: Display value of the secretstring field
+
+    Returns: 
+      resource: The AWS secret object.
+      
+    Raises:
+      DuploError: If the AWS secret could not be found.
+    """
+    # if the name has the prefix we good, otherwise add it
+    prefix = f"duploservices-{self.duplo.tenant}-"
+    if not name.startswith(prefix):
+      name = prefix + name
+    response = self.duplo.get(self.endpoint(name))
+    if not show_sensitive:
+      obfuscated_response=response.json()
+      sensitive_len=len(response.json()["SecretString"])
+      placeholder="*"
+      obfuscated_response["SecretString"]=placeholder * sensitive_len
+      return obfuscated_response
+    else:
+      return response.json()
   
   @Command()
   def create(self, 
@@ -82,7 +119,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
     if not name and not body:
       raise DuploError("Name is required when body is not provided")
     if value and data: 
-      raise DuploError("You cannot pass both value and data. Use one or the other.")
+      raise DuploError("You cannot use --value with --from-file or --from-literal. Use one or the other.")
     if not body:
       body = {}
     # If the user passed in a name then this takes precedence over the body name.
@@ -92,81 +129,68 @@ class DuploAwsSecret(DuploTenantResourceV3):
       body['SecretString'] = value
     elif data:
       # if we have data, then we need to parse the SecretString as json so we can merge the data into it
-      seceretString = body.get('SecretString', '{}')
-      try:
-        secretData = json.loads(seceretString)
-        # all of the values in the dict must be a string or we need to throw an error
-        if not all(isinstance(v, str) for v in secretData.values()):
-          raise DuploError("All values in the existing json object must be strings to use --from-file or --from-literal")
-      except json.JSONDecodeError:
-        raise DuploError("SecretString must be a valid JSON string where each key and value is a string to use --from-file or --from-literal.")
-      # now let's merge and set this puppy, woof
-      secretData.update(data)
-      body['SecretString'] = json.dumps(secretData)
+      secretString = body.get('SecretString', '{}')
+      body['SecretString'] = self._merge_data(secretString, data)
     if dryrun:
       return body
     else:
       return super().create(body=body)
-
-  @Command()
-  #Implement find with opt-in option to display sensitive data. 
-  #Note that using find still returns the sensitive data!
-  def find(self, 
-           name: args.NAME,
-           show_sensitive: args.SHOW_SENSITIVE=False) -> dict:
-    """Find as AWS Secretmanager secret by name and return it's content
-
-    Usage: cli usage
-      ```sh
-      duploctl aws_secret find <name>
-      ```
-    
-    Args:
-      name: The name of the AWS secret to find.
-      -show/--showsensitive: Display value of the secretstring field
-
-    Returns: 
-      resource: The AWS secret object.
-      
-    Raises:
-      DuploError: If the AWS secret could not be found.
-    """
-    response = self.duplo.get(self.endpoint(name))
-    if not show_sensitive:
-      obfuscated_response=response.json()
-      sensitive_len=len(response.json()["SecretString"])
-      placeholder="*"
-      obfuscated_response["SecretString"]=placeholder * sensitive_len
-      return obfuscated_response
-    else:
-      return response.json()
     
   @Command()
   def update(self, 
              name: args.NAME=None,
+             body: args.BODY=None,
+             data: args.DATAMAP=None,
              value: args.CONTENT=None,
              dryrun: args.DRYRUN=False) -> dict:
     """Update an AWS Secretmanager secret.
+
+    Follows all the same arguments and style of the create method. This requires the secret to already exist. 
+
     Usage: cli usage
       ```sh
-      duploctl aws_secret update <name> -pval <newvalue>
+      duploctl aws_secret update <name> <args>
       ```
     
     Args:
-      name: The name of the AWS secret to find.
-      -pval/--parametervalue: The new value for the AWS secret.  This overwrites the existing value!
+      name: The name of the AWS Secret to create.
+      body: The full body of an AWS Secretmanager secret for Duplocloud.
+      data: A map of key-value pairs to be merged into the SecretString field of the AWS Secretmanager secret. Can't be used with the value argument. A datamap is a combination of all of the `--from-literal` and `--from-file` flags.
+      value: The value of the AWS Secretmanager secret. This overwrites the existing value! Can't be used with the data argument.
+      dryrun: If true, returns the body that would be sent to the API without actually creating the resource.
 
     Returns: 
-      resource: The AWS secret object.
+      message: Either a succes message is returned or if --dry-run is passed then the body is what is returned. 
       
     Raises:
       DuploError: If the AWS secret could not be found or doesn't exist.
     """
-    body=self.find(name)
-    body['SecretString'] = value
+    if not name and not body:
+      raise DuploError("Name is required when body is not provided")
+    if value and data: 
+      raise DuploError("You cannot pass both value and data. Use one or the other.")
+    if not body:
+      body = {}
+    # If the user passed in a name then this takes precedence over the body name.
+    if not name:
+      name = self.name_from_body(body)
+      if not name:
+        raise DuploError("Name is required when the body does not have a name")
+    else:
+      body['Name'] = name
+    # even if we don't use this, it confirms the secret exists before we try and update it
+    current = self.find(name, True)
+    if value:
+      body['SecretString'] = value
+    elif data:
+      # start with the data from the secret we found
+      secretString = current.get('SecretString', '{}')
+      body['SecretString'] = self._merge_data(secretString, data)
+    body['SecretValueType'] = "plain"
     if dryrun:
       return body
-    return super().update(name=name, body=body)
+    else:
+      return super().update(name=name, body=body)
 
   @Command()
   def delete(self,
@@ -187,11 +211,23 @@ class DuploAwsSecret(DuploTenantResourceV3):
     Returns:
       message: A success message.
     """
-    prefix = f"duploservices-{self.duplo.tenant}-"
     # if the name has the prefix we good, otherwise add it
+    prefix = f"duploservices-{self.duplo.tenant}-"
     if not name.startswith(prefix):
       name = prefix + name
     super().delete(name)
     return {
       "message": f"Successfully deleted secret '{name}'"
     }
+  
+  def _merge_data(self, secretString: str, data: dict) -> dict: 
+    try:
+      secretData = json.loads(secretString)
+    except json.JSONDecodeError:
+      raise DuploError("Unable to parse the secret string to json. To use --from-file or --from-literal, the SecretString must be a valid JSON object encoded as a string where each key and value is a string.")
+    # all of the values in the dict must be a string or we need to throw an error
+    if not all(isinstance(v, str) for v in secretData.values()):
+      raise DuploError("All values in the existing json object must be strings to use --from-file or --from-literal")
+    # now let's merge and set this puppy, woof
+    secretData.update(data)
+    return json.dumps(secretData)
