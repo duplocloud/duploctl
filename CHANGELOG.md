@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.51] - 2025-05-29
+
 ### Fixed
 
 - Issue with wait breaking when job create.
