@@ -65,7 +65,7 @@ class DuploSecret(DuploTenantResourceV3):
       name: Name of the secret. Required if `body` is not provided.
       body: The complete secret resource definition.
       data: Data to merge into the secret.
-      dryrun (bool, optional): If True, return the modified secret without applying changes.
+      dryrun: If True, return the modified secret without applying changes.
 
     Returns:
       message: The updated secret or a success message.
@@ -154,7 +154,7 @@ class DuploSecret(DuploTenantResourceV3):
       patches: A list of JSON patches as args to apply to the service.
         The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
         Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
-      dryrun (bool, optional): If True, return the modified secret without applying changes.
+      dryrun: If True, return the modified secret without applying changes.
 
     Returns:
       message: The updated secret or a success message.
