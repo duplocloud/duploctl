@@ -49,15 +49,20 @@ class DuploAwsSecret(DuploTenantResourceV3):
       DuploError: If the AWS secret could not be found.
     """
     # if the name has the prefix we good, otherwise add it
-    prefix = f"duploservices-{self.duplo.tenant}-"
-    if not name.startswith(prefix):
-      name = prefix + name
-    response = self.duplo.get(self.endpoint(name))
+    response = None
+    try:
+      response = self.duplo.get(self.endpoint(name))
+    except DuploError as e:
+      # if it wasn't found try with the full prefix
+      if e.code == 400:
+        response = self.duplo.get(self.endpoint(f"duploservices-{self.duplo.tenant}-{name}"))
+      else:
+        raise e
     if not show_sensitive:
-      obfuscated_response=response.json()
-      sensitive_len=len(response.json()["SecretString"])
-      placeholder="*"
-      obfuscated_response["SecretString"]=placeholder * sensitive_len
+      obfuscated_response = response.json()
+      sensitive_len = len(response.json()["SecretString"])
+      placeholder = "*"
+      obfuscated_response["SecretString"] = placeholder * sensitive_len
       return obfuscated_response
     else:
       return response.json()
@@ -212,10 +217,14 @@ class DuploAwsSecret(DuploTenantResourceV3):
       message: A success message.
     """
     # if the name has the prefix we good, otherwise add it
-    prefix = f"duploservices-{self.duplo.tenant}-"
-    if not name.startswith(prefix):
-      name = prefix + name
-    super().delete(name)
+    try:
+      super().delete(name)
+    except DuploError as e:
+      # if it wasn't found try with the full prefix
+      if e.code == 400:
+        super().delete(f"duploservices-{self.duplo.tenant}-{name}")
+      else:
+        raise e
     return {
       "message": f"Successfully deleted secret '{name}'"
     }

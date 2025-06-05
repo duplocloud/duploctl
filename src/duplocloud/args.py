@@ -317,7 +317,7 @@ SSM_PARAM_TYPE = Arg("parametertype", "-ptype",
             default='String')
 
 CONTENT = Arg('parametervalue', '-pval', '-val', '--value',
-            help='Arbitrary text to add as the content of some secret or configuration paramter.')
+            help='Arbitrary text to add as the content of some secret or configuration paramater.')
 
 SHOW_SENSITIVE = Arg('showsensitive', '-show',
             help='Return sensitive values to output. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT/LOG FILES',
