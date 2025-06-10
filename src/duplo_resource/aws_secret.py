@@ -221,7 +221,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
       super().delete(name)
     except DuploError as e:
       # if it wasn't found try with the full prefix
-      if e.code == 400:
+      if e.code == 404:
         super().delete(self._prefix_name(name))
       else:
         raise e
