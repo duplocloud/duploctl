@@ -7,9 +7,9 @@ import json
 
 @Resource("aws_secret")
 class DuploAwsSecret(DuploTenantResourceV3):
-  """AWS Secretmanager Secret resource.
+  """AWS Secrets Manager Secrets resource.
 
-  This resource allows you to create, find, update, and delete AWS Secretmanager secrets.
+  This resource allows you to create, find, update, and delete AWS Secrets Manager secrets.
 
   Usage:
     ```sh
@@ -31,7 +31,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
   def find(self, 
            name: args.NAME,
            show_sensitive: args.SHOW_SENSITIVE=False) -> dict:
-    """Find as AWS Secretmanager secret by name and return it's content
+    """Find as AWS Secretmanager secret by name and return its content
 
     Usage: cli usage
       ```sh
@@ -76,7 +76,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
              dryrun: args.DRYRUN=False) -> dict:
     """Create an AWS Secretmanager Secret
 
-    Using Duploclouds native support for AWS Secrets Manager, you can create a new secret. This method acts and feels like how the Kubernetes secrets work within this cli. Supports the secrets value as a string or a key/value JSON object where each value is a string. If you give a json object with any key that is not a string, the entire value will be simply a string with a JSON value. The examples below mostly include the `--dry-run` so you can see the output. Simply remove that to actually create the secret.
+    Using DuploCloud's native support for AWS Secrets Manager, you can create a new secret. This method acts and feels like how the Kubernetes secrets work within this cli. Supports the secrets value as a string or a key/value JSON object where each value is a string. If you give a JSON object with any key that is not a string, the entire value will be simply a string with a JSON value. The examples below mostly include the `--dry-run` so you can see the output. Simply remove that to actually create the secret.
 
     Usage: cli usage
       ```sh
@@ -109,7 +109,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
       
     Args:
       name: The name of the AWS Secret to create.
-      body: The full body of an AWS Secretmanager secret for Duplocloud.
+      body: The full body of an AWS Secrets Manager secret for DuploCloud.
       data: A map of key-value pairs to be merged into the SecretString field of the AWS Secretmanager secret. Can't be used with the value argument. A datamap is a combination of all of the `--from-literal` and `--from-file` flags.
       value: The value of the AWS Secretmanager secret. This overwrites the existing value! Can't be used with the data argument.
       dryrun: If true, returns the body that would be sent to the API without actually creating the resource.
@@ -159,9 +159,9 @@ class DuploAwsSecret(DuploTenantResourceV3):
     
     Args:
       name: The name of the AWS Secret to create.
-      body: The full body of an AWS Secretmanager secret for Duplocloud.
-      data: A map of key-value pairs to be merged into the SecretString field of the AWS Secretmanager secret. Can't be used with the value argument. A datamap is a combination of all of the `--from-literal` and `--from-file` flags.
-      value: The value of the AWS Secretmanager secret. This overwrites the existing value! Can't be used with the data argument.
+      body: The full body of an AWS Secrets Manager secret for DuploCloud.
+      data: A map of key-value pairs to be merged into the SecretString field of the AWS Secrets Manager secret. Cannot be used with the value argument. A datamap is a combination of all of the `--from-literal` and `--from-file` flags.
+      value: The value of the AWS Secrets Manager secret. OVERWRITES the existing value. Cannot be used with the data argument.
       dryrun: If true, returns the body that would be sent to the API without actually creating the resource.
 
     Returns: 
