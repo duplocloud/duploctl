@@ -18,7 +18,7 @@ class DuploParam(DuploTenantResourceV3):
              name: args.NAME=None,
              body: args.BODY=None,
              paramtype: args.SSM_PARAM_TYPE=None,
-             value: args.PARAM_CONTENT=None,
+             value: args.CONTENT=None,
              dryrun: args.DRYRUN=False) -> dict:
     """Create an SSM Parameter
     Usage: cli usage
@@ -100,7 +100,7 @@ class DuploParam(DuploTenantResourceV3):
   def update(self, 
              name: args.NAME=None,
              strategy: args.STRATEGY='merge',
-             value: args.PARAM_CONTENT=None,
+             value: args.CONTENT=None,
              dryrun: args.DRYRUN=False) -> dict:
     """Update an SSM Parameter.
     Usage: cli usage
