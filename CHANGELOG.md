@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added enhancement to ecs update_image to also update the specific container image.
+
 ## [0.2.51] - 2025-05-29
 
 ### Fixed
