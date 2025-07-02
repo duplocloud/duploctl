@@ -157,37 +157,42 @@ class DuploEcsService(DuploTenantResourceV2):
 
   @Command()
   def update_image(self, 
-                   name: args.NAME, 
-                   container: args.CONTAINER,
-                   image: args.IMAGE) -> dict:
+                   name: args.NAME,
+                   image: args.IMAGE = None,
+                   container_image: args.CONTAINER_IMAGE = None) -> dict:
     """Update the image for an ECS service container.
 
     Usage: Basic CLI Use
       ```sh
         duploctl ecs update_image <service-name> <service-image>
-        duploctl ecs update_image <service-name> --container <container-name> <service-image>
+      ```
+      ```sh
+        duploctl ecs update_image <service-name> --container-image <container-name> <container-image>
       ```
 
     Args:
       name: The name of the ECS service to update.
-      container: Optional. The specific container name to update. If not provided,
-                updates the first container (index 0) in the task definition.
       image: The new image to use for the container.
+      container-image: A list of key-value pairs to set as container image.
 
     Returns:
       dict: A dictionary containing a message about the update status.
 
     Raises:
-      DuploError: If the ECS service could not be updated.
+      DuploError: If both 'image' and 'container_image' parameters are provided simultaneously,
+                 if the specified ECS service or task definition is not found, or if there
+                 are errors during service/task definition updates.
     """
+    if image and container_image:
+      raise DuploError("Invalid arguments: please provide either 'image' or 'container_image', but not both.")
     name = self.prefixed_name(name)
     tdf = self.find_def(name) 
-    if container:
-      for i, container_def in enumerate(tdf["ContainerDefinitions"]):
-        if container_def["Name"] == container:
-          tdf["ContainerDefinitions"][i]["Image"] = image
-          break
-    else:
+    if container_image:
+      for key, value in container_image:
+        for container_def in tdf["ContainerDefinitions"]:
+          if container_def["Name"] == key:
+            container_def["Image"] = value
+    if image:
       tdf["ContainerDefinitions"][0]["Image"] = image
     arn = self.update_taskdef(tdf)["arn"]
     msg = "Updating a task definition and its corresponding service."

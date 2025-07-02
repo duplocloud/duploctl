@@ -31,7 +31,7 @@ def test_update_image_with_container(mocker):
     # Enable wait flag
     mock_client.wait = True
     # Test updating specific container
-    result = execute_test(service.update_image, "test-service", "sidecar", "new-image:2")
+    result = execute_test(service.update_image, "test-service", container_image=[("sidecar", "new-image:2")])
     # Verify the container image was updated
     assert mock_task_def["ContainerDefinitions"][1]["Image"] == "new-image:2"
     assert mock_task_def["ContainerDefinitions"][0]["Image"] == "old-image:1"
@@ -65,7 +65,7 @@ def test_update_image_without_container(mocker):
     # Enable wait flag
     mock_client.wait = True
     # Test updating without specifying container (should update first container)
-    result = execute_test(service.update_image, "test-service", None, "new-image:2")
+    result = execute_test(service.update_image, "test-service", image="new-image:2")
     # Verify the first container image was updated
     assert mock_task_def["ContainerDefinitions"][0]["Image"] == "new-image:2"
     # Verify service was updated with new task definition
@@ -88,7 +88,7 @@ def test_update_image_no_service(mocker):
     mocker.patch.object(service, 'update_taskdef', return_value={"arn": "new-arn"})
     mocker.patch.object(service, 'find_service_family', side_effect=DuploError("Service not found"))
     # Test updating image when no service exists
-    result = execute_test(service.update_image, "test-service", None, "new-image:2")
+    result = execute_test(service.update_image, "test-service", image="new-image:2")
     # Verify the image was updated in task definition
     assert mock_task_def["ContainerDefinitions"][0]["Image"] == "new-image:2"
     # Verify appropriate message is returned
