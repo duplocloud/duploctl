@@ -82,7 +82,7 @@ DATAMAP = Arg("fromfile","--from-file", "--from-literal",
             action=DataMapAction)
 
 DRYRUN = Arg("dryrun", "--dry-run",
-            help='Do not submit any changes to the server',
+            help='Do not submit any changes to the server, just print the data to the console.',
             type=bool,
             action='store_true')
 
@@ -316,8 +316,8 @@ SSM_PARAM_TYPE = Arg("parametertype", "-ptype",
             choices=['String', 'StringList', 'SecureString'],
             default='String')
 
-PARAM_CONTENT = Arg('parametervalue', '-pval',
-            help='Arbitrary text to add to the parameter')
+CONTENT = Arg('parametervalue', '-pval', '-val', '--value',
+            help='Arbitrary text to add as the content of some secret or configuration paramater.')
 
 SHOW_SENSITIVE = Arg('showsensitive', '-show',
             help='Return sensitive values to output. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT/LOG FILES',
