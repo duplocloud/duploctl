@@ -179,19 +179,17 @@ class DuploEcsService(DuploTenantResourceV2):
       dict: A dictionary containing a message about the update status.
 
     Raises:
-      DuploError: If both 'image' and 'container_image' parameters are provided simultaneously,
-                 if the specified ECS service or task definition is not found, or if there
-                 are errors during service/task definition updates.
+      DuploError: If the ECS service could not be updated.
     """
     if image and container_image:
       raise DuploError("Invalid arguments: please provide either 'image' or 'container_image', but not both.")
     name = self.prefixed_name(name)
     tdf = self.find_def(name) 
     if container_image:
-      for key, value in container_image:
-        for container_def in tdf["ContainerDefinitions"]:
-          if container_def["Name"] == key:
-            container_def["Image"] = value
+      container_updates = dict(container_image)
+      for container_def in tdf["ContainerDefinitions"]:
+        if container_def["Name"] in container_updates:
+          container_def["Image"] = container_updates[container_def["Name"]]
     if image:
       tdf["ContainerDefinitions"][0]["Image"] = image
     arn = self.update_taskdef(tdf)["arn"]
