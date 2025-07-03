@@ -157,27 +157,39 @@ class DuploEcsService(DuploTenantResourceV2):
 
   @Command()
   def update_image(self, 
-                   name: args.NAME, 
-                   image: args.IMAGE) -> dict:
-    """Update the image for an ECS service.
+                   name: args.NAME,
+                   image: args.IMAGE = None,
+                   container_image: args.CONTAINER_IMAGE = None) -> dict:
+    """Update the image for an ECS service container.
 
-    Example:
-      CLI usage
+    Usage: Basic CLI Use
       ```sh
-      duploctl ecs update_image my-service my-image
+        duploctl ecs update_image <service-name> <service-image>
+      ```
+      ```sh
+        duploctl ecs update_image <service-name> --container-image <container-name> <container-image>
       ```
 
     Args:
       name: The name of the ECS service to update.
-      image: The new image to use.
+      image: The new image to use for the container.
+      container-image: A list of key-value pairs to set as container image.
+
     Returns:
-      ecs: The updated ECS object.
+      dict: A dictionary containing a message about the update status.
+
     Raises:
-        DuploError: If the ECS service could not be updated.
+      DuploError: If the ECS service could not be updated.
     """
     name = self.prefixed_name(name)
     tdf = self.find_def(name) 
-    tdf["ContainerDefinitions"][0]["Image"] = image
+    if container_image:
+      container_updates = dict(container_image)
+      for container_def in tdf["ContainerDefinitions"]:
+        if container_def["Name"] in container_updates:
+          container_def["Image"] = container_updates[container_def["Name"]]
+    if image:
+      tdf["ContainerDefinitions"][0]["Image"] = image
     arn = self.update_taskdef(tdf)["arn"]
     msg = "Updating a task definition and its corresponding service."
     svc = None
