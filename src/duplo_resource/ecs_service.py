@@ -181,8 +181,6 @@ class DuploEcsService(DuploTenantResourceV2):
     Raises:
       DuploError: If the ECS service could not be updated.
     """
-    if image and container_image:
-      raise DuploError("Invalid arguments: please provide either 'image' or 'container_image', but not both.")
     name = self.prefixed_name(name)
     tdf = self.find_def(name) 
     if container_image:
