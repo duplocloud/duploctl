@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added enhancement to ecs update_image to also update the specific container image.
 
+### Fixed  
+
+- The aws_secrets resource was inconsistent with how other similar resources work. This is a breaking change that changes how you interact with aws secrets. [Please read more about how to properly use this resource in the wiki](https://cli.duplocloud.com/AwsSecret/). The create and update methods both changed and follow the same style of usage. 
+
 ## [0.2.51] - 2025-05-29
 
 ### Fixed
