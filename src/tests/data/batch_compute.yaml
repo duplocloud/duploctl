@@ -1,0 +1,10 @@
+ComputeEnvironmentName: duploctl
+ComputeResources:
+  InstanceTypes:
+  - optimal
+  AllocationStrategy: BEST_FIT
+  Type: EC2
+  MaxvCpus: 256
+  MinvCpus: 1
+  DesiredvCpus: 1
+  BidPercentage: 100

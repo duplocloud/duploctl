@@ -170,7 +170,8 @@ HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
             help='The health check URL')
 
 TO_REVISION = Arg("revision", "--to-revision",
-            help='The revision to rollback to')
+            help='The revision to rollback to',
+            type=int)
 
 CONTAINER_PORT = Arg("container-port", "--container-port",
             help='Container port')
