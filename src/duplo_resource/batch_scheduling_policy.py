@@ -1,8 +1,6 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV3
-from duplocloud.errors import DuploError
-from duplocloud.commander import Command, Resource
-import duplocloud.args as args
+from duplocloud.commander import Resource
 
 @Resource("batch_job")
 class DuploBatchSchedulingPolicy(DuploTenantResourceV3):

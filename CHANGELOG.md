@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+- batch_scheduling_policy resource
+- batch_compute resource 
+- batch_queue resource
+- batch_definition resource with update_image command
+- batch_job resource
+
 ## [0.2.52] - 2025-07-03
 
 ### Added
