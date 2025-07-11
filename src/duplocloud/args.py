@@ -301,8 +301,6 @@ TARGETS = Arg("targets", "--targets",
 TIME = Arg("time", "--time",
            help='The time to use')
 
-
-
 DAYS = Arg("days", 
             help='The days to use',
             type=int)
@@ -324,4 +322,7 @@ SHOW_SENSITIVE = Arg('showsensitive', '-show',
             help='Return sensitive values to output. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT/LOG FILES',
             type=bool,
             action='store_true')
-            
+
+BATCH_QUEUE = Arg("queue", "-BQ", "-bq", "--batch-queue",
+             help='The name of a Batch Queue',
+             env='DUPLO_BATCH_QUEUE')

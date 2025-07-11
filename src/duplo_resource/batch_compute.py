@@ -1,6 +1,6 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV3
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -15,10 +15,35 @@ class DuploBatchCompute(DuploTenantResourceV3):
   """
 
   def __init__(self, duplo: DuploClient):
-    super().__init__(duplo, "aws/batchComputeEnvironment")
+    super().__init__(duplo, 
+                     slug="aws/batchComputeEnvironment", 
+                     prefixed=True)
 
   def name_from_body(self, body):
     return body["ComputeEnvironmentName"]
+  
+  @Command()
+  def create(self, body: args.BODY) -> dict:
+    """Create a Batch Compute Environment.
+
+    Creates a new Batch Compute Environment with the specified configuration.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl batch_compute create -f batch_compute.yaml
+      ```
+
+    Args:
+      body: The configuration for the Batch Compute Environment.
+
+    Returns:
+      dict: The created Batch Compute Environment object.
+    """
+    arn = super().create(body)
+    return {
+      "Message": "Batch Compute Environment created successfully.",
+      "ComputeEnvironmentArn": arn
+    }
   
   @Command()
   def find(self, 
@@ -36,9 +61,10 @@ class DuploBatchCompute(DuploTenantResourceV3):
     Returns: 
       resource: The Batch Compute Environment object.
     """
+    n = self.prefixed_name(name)
     envs = self.list()
     for env in envs:
-      if self.name_from_body(env) == name:
+      if self.name_from_body(env) == n:
         return env
     raise DuploError(f"Batch Compute Environment '{name}' not found", 404)
   
@@ -61,8 +87,9 @@ class DuploBatchCompute(DuploTenantResourceV3):
     Raises:
       DuploError: If the Batch Compute Environment could not be found or deleted. 
     """
-    endpoint = f"{self.endpoint()}Disable/{name}"
+    n = self.prefixed_name(name)
+    endpoint = f"{self.endpoint()}Disable/{n}"
     self.duplo.delete(endpoint)
     return {
-      "message": f"{self.slug}/{name} disabled"
+      "message": f"Batch Compute Environment '{name}' disabled"
     }

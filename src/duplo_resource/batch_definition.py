@@ -1,11 +1,8 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV3
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
-
-def revision_id(d: dict) -> int:
-  return int(d["JobDefinitionArn"].split(":")[-1])
 
 @Resource("batch_definition")
 class DuploBatchDefinition(DuploTenantResourceV3):
@@ -18,10 +15,32 @@ class DuploBatchDefinition(DuploTenantResourceV3):
   """
 
   def __init__(self, duplo: DuploClient):
-    super().__init__(duplo, "aws/batchJobDefinition")
+    super().__init__(duplo, 
+                     slug="aws/batchJobDefinition",
+                     prefixed=True)
 
   def name_from_body(self, body):
     return body["JobDefinitionName"]
+  
+  @Command()
+  def list(self) -> list:
+    """List all Batch Job Definitions.
+
+    Usage:
+      ```sh
+      duploctl batch_definition list
+      ```
+
+    Example:
+      Retrieve all of the revision IDs for one job definition using JMESPATH query and output as yaml
+      ```sh
+      duploctl batch_definition list --query "[?JobDefinitionName=='duploservices-dev01-myjobdef'].Revision" -o yaml
+      ```
+
+    Returns:
+      list: A list of Batch Job Definitions.
+    """
+    return super().list()
 
   @Command()
   def find(self, 
@@ -45,8 +64,9 @@ class DuploBatchDefinition(DuploTenantResourceV3):
     to_rid = -1 if to_revision is None else to_revision
     rid = None
     definitions = self.list()
+    n = self.prefixed_name(name)
     revisions = {
-      revision_id(d): d for d in definitions if self.name_from_body(d) == name
+      d["Revision"]: d for d in definitions if self.name_from_body(d) == n
     }
     rids = sorted(revisions.keys())
     if len(rids) == 0:
@@ -102,9 +122,12 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       DuploError: If the resource could not be created.
     """
     arn = super().create(body)
+    rid = int(arn.split(":")[-1])
+    name = self.name_from_body(body)
     return {
-      "message": "Batch Job Definition created successfully.",
-      "JobDefinitionArn": arn
+      "Message": f"Batch Job Definition '{name}' created successfully.",
+      "JobDefinitionArn": arn,
+      "Revision": rid
     }
   
   @Command()
@@ -126,21 +149,22 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       Returns: 
         message: Success message.
       """
+      n = self.prefixed_name(name)
       if all:
         definitions = self.list()
-        revisions = [
-          revision_id(d) for d in definitions if self.name_from_body(d) == name
+        rids = [
+          d["Revision"] for d in definitions if self.name_from_body(d) == n
         ]
-        for rid in revisions:
-          super().delete(f"{name}:{rid}")
-        msg = f"Batch Job Definition '{name}' deleted successfully along with the following revisions: {', '.join(revisions)}."
+        for rid in rids:
+          super().delete(f"{n}:{rid}")
+        msg = f"Batch Job Definition '{name}' deleted successfully along with the following revisions: {', '.join(rids)}."
       else:
-        resource = self.find(name, to_revision)
-        rid = revision_id(resource)
-        super().delete(f"{name}:{rid}")
+        resource = self.find(n, to_revision)
+        rid = resource["Revision"]
+        super().delete(f"{n}:{rid}")
         msg = f"Batch Job Definition '{name}' deleted revision {rid} successfully."
       return {
-        "message": msg
+        "Message": msg
       }
   
   @Command()
@@ -161,12 +185,29 @@ class DuploBatchDefinition(DuploTenantResourceV3):
     Returns: 
       message: Success message.
     """
-    resource = self.find(name)
+    resource = self._to_def_request(self.find(name))
     resource["ContainerProperties"]["Image"] = image
     res = self.create(resource)
-    rid = revision_id(res)
-    return {
-      "Message": f"Batch Job Definition '{name}' updated successfully to revision {rid} with new image '{image}'.",
-      "JobDefinitionArn": res["JobDefinitionArn"],
-      "RevisionId": rid
-    }
+    res["Message"] = f"Batch Job Definition '{name}' updated successfully to revision {res['Revision']} with new image '{image}'."
+    return res
+  
+  def _to_def_request(self, body: dict) -> dict:
+    # delete the ContainerOrchestrationType, JobDefinitionArn, Revision, and Status
+    if "ContainerOrchestrationType" in body:
+      del body["ContainerOrchestrationType"]
+    if "JobDefinitionArn" in body:
+      del body["JobDefinitionArn"]
+    if "Revision" in body:
+      del body["Revision"]
+    if "Status" in body:
+      del body["Status"]
+    # from ContainerProperties delete the JobRoleArn, Memory, and Vcpus
+    if "ContainerProperties" in body:
+      container_props = body["ContainerProperties"]
+      if "JobRoleArn" in container_props:
+        del container_props["JobRoleArn"]
+      if "Memory" in container_props:
+        del container_props["Memory"]
+      if "Vcpus" in container_props:
+        del container_props["Vcpus"]
+    return body
