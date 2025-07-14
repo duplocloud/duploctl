@@ -4,10 +4,6 @@ from duplocloud.errors import DuploError, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-#REMOVE
-import json
-
-
 @Resource("ecs")
 class DuploEcsService(DuploTenantResourceV2):
 
