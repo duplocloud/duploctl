@@ -219,11 +219,14 @@ class DuploEcsService(DuploTenantResourceV2):
       "ContainerDefinitions": containers,
       "RuntimePlatform": task_def.get("RuntimePlatform", {})
     }
-    if "Cpu" in task_def:
+    if task_def.get("Cpu") not in (None, 0):
       result["Cpu"] = task_def["Cpu"]
-    if "Memory" in task_def:
+    if task_def.get("Memory") not in (None, 0):
       result["Memory"] = task_def["Memory"]
+    if task_def.get("MemoryReservation") not in (None, 0):
+      result["MemoryReservation"] = task_def["MemoryReservation"]
     return result
+
 
   def __ecs_container_update_body(self, container_def):
     update_body = {
@@ -243,7 +246,7 @@ class DuploEcsService(DuploTenantResourceV2):
     # Add FirelensConfiguration only if it exists in container_def
     if "FirelensConfiguration" in container_def:
         update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
-    if "Cpu" in container_def:
+    if container_def.get("Cpu") not in (None, 0):
         update_body["Cpu"] = container_def["Cpu"]
     if container_def.get("Memory") not in (None, 0):
         update_body["Memory"] = container_def["Memory"]
