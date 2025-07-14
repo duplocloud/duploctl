@@ -1,0 +1,13 @@
+JobDefinitionName: duploctl
+ContainerProperties:
+  Command:
+  - sleep
+  - '10'
+  Image: alpine:latest
+  ResourceRequirements:
+  - Type: MEMORY
+    Value: '2048'
+  - Type: VCPU
+    Value: '2'
+PlatformCapabilities:
+- EC2
