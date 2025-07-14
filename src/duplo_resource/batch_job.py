@@ -89,17 +89,17 @@ class DuploBatchJob(DuploTenantResourceV3):
 
     Usage: CLI Usage
       ```sh
-      duploctl batch_job create -f 'batch_job.yaml'
+      duploctl batch_job create -f 'batchjob.yaml'
       ```
-      Contents of the `batch_job.yaml` file
+      Contents of the `batchjob.yaml` file
       ```yaml
-      --8<-- "src/tests/data/batch_job.yaml"
+      --8<-- "src/tests/data/batchjob.yaml"
       ```
 
     Example: One liner example
       ```sh
       echo \"\"\"
-      --8<-- "src/tests/data/batch_job.yaml"
+      --8<-- "src/tests/data/batchjob.yaml"
       \"\"\" | duploctl batch_job create -f -
       ```
     

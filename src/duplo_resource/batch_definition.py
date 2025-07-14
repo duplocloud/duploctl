@@ -6,9 +6,9 @@ import duplocloud.args as args
 
 @Resource("batch_definition")
 class DuploBatchDefinition(DuploTenantResourceV3):
-  """Manage AWS Batch Job Resources
+  """Manage AWS Batch Job Definition Resources
 
-  Run batch jobs as a managed service on AWS infrastructure. 
+  Manage batch Job Definitions as a resource in Duplo. 
 
   Read more docs here: 
   https://docs.duplocloud.com/docs/overview/aws-services/batch
@@ -53,9 +53,21 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       duploctl batch_definition find <name>
       ```
 
+    Example:
+      Find the previous revision to the latest. This is what you would use to do a rollback. 
+      ```sh
+      duploctl batch_definition find myjobdef --revision -2
+      ```
+
+    Example:
+      Find the earliest revision of a job definition.
+      ```sh
+      duploctl batch_definition find myjobdef --revision 0
+      ```
+
     Args:
       name: The name of the Batch Job Definition to find.
-      to_revision: The specific revision of the Batch Job Definition to find. If negative it will walk back that number of revisions from whatever number is the highest revision.
+      to_revision: The specific revision of the Batch Job Definition to find. If negative it will walk back that number of revisions from whatever number is the highest revision. The default is -1 which will return the latest. 
 
     Returns: 
       resource: The Batch Job Definition object.
@@ -92,28 +104,26 @@ class DuploBatchDefinition(DuploTenantResourceV3):
   @Command()
   def create(self, 
              body: args.BODY) -> dict:
-    """Create a {{kind}} resource.
+    """Create a Batch Job Definition resource.
 
     Usage: CLI Usage
       ```sh
-      duploctl batch_definition create -f 'batch_definition.yaml'
+      duploctl batch_definition create -f 'batchdefinition.yaml'
       ```
-      Contents of the `batch_definition.yaml` file
+      Contents of the `batchdefinition.yaml` file
       ```yaml
-      --8<-- "src/tests/data/batch_definition.yaml"
+      --8<-- "src/tests/data/batchdefinition.yaml"
       ```
 
     Example: One liner example
       ```sh
       echo \"\"\"
-      --8<-- "src/tests/data/batch_definition.yaml"
+      --8<-- "src/tests/data/batchdefinition.yaml"
       \"\"\" | duploctl batch_definition create -f -
       ```
     
     Args:
       body: The resource to create.
-      wait: Wait for the resource to be created.
-      wait_check: A callable function to check if the resource
 
     Returns: 
       message: Success message.
