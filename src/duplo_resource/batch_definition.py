@@ -8,20 +8,20 @@ import duplocloud.args as args
 class DuploBatchDefinition(DuploTenantResourceV3):
   """Manage AWS Batch Job Definition Resources
 
-  Manage batch Job Definitions as a resource in Duplo. 
+  Manage batch Job Definitions as a resource in Duplo.
 
-  Read more docs here: 
+  Read more docs here:
   https://docs.duplocloud.com/docs/overview/aws-services/batch
   """
 
   def __init__(self, duplo: DuploClient):
-    super().__init__(duplo, 
+    super().__init__(duplo,
                      slug="aws/batchJobDefinition",
                      prefixed=True)
 
   def name_from_body(self, body):
     return body["JobDefinitionName"]
-  
+
   @Command()
   def list(self) -> list:
     """List all Batch Job Definitions.
@@ -43,7 +43,7 @@ class DuploBatchDefinition(DuploTenantResourceV3):
     return super().list()
 
   @Command()
-  def find(self, 
+  def find(self,
            name: args.NAME,
            to_revision: args.TO_REVISION = None) -> dict:
     """Find a Single Batch Job Definition by name.
@@ -54,7 +54,7 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       ```
 
     Example:
-      Find the previous revision to the latest. This is what you would use to do a rollback. 
+      Find the previous revision to the latest. This is what you would use to do a rollback.
       ```sh
       duploctl batch_definition find myjobdef --revision -2
       ```
@@ -67,9 +67,9 @@ class DuploBatchDefinition(DuploTenantResourceV3):
 
     Args:
       name: The name of the Batch Job Definition to find.
-      to_revision: The specific revision of the Batch Job Definition to find. If negative it will walk back that number of revisions from whatever number is the highest revision. The default is -1 which will return the latest. 
+      to_revision: The specific revision of the Batch Job Definition to find. If negative it will walk back that number of revisions from whatever number is the highest revision. The default is -1 which will return the latest.
 
-    Returns: 
+    Returns:
       resource: The Batch Job Definition object.
     """
     # latest will be the default revision, which is -1
@@ -83,7 +83,7 @@ class DuploBatchDefinition(DuploTenantResourceV3):
     rids = sorted(revisions.keys())
     if len(rids) == 0:
       raise DuploError(f"Batch Job Definition '{name}' not found", 404)
-    
+
     # if to_revision is negative or 0, we will walk back that many revisions
     if to_rid <= 0:
       # try but catch the index out of range exception
@@ -102,7 +102,7 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       return revisions[rid]
 
   @Command()
-  def create(self, 
+  def create(self,
              body: args.BODY) -> dict:
     """Create a Batch Job Definition resource.
 
@@ -121,11 +121,11 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       --8<-- "src/tests/data/batchdefinition.yaml"
       \"\"\" | duploctl batch_definition create -f -
       ```
-    
+
     Args:
       body: The resource to create.
 
-    Returns: 
+    Returns:
       message: Success message.
 
     Raises:
@@ -139,24 +139,24 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       "JobDefinitionArn": arn,
       "Revision": rid
     }
-  
+
   @Command()
   def delete(self,
               name: args.NAME,
               to_revision: args.TO_REVISION = None,
               all: args.ALL = False) -> dict:
       """Delete a Batch Job Definition by name.
-  
+
       Usage: CLI Usage
         ```sh
         duploctl batch_definition delete <name>
         ```
-  
+
       Args:
         name: The name of the Batch Job Definition to delete.
         to_revision: The specific revision of the Batch Job Definition to delete. If negative it will walk back that number of revisions from whatever number is the highest revision.
-  
-      Returns: 
+
+      Returns:
         message: Success message.
       """
       n = self.prefixed_name(name)
@@ -176,48 +176,47 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       return {
         "Message": msg
       }
-  
+
   @Command()
   def update_image(self,
                   name: args.NAME,
                   image: args.IMAGE) -> dict:
     """Update the image of a Batch Job Definition by name.
-  
+
     Usage: CLI Usage
       ```sh
       duploctl batch_definition update_image <name> --image <image>
       ```
-  
+
     Args:
       name: The name of the Batch Job Definition to update.
       image: The new image to set for the Batch Job Definition.
-  
-    Returns: 
+
+    Returns:
       message: Success message.
     """
-    resource = self._to_def_request(self.find(name))
+    orig=self.find(name)
+    resource = self._to_def_request(orig)
     resource["ContainerProperties"]["Image"] = image
     res = self.create(resource)
     res["Message"] = f"Batch Job Definition '{name}' updated successfully to revision {res['Revision']} with new image '{image}'."
     return res
-  
+
   def _to_def_request(self, body: dict) -> dict:
-    # delete the ContainerOrchestrationType, JobDefinitionArn, Revision, and Status
-    if "ContainerOrchestrationType" in body:
-      del body["ContainerOrchestrationType"]
-    if "JobDefinitionArn" in body:
-      del body["JobDefinitionArn"]
-    if "Revision" in body:
-      del body["Revision"]
-    if "Status" in body:
-      del body["Status"]
-    # from ContainerProperties delete the JobRoleArn, Memory, and Vcpus
+    # Delete top-level fields
+    for key in ["ContainerOrchestrationType", "JobDefinitionArn", "Revision", "Status"]:
+        body.pop(key, None)
+
     if "ContainerProperties" in body:
-      container_props = body["ContainerProperties"]
-      if "JobRoleArn" in container_props:
-        del container_props["JobRoleArn"]
-      if "Memory" in container_props:
-        del container_props["Memory"]
-      if "Vcpus" in container_props:
-        del container_props["Vcpus"]
+        container_props = body["ContainerProperties"]
+        container_props.pop("JobRoleArn", None)
+        # Move CPU, Memory, or Gpu to ResourceRequirements if specified directly in containerProperties
+        resource_reqs = container_props.get("ResourceRequirements", [])
+        if "Memory" in container_props:
+            resource_reqs.append({"Type": "MEMORY", "Value": str(container_props.pop("Memory"))})
+        if "Vcpus" in container_props:
+            resource_reqs.append({"Type": "VCPU", "Value": str(container_props.pop("Vcpus"))})
+        if resource_reqs:
+            container_props["ResourceRequirements"] = resource_reqs
+
     return body
