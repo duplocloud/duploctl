@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - batch_queue resource
 - batch_definition resource with update_image command
 - batch_job resource
+### Added
+
+- Added duploctl command to create AI Helpdesk Ticket.
 
 ## [0.2.52] - 2025-07-03
 
