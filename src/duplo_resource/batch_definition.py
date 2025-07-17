@@ -216,7 +216,7 @@ class DuploBatchDefinition(DuploTenantResourceV3):
       if "JobRoleArn" in container_props:
         del container_props["JobRoleArn"]
       resource_reqs = container_props.get("ResourceRequirements", [])
-      # Duplo returns the resourceReq objects incorrectly
+      # Check for vcpu and memory in resource requirements
       if any(self._type_matches(req, "VCPU") for req in resource_reqs):
         container_props.pop("Vcpus", None)
       if any(self._type_matches(req, "MEMORY") for req in resource_reqs):
