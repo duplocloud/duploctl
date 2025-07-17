@@ -1,0 +1,9 @@
+FairsharePolicy:
+  ShareDecaySeconds: 10
+  ComputeReservation: 1
+  ShareDistribution:
+  - ShareIdentifier: SomeIdentifier
+    WeightFactor: 0.1
+Name: duploctl
+Tags:
+  Key: Value

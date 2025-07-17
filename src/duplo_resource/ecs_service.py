@@ -4,7 +4,6 @@ from duplocloud.errors import DuploError, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-
 @Resource("ecs")
 class DuploEcsService(DuploTenantResourceV2):
 
@@ -18,9 +17,9 @@ class DuploEcsService(DuploTenantResourceV2):
     url = f"subscriptions/{tenant_id}/GetEcsServices"
     response = self.duplo.get(url)
     return response.json()
-  
+
   @Command()
-  def find_service_family(self, 
+  def find_service_family(self,
            name: args.NAME):
     """Find an ECS Services task definition family by name.
 
@@ -35,7 +34,7 @@ class DuploEcsService(DuploTenantResourceV2):
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/service/taskDefFamily/{name}"
     response = self.duplo.get(path)
     return response.json()
-  
+
   @Command()
   def delete_service(self,
                      name: args.NAME) -> dict:
@@ -50,16 +49,16 @@ class DuploEcsService(DuploTenantResourceV2):
     path = f"subscriptions/{tenant_id}/DeleteEcsService/{name}"
     response = self.duplo.post(path, {})
     return response.json()
-  
+
   @Command()
   def list_task_def_family(self) -> dict:
     """List ECS Task Definitions
-    
+
     Retrieve a list of all ECS task definitions in a tenant.
 
-    Example: 
-      CLI usage  
-      ```sh  
+    Example:
+      CLI usage
+      ```sh
       duploctl ecs list_definitions
       ```
 
@@ -70,9 +69,9 @@ class DuploEcsService(DuploTenantResourceV2):
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/taskDefFamily"
     response = self.duplo.get(path)
     return response.json()
-    
+
   @Command()
-  def find_def(self, 
+  def find_def(self,
                name: args.NAME):
     """Find a ECS task definition by name.
 
@@ -87,9 +86,9 @@ class DuploEcsService(DuploTenantResourceV2):
     tdf = self.find_task_def_family(name)
     arn = tdf["VersionArns"][-1]
     return self.find_def_by_arn(arn)
-  
+
   @Command()
-  def find_def_by_arn(self, 
+  def find_def_by_arn(self,
                       arn: args.ARN):
     """Find a ECS task definition by ARN.
 
@@ -103,9 +102,9 @@ class DuploEcsService(DuploTenantResourceV2):
     path = self.endpoint("FindEcsTaskDefinition")
     response = self.duplo.post(path, {"Arn": arn})
     return response.json()
-      
+
   @Command()
-  def find_task_def_family(self, 
+  def find_task_def_family(self,
                            name: args.NAME):
     """Find a ECS task definition by name.
 
@@ -121,9 +120,9 @@ class DuploEcsService(DuploTenantResourceV2):
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/taskDefFamily/{name}"
     response = self.duplo.get(path)
     return response.json()
-    
+
   @Command()
-  def update_service(self, 
+  def update_service(self,
              body: args.BODY):
     """Update an ECS service.
 
@@ -137,9 +136,9 @@ class DuploEcsService(DuploTenantResourceV2):
     path = self.endpoint("UpdateEcsService")
     self.duplo.post(path, body)
     return {"message": "ECS Service updated"}
-  
+
   @Command()
-  def update_taskdef(self, 
+  def update_taskdef(self,
                      body: args.BODY):
     """Update an ECS task definition.
 
@@ -156,7 +155,7 @@ class DuploEcsService(DuploTenantResourceV2):
     return {"arn": response.json()}
 
   @Command()
-  def update_image(self, 
+  def update_image(self,
                    name: args.NAME,
                    image: args.IMAGE = None,
                    container_image: args.CONTAINER_IMAGE = None) -> dict:
@@ -182,7 +181,7 @@ class DuploEcsService(DuploTenantResourceV2):
       DuploError: If the ECS service could not be updated.
     """
     name = self.prefixed_name(name)
-    tdf = self.find_def(name) 
+    tdf = self.find_def(name)
     if container_image:
       container_updates = dict(container_image)
       for container_def in tdf["ContainerDefinitions"]:
@@ -200,7 +199,7 @@ class DuploEcsService(DuploTenantResourceV2):
     except DuploError:
       msg = "No Service Configured, only the definition is updated."
     # run update here so the errors bubble up correctly
-    if svc: 
+    if svc:
       self.update_service(svc)
       if self.duplo.wait:
         self.wait(lambda: self.wait_on_task(name))
@@ -210,19 +209,25 @@ class DuploEcsService(DuploTenantResourceV2):
 
   def __ecs_task_def_body(self, task_def):
     containers = [
-      self.__ecs_container_update_body(c) 
+      self.__ecs_container_update_body(c)
       for c in task_def.get("ContainerDefinitions", [])
     ]
-    return {
+    result = {
       "Family": task_def["Family"],
-      "Cpu": task_def["Cpu"],
-      "Memory": task_def["Memory"],
       "InferenceAccelerators": task_def.get("InferenceAccelerators", []),
       "NetworkMode": task_def.get("NetworkMode", {}),
       "ContainerDefinitions": containers,
       "RuntimePlatform": task_def.get("RuntimePlatform", {})
     }
-  
+    if task_def.get("Cpu") not in (None, 0):
+      result["Cpu"] = task_def["Cpu"]
+    if task_def.get("Memory") not in (None, 0):
+      result["Memory"] = task_def["Memory"]
+    if task_def.get("MemoryReservation") not in (None, 0):
+      result["MemoryReservation"] = task_def["MemoryReservation"]
+    return result
+
+
   def __ecs_container_update_body(self, container_def):
     update_body = {
         "Essential": container_def.get("Essential"),
@@ -234,15 +239,21 @@ class DuploEcsService(DuploTenantResourceV2):
         "Secrets": container_def.get("Secrets", {}) ,
         "EnvironmentFiles": container_def.get("EnvironmentFiles", {})
     }
-    
+
     # Add LogConfiguration only if it exists in container_def
     if "LogConfiguration" in container_def:
         update_body["LogConfiguration"] = container_def["LogConfiguration"]
     # Add FirelensConfiguration only if it exists in container_def
     if "FirelensConfiguration" in container_def:
         update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
+    if container_def.get("Cpu") not in (None, 0):
+        update_body["Cpu"] = container_def["Cpu"]
+    if container_def.get("Memory") not in (None, 0):
+        update_body["Memory"] = container_def["Memory"]
+    if container_def.get("MemoryReservation") not in (None, 0):
+        update_body["MemoryReservation"] = container_def["MemoryReservation"]
     return update_body
-  
+
   @Command()
   def list_tasks(self,
                  name: args.NAME) -> list:
@@ -252,14 +263,14 @@ class DuploEcsService(DuploTenantResourceV2):
     path = f"v3/subscriptions/{tenant_id}/aws/ecsTasks/{name}"
     res = self.duplo.get(path)
     return res.json()
-  
+
   @Command()
-  def run_task(self, 
+  def run_task(self,
                name: args.NAME,
                replicas: args.REPLICAS) -> dict:
     """Run a task for an ECS service."
 
-    Execute a task based on some definition. 
+    Execute a task based on some definition.
 
     Args:
       name: The name of the ECS service to run the task for.
@@ -272,7 +283,7 @@ class DuploEcsService(DuploTenantResourceV2):
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/runEcsTask"
     body = {
-      "TaskDefinition": td["TaskDefinitionArn"], 
+      "TaskDefinition": td["TaskDefinitionArn"],
       "Count": replicas if replicas else 1
     }
     res = self.duplo.post(path, body)
@@ -281,7 +292,7 @@ class DuploEcsService(DuploTenantResourceV2):
     return res.json()
 
   def wait_on_task(self,
-                   name: str) -> None: 
+                   name: str) -> None:
     """Wait for an ECS task to complete."""
     tasks = self.list_tasks(name)
     # filter the tasks down to any where the DesiredStatus and LastStatus are different
