@@ -197,7 +197,6 @@ class DuploJit(DuploResource):
 
     # If name is not provided, set default profile name to "duplo"
     name = name or "duplo"
-
     prf = f'profile {name}'
     msg = f"aws profile named {name} already exists in {config}"
     try:
@@ -207,6 +206,7 @@ class DuploJit(DuploResource):
       cp.add_section(prf)
       cp.set(prf, 'region', os.getenv("AWS_DEFAULT_REGION", "us-west-2"))
       cp.set(prf, 'credential_process', " ".join(cmd))
+      os.makedirs(os.path.dirname(config), exist_ok=True)
       with open(config, 'w') as configfile:
         cp.write(configfile)
       msg = f"aws profile named {name} was successfully added to {config}"
@@ -349,6 +349,7 @@ class DuploJit(DuploResource):
     self.__add_to_kubeconfig("contexts", self.__context_config(ctx), kubeconfig)
     kubeconfig["current-context"] = ctx["Name"]
     if save:
+      os.makedirs(os.path.dirname(kubeconfig_path), exist_ok=True)
       # write the kubeconfig back to the file
       with open(kubeconfig_path, "w") as f:
         yaml.safe_dump(kubeconfig, f)
