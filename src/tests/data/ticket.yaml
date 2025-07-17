@@ -1,0 +1,3 @@
+title: "Pipeline failed"
+agent_name: "pytest-agent"
+instance_id: "pytest-instance"
