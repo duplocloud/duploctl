@@ -195,28 +195,53 @@ class DuploBatchDefinition(DuploTenantResourceV3):
     Returns:
       message: Success message.
     """
-    orig=self.find(name)
-    resource = self._to_def_request(orig)
+    resource = self._to_def_request(self.find(name))
     resource["ContainerProperties"]["Image"] = image
     res = self.create(resource)
     res["Message"] = f"Batch Job Definition '{name}' updated successfully to revision {res['Revision']} with new image '{image}'."
     return res
 
   def _to_def_request(self, body: dict) -> dict:
-    # Delete top-level fields
-    for key in ["ContainerOrchestrationType", "JobDefinitionArn", "Revision", "Status"]:
-        body.pop(key, None)
-
+    # delete the ContainerOrchestrationType, JobDefinitionArn, Revision, and Status
+    if "ContainerOrchestrationType" in body:
+      del body["ContainerOrchestrationType"]
+    if "JobDefinitionArn" in body:
+      del body["JobDefinitionArn"]
+    if "Revision" in body:
+      del body["Revision"]
+    if "Status" in body:
+      del body["Status"]
     if "ContainerProperties" in body:
-        container_props = body["ContainerProperties"]
-        container_props.pop("JobRoleArn", None)
-        # Move CPU, Memory, or Gpu to ResourceRequirements if specified directly in containerProperties
-        resource_reqs = container_props.get("ResourceRequirements", [])
-        if "Memory" in container_props:
-            resource_reqs.append({"Type": "MEMORY", "Value": str(container_props.pop("Memory"))})
-        if "Vcpus" in container_props:
-            resource_reqs.append({"Type": "VCPU", "Value": str(container_props.pop("Vcpus"))})
-        if resource_reqs:
-            container_props["ResourceRequirements"] = resource_reqs
-
+      container_props = body["ContainerProperties"]
+      if "JobRoleArn" in container_props:
+        del container_props["JobRoleArn"]
+      resource_reqs = container_props.get("ResourceRequirements", [])
+      # Duplo returns the resourceReq objects incorrectly
+      if any(self._type_matches(req, "VCPU") for req in resource_reqs):
+        container_props.pop("Vcpus", None)
+      if any(self._type_matches(req, "MEMORY") for req in resource_reqs):
+        container_props.pop("Memory", None)
     return body
+
+# DuploCloud returns ResourceRequirements in an incorrect format:
+# "ResourceRequirements": [
+#     {
+#         "Type": {
+#             "Value": "MEMORY"
+#         },
+#         "Value": "2048"
+#     },
+#     {
+#         "Type": {
+#             "Value": "VCPU"
+#         },
+#         "Value": "1"
+#     }
+# ]
+# This check handles both the correct structure eg, "Type": "MEMORY"
+# and the malformed structure, eg ("Type": {"Value": "MEMORY"}).
+  def _type_matches(self, req, value):
+    t = req.get("Type")
+    if isinstance(t, dict):
+        t = t.get("Value")
+    return t == value
