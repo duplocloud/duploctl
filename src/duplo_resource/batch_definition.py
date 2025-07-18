@@ -202,25 +202,21 @@ class DuploBatchDefinition(DuploTenantResourceV3):
     return res
 
   def _to_def_request(self, body: dict) -> dict:
-    # delete the ContainerOrchestrationType, JobDefinitionArn, Revision, and Status
-    if "ContainerOrchestrationType" in body:
-      del body["ContainerOrchestrationType"]
-    if "JobDefinitionArn" in body:
-      del body["JobDefinitionArn"]
-    if "Revision" in body:
-      del body["Revision"]
-    if "Status" in body:
-      del body["Status"]
+    # Remove top level fields if present
+    body.pop("ContainerOrchestrationType", None)
+    body.pop("JobDefinitionArn", None)
+    body.pop("Revision", None)
+    body.pop("Status", None)
+    # Remove container fields
     if "ContainerProperties" in body:
-      container_props = body["ContainerProperties"]
-      if "JobRoleArn" in container_props:
-        del container_props["JobRoleArn"]
-      resource_reqs = container_props.get("ResourceRequirements", [])
-      # Check for vcpu and memory in resource requirements
-      if any(self._type_matches(req, "VCPU") for req in resource_reqs):
-        container_props.pop("Vcpus", None)
-      if any(self._type_matches(req, "MEMORY") for req in resource_reqs):
-        container_props.pop("Memory", None)
+        container_props = body["ContainerProperties"]
+        container_props.pop("JobRoleArn", None)
+        # If VCPU and MEMORY are set in res reqs, remove them from the container props
+        resource_reqs = container_props.get("ResourceRequirements", [])
+        if any(self._type_matches(req, "VCPU") for req in resource_reqs):
+            container_props.pop("Vcpus", None)
+        if any(self._type_matches(req, "MEMORY") for req in resource_reqs):
+            container_props.pop("Memory", None)
     return body
 
 # DuploCloud returns ResourceRequirements in an incorrect format:
