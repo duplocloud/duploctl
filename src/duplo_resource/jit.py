@@ -194,22 +194,18 @@ class DuploJit(DuploResource):
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
     cp.read(config)
-
-    # If name is not provided, set default profile name to "duplo"
     name = name or "duplo"
     prf = f'profile {name}'
-    msg = f"aws profile named {name} already exists in {config}"
-    try:
-      cp[prf]
-    except KeyError:
-      cmd = self.duplo.build_command("duploctl", "jit", "aws")
+    cmd = self.duplo.build_command("duploctl", "jit", "aws")
+    is_new_profile = not cp.has_section(prf)
+    if is_new_profile:
       cp.add_section(prf)
-      cp.set(prf, 'region', os.getenv("AWS_DEFAULT_REGION", "us-west-2"))
-      cp.set(prf, 'credential_process', " ".join(cmd))
-      os.makedirs(os.path.dirname(config), exist_ok=True)
-      with open(config, 'w') as configfile:
-        cp.write(configfile)
-      msg = f"aws profile named {name} was successfully added to {config}"
+    cp.set(prf, 'region', os.getenv("AWS_DEFAULT_REGION", "us-west-2"))
+    cp.set(prf, 'credential_process', " ".join(cmd))
+    os.makedirs(os.path.dirname(config), exist_ok=True)
+    with open(config, 'w') as configfile:
+      cp.write(configfile)
+    msg = f"aws profile named {name} was successfully {'added' if is_new_profile else 'updated'} in {config}"
     return {"message": msg}
 
   @Command()
