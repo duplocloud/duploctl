@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Updated jit update_aws_config to always overwrite existing profile entries with new values instead of skipping them.
+
 ### Fixed
 
 - batch job definition fails with deprecated vcpu/memory assignment
