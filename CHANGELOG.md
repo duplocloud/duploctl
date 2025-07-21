@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Modified jit update_kubeconfig and update_aws_config methods to ensure parent directories are created recursively before writing configuration files.
 - Updated jit update_aws_config to always overwrite existing profile entries with new values instead of skipping them.
 
 ### Fixed
