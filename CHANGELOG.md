@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - batch job definition fails with deprecated vcpu/memory assignment
+- batch job adds zero-value schedulingpriority value which breaks submission to non-prioritized job queues
 
 ## [0.3.0] - 2025-07-15
 
