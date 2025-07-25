@@ -261,6 +261,20 @@ class DuploClient():
       value: The tenant to set.
     """
     self.__tenant = value
+
+  @property
+  def config(self) -> dict:
+    # convert the return value in __str__ to be a dict
+    return {
+      "Host": self.host,
+      "Tenant": self.tenant or self.tenantid,
+      "HomeDir": self.home_dir,
+      "ConfigFile": self.config_file,
+      "CacheDir": self.cache_dir,
+      "Version": VERSION,
+      "Path": sys.argv[0],
+      "AvailableResources": available_resources()
+    }
   
   def __str__(self) -> str:
      return f"""
@@ -285,18 +299,20 @@ Available Resources:
     Returns:
       The result of the command.
     """
+    d = None
     if not resource:
-      raise DuploError(str(self), 400)
-    r = self.load(resource)
-    try:
-      d = r(*args)
-    except TypeError:
-      if (r.__doc__):
-        raise DuploError(r.__doc__, 400)
-      else: 
-        traceback.print_exc()
-        raise DuploError(f"No docstring found, error calling command {resource} : Traceback printed", 400)
-
+      d = self.config
+    else:
+      r = self.load(resource)
+      try:
+        d = r(*args)
+      except TypeError as te:
+        self.logger.debug(te)
+        if (r.__doc__):
+          raise DuploError(r.__doc__, 400)
+        else: 
+          traceback.print_exc()
+          raise DuploError(f"No docstring found, error calling command {resource} : Traceback printed", 400)
     if d is None:
       return None
     d = self.filter(d)

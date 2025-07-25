@@ -5,7 +5,16 @@ Cloud: 0
 IsLBSyncedDeployment: true
 AgentPlatform: 7
 ReplicasMatchingAsgName: null
-HPASpecs: null
+HPASpecs:
+  maxReplicas: 3
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 80
+        type: Utilization
+    type: Resource
+  minReplicas: 2
 IsDaemonset: false
 OtherDockerHostConfig: ''
 OtherDockerConfig: '{"Env":null}'

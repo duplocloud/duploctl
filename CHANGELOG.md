@@ -7,14 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Now waiting for a service to update works with HPA enabled
+- running just `duploctl` gave an error, now it outputs like any other command
+- better debuggin logs when `--loglevel DEBUG` is set
+
 ## [0.3.4] - 2025-07-25
 
 ### Fixed
 
 - makedir fails on single-file paths
-## [0.3.3] - 2025-07-25
 
-## [0.3.2] - 2025-07-25
+## [0.3.1] - 2025-07-25
+
+### Added
+
+- Modified jit update_kubeconfig and update_aws_config methods to ensure parent directories are created recursively before writing configuration files.
+- Updated jit update_aws_config to always overwrite existing profile entries with new values instead of skipping them.
+
+### Fixed
+
+- batch job definition fails with deprecated vcpu/memory assignment
+- batch job adds zero-value schedulingpriority value which breaks submission to non-prioritized job queues
 
 ## [0.3.0] - 2025-07-15
 
