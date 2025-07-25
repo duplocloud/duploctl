@@ -7,24 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.1] - 2025-07-25
-
-### Added
-
-- Modified jit update_kubeconfig and update_aws_config methods to ensure parent directories are created recursively before writing configuration files.
-- Updated jit update_aws_config to always overwrite existing profile entries with new values instead of skipping them.
-
-### Fixed
-
-- batch job definition fails with deprecated vcpu/memory assignment
-- batch job adds zero-value schedulingpriority value which breaks submission to non-prioritized job queues
+## [0.3.2] - 2025-07-25
 
 ## [0.3.0] - 2025-07-15
 
-### Added
+### Added 
 
 - batch_scheduling_policy resource
-- batch_compute resource
+- batch_compute resource 
 - batch_queue resource
 - batch_definition resource with update_image command
 - batch_job resource
