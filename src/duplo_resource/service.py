@@ -82,6 +82,22 @@ class DuploService(DuploTenantResourceV2):
       "message": f"Service {action} operation completed.",
       "details": results,
     }
+  
+  @Command()
+  def find(self, 
+           name: args.NAME) -> dict:
+    """Find a service by name.
+    
+    First we try for the endpoint that gives one by name. Otherwise we default to finding it in the list.
+    """
+    try:
+      response = self.duplo.get(f"{self.endpoint(self.paths['list'])}/{name}")
+      self.duplo.logger.debug(f"Found service {name} using new endpoint.")
+      return response.json()
+    # catch the DuploError and let super take over if it's just a 404 which means the new endpoint doesn't exist
+    except DuploError as e:
+      self.duplo.logger.debug(f"Service {name} not found using new endpoint, falling back to list.")
+      return super().find(name)
     
   @Command()
   def update(self, 
@@ -684,13 +700,16 @@ class DuploService(DuploTenantResourceV2):
     rollover = False
     if image_changed or conf_changed:
       rollover = True
-    self.duplo.logger.debug(f"""
-The image has {'changed' if image_changed else 'not changed'}.
-The replicas have {'changed' if replicas_changed else 'not changed'}.
-The hpa is {'enabled' if hpa_enabled else 'disabled'}.
-The true count is {'known' if true_count else 'unknown'}.
-A rollover is {'required' if rollover else 'not required'}.
-""")
+    self.duplo.logger.debug(f"""Wait for service {name}:
+      The image has {'changed' if image_changed else 'not changed'}.
+      The replicas have {'changed' if replicas_changed else 'not changed'}.
+      The hpa is {'enabled' if hpa_enabled else 'disabled'}.
+      The true count is {'known' if true_count else 'unknown'}.
+      A rollover is {'required' if rollover else 'not required'}.
+      """)
+    def get_pod_image(pod):
+      """Get the image of a pod."""
+      return pod["Containers"][0]["Image"].removeprefix("docker.io/library/")
     def check_pod_faults(pod, faults):
       """Check if the pod has any faults.
       
@@ -715,7 +734,7 @@ A rollover is {'required' if rollover else 'not required'}.
         return 0
 
       # ignore this pod if the image is the old image
-      img = pod["Containers"][0]["Image"].removeprefix("docker.io/library/")
+      img = get_pod_image(pod)
       if image_changed and img == old_img:
         return 0
 
@@ -749,11 +768,18 @@ A rollover is {'required' if rollover else 'not required'}.
         check_service_faults(faults)
 
       # make sure all the replicas are up if we know the true replica count
+      running = sum(running_pod(p, faults) for p in pods)
       if true_count:
-        running = sum(running_pod(p, faults) for p in pods)
         if replicas != running:
           raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{replicas}")
-      
+      else:
+        # if this is the case, we need to hack it, this means hpa is enabled and we don't know the true replica count
+        # we will check to make sure no pods in the pod list are using the old image, when none are running and at least one is up, we are done
+        running_old = sum(1 for pod in pods if get_pod_image(pod) == old_img)
+        min_replicas = svc.get("HPASpecs", {}).get("minReplicas", 1)
+        if running_old > 0 and running < min_replicas:
+          raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{min_replicas} and {running_old} pods using old image to cleanup.")
+    
     # send to the base class to do the waiting
     super().wait(wait_check, 3600, 11)
 
