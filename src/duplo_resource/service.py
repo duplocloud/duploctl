@@ -726,6 +726,7 @@ class DuploService(DuploTenantResourceV2):
         if f["ResourceName"] == name:
           raise DuploFailedResource(f"Service {name} raised a fault.\n{f['Description']}")
     def running_pod(pod, faults):
+      """Check if a pod is running and return 1 if it is, 0 otherwise."""
       # azure doesn't have controlled by, so we skip this check if it's not there
       cb = pod.get("ControlledBy", None) 
       # skip if the pod is not controlled by the new replicaset
@@ -733,8 +734,7 @@ class DuploService(DuploTenantResourceV2):
         return 0
 
       # ignore this pod if the image is the old image
-      img = get_pod_image(pod)
-      if image_changed and img == old_img:
+      if image_changed and get_pod_image(pod) == old_img:
         return 0
 
       # check for aws and gke faults on pod
@@ -768,9 +768,8 @@ class DuploService(DuploTenantResourceV2):
 
       # make sure all the replicas are up if we know the true replica count
       running = sum(running_pod(p, faults) for p in pods)
-      if true_count:
-        if replicas != running:
-          raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{replicas}")
+      if true_count and replicas != running:
+        raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{replicas}")
       else:
         # if this is the case, we need to hack it, this means hpa is enabled and we don't know the true replica count
         # we will check to make sure no pods in the pod list are using the old image, when none are running and at least one is up, we are done
