@@ -691,10 +691,9 @@ class DuploService(DuploTenantResourceV2):
     replica_key = "ReplicasCount" if "ReplicasCount" in old else "Replicas" # only used in wait_check
     new_replicas = updates.get("Replicas", None)
     replicas_changed = (old["Replicas"] != new_replicas) if new_replicas else False
-    # we have a true replica count if nop hpa or we have the true replica count
-    true_count = (replica_key == "ReplicasCount" or not hpa_enabled)
+    true_count = (replica_key == "ReplicasCount" or not hpa_enabled) # check if we can know the true count of replicas
 
-    # check if all the pods will be recreated and set a running counter for how many pods are running
+    # Is a rollover needed? 
     new_conf = updates.get("OtherDockerConfig", None)
     conf_changed = (old["Template"].get("OtherDockerConfig", None) != new_conf) if new_conf else False
     rollover = False
