@@ -7,16 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- makedir fails on single-file paths
 ## [0.3.3] - 2025-07-25
 
 ## [0.3.2] - 2025-07-25
 
 ## [0.3.0] - 2025-07-15
 
-### Added 
+### Added
 
 - batch_scheduling_policy resource
-- batch_compute resource 
+- batch_compute resource
 - batch_queue resource
 - batch_definition resource with update_image command
 - batch_job resource
