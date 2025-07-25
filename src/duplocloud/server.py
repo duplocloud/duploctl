@@ -1,10 +1,32 @@
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from .errors import DuploError
 import threading
 import time
 import webbrowser
+from urllib.parse import urlparse
 
 class TokenCallbackHandler(SimpleHTTPRequestHandler):
+
+  def do_GET(self):
+    """GET Token Handler
+    
+    Handles the redirect flow for a token from a redirect and GET.
+    Returns a redirect back to the portal to let the user know it all worked.
+    """
+    redirect = f"{self.server.host}/app/user/verify-token?localAppName=duploctl&success=true&localPort={self.server.server_port}"
+    self.send_response(302)
+    self.send_header('Location', redirect)
+    self.end_headers()
+    # get the token from the params
+    url = urlparse(self.path)
+    query_components = dict(qc.split("=") for qc in url.query.split("&"))
+    token = query_components.get('t', None)
+    if not token:
+      raise DuploError("No token received", 403)
+    # store the token in the server instance
+    self.server.token = token
+
+      
 
   def do_POST(self):
     """Do Post
@@ -35,7 +57,7 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     Override the end headers to add the cors headers and prevent caching.
     """
     self.send_header('Access-Control-Allow-Origin', self.server.host)
-    self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     self.send_header('Access-Control-Allow-Headers', '*')
     self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
     return super(TokenCallbackHandler, self).end_headers()
@@ -44,7 +66,7 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     # Override to prevent printing any log messages
     pass
 
-class TokenServer(HTTPServer):
+class TokenServer(ThreadingHTTPServer):
   def __init__(self, host: str, timeout=60):
     """TokenServer
     
