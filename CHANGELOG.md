@@ -7,14 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Modified jit update_kubeconfig and update_aws_config methods to ensure parent directories are created recursively before writing configuration files.
-- Updated jit update_aws_config to always overwrite existing profile entries with new values instead of skipping them.
+## [0.3.4] - 2025-07-25
 
 ### Fixed
 
-- batch job definition fails with deprecated vcpu/memory assignment
+- makedir fails on single-file paths
+## [0.3.3] - 2025-07-25
+
+## [0.3.2] - 2025-07-25
 
 ## [0.3.0] - 2025-07-15
 

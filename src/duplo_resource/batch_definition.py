@@ -207,6 +207,8 @@ class DuploBatchDefinition(DuploTenantResourceV3):
     body.pop("JobDefinitionArn", None)
     body.pop("Revision", None)
     body.pop("Status", None)
+    if body.get("SchedulingPriority") == 0:
+      body.pop("SchedulingPriority", None)
     # Remove container fields
     if "ContainerProperties" in body:
         container_props = body["ContainerProperties"]
