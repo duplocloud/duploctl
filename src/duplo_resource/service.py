@@ -95,7 +95,7 @@ class DuploService(DuploTenantResourceV2):
       self.duplo.logger.debug(f"Found service {name} using new endpoint.")
       return response.json()
     # catch the DuploError and let super take over if it's just a 404 which means the new endpoint doesn't exist
-    except DuploError as e:
+    except DuploError:
       self.duplo.logger.debug(f"Service {name} not found using new endpoint, falling back to list.")
       return super().find(name)
     
