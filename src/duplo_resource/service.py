@@ -91,7 +91,8 @@ class DuploService(DuploTenantResourceV2):
     First we try for the endpoint that gives one by name. Otherwise we default to finding it in the list.
     """
     try:
-      response = self.duplo.get(f"{self.endpoint(self.paths['list'])}/{name}")
+      endpoint = f"v3/subscriptions/{self.tenant_id}/replicationcontroller/{name}"
+      response = self.duplo.get(endpoint)
       self.duplo.logger.debug(f"Found service {name} using new endpoint.")
       return response.json()
     # catch the DuploError and let super take over if it's just a 404 which means the new endpoint doesn't exist
@@ -688,10 +689,10 @@ class DuploService(DuploTenantResourceV2):
       hpa_enabled = updates["HPASpecs"] is not None # it's been disabled if it's None
 
     # is the replica count changing and are we using the new api? 
-    replica_key = "ReplicasCount" if "ReplicasCount" in old else "Replicas" # only used in wait_check
+    replica_key = "ReplicasActive" if "ReplicasActive" in old else "Replicas" # only used in wait_check
     new_replicas = updates.get("Replicas", None)
     replicas_changed = (old["Replicas"] != new_replicas) if new_replicas else False
-    true_count = (replica_key == "ReplicasCount" or not hpa_enabled) # check if we can know the true count of replicas
+    true_count = (replica_key == "ReplicasActive" or not hpa_enabled) # check if we can know the true count of replicas
 
     # Is a rollover needed? 
     new_conf = updates.get("OtherDockerConfig", None)
