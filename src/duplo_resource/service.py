@@ -82,6 +82,23 @@ class DuploService(DuploTenantResourceV2):
       "message": f"Service {action} operation completed.",
       "details": results,
     }
+  
+  @Command()
+  def find(self, 
+           name: args.NAME) -> dict:
+    """Find a service by name.
+    
+    First we try for the endpoint that gives one by name. Otherwise we default to finding it in the list.
+    """
+    try:
+      endpoint = f"v3/subscriptions/{self.tenant_id}/replicationcontroller/{name}"
+      response = self.duplo.get(endpoint)
+      self.duplo.logger.debug(f"Found service {name} using new endpoint.")
+      return response.json()
+    # catch the DuploError and let super take over if it's just a 404 which means the new endpoint doesn't exist
+    except DuploError:
+      self.duplo.logger.debug(f"Service {name} not found using new endpoint, falling back to list.")
+      return super().find(name)
     
   @Command()
   def update(self, 
@@ -659,16 +676,40 @@ class DuploService(DuploTenantResourceV2):
     """Wait for a service to update."""
     name = old["Name"]
     cloud = old["Template"]["Cloud"]
+
+    # track image changes
     new_img = self.image_from_body(updates)
     old_img = self.image_from_body(old)
+    image_changed = (old_img != new_img) if new_img else False
+
+    # track hpa settings and changes
+    old_hpa = old.get("HPASpecs", None)
+    hpa_enabled = (old_hpa is not None)
+    if "HPASpecs" in updates:
+      hpa_enabled = updates["HPASpecs"] is not None # it's been disabled if it's None
+
+    # is the replica count changing and are we using the new api? 
+    replica_key = "ReplicasActive" if "ReplicasActive" in old else "Replicas" # only used in wait_check
     new_replicas = updates.get("Replicas", None)
     replicas_changed = (old["Replicas"] != new_replicas) if new_replicas else False
-    image_changed = (old_img != new_img) if new_img else False
+    true_count = (replica_key == "ReplicasActive" or not hpa_enabled) # check if we can know the true count of replicas
+
+    # Is a rollover needed? 
     new_conf = updates.get("OtherDockerConfig", None)
     conf_changed = (old["Template"].get("OtherDockerConfig", None) != new_conf) if new_conf else False
     rollover = False
     if image_changed or conf_changed:
       rollover = True
+    self.duplo.logger.debug(f"""Wait for service {name}:
+      The image has {'changed' if image_changed else 'not changed'}.
+      The replicas have {'changed' if replicas_changed else 'not changed'}.
+      The hpa is {'enabled' if hpa_enabled else 'disabled'}.
+      The true count is {'known' if true_count else 'unknown'}.
+      A rollover is {'required' if rollover else 'not required'}.
+      """)
+    def get_pod_image(pod):
+      """Get the image of a pod."""
+      return pod["Containers"][0]["Image"].removeprefix("docker.io/library/")
     def check_pod_faults(pod, faults):
       """Check if the pod has any faults.
       
@@ -685,49 +726,59 @@ class DuploService(DuploTenantResourceV2):
       for f in faults:
         if f["ResourceName"] == name:
           raise DuploFailedResource(f"Service {name} raised a fault.\n{f['Description']}")
+    def running_pod(pod, faults):
+      """Check if a pod is running and return 1 if it is, 0 otherwise."""
+      # azure doesn't have controlled by, so we skip this check if it's not there
+      cb = pod.get("ControlledBy", None) 
+      # skip if the pod is not controlled by the new replicaset
+      if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
+        return 0
+
+      # ignore this pod if the image is the old image
+      if image_changed and get_pod_image(pod) == old_img:
+        return 0
+
+      # check for aws and gke faults on pod
+      if cloud != 2:
+        check_pod_faults(pod, faults)
+
+      # update total running pod count if one is running
+      if ((pod["CurrentStatus"] == pod["DesiredStatus"]) and pod["DesiredStatus"] == 1):
+        self.duplo.logger.info(f"Pod {pod['InstanceId']} is running")
+        return 1
+      return 0
     def wait_check():
       svc = self.find(name)
-      replicas = svc["Replicas"]
-      # make sure the change has been applied
+      replicas = svc[replica_key]
+
+      # we are still waiting if the changed values do not appear when retrieving the service
       if (image_changed and self.image_from_body(svc) != new_img):
         raise DuploStillWaiting(f"Service {name} waiting for image update")
       if (replicas_changed and replicas != new_replicas):
         raise DuploStillWaiting(f"Service {name} waiting for replicas update")
       if (conf_changed and svc["Template"].get("OtherDockerConfig", None) != new_conf):
         raise DuploStillWaiting(f"Service {name} waiting for pod to update")
+      
+      # now let's start checking the pods
       pods = self.pods(name)
       faults = self.tenant_svc.faults(id=self.tenant_id)
-      running = 0
 
       # check for azure faults on service
       if cloud == 2:
         check_service_faults(faults)
-      for p in pods:
 
-        # azure doesn't have controlled by, so we skip this check if it's not there
-        cb = p.get("ControlledBy", None) 
-        # skip if the pod is not controlled by the new replicaset
-        if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
-          continue
-
-        # ignore this pod if the image is the old image
-        img = p["Containers"][0]["Image"].removeprefix("docker.io/library/")
-        if image_changed and img == old_img:
-          continue
-
-        # check for aws and gke faults on pod
-        if cloud != 2:
-          check_pod_faults(p, faults)
-
-        # update total running pod count if one is running 
-        if ((p["CurrentStatus"] == p["DesiredStatus"]) and p["DesiredStatus"] == 1):
-          self.duplo.logger.warn(f"Pod {p['InstanceId']} is running")
-          running += 1
-
-      # make sure all the replicas are up
-      if replicas != running:
+      # make sure all the replicas are up if we know the true replica count
+      running = sum(running_pod(p, faults) for p in pods)
+      if true_count and replicas != running:
         raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{replicas}")
-      
+      else:
+        # if this is the case, we need to hack it, this means hpa is enabled and we don't know the true replica count
+        # we will check to make sure no pods in the pod list are using the old image, when none are running and at least one is up, we are done
+        running_old = sum(1 for pod in pods if get_pod_image(pod) == old_img)
+        min_replicas = svc.get("HPASpecs", {}).get("minReplicas", 1)
+        if running_old > 0 and running < min_replicas:
+          raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{min_replicas} and {running_old} pods using old image to cleanup.")
+    
     # send to the base class to do the waiting
     super().wait(wait_check, 3600, 11)
 
