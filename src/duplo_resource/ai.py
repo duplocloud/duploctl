@@ -15,7 +15,7 @@ class AIHelpdesk(DuploTenantResourceV3):
     @Command()
     def create_ticket(self,
                     title: args.TITLE,
-                    content: args.Message,   
+                    content: args.MESSAGE,   
                     agent_name: args.AGENTNAME,
                     instance_id: args.INSTANCEID,
                     api_version: args.APIVERSION) -> dict:
@@ -26,7 +26,7 @@ class AIHelpdesk(DuploTenantResourceV3):
             ```sh
             duploctl ai create_ticket \
                 --title "Pipeline failed" \
-                --content "Pipeline failed" \ 
+                --content "Pipeline failed" \
                 --agent_name pytest-agent \
                 --instance_id pytest-instance \
                 [--api_version v1]
@@ -104,7 +104,7 @@ class AIHelpdesk(DuploTenantResourceV3):
     @Command()
     def send_message(self,
                     ticket_id: args.TICKETID,
-                    content: args.Message,
+                    content: args.MESSAGE,
                     api_version: args.APIVERSION = "v1") -> dict:
         """
         Send a message to an existing ticket in the DuploCloud AI HelpDesk.

@@ -318,7 +318,7 @@ APIVERSION = Arg("api_version", "--api-version",
 TICKETID = Arg("ticket_id", "--ticket_id", "--ticket",
                help="The ID of the AI HelpDesk ticket")
 
-Message = Arg("content", "--content", "--msg",
+MESSAGE = Arg("content", "--content", "--msg",
               help="The message you want to send to the AI agent")
 
 DAYS = Arg("days", 
