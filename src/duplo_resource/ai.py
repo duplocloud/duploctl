@@ -139,14 +139,10 @@ class AIHelpdesk(DuploTenantResourceV3):
             "platform_context": {}
         }
 
-        try:
-            response = self.duplo.post(path, payload)
-            result = response.json()
+        response = self.duplo.post(path, payload)
+        result = response.json()
 
-            return {
-                "response": result,
-                "chat_url": f"{self.duplo.host}/app/ai/service-desk/{tenant_id}/tickets/chat/{ticket_id}"
-            }
-
-        except Exception as ex:
-            raise DuploError(f"Failed to send message: {str(ex)}")
+        return {
+            "response": result,
+            "chat_url": f"{self.duplo.host}/app/ai/service-desk/{tenant_id}/tickets/chat/{ticket_id}"
+        }
