@@ -19,10 +19,10 @@ https://cli.duplocloud.com/Jit/
 @Resource("jit")
 class DuploJit(DuploResource):
   """Just In Time (JIT) Resource
-  
+
   Just in time access for AWS. This will use Duplo credentials to ask a certain Duplo portal for temporary AWS credentials. These credentials will be valid for a certain amount of time and will be used to access AWS resources.
 
-  Usage:  
+  Usage:
     using the `duploctl` command line tool, you can manage services with actions:
 
     ```sh
@@ -35,10 +35,10 @@ class DuploJit(DuploResource):
   @Command()
   def token(self) -> dict:
     """Get JWT Token
-    
-    Get the JWT token for the current user. This is the token that is used to authenticate with the Duplo API. 
 
-    Usage:  
+    Get the JWT token for the current user. This is the token that is used to authenticate with the Duplo API.
+
+    Usage:
       ```sh
       duploctl jit token
       ```
@@ -47,12 +47,12 @@ class DuploJit(DuploResource):
       token: The JWT token.
     """
     return {"token": self.duplo.token}
-  
+
   @Command()
   def gcp(self, nocache: bool = None) -> dict:
     """GCP Access Token
-    
-    Get the GCP JWT token for the current user. This is the token that is used to authenticate with the GCP API. You must be an admin to use this feature.  
+
+    Get the GCP JWT token for the current user. This is the token that is used to authenticate with the GCP API. You must be an admin to use this feature.
 
     Example: Using for gcloud cli access
       Here is how to set the needed environment variables for the gcloud cli.
@@ -61,7 +61,7 @@ class DuploJit(DuploResource):
       for i in $(duploctl jit gcp -q '{CLOUDSDK_AUTH_ACCESS_TOKEN: Token, CLOUDSDK_CORE_PROJECT: ProjectId}' -o env); do export $i; done
       ```
 
-    Usage:  
+    Usage:
       ```sh
       duploctl jit gcp
       ```
@@ -92,17 +92,17 @@ class DuploJit(DuploResource):
   @Command()
   def aws(self, nocache: bool = None) -> dict:
     """AWS STS Session Credentials
-    
-    Provides a full sts session with credentials and region. The default return is a valid exec credential for the AWS CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant 
-    credentials are returned. The `--interactive` flag can be used to get the credentials for an interactive session and use the cache. 
 
-    Basic Usage:  
+    Provides a full sts session with credentials and region. The default return is a valid exec credential for the AWS CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant
+    credentials are returned. The `--interactive` flag can be used to get the credentials for an interactive session and use the cache.
+
+    Basic Usage:
       ```sh
       duploctl jit aws
       ```
 
-    Example: Using in AWS CLI Credential Process  
-      Here is an example for using the duploctl jit for aws in an AWS CLI config file. 
+    Example: Using in AWS CLI Credential Process
+      Here is an example for using the duploctl jit for aws in an AWS CLI config file.
 
       ```toml
       [profile myportal]
@@ -111,14 +111,14 @@ class DuploJit(DuploResource):
       credential_process=duploctl jit aws --host https://myportal.duplocloud.net --admin --interactive
       ```
 
-    Example: Get AWS Environment Variables  
-      Here is an example using a query and env output to create some just in time aws credentials. 
+    Example: Get AWS Environment Variables
+      Here is an example using a query and env output to create some just in time aws credentials.
 
       ```sh
       duploctl jit aws -o env -q '{AWS_ACCESS_KEY_ID: AccessKeyId, AWS_SECRET_ACCESS_KEY: SecretAccessKey, AWS_SESSION_TOKEN: SessionToken, AWS_REGION: Region}'
       ```
 
-      A one liner to export those credentials as environment variables. 
+      A one liner to export those credentials as environment variables.
       ```sh
       for i in `duploctl jit aws -q '{AWS_ACCESS_KEY_ID: AccessKeyId, AWS_SECRET_ACCESS_KEY: SecretAccessKey, AWS_SESSION_TOKEN: SessionToken, AWS_REGION: Region}' -o env`; do export $i; done
       ```
@@ -127,7 +127,7 @@ class DuploJit(DuploResource):
       nocache (bool): Do not use cached credentials. Only for other methods to use.
 
     Returns:
-      sts: The AWS STS session credentials. 
+      sts: The AWS STS session credentials.
     """
     sts = None
     path = None
@@ -157,15 +157,15 @@ class DuploJit(DuploResource):
       self.duplo.set_cached_item(k, sts)
     sts["Version"] = 1
     return sts
-  
+
   @Command()
   def update_aws_config(self,
                         name: args.NAME) -> dict:
     """Update AWS Config
-    
+
     Update the AWS config file with a new profile. This will add a new profile to the AWS config file.
-    This will honor the `AWS_CONFIG_FILE` environment variable if it is set. 
-    This will set the aws cli credentialprocess to use the `duploctl jit aws` command. 
+    This will honor the `AWS_CONFIG_FILE` environment variable if it is set.
+    This will set the aws cli credentialprocess to use the `duploctl jit aws` command.
     The generated command will inherit the `--host`, `--admin`, and `--interactive` flags from the current command.
 
     Usage:
@@ -187,44 +187,40 @@ class DuploJit(DuploResource):
 
     Args:
       name: The name of the profile to add.
-    
+
     Returns:
       msg: The message that the profile was added.
     """
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
     cp.read(config)
-
-    # If name is not provided, set default profile name to "duplo"
     name = name or "duplo"
-
     prf = f'profile {name}'
-    msg = f"aws profile named {name} already exists in {config}"
-    try:
-      cp[prf]
-    except KeyError:
-      cmd = self.duplo.build_command("duploctl", "jit", "aws")
+    cmd = self.duplo.build_command("duploctl", "jit", "aws")
+    is_new_profile = not cp.has_section(prf)
+    if is_new_profile:
       cp.add_section(prf)
-      cp.set(prf, 'region', os.getenv("AWS_DEFAULT_REGION", "us-west-2"))
-      cp.set(prf, 'credential_process', " ".join(cmd))
-      with open(config, 'w') as configfile:
-        cp.write(configfile)
-      msg = f"aws profile named {name} was successfully added to {config}"
+    cp.set(prf, 'region', os.getenv("AWS_DEFAULT_REGION", "us-west-2"))
+    cp.set(prf, 'credential_process', " ".join(cmd))
+    os.makedirs(os.path.dirname(os.path.abspath(config)), exist_ok=True)
+    with open(config, 'w') as configfile:
+      cp.write(configfile)
+    msg = f"aws profile named {name} was successfully {'added' if is_new_profile else 'updated'} in {config}"
     return {"message": msg}
 
   @Command()
   def web(self) -> dict:
     """Open Cloud Console
 
-    Opens a default or specified browser to the Duploclouds underlying cloud. 
+    Opens a default or specified browser to the Duploclouds underlying cloud.
     Currently this only supports AWS. The global `--browser` flag can be used to specify a browser.
 
-    Usage:  
+    Usage:
 
     ```sh
     duploctl jit web --browser chrome
     ```
-    
+
     Returns:
       msg: The message that the browser is opening.
     """
@@ -240,12 +236,12 @@ class DuploJit(DuploResource):
   def k8s(self,
           planId: args.PLAN = None) -> dict:
     """Kubernetes JIT Exec Credentials
-    
-    Provides a full exec credential for kubectl. The default return is a valid exec credential for the kubectl CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant. 
-    An admin can pass the `--plan` or else it will be discovered from the chosen tenant. A non admin must 
-    choose a tenant. 
 
-    Usage:  
+    Provides a full exec credential for kubectl. The default return is a valid exec credential for the kubectl CLI. The global `--admin` flag can be used to get the credentials for an admin, or else per tenant.
+    An admin can pass the `--plan` or else it will be discovered from the chosen tenant. A non admin must
+    choose a tenant.
+
+    Usage:
       ```sh
       duploctl jit k8s
       ```
@@ -281,8 +277,8 @@ class DuploJit(DuploResource):
                         planId: args.PLAN = None,
                         save: bool = True) -> dict:
     """Update Kubeconfig
-    
-    Update the kubeconfig file with a new context. This will add a new context to the kubeconfig file. This will honor the `KUBECONFIG` environment variable if it is set. The generated command will inherit the `--host`, `--admin`, and `--interactive` flags from the current command. 
+
+    Update the kubeconfig file with a new context. This will add a new context to the kubeconfig file. This will honor the `KUBECONFIG` environment variable if it is set. The generated command will inherit the `--host`, `--admin`, and `--interactive` flags from the current command.
 
     Usage:
       ```sh
@@ -322,15 +318,15 @@ class DuploJit(DuploResource):
 
     Args:
       planId: The planId of the infrastructure.
-      save: Save the kubeconfig file. This is a code only option. 
-    
+      save: Save the kubeconfig file. This is a code only option.
+
     Returns:
       msg: The message that the kubeconfig was updated. Unless save is False, then the kubeconfig is returned.
     """
     # first get the kubeconfig file and parse it
     kubeconfig_path = os.environ.get("KUBECONFIG", f"{Path.home()}/.kube/config")
-    kubeconfig = (yaml.safe_load(open(kubeconfig_path, "r")) 
-                  if os.path.exists(kubeconfig_path) 
+    kubeconfig = (yaml.safe_load(open(kubeconfig_path, "r"))
+                  if os.path.exists(kubeconfig_path)
                   else self.__empty_kubeconfig())
     # load the cluster config info
     ctx = self.k8s_context(planId)
@@ -349,23 +345,24 @@ class DuploJit(DuploResource):
     self.__add_to_kubeconfig("contexts", self.__context_config(ctx), kubeconfig)
     kubeconfig["current-context"] = ctx["Name"]
     if save:
+      os.makedirs(os.path.dirname(os.path.abspath(kubeconfig_path)), exist_ok=True)
       # write the kubeconfig back to the file
       with open(kubeconfig_path, "w") as f:
         yaml.safe_dump(kubeconfig, f)
       return {"message": f"kubeconfig updated successfully to {kubeconfig_path}"}
     else:
       return kubeconfig
-  
+
   @Command()
-  def k8s_context(self, 
+  def k8s_context(self,
                   planId: args.PLAN = None) -> dict:
     """Get k8s context
-    
-    Gets context based on planId or tenant name or admin or nonadmin. 
+
+    Gets context based on planId or tenant name or admin or nonadmin.
 
     Args:
       planId: The planId of the infrastructure.
-    
+
     Returns:
       context: The k8s context.
     """
@@ -380,7 +377,7 @@ class DuploJit(DuploResource):
       raise DuploError("--tenant is required", 300)
     if not planId and not identified:
       raise DuploError("--plan or --tenant is required", 300)
-    
+
     # and admin needs a plan and may have a identified a tenant
     # or maybe it's not an admin and a name was used to identify the tenant
     if (admin and not planId) or (not admin and not tenant_id):
@@ -435,7 +432,7 @@ class DuploJit(DuploResource):
       "name": ctx["PlanID"],
       "cluster": cluster
     }
-  
+
   def __user_config(self, ctx):
     """Build a kubeconfig user object"""
     cmd = self.duplo.build_command(*ctx["ARGS"])
@@ -450,7 +447,7 @@ class DuploJit(DuploResource):
         }
       }
     }
-  
+
   def __context_config(self, ctx):
     """Build a kubeconfig context object"""
     return {
@@ -461,7 +458,7 @@ class DuploJit(DuploResource):
         "namespace": ctx["DefaultNamespace"]
       }
     }
-  
+
   def __add_to_kubeconfig(self, section, item, kubeconfig):
     """Add an item to a kubeconfig section if it is not already present"""
     exists = False
@@ -482,6 +479,3 @@ class DuploJit(DuploResource):
       "users": [],
       "contexts": []
     }
-  
-
-    

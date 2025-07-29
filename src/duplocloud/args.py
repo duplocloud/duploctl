@@ -170,7 +170,8 @@ HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
             help='The health check URL')
 
 TO_REVISION = Arg("revision", "--to-revision",
-            help='The revision to rollback to')
+            help='The revision to rollback to',
+            type=int)
 
 CONTAINER_PORT = Arg("container-port", "--container-port",
             help='Container port')
@@ -341,4 +342,7 @@ SHOW_SENSITIVE = Arg('showsensitive', '-show',
             help='Return sensitive values to output. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT/LOG FILES',
             type=bool,
             action='store_true')
-            
+
+BATCH_QUEUE = Arg("queue", "-BQ", "-bq", "--batch-queue",
+             help='The name of a Batch Queue',
+             env='DUPLO_BATCH_QUEUE')

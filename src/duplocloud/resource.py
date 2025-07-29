@@ -50,8 +50,7 @@ class DuploResource():
       except DuploFailedResource as e:
         raise e
       except DuploStillWaiting as e:
-        if e.message:
-          self.duplo.logger.debug(e)
+        self.duplo.logger.info(e)
         time.sleep(poll)
       except KeyboardInterrupt as e:
         raise e
@@ -117,26 +116,26 @@ class DuploResourceV2(DuploResource):
 class DuploTenantResourceV2(DuploResourceV2):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-    self.__tenant = None
-    self.__tenant_id = None
+    self._tenant = None
+    self._tenant_id = None
     self.tenant_svc = duplo.load('tenant')
   @property
   def tenant(self):
-    if not self.__tenant:
-      self.__tenant = self.tenant_svc.find()
-      self.__tenant_id = self.__tenant["TenantId"]
-    return self.__tenant
+    if not self._tenant:
+      self._tenant = self.tenant_svc.find()
+      self._tenant_id = self._tenant["TenantId"]
+    return self._tenant
   
   @property
   def tenant_id(self):
-    if not self.__tenant_id:
-      if self.__tenant:
-        self.__tenant_id = self.__tenant["TenantId"]
+    if not self._tenant_id:
+      if self._tenant:
+        self._tenant_id = self._tenant["TenantId"]
       elif self.duplo.tenantid:
-        self.__tenant_id = self.duplo.tenantid
+        self._tenant_id = self.duplo.tenantid
       else:
-        self.__tenant_id = self.tenant["TenantId"]
-    return self.__tenant_id
+        self._tenant_id = self.tenant["TenantId"]
+    return self._tenant_id
   
   def prefixed_name(self, name: str) -> str:
     tenant_name = self.tenant["AccountName"]
@@ -150,31 +149,52 @@ class DuploTenantResourceV2(DuploResourceV2):
   
 
 class DuploTenantResourceV3(DuploResource):
-  def __init__(self, duplo: DuploClient, slug: str):
+  def __init__(self, duplo: DuploClient, slug: str, prefixed: bool = False):
     super().__init__(duplo)
-    self.__tenant = None
-    self.__tenant_id = None
+    self._prefixed = prefixed
+    self._tenant = None
+    self._tenant_id = None
     self.tenant_svc = duplo.load('tenant')
     self.slug = slug
     self.wait_timeout = 200
     self.wait_poll = 10
   @property
   def tenant(self):
-    if not self.__tenant:
-      self.__tenant = self.tenant_svc.find()
-      self.__tenant_id = self.__tenant["TenantId"]
-    return self.__tenant
+    if not self._tenant:
+      self._tenant = self.tenant_svc.find()
+      self._tenant_id = self._tenant["TenantId"]
+    return self._tenant
   
   @property
   def tenant_id(self):
-    if not self.__tenant_id:
-      if self.__tenant:
-        self.__tenant_id = self.__tenant["TenantId"]
+    if not self._tenant_id:
+      if self._tenant:
+        self._tenant_id = self._tenant["TenantId"]
       elif self.duplo.tenantid:
-        self.__tenant_id = self.duplo.tenantid
+        self._tenant_id = self.duplo.tenantid
       else:
-        self.__tenant_id = self.tenant["TenantId"]
-    return self.__tenant_id
+        self._tenant_id = self.tenant["TenantId"]
+    return self._tenant_id
+  
+  @property
+  def prefix(self):
+    return f"duploservices-{self.tenant['AccountName']}-"
+  
+  def prefixed_name(self, name: str) -> str:
+    if not name.startswith(self.prefix):
+      name = f"{self.prefix}{name}"
+    return name
+  
+  def name_from_body(self, body):
+    return body["metadata"]["name"]
+
+  def endpoint(self, name: str=None, path: str=None):
+    p = f"v3/subscriptions/{self.tenant_id}/{self.slug}"
+    if name:
+      p += f"/{name}"
+    if path:
+      p += f"/{path}"
+    return p
   
   @Command()
   def list(self) -> list:
@@ -210,7 +230,8 @@ class DuploTenantResourceV3(DuploResource):
     Raises:
       DuploError: If the {{kind}} could not be found.
     """
-    response = self.duplo.get(self.endpoint(name))
+    n = self.prefixed_name(name) if self._prefixed else name
+    response = self.duplo.get(self.endpoint(n))
     return response.json()
   
   @Command()
@@ -232,7 +253,8 @@ class DuploTenantResourceV3(DuploResource):
     Raises:
       DuploError: If the {{kind}} resource could not be found or deleted. 
     """
-    self.duplo.delete(self.endpoint(name))
+    n = self.prefixed_name(name) if self._prefixed else name
+    self.duplo.delete(self.endpoint(n))
     return {
       "message": f"{self.slug}/{name} deleted"
     }
@@ -300,7 +322,8 @@ class DuploTenantResourceV3(DuploResource):
     if patches:
       body = self.duplo.jsonpatch(body, patches)
     name = name if name else self.name_from_body(body)
-    response = self.duplo.put(self.endpoint(name), body)
+    n = self.prefixed_name(name) if self._prefixed else name
+    response = self.duplo.put(self.endpoint(n), body)
     return response.json()
   
   @Command()
@@ -336,13 +359,5 @@ class DuploTenantResourceV3(DuploResource):
     except DuploError:
       return self.create(body, wait)
   
-  def name_from_body(self, body):
-    return body["metadata"]["name"]
-
-  def endpoint(self, name: str=None, path: str=None):
-    p = f"v3/subscriptions/{self.tenant_id}/{self.slug}"
-    if name:
-      p += f"/{name}"
-    if path:
-      p += f"/{path}"
-    return p
+  
+  

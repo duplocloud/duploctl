@@ -10,6 +10,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added duploctl command to create AI Helpdesk Ticket & Send AI Message.
+### Fixed
+
+- Now waiting for a service to update works with HPA enabled
+- running just `duploctl` gave an error, now it outputs like any other command
+- better debuggin logs when `--loglevel DEBUG` is set
+
+## [0.3.4] - 2025-07-25
+
+### Fixed
+
+- makedir fails on single-file paths
+
+## [0.3.1] - 2025-07-25
+
+### Added
+
+- Modified jit update_kubeconfig and update_aws_config methods to ensure parent directories are created recursively before writing configuration files.
+- Updated jit update_aws_config to always overwrite existing profile entries with new values instead of skipping them.
+
+### Fixed
+
+- batch job definition fails with deprecated vcpu/memory assignment
+- batch job adds zero-value schedulingpriority value which breaks submission to non-prioritized job queues
+
+## [0.3.0] - 2025-07-15
+
+### Added
+
+- batch_scheduling_policy resource
+- batch_compute resource
+- batch_queue resource
+- batch_definition resource with update_image command
+- batch_job resource
 
 ## [0.2.52] - 2025-07-03
 
@@ -17,9 +50,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added enhancement to ecs update_image to also update the specific container image.
 
-### Fixed  
+### Fixed
 
-- The aws_secrets resource was inconsistent with how other similar resources work. This is a breaking change that changes how you interact with aws secrets. [Please read more about how to properly use this resource in the wiki](https://cli.duplocloud.com/AwsSecret/). The create and update methods both changed and follow the same style of usage. 
+- The aws_secrets resource was inconsistent with how other similar resources work. This is a breaking change that changes how you interact with aws secrets. [Please read more about how to properly use this resource in the wiki](https://cli.duplocloud.com/AwsSecret/). The create and update methods both changed and follow the same style of usage.
+
+- ECS tasks failed when cpu/memory are not present in the task definition, which is allowed for EC2-hosted services.
 
 ## [0.2.51] - 2025-05-29
 
@@ -38,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Docs enhancements were added for the Host resource with integration tests.
-- Added fields to the ecs service update task def to replace a bug 
+- Added fields to the ecs service update task def to replace a bug
 - Patching support and docs enhancements were added for an ASG resource.
 - Patching support and docs enhancements were added for an Ingress resource.
 
@@ -55,7 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.47] - 2025-04-07
 
-### Fixed 
+### Fixed
 
 - Patch config file into test_at_least_host so it doesn't depend on a specific local setup.
 - Added a generic exception block to handle any unexpected errors that are not instances of DuploError.
@@ -68,7 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added unit tests for missing service methods: create, delete, start, restart and stop.
 - ECS run task for a task definition. `duploctl ecs run_task myapp`
 - ECS update image will now update just a task definition and a corresponding service if there is one.
-- A generic method for making sure a name is prefixed. This means you can give a short or long name and the cli will use either. 
+- A generic method for making sure a name is prefixed. This means you can give a short or long name and the cli will use either.
 - Added integration tests for missing ASG methods: list, find, create, update, delete and scale.
 - Added integration tests for AWS Secret methods: find, create, update and delete.
 - Added configmap commands (find, delete, update) with integration tests.
@@ -76,9 +111,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.46] - 2025-03-03
 
-### Fixed 
+### Fixed
 
- - Fixed issue where AgentPlatform key needed to be copied up to the top level of the service object 
+ - Fixed issue where AgentPlatform key needed to be copied up to the top level of the service object
 
 ## [0.2.45] - 2025-02-25
 
@@ -88,7 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.44] - 2025-01-22
 
-### Added  
+### Added
 
   - Added support for updating the environment variables of a lambda.
   - Added support for SSM Parameter CRUD operations.
@@ -96,7 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added support for configuring a load balancer for a service.
   - start, stop, restart for service with `--wait`
 
-### Fixed  
+### Fixed
 
   - Fixed duploctl ecs update_image service bug
 
@@ -111,11 +146,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
   - Removed potential cyclic dependencies in `docker-compose.yaml` by explicitly defining inherited sections
-  
+
 ## [0.2.39] - 2024-11-12
 
 ### Fixed
-  
+
   - Issue with wait breaking when a pod didn't have the `Name` key
   - Jobs were not failing gracefully when waiting for completion but faults were present for pods on the job
 
@@ -141,7 +176,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed handling of case in name/value keys in environment variables as backend permits both.
   - Fixes issue in service update argument where strategy required three dashes.
   - Gracefully handles situations where user attempts to merge with a service that has no existing env vars.
-  - Fixed issue where the wait flag would cause an error when updating an image and the images were the same. 
+  - Fixed issue where the wait flag would cause an error when updating an image and the images were the same.
   - Fixed issue when updating an image and the image was the same, it would not report the last deployed by when and who
 
 ## [0.2.36] - 2024-09-25
@@ -327,4 +362,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - jit commands are no longer admin by default, tenant level is now default
-

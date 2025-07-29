@@ -22,5 +22,5 @@ class DuploFailedResource(DuploError):
 
 class DuploStillWaiting(DuploError):
   """Raised when a Duplo resource is in a waiting state."""
-  def __init__(self, name: str):
-    super().__init__(f"{name} is in a waiting state", 408)
+  def __init__(self, message: str = "Still waiting"):
+    super().__init__(message, 408)

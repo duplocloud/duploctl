@@ -36,7 +36,7 @@ def test_duplo_still_waiting():
     err = DuploStillWaiting("delayed-service")
     assert isinstance(err, DuploStillWaiting)
     assert err.code == 408
-    assert str(err) == "delayed-service is in a waiting state"
+    assert str(err) == "delayed-service"
 
 @pytest.mark.integration
 @pytest.mark.parametrize("exception_class,init_arg,expected_str,expected_code", [
