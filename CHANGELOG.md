@@ -7,10 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.53] - 2025-07-11
 
 ### Added
-- Added duploctl command to create AI Helpdesk Ticket.
+- Added duploctl command to create AI Helpdesk Ticket & Send AI Message.
 
 ## [0.2.52] - 2025-07-03
 
