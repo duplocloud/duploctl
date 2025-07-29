@@ -301,6 +301,26 @@ TARGETS = Arg("targets", "--targets",
 TIME = Arg("time", "--time",
            help='The time to use')
 
+TITLE = Arg("title", "--title",
+            help= "The Title for ticket")
+
+AGENTNAME = Arg("agent_name", "--agent_name", "--agent",
+                help= "AI Agent to be used to process the ticket")
+
+INSTANCEID = Arg("instance_id","--instance_id", "--instance",
+                help= "AI Agent Instance Id")
+
+APIVERSION = Arg("api_version", "--api-version",
+                 help="API Version",
+                 required=False,
+                 default="v1")
+
+TICKETID = Arg("ticket_id", "--ticket_id", "--ticket",
+               help="The ID of the AI HelpDesk ticket")
+
+MESSAGE = Arg("content", "--content", "--msg",
+              help="The message you want to send to the AI agent")
+
 DAYS = Arg("days", 
             help='The days to use',
             type=int)
