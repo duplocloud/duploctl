@@ -6,7 +6,7 @@ import duplocloud.args as args
 
 
 @Resource("ai")
-class AIHelpdesk(DuploTenantResourceV3):
+class DuploAI(DuploTenantResourceV3):
     """Resource for creating tickets in the DuploCloud AI HelpDesk."""
 
     def __init__(self, duplo: DuploClient):
@@ -19,7 +19,8 @@ class AIHelpdesk(DuploTenantResourceV3):
                     agent_name: args.AGENTNAME,
                     instance_id: args.INSTANCEID,
                     api_version: args.APIVERSION) -> dict:
-        """
+        """Create DuploCloud AI ticket.
+
         Create a ticket in the DuploCloud AI HelpDesk.
 
         Usage:
@@ -32,8 +33,9 @@ class AIHelpdesk(DuploTenantResourceV3):
                 [--api_version v1]
             ```
 
-        Example:
-            Create a ticket for a failed build pipeline in test environment:
+        Example: Create DuploCloud AI helpdesk ticket
+            Run this command Create a ticket for a failed build pipeline in test environment.
+
             ```sh
             duploctl ai create_ticket \
                 --title "Build pipeline failed for release-2025.07.10" \
@@ -51,22 +53,12 @@ class AIHelpdesk(DuploTenantResourceV3):
             api_version: Helpdesk API version (default: v1).
 
         Returns:
-            Ticket name, AI Agent reponse &  a Chat url.
-        """
-        
-        if not title:
-            raise DuploError("Ticket title cannot be empty.")
-        
-        if not content:
-            raise DuploError("Ticket content cannot be empty.")
+            ticketname: AI helpdesk ticket name
+            response: AI Agent reponse
+            chat_url:  Helpdesk Chat url.
+        """ 
 
-        if not agent_name:
-            raise DuploError("Agent name cannot be empty.")
-
-        if not instance_id:
-            raise DuploError("Instance ID cannot be empty.")
-
-        tenant_id = self.tenant["TenantId"]
+        tenant_id = self.tenant_id
         api_version = api_version.strip().lower()
 
         # Build dynamic path
@@ -106,13 +98,26 @@ class AIHelpdesk(DuploTenantResourceV3):
                     ticket_id: args.TICKETID,
                     content: args.MESSAGE,
                     api_version: args.APIVERSION = "v1") -> dict:
-        """
+        """Send DuploCloud AI Message.
+
         Send a message to an existing ticket in the DuploCloud AI HelpDesk.
 
         Usage:
+            ```sh
             duploctl ai send_message \
                 --ticket_id "andy-250717131532" \
                 --content "My app pod is crashing."
+            ```    
+
+        Example: Send a message to an AI helpdesk ticket
+            Run this command to send a message to ai helpdesk ticket.
+
+            ```sh
+            duploctl ai send_message \
+                --ticket_id "andy-250717131532" \
+                --content "My app is still failing after restarting the pod." \
+                --api_version v1
+            ```                
 
         Args:
             ticket_id: Ticket ID to send the message to (required).
@@ -120,16 +125,12 @@ class AIHelpdesk(DuploTenantResourceV3):
             api_version: Helpdesk API version (default: v1).
 
         Returns:
-            JSON response from agent and a direct chat URL.
+            response: AI Agent reponse
+            chat_url: Helpdesk chat URL.
         """
-        if not ticket_id:
-            raise DuploError("Ticket ID is required.")
-
-        if not content:
-            raise DuploError("Message content cannot be empty.")
 
         api_version = api_version.strip().lower()
-        tenant_id = self.tenant["TenantId"]
+        tenant_id = self.tenant_id
 
         path = f"{api_version}/aiservicedesk/tickets/{tenant_id}/{ticket_id}/sendmessage"
 

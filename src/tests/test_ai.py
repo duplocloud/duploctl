@@ -17,7 +17,7 @@ def execute_test(func, *args, **kwargs):
         pytest.fail(f"Test failed: {e}")
 
 @pytest.mark.usefixtures("helpdesk_resource")
-class TestAIHelpdesk:
+class TestDuploAI:
     """Integration tests for the AI Helpdesk ticketing system."""
 
     @pytest.mark.integration
