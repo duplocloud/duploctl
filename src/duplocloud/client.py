@@ -591,7 +591,7 @@ Available Resources:
     path = "app/user/verify-token"
     with TokenServer(self.host) as server:
       try:
-        page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}"
+        page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}&redirect=true"
         server.open_callback(page, self.browser)
         return server.serve_token()
       except KeyboardInterrupt:

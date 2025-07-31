@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed 
+
+- redirect based interactive login flow. Now safari and other browsers are supported with interactive login because the UI can give the token to the callback with a get request.
+
 ## [0.3.5] - 2025-07-29
 
 ### Fixed
