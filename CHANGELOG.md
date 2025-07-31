@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added duploctl command to create AI Helpdesk Ticket & Send AI Message.
+
 ## Fixed 
 
 - redirect based interactive login flow. Now safari and other browsers are supported with interactive login because the UI can give the token to the callback with a get request.
