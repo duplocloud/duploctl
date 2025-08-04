@@ -47,14 +47,14 @@ class DuploAI(DuploTenantResourceV3):
 
         Args:
             title: Title of the ticket (required).
-            content: Content or message of the ticket(required).
             agent_name: The agent name (required).
             instance_id: The agent instance ID (required).
+            content: Content or message of the ticket.
             api_version: Helpdesk API version (default: v1).
 
         Returns:
             ticketname: AI helpdesk ticket name
-            response: AI Agent reponse
+            ai_response: AI Agent reponse
             chat_url:  Helpdesk Chat url.
         """ 
 
@@ -66,13 +66,16 @@ class DuploAI(DuploTenantResourceV3):
 
         payload = {
             "title": title,
-            "content": content,
             "assignee": {
                 "agentName": agent_name,   
                 "instanceId": instance_id,
                 "agentHostTenantId": tenant_id
             }
         }
+
+        if content:
+            payload["content"] = content
+            payload["process_message"] = True
 
         response = self.duplo.post(path, payload)
         data = response.json()
@@ -83,13 +86,10 @@ class DuploAI(DuploTenantResourceV3):
         if not ticket_name or ticket_name == "null":
             raise DuploError(f"Could not extract ticket name from response.\nFull response: {response.text}")
 
-        if not ai_response or ai_response == "null":
-            raise DuploError(f"Could not extract AI Response.\nFull response: {response.text}")
-
         return {
             "ticketname": ticket_name,
             "chat_url": f"{self.duplo.host}/app/ai/service-desk/{tenant_id}/tickets/chat/{ticket_name}",
-            "response": ai_response
+            "ai_response": ai_response
         }
     
 
@@ -125,7 +125,7 @@ class DuploAI(DuploTenantResourceV3):
             api_version: Helpdesk API version (default: v1).
 
         Returns:
-            response: AI Agent reponse
+            ai_response: AI Agent reponse
             chat_url: Helpdesk chat URL.
         """
 
@@ -144,6 +144,6 @@ class DuploAI(DuploTenantResourceV3):
         result = response.json()
 
         return {
-            "response": result,
+            "ai_response": result,
             "chat_url": f"{self.duplo.host}/app/ai/service-desk/{tenant_id}/tickets/chat/{ticket_id}"
         }
