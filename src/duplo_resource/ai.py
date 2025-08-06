@@ -25,11 +25,11 @@ class DuploAI(DuploTenantResourceV3):
 
         Usage:
             ```sh
-            duploctl ai create_ticket \
-                --title "Pipeline failed" \
-                --content "Pipeline failed" \
-                --agent_name pytest-agent \
-                --instance_id pytest-instance \
+            duploctl ai create_ticket
+                --title "Pipeline failed"
+                --content "Pipeline failed"
+                --agent_name pytest-agent
+                --instance_id pytest-instance
                 [--api_version v1]
             ```
 
@@ -37,11 +37,11 @@ class DuploAI(DuploTenantResourceV3):
             Run this command Create a ticket for a failed build pipeline in test environment.
 
             ```sh
-            duploctl ai create_ticket \
-                --title "Build pipeline failed for release-2025.07.10" \
-                --content "Build pipeline failed at unit test stage with error ..." \
-                --agent_name "cicd" \
-                --instance_id "cicd" \
+            duploctl ai create_ticket
+                --title "Build pipeline failed for release-2025.07.10"
+                --content "Build pipeline failed at unit test stage with error ..."
+                --agent_name "cicd"
+                --instance_id "cicd"
                 --api_version v1
             ```            
 
@@ -104,8 +104,8 @@ class DuploAI(DuploTenantResourceV3):
 
         Usage:
             ```sh
-            duploctl ai send_message \
-                --ticket_id "andy-250717131532" \
+            duploctl ai send_message
+                --ticket_id "andy-250717131532"
                 --content "My app pod is crashing."
             ```    
 
@@ -113,9 +113,9 @@ class DuploAI(DuploTenantResourceV3):
             Run this command to send a message to ai helpdesk ticket.
 
             ```sh
-            duploctl ai send_message \
-                --ticket_id "andy-250717131532" \
-                --content "My app is still failing after restarting the pod." \
+            duploctl ai send_message
+                --ticket_id "andy-250717131532"
+                --content "My app is still failing after restarting the pod."
                 --api_version v1
             ```                
 
