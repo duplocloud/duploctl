@@ -322,7 +322,9 @@ TICKETID = Arg("ticket_id", "--ticket_id", "--ticket",
               help="The ID of the AI HelpDesk ticket",
               required=True)
 
-MESSAGE = Arg("content", "--content", "--msg",
+MESSAGE = Arg("message", "--content", "--msg", "--message",
+              required=False,
+              default=None,
               help="The message you want to send to the AI agent")
 
 DAYS = Arg("days", 
