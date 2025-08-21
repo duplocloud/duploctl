@@ -187,6 +187,7 @@ class DuploService(DuploTenantResourceV2):
       ```
 
     Example: Create and Wait
+      Use the global --wait flag to wait for the service to be created and all replicas in a ready status. 
       ```sh
       duploctl service create --file service.yaml --wait
       ```
@@ -199,7 +200,8 @@ class DuploService(DuploTenantResourceV2):
     """
     self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
     if self.duplo.wait:
-      self._wait(lambda: self.find(body["Name"]))
+      # TODO: This is lazy. The _wait method in this class should actually handle create. 
+      super().wait(lambda: self.find(body["Name"]))
     return {
       "message": f"Successfully created service '{body['Name']}'"
     }
@@ -245,7 +247,7 @@ class DuploService(DuploTenantResourceV2):
       ```
 
     Example: Wait for Scaling
-      The update replicas supports the `--wait` flag. This will wait till the number of pods match the desired count. 
+      The update replicas supports the global `--wait` flag. This will wait till the number of pods match the desired count. 
       ```sh
       duploctl service update_replicas myapp 99 --wait
       ```
@@ -365,12 +367,17 @@ class DuploService(DuploTenantResourceV2):
 
     Usage: Basic CLI Use
       ```sh
-      duploctl service update_env <service-name> -strat <replace,merge> --setvar <key> <value>
+      duploctl service update_env <service-name> --strategy <replace,merge> --setvar <key> <value>
       ```
     Example: Update all environment variables
       All variables for the service would be replaced by the variables in the command. This is a full state refresh. 
       ```sh
-      duploctl service update_env myapp -strat replace --setvar FOO bar --setvar MESSAGE "Hello?"
+      duploctl service update_env myapp --strategy replace --setvar FOO bar --setvar MESSAGE "Hello?"
+      ```
+
+    Example: Add a new variable
+      ```sh
+      duploctl service update_env myapp --strategy merge --setvar NEW_VAR "New Value"
       ```
 
     Args:
@@ -397,7 +404,7 @@ class DuploService(DuploTenantResourceV2):
     currentEnv = currentDockerconfig.get("Env", [])
     # Check if user is attempting to merge against a null Env. If so, set currentEnv to empty.
     if currentEnv is None and strategy == "merge":
-      self.duplo.logger.warn("Specified \"merge\" strategy on a service with"
+      self.duplo.logger.warning("Specified \"merge\" strategy on a service with"
                              " no environment variables defined, should use "
                              " \"replace\". Proceeding anyway")
       currentEnv = []
