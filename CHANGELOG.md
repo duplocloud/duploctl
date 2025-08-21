@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed 
+
+- Incosistent documentation in the services and jobs. Included examples and info about the --wait arg. 
+
 ## [0.3.6] - 2025-08-19
 
 ### Fixed 
