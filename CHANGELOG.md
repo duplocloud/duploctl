@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Removed agentHostTenantId from ticket creation payload.
+
 ## [0.3.6] - 2025-08-19
 
 ### Fixed 
