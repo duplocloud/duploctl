@@ -93,3 +93,28 @@ def test_update_image_no_service(mocker):
     assert mock_task_def["ContainerDefinitions"][0]["Image"] == "new-image:2"
     # Verify appropriate message is returned
     assert_response(result, "No Service Configured, only the definition is updated.")
+
+@pytest.mark.unit
+def test_find_def_uses_taskdef_family_from_service(mocker):
+    mock_client = mocker.MagicMock()
+    service = DuploEcsService(mock_client)
+
+    # Arrange
+    mocker.patch.object(service, 'prefixed_name', return_value='prefixed-svc')
+    mocker.patch.object(service, 'find_service_family', return_value={
+        'TaskDefFamily': 'actual-family'
+    })
+    mock_find_tdf = mocker.patch.object(service, 'find_task_def_family', return_value={
+        'VersionArns': ['arn:tdf:1', 'arn:tdf:2']
+    })
+    mock_find_by_arn = mocker.patch.object(service, 'find_def_by_arn', return_value={
+        'TaskDefinitionArn': 'arn:tdf:2'
+    })
+
+    # Act
+    result = execute_test(service.find_def, 'svc-name')
+
+    # Assert
+    mock_find_tdf.assert_called_once_with('actual-family')
+    mock_find_by_arn.assert_called_once_with('arn:tdf:2')
+    assert result == {'TaskDefinitionArn': 'arn:tdf:2'}
