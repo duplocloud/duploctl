@@ -63,8 +63,7 @@ class DuploAI(DuploTenantResourceV3):
       "title": title,
       "assignee": {
         "agentName": agent_name,
-        "instanceId": instance_id,
-        "agentHostTenantId": tenant_id
+        "instanceId": instance_id
       }
     }
 
