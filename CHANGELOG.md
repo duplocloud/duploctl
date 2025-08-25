@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Update ECS find_def to use the TaskDefFamily from the service endpoint, fixing update_image when the service name and task definition family are different.
+
 ## [0.3.6] - 2025-08-19
 
-### Fixed 
+### Fixed
 
 - Create ticket command supports message processing as optional.
 - redirect based interactive login flow. Now safari and other browsers are supported with interactive login because the UI can give the token to the callback with a get request.
