@@ -1,6 +1,6 @@
 from . import args
 from .client import DuploClient
-from .errors import DuploError, DuploFailedResource
+from .errors import DuploError, DuploFailedResource, DuploStillWaiting
 from .commander import get_parser, extract_args, Command
 import math
 import time
@@ -41,8 +41,7 @@ class DuploResource():
       return command(**pargs)
     return wrapped
   
-  def wait(self, wait_check: callable, timeout: int=None, poll: int=10):
-    timeout = timeout or self.duplo.timeout
+  def wait(self, wait_check: callable, timeout: int=3600, poll: int=10):
     exp = math.ceil(timeout / poll)
     for _ in range(exp):
       try:
@@ -50,15 +49,14 @@ class DuploResource():
         break
       except DuploFailedResource as e:
         raise e
-      except DuploError as e:
-        if e.message:
-          self.duplo.logger.debug(e)
+      except DuploStillWaiting as e:
+        self.duplo.logger.info(e)
         time.sleep(poll)
       except KeyboardInterrupt as e:
         raise e
     else:
-      raise DuploError("Timed out waiting", 404)
-    
+      raise DuploStillWaiting("Timed out waiting")
+
 class DuploResourceV2(DuploResource):
 
   def name_from_body(self, body):
@@ -118,57 +116,85 @@ class DuploResourceV2(DuploResource):
 class DuploTenantResourceV2(DuploResourceV2):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-    self.__tenant = None
-    self.__tenant_id = None
+    self._tenant = None
+    self._tenant_id = None
     self.tenant_svc = duplo.load('tenant')
   @property
   def tenant(self):
-    if not self.__tenant:
-      self.__tenant = self.tenant_svc.find()
-      self.__tenant_id = self.__tenant["TenantId"]
-    return self.__tenant
+    if not self._tenant:
+      self._tenant = self.tenant_svc.find()
+      self._tenant_id = self._tenant["TenantId"]
+    return self._tenant
   
   @property
   def tenant_id(self):
-    if not self.__tenant_id:
-      if self.__tenant:
-        self.__tenant_id = self.__tenant["TenantId"]
+    if not self._tenant_id:
+      if self._tenant:
+        self._tenant_id = self._tenant["TenantId"]
       elif self.duplo.tenantid:
-        self.__tenant_id = self.duplo.tenantid
+        self._tenant_id = self.duplo.tenantid
       else:
-        self.__tenant_id = self.tenant["TenantId"]
-    return self.__tenant_id
+        self._tenant_id = self.tenant["TenantId"]
+    return self._tenant_id
+  
+  def prefixed_name(self, name: str) -> str:
+    tenant_name = self.tenant["AccountName"]
+    prefix = f"duploservices-{tenant_name}-"
+    if not name.startswith(prefix):
+      name = f"{prefix}{name}"
+    return name
   
   def endpoint(self, path: str=None):
     return f"subscriptions/{self.tenant_id}/{path}"
   
 
 class DuploTenantResourceV3(DuploResource):
-  def __init__(self, duplo: DuploClient, slug: str):
+  def __init__(self, duplo: DuploClient, slug: str, prefixed: bool = False):
     super().__init__(duplo)
-    self.__tenant = None
-    self.__tenant_id = None
+    self._prefixed = prefixed
+    self._tenant = None
+    self._tenant_id = None
     self.tenant_svc = duplo.load('tenant')
     self.slug = slug
     self.wait_timeout = 200
     self.wait_poll = 10
   @property
   def tenant(self):
-    if not self.__tenant:
-      self.__tenant = self.tenant_svc.find()
-      self.__tenant_id = self.__tenant["TenantId"]
-    return self.__tenant
+    if not self._tenant:
+      self._tenant = self.tenant_svc.find()
+      self._tenant_id = self._tenant["TenantId"]
+    return self._tenant
   
   @property
   def tenant_id(self):
-    if not self.__tenant_id:
-      if self.__tenant:
-        self.__tenant_id = self.__tenant["TenantId"]
+    if not self._tenant_id:
+      if self._tenant:
+        self._tenant_id = self._tenant["TenantId"]
       elif self.duplo.tenantid:
-        self.__tenant_id = self.duplo.tenantid
+        self._tenant_id = self.duplo.tenantid
       else:
-        self.__tenant_id = self.tenant["TenantId"]
-    return self.__tenant_id
+        self._tenant_id = self.tenant["TenantId"]
+    return self._tenant_id
+  
+  @property
+  def prefix(self):
+    return f"duploservices-{self.tenant['AccountName']}-"
+  
+  def prefixed_name(self, name: str) -> str:
+    if not name.startswith(self.prefix):
+      name = f"{self.prefix}{name}"
+    return name
+  
+  def name_from_body(self, body):
+    return body["metadata"]["name"]
+
+  def endpoint(self, name: str=None, path: str=None):
+    p = f"v3/subscriptions/{self.tenant_id}/{self.slug}"
+    if name:
+      p += f"/{name}"
+    if path:
+      p += f"/{path}"
+    return p
   
   @Command()
   def list(self) -> list:
@@ -204,7 +230,8 @@ class DuploTenantResourceV3(DuploResource):
     Raises:
       DuploError: If the {{kind}} could not be found.
     """
-    response = self.duplo.get(self.endpoint(name))
+    n = self.prefixed_name(name) if self._prefixed else name
+    response = self.duplo.get(self.endpoint(n))
     return response.json()
   
   @Command()
@@ -226,7 +253,8 @@ class DuploTenantResourceV3(DuploResource):
     Raises:
       DuploError: If the {{kind}} resource could not be found or deleted. 
     """
-    self.duplo.delete(self.endpoint(name))
+    n = self.prefixed_name(name) if self._prefixed else name
+    self.duplo.delete(self.endpoint(n))
     return {
       "message": f"{self.slug}/{name} deleted"
     }
@@ -234,7 +262,6 @@ class DuploTenantResourceV3(DuploResource):
   @Command()
   def create(self, 
              body: args.BODY,
-             wait: args.WAIT=False,
              wait_check: callable=None) -> dict:
     """Create a {{kind}} resource.
 
@@ -267,45 +294,70 @@ class DuploTenantResourceV3(DuploResource):
     """
     name = self.name_from_body(body)
     response = self.duplo.post(self.endpoint(), body)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check or (lambda: self.find(name)), self.wait_timeout, self.wait_poll)
     return response.json()
   
   @Command()
   def update(self, 
-             body: args.BODY):
+             name: args.NAME = None,
+             body: args.BODY = None,
+             patches: args.PATCHES = None,):
     """Update a V3 resource by name.
     
     Args:
-      body (str): The resource to update.
+      name: The name of the resource to update.
+      body: The resource to update.
+      patches: The patches to apply to the resource.
+
     Returns: 
-      Success message.
+      message: Success message.
+
     Raises:
       DuploError: If the resource could not be created.
     """
-    name = self.name_from_body(body)
-    response = self.duplo.put(self.endpoint(name), body)
+    if not name and not body:
+      raise DuploError("Name is required when body is not provided")
+    body = body or self.find(name)
+    if patches:
+      body = self.duplo.jsonpatch(body, patches)
+    name = name if name else self.name_from_body(body)
+    n = self.prefixed_name(name) if self._prefixed else name
+    response = self.duplo.put(self.endpoint(n), body)
     return response.json()
   
   @Command()
   def apply(self,
              body: args.BODY,
-             wait: args.WAIT = False):
-    """Apply a service."""
+             wait: args.WAIT = False,
+             patches: args.PATCHES = None,) -> dict:
+    """Apply a {{kind}}
+    
+    Create or Update a {{kind}} resource with Duplocloud cli. 
+
+    Usage: CLI Usage
+      ```sh
+      duploctl {{kind | lower}} apply -f '{{kind | lower}}.yaml'
+      ```
+      Contents of the `{{kind|lower}}.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/{{kind|lower}}.yaml"
+      ```
+    
+    Args:
+      body: The resource to apply.
+      wait: Wait for the resource to be created.
+      patches: The patches to apply to the resource.
+
+    Returns:
+      message: Success message.
+    """
     name = self.name_from_body(body)
     try:
       self.find(name)
-      return self.update(name, body, wait)
+      return self.update(name=name, body=body, patches=patches)
     except DuploError:
       return self.create(body, wait)
   
-  def name_from_body(self, body):
-    return body["metadata"]["name"]
-
-  def endpoint(self, name: str=None, path: str=None):
-    p = f"v3/subscriptions/{self.tenant_id}/{self.slug}"
-    if name:
-      p += f"/{name}"
-    if path:
-      p += f"/{path}"
-    return p
+  
+  

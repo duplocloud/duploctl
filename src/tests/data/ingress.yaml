@@ -1,0 +1,22 @@
+labels: null
+annotations: null
+lbConfig:
+  listeners:
+    https:
+      - 443
+    http:
+      - 80
+  dnsPrefix: "duploctl"
+  isPublic: true
+  certArn:
+rules:
+  - path: "/"
+    pathType: "Prefix"
+    serviceName: "nginx"
+    port: 80
+    host: "duploctl-nginx.duplocloud.net"
+    portName: null
+name: "duploctl"
+ingressClassName: "alb"
+otherSpecs:
+  tls: []

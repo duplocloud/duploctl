@@ -51,7 +51,8 @@ test = [
   "pytest-isort",
   "pytest-cov",
   "pytest-dependency",
-  "pytest-order"
+  "pytest-order",
+  "pytest-mock"
 ]
 aws = [
   "boto3>=1.34.83"
@@ -146,13 +147,19 @@ system = "duplo_resource.system:DuploSystem"
 asg = "duplo_resource.asg:DuploAsg"
 secret = "duplo_resource.secret:DuploSecret"
 configmap = "duplo_resource.configmap:DuploConfigMap"
+ai = "duplo_resource.ai:DuploAI"
 hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
 rds = "duplo_resource.rds:DuploRDS"
 s3 = "duplo_resource.s3:DuploS3"
 storageclass = "duplo_resource.storageclass:DuploStorageClass"
 pvc = "duplo_resource.pvc:PersistentVolumeClaim"
-cloudfront = "duplo_resource.cloudfront:CloudFront"
+cloudfront = "duplo_resource.cloudfront:DuploCloudFront"
+batch_compute = "duplo_resource.batch_compute:DuploBatchCompute"
+batch_queue = "duplo_resource.batch_queue:DuploBatchQueue"
+batch_definition = "duplo_resource.batch_definition:DuploBatchDefinition"
+batch_job = "duplo_resource.batch_job:DuploBatchJob"
+batch_scheduling_policy = "duplo_resource.batch_scheduling_policy:DuploBatchSchedulingPolicy"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"

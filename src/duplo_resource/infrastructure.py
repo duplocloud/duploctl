@@ -1,5 +1,5 @@
 from duplocloud.client import DuploClient
-from duplocloud.errors import DuploError, DuploFailedResource
+from duplocloud.errors import DuploFailedResource, DuploStillWaiting
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -32,8 +32,7 @@ class DuploInfrastructure(DuploResource):
   
   @Command()
   def create(self, 
-             body: args.BODY,
-             wait: args.WAIT=False):
+             body: args.BODY):
     """Create a new infrastructure."""
     status = None
     name = body["Name"]
@@ -48,9 +47,9 @@ class DuploInfrastructure(DuploResource):
         # stop waiting if the status contains failed
         if "Failed" in s:
           raise DuploFailedResource(f"Infrastructure '{name} - {s}'")
-        raise DuploError(None, 404)
+        raise DuploStillWaiting(f"Infrastructure '{name}' is waiting for status Complete")
     self.duplo.post("adminproxy/CreateInfrastructureConfig", body)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check, 1800, 20)
     return {
       "message": f"Infrastructure '{body['Name']}' created"

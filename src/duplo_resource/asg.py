@@ -8,7 +8,9 @@ import duplocloud.args as args
 class DuploAsg(DuploTenantResourceV2):
   """Manage Duplo ASGs
 
-  Duplo ASGs are Auto Scaling Groups that manage the number of hosts within a tenant.
+  Duplo ASGs (Auto Scaling Groups) manage the number of hosts within a tenant, enabling automatic scaling of instances based on demand.
+
+  See more details at: https://docs.duplocloud.com/docs/overview/use-cases/hosts-vms/auto-scaling/auto-scaling-groups
   """
   
   def __init__(self, duplo: DuploClient):
@@ -16,14 +18,17 @@ class DuploAsg(DuploTenantResourceV2):
   
   @Command()
   def list(self) -> list:
-    """List all ASGs
-    
+    """List all ASGs.
+
+    Retrieve the list of all Auto Scaling Groups in the tenant.
+
     Usage: CLI Usage
       ```sh
       duploctl asg list
       ```
+
     Returns:
-      list: A list of all ASGs.
+      list: A list of all ASGs with their configurations.
     """
     tenant_id = self.tenant["TenantId"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetTenantAsgProfiles")
@@ -32,18 +37,23 @@ class DuploAsg(DuploTenantResourceV2):
   @Command()
   def find(self, 
            name: args.NAME):
-    """Find an asg by name.
+    """Find an ASG by name.
+
+    Retrieve details of a specific Auto Scaling Group by its name.
 
     Usage: CLI Usage
       ```sh
       duploctl asg find <name>
       ```
+
     Args:
-      name (str): The name of the asg to find.
-    Returns: 
-      The service object.
+      name: The name of the ASG to find.
+
+    Returns:
+      dict: The ASG configuration including capacity, instance types, and other settings.
+
     Raises:
-      DuploError: If the asg could not be found.
+      DuploError: If the ASG with the specified name could not be found.
     """
     try:
       return [s for s in self.list() if s["FriendlyName"] == name][0]
@@ -52,9 +62,11 @@ class DuploAsg(DuploTenantResourceV2):
     
   @Command()
   def create(self,
-             body: args.BODY,
-             wait: args.WAIT=False) -> dict:
-    """Create an ASG
+             body: args.BODY) -> dict:
+    """Create an ASG.
+
+    Creates a new Auto Scaling Group with the specified configuration. The ASG will manage
+    EC2 instances based on the defined capacity settings and scaling policies.
     
     Usage: CLI Usage
       ```sh
@@ -64,17 +76,24 @@ class DuploAsg(DuploTenantResourceV2):
       ```yaml
       --8<-- "src/tests/data/asg.yaml"
       ```
-    Example: One liner example
+
+    Example: Create an ASG using a one-liner.
       ```sh
       echo \"\"\"
       --8<-- "src/tests/data/asg.yaml"
       \"\"\" | duploctl asg create -f -
       ```
+
     Args:
-      body: The body of the request.
-      wait: Whether to wait for the creation to complete.
+      body: The complete ASG configuration including instance type, capacity settings,
+            and other parameters.
+      wait: Whether to wait for the ASG to be fully created and ready.
+
     Returns:
-      message: A message that the asg was successfully created.
+      message: Success message and the created ASG configuration.
+
+    Raises:
+      DuploError: If the ASG could not be created due to invalid configuration or API errors.
     """
     tenant_id = self.tenant["TenantId"]
     name = self.name_from_body(body)
@@ -83,7 +102,7 @@ class DuploAsg(DuploTenantResourceV2):
     res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     def wait_check():
       return self.find(name)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check)
     return {
       "message": f"Successfully created asg '{body['FriendlyName']}'",
@@ -95,16 +114,22 @@ class DuploAsg(DuploTenantResourceV2):
              body: args.BODY) -> dict:
     """Update an ASG.
 
+    Update an existing Auto Scaling Group's configuration. This can include changes to
+    capacity settings, instance types, scaling policies, and other parameters.
+
     Usage: CLI Usage
       ```sh
       duploctl asg update -f <file>
       ```
     
     Args:
-      body: The body of the request.
+      body: The updated ASG configuration. Must include the FriendlyName of the existing ASG.
 
     Returns:
-      message: A message that the asg was successfully updated
+      message: Success message and the updated ASG configuration.
+
+    Raises:
+      DuploError: If the ASG could not be updated due to invalid configuration or API errors.
     """
     tenant_id = self.tenant["TenantId"]
     res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
@@ -112,22 +137,28 @@ class DuploAsg(DuploTenantResourceV2):
       "message": f"Successfully updated asg '{body['FriendlyName']}'",
       "data": res.json()
     }
-  
+
   @Command()
   def delete(self,
              name: args.NAME) -> dict:
-    """Delete an ASG
+    """Delete an ASG.
+
+    Delete an Auto Scaling Group by its name. This will terminate all instances
+    managed by the ASG and remove the ASG configuration.
 
     Usage: CLI Usage
       ```sh
       duploctl asg delete <name>
       ```
-    
+
     Args:
-      name: The name of the asg to delete.
+      name: The name of the ASG to delete.
 
     Returns:
-      message: A message that the asg was successfully deleted.
+      message: Success message confirming the ASG deletion.
+
+    Raises:
+      DuploError: If the ASG could not be deleted or does not exist.
     """
     tenant_id = self.tenant["TenantId"]
     body = { 
@@ -146,20 +177,26 @@ class DuploAsg(DuploTenantResourceV2):
             min: args.MIN=None,
             max: args.MAX=None) -> dict:
     """Scale an ASG.
-    
-    Note: "-m" represents Minimum instances and "-M" represents Maximum instances.
+
+    Modify the capacity limits of an Auto Scaling Group. You can set new minimum and/or
+    maximum instance counts. The ASG will automatically adjust the number of running
+    instances to stay within these new bounds.
 
     Usage: CLI Usage
       ```sh
       duploctl asg scale -n <name> [-m <min>] [-M <max>]
+      ```
     
     Args:
-      name: The name of the asg to scale.
-      min: The minimum number of instances.
-      max: The maximum number of instances.
+      name: The  name of the ASG to scale.
+      min: The new minimum number of instances the ASG should maintain. Use -m flag to set.
+      max: The new maximum number of instances the ASG can scale to. Use -M flag to set.
 
     Returns:
-      message: A messaget that the asg was successfully scaled.
+      message: Success message with the new scaling configuration.
+
+    Raises:
+      DuploError: If neither min nor max is provided, or if the scaling operation fails.
     """
     if not min and not max:
       raise DuploError("Must provide either min or max")

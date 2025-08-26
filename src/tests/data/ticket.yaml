@@ -1,0 +1,4 @@
+title: "Pipeline failed"
+message: "The pipeline failed due to an error in the deployment stage. Please check the logs for more details."
+agent_name: "pytest-agent"
+instance_id: "pytest-instance"

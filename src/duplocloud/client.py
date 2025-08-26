@@ -57,7 +57,8 @@ class DuploClient():
                isadmin: args.ISADMIN=False,
                query: args.QUERY=None,
                output: args.OUTPUT="json",
-               loglevel: args.LOGLEVEL="WARN"):
+               loglevel: args.LOGLEVEL="WARN",
+               wait: args.WAIT=False):
     """DuploClient Constructor
     
     Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each ofthe arguments are annotated types that are used by argparse to create the command line arguments.
@@ -115,6 +116,7 @@ class DuploClient():
     self.__ttl_cache = TTLCache(maxsize=128, ttl=10)
     self.loglevel = loglevel
     self.logger = self.logger_for()
+    self.wait = wait
 
   @staticmethod
   def from_env():
@@ -259,6 +261,20 @@ class DuploClient():
       value: The tenant to set.
     """
     self.__tenant = value
+
+  @property
+  def config(self) -> dict:
+    # convert the return value in __str__ to be a dict
+    return {
+      "Host": self.host,
+      "Tenant": self.tenant or self.tenantid,
+      "HomeDir": self.home_dir,
+      "ConfigFile": self.config_file,
+      "CacheDir": self.cache_dir,
+      "Version": VERSION,
+      "Path": sys.argv[0],
+      "AvailableResources": available_resources()
+    }
   
   def __str__(self) -> str:
      return f"""
@@ -283,18 +299,20 @@ Available Resources:
     Returns:
       The result of the command.
     """
+    d = None
     if not resource:
-      raise DuploError(str(self), 400)
-    r = self.load(resource)
-    try:
-      d = r(*args)
-    except TypeError:
-      if (r.__doc__):
-        raise DuploError(r.__doc__, 400)
-      else: 
-        traceback.print_exc()
-        raise DuploError(f"No docstring found, error calling command {resource} : Traceback printed", 400)
-
+      d = self.config
+    else:
+      r = self.load(resource)
+      try:
+        d = r(*args)
+      except TypeError as te:
+        self.logger.debug(te)
+        if (r.__doc__):
+          raise DuploError(r.__doc__, 400)
+        else: 
+          traceback.print_exc()
+          raise DuploError(f"No docstring found, error calling command {resource} : Traceback printed", 400)
     if d is None:
       return None
     d = self.filter(d)
@@ -573,7 +591,7 @@ Available Resources:
     path = "app/user/verify-token"
     with TokenServer(self.host) as server:
       try:
-        page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}"
+        page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}&redirect=true"
         server.open_callback(page, self.browser)
         return server.serve_token()
       except KeyboardInterrupt:

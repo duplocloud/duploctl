@@ -117,14 +117,21 @@ class YamlAction(argparse.Action):
 class JsonPatchAction(argparse._AppendAction):
   """Json Patch Action
 
-  A custom argparse action that translates [JSON Patch](https://jsonpatch.com/) operations from the command line arguments. 
+  A custom argparse action that translates [JSON Patch](https://jsonpatch.com/) operations from the command line arguments. This allows users to specify operations like `add`, `remove`, `copy`, `replace`, `test`, and `move` directly in the command line.
+
+  To add a key/value pair, use `--add <key> <value>`.
+  To remove a key, use `--remove <key>`.
+  To copy a key from one path to another, use `--copy <from> <to>`.
+  To replace a key's value, use `--replace <key> <value>`.
+  To test a key's value, use `--test <key> <value>`.
+  To move a key from one path to another, use `--move <from> <to>`.
   """
   def __init__(self, option_strings, dest, nargs='+', metavar=('key', 'value'), **kwargs):
     opts = ["--add", "--remove", "--copy", "--replace", "--test", "--move"]
     super().__init__(opts, dest, nargs=nargs, metavar=metavar, **kwargs)
   def __call__(self, parser, namespace, value, option_string=None):
     def validate_key(key):
-      key = key.replace(".", "/").replace("[", "/").replace("]", "")
+      key = key.replace("[", "/").replace("]", "")
       key = "/" + key if key[0] != "/" else key
       return key
     def validate_value(v):
@@ -147,6 +154,15 @@ class JsonPatchAction(argparse._AppendAction):
     super().__call__(parser, namespace, patch, option_string)
 
 class DataMapAction(argparse.Action):
+  """Data Map Action
+  
+  A custom argparse action which allows for making key/value pairs from either literal values or files.
+  This is fashioned after the kubectl params for secrets and configmaps, where you can specify a file or a literal value.
+
+  For files you specify `--from-file <file name>` which will use the file name as the key and the contents of the file as the value. If you want to change the name of the key, then simply specify `--from-file <key>=<file name>`. If you want to use stdin, then use `--from-file -` which will use "stdin" as the key. You can even do `--from-file foo.txt=-` to use stdin and name the key.
+
+  For literal values you specify `--from-literal <key>=<value>`. This will create a key/value pair in the data map. In this case the key and value must always be specified. 
+  """
   def __init__(self, option_strings, dest, nargs='+', **kwargs):
     super(DataMapAction, self).__init__(option_strings, dest, nargs=nargs, **kwargs)
     self.__filetype = argparse.FileType()

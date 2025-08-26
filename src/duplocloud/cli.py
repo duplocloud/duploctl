@@ -11,6 +11,9 @@ def main():
   except DuploError as e:
     print(e)
     exit(e.code)
+  except Exception as e:
+    print(f"An unexpected error occurred: {e}")
+    exit(1)
 
 if __name__ == "__main__":
   main()

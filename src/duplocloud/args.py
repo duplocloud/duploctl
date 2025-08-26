@@ -82,7 +82,7 @@ DATAMAP = Arg("fromfile","--from-file", "--from-literal",
             action=DataMapAction)
 
 DRYRUN = Arg("dryrun", "--dry-run",
-            help='Do not submit any changes to the server',
+            help='Do not submit any changes to the server, just print the data to the console.',
             type=bool,
             action='store_true')
 
@@ -152,6 +152,10 @@ NAME = Arg("name",
             nargs='?',
             help='The resource name')
 
+DISTRIBUTION_ID = Arg("distribution_id", 
+            nargs='?',
+            help='The distribution id')
+
 IMAGE = Arg("image", 
             nargs='?',
             help='The image to use')
@@ -166,7 +170,8 @@ HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
             help='The health check URL')
 
 TO_REVISION = Arg("revision", "--to-revision",
-            help='The revision to rollback to')
+            help='The revision to rollback to',
+            type=int)
 
 CONTAINER_PORT = Arg("container-port", "--container-port",
             help='Container port')
@@ -176,6 +181,12 @@ CONTAINER = Arg("container", "--container", "-C",
 
 CONTAINER_IMAGE = Arg("container-image", "--container-image",
             help='a key and value to set as a side-car container name and image',
+            action='append',
+            nargs=2,
+            metavar=('key', 'value'))
+
+INIT_CONTAINER_IMAGE = Arg("init-container-image", "--init-container-image",
+            help='a key and value to set as an init container name and image',
             action='append',
             nargs=2,
             metavar=('key', 'value'))
@@ -256,6 +267,10 @@ WAIT = Arg("wait", "-w",
            type=bool,
            action='store_true')
 
+WAIT_TIMEOUT = Arg("wait-timeout", "--wait-timeout",
+               help = 'Wait timeout for the operation to complete',
+               type = int)
+
 ALL = Arg("all", "--all",
            help='Boolean flag to select all. Defaults to False.',
            type=bool,
@@ -292,6 +307,32 @@ TARGETS = Arg("targets", "--targets",
 TIME = Arg("time", "--time",
            help='The time to use')
 
+TITLE = Arg("title", "--title",
+            help= "The Title for ticket",
+            required=True)
+
+AGENTNAME = Arg("agent_name", "--agent_name", "--agent",
+                help= "AI Agent to be used to process the ticket",
+                required=True)
+
+INSTANCEID = Arg("instance_id","--instance_id", "--instance",
+                help= "AI Agent Instance Id",
+                required=True)
+
+APIVERSION = Arg("api_version", "--api-version",
+                help="API Version",
+                required=False,
+                default="v1")
+
+TICKETID = Arg("ticket_id", "--ticket_id", "--ticket",
+              help="The ID of the AI HelpDesk ticket",
+              required=True)
+
+MESSAGE = Arg("message", "--content", "--msg", "--message",
+              required=False,
+              default=None,
+              help="The message you want to send to the AI agent")
+
 DAYS = Arg("days", 
             help='The days to use',
             type=int)
@@ -306,11 +347,14 @@ SSM_PARAM_TYPE = Arg("parametertype", "-ptype",
             choices=['String', 'StringList', 'SecureString'],
             default='String')
 
-PARAM_CONTENT = Arg('parametervalue', '-pval',
-            help='Arbitrary text to add to the parameter')
+CONTENT = Arg('parametervalue', '-pval', '-val', '--value',
+            help='Arbitrary text to add as the content of some secret or configuration paramater.')
 
 SHOW_SENSITIVE = Arg('showsensitive', '-show',
             help='Return sensitive values to output. WARNING - ENABLING THIS SETTING MAY DISPLAY SENSITIVE DATA TO STDOUT/LOG FILES',
             type=bool,
             action='store_true')
-            
+
+BATCH_QUEUE = Arg("queue", "-BQ", "-bq", "--batch-queue",
+             help='The name of a Batch Queue',
+             env='DUPLO_BATCH_QUEUE')

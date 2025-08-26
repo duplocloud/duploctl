@@ -1,0 +1,5 @@
+JobQueueName: duploctl
+Priority: '1'
+ComputeEnvironmentOrder:
+- ComputeEnvironment: duploservices-duploctl-duploctl
+  Order: 1

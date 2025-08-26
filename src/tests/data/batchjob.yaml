@@ -1,0 +1,12 @@
+shareIdentifier: SomeIdentifier
+schedulingPriorityOverride: 3
+JobName: duploctl-big
+JobDefinition: duploctl
+JobQueue: mublet
+ContainerOverrides:
+  Command:
+  - echo
+  - hiii
+  Environment:
+  - name: KEY1
+    value: '123'

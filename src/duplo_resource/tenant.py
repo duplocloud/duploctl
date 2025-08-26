@@ -125,8 +125,7 @@ class DuploTenant(DuploResource):
   
   @Command()
   def create(self, 
-             body: args.BODY,
-             wait: args.WAIT=False) -> dict:
+             body: args.BODY) -> dict:
     """Create Tenant.
     
     Create a new tenant with a new body for a tenant. 
@@ -161,7 +160,7 @@ class DuploTenant(DuploResource):
     self.duplo.post("admin/AddTenant", body)
     def wait_check():
       self.find(name)
-    if wait:
+    if self.duplo.wait:
       self.wait(wait_check)
     return {
       "message": f"Tenant '{name}' created"
@@ -454,7 +453,6 @@ class DuploTenant(DuploResource):
   @Command()
   def start(self, 
             name: args.NAME = None, 
-            wait: args.WAIT=False, 
             exclude: args.EXCLUDE=None) -> dict:
     """Start Tenant All Resources
 
@@ -502,15 +500,14 @@ class DuploTenant(DuploResource):
       for item in service.list():
         service_name = service.name_from_body(item)
         if service_name not in service_types[service_type]:
-          service.start(service_name, wait)
+          service.start(service_name, self.duplo.wait)
     return {
       "message": "Successfully started all resources for tenant"
     }
 
   @Command()
   def stop(self, 
-           name: args.NAME = None, 
-           wait: args.WAIT=False, 
+           name: args.NAME = None,
            exclude: args.EXCLUDE=None) -> dict:
     """Stop Tenant All Resources
 
@@ -558,7 +555,7 @@ class DuploTenant(DuploResource):
       for item in service.list():
         service_name = service.name_from_body(item)
         if service_name not in service_types[service_type]:
-          service.stop(service_name, wait)
+          service.stop(service_name, self.duplo.wait)
     return {
       "message": "Successfully stopped all resources for tenant"
     }
