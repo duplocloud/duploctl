@@ -352,3 +352,7 @@ SHOW_SENSITIVE = Arg('showsensitive', '-show',
 BATCH_QUEUE = Arg("queue", "-BQ", "-bq", "--batch-queue",
              help='The name of a Batch Queue',
              env='DUPLO_BATCH_QUEUE')
+
+ALLOCATION_TAG = Arg("allocationtag", "-at", "--allocation-tag",
+             required=True,
+             help='Allocation tag used to specify custom allocation rules')
