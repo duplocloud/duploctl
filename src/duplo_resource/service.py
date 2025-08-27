@@ -786,7 +786,7 @@ class DuploService(DuploTenantResourceV2):
         running_old = sum(1 for pod in pods if get_pod_image(pod) == old_img)
         min_replicas = svc.get("HPASpecs", {}).get("minReplicas", 1)
         if running_old > 0 and running < min_replicas:
-          raise DuploStillWaiting(f"Service {name} waiting for HPA-manged minimum pods: {running}/{min_replicas}.  Waiting to clean up {running_old} pods that are still using the old image.")
+          raise DuploStillWaiting(f"Service {name} waiting for minimum pods: {running}/{min_replicas}.  Waiting to clean up {running_old} pods that are still using the old image.")
 
     # send to the base class to do the waiting
     super().wait(wait_check, 3600, 11)
