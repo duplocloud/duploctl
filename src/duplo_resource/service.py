@@ -707,11 +707,14 @@ class DuploService(DuploTenantResourceV2):
       The true count is {'known' if true_count else 'unknown'}.
       A rollover is {'required' if rollover else 'not required'}.
       """)
+    def normalize_image(image):
+      """Normalize image name by removing Docker registry prefixes."""
+      return image.removeprefix("docker.io/library/").removeprefix("docker.io/").removeprefix("library/")
     def get_pod_image(pod):
       """Get the image of a pod."""
       raw_image=pod["Containers"][0]["Image"]
       self.duplo.logger.debug(f"Retrieved raw image {raw_image} for {pod['InstanceId']}")
-      normalized_image = raw_image.removeprefix("docker.io/library/").removeprefix("docker.io/").removeprefix("library/")
+      normalized_image = normalize_image(raw_image)
       self.duplo.logger.debug(f"Returning normalized image {normalized_image} for {pod['InstanceId']}\n")
       return normalized_image
     def check_pod_faults(pod, faults):
@@ -734,9 +737,9 @@ class DuploService(DuploTenantResourceV2):
       """Check if a pod is running and return 1 if it is, 0 otherwise."""
       # azure doesn't have controlled by, so we skip this check if it's not there
       cb = pod.get("ControlledBy", None)
-      self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}")
       # skip if the pod is not controlled by the new replicaset
       if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
+        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}")
         self.duplo.logger.debug(f"Ignoring status for {pod['InstanceId']} because it's controlled by the old Replicaset, {old.get('Replicaset', None)}")
         return 0
 
