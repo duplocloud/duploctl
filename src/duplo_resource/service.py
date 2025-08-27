@@ -739,10 +739,8 @@ class DuploService(DuploTenantResourceV2):
       cb = pod.get("ControlledBy", None)
       # skip if the pod is not controlled by the new replicaset
       if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
-        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}")
-        self.duplo.logger.debug(f"Ignoring status for {pod['InstanceId']} because it's controlled by the old Replicaset, {old.get('Replicaset', None)}")
+        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by the old Replicaset: {old.get('Replicaset', None)}")
         return 0
-
       # ignore this pod if the image is the old image
       if image_changed and get_pod_image(pod) == old_img:
         self.duplo.logger.debug(f"Ignoring status of {pod['InstanceId']} because it's on the old image, {old_img}")
