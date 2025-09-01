@@ -61,7 +61,7 @@ class DuploClient():
                wait: args.WAIT=False):
     """DuploClient Constructor
     
-    Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each ofthe arguments are annotated types that are used by argparse to create the command line arguments.
+    Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each of the arguments are annotated types that are used by argparse to create the command line arguments.
 
     Args:
       host: The host of the Duplo instance.
@@ -360,11 +360,12 @@ Available Resources:
         timeout = self.timeout
       )
     except requests.exceptions.Timeout as e:
-      raise DuploError("Timeout connecting to Duplo", 500) from e
+      raise DuploError("Request timed out while connecting to Duplo", 500) from e
     except requests.exceptions.ConnectionError as e:
-      raise DuploError("A conntection error occured with Duplo", 500) from e
+      print(e)
+      raise DuploError("Failed to establish connection with Duplo", 500) from e
     except requests.exceptions.RequestException as e:
-      raise DuploError("Error connecting to Duplo with a request exception", 500) from e
+      raise DuploError("Failed to send request to Duplo", 500) from e
     return self.__validate_response(response)
   
   def post(self, path: str, data: dict={}):
@@ -449,9 +450,9 @@ Available Resources:
     try:
       return jmespath.search(self.query, data)
     except jmespath.exceptions.ParseError as e:
-      raise DuploError("Invalid jmespath query", 500) from e
+      raise DuploError("Invalid JMESPath query - parsing failed", 500) from e
     except jmespath.exceptions.JMESPathTypeError as e:
-      raise DuploError("Invalid jmespath query", 500) from e
+      raise DuploError("Invalid JMESPath query - data type mismatch", 500) from e
     
   def load(self, kind: str) -> T:
     """Load Resource
