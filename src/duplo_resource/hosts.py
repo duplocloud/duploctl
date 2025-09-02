@@ -44,10 +44,15 @@ class DuploHosts(DuploTenantResourceV2):
       --8<-- "src/tests/data/hosts.yaml"
       \"\"\" | duploctl hosts create -f -
       ```
-    
+
+    Example: Create and Wait
+      Supports global `--wait` flag to hold the terminal till the host is fully created and running.
+      ```sh
+      duploctl hosts create -f hosts.yaml --wait
+      ```
+
     Args:
       body: The host configuration including instance type, AMI, and other parameters.
-      wait: Whether to wait for the host to be fully created and running.
 
     Returns: 
       message: Success message and the instance ID of the created host.
@@ -86,10 +91,15 @@ class DuploHosts(DuploTenantResourceV2):
       ```sh
       duploctl hosts delete <name>
       ```
-    
+
+    Example: Delete and Wait
+      Supports global `--wait` flag to hold the terminal till the host is fully deleted.
+      ```sh
+      duploctl hosts delete myhost --wait
+      ```
+
     Args:
       name: The name of the host to delete.
-      wait: Whether to wait for the host to be fully terminated.
 
     Returns:
       message: Success message confirming the host deletion.
@@ -131,10 +141,15 @@ class DuploHosts(DuploTenantResourceV2):
       ```sh
       duploctl hosts stop <name>
       ```
-    
+
+    Example: Stop and Wait
+      Supports global `--wait` flag to hold the terminal till the host is fully stopped.
+      ```sh
+      duploctl hosts stop myhost --wait
+      ```
+
     Args:
       name: The name of the host to stop.
-      wait: Whether to wait for the host to reach stopped state.
 
     Returns:
       message: Success message confirming the host has been stopped.
@@ -173,10 +188,15 @@ class DuploHosts(DuploTenantResourceV2):
       ```sh
       duploctl hosts start <name>
       ```
-    
+
+    Example: Start and Wait
+      Supports global `--wait` flag to hold the terminal till the host is fully started.
+      ```sh
+      duploctl hosts start myhost --wait
+      ```
+
     Args:
       name: The name of the host to start.
-      wait: Whether to wait for the host to reach running state.
     
     Returns:
       message: Success message confirming the host has been started.
