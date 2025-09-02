@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+### Fixed 
 
+- Incosistent documentation in the services and jobs. Included examples and info about the --wait arg. 
 - Removed agentHostTenantId from ticket creation payload.
 - Update ECS find_def to use the TaskDefFamily from the service endpoint, fixing update_image when the service name and task definition family are different.
 - Added debug logging to wait functions

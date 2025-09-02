@@ -124,7 +124,7 @@ class DuploJit(DuploResource):
       ```
 
     Args:
-      nocache (bool): Do not use cached credentials. Only for other methods to use.
+      nocache: Do not use cached credentials. Only for other methods to use.
 
     Returns:
       sts: The AWS STS session credentials.
@@ -189,7 +189,7 @@ class DuploJit(DuploResource):
       name: The name of the profile to add.
 
     Returns:
-      msg: The message that the profile was added.
+      message: The message that the profile was added.
     """
     config = os.environ.get("AWS_CONFIG_FILE", f"{Path.home()}/.aws/config")
     cp = configparser.ConfigParser()
@@ -222,7 +222,7 @@ class DuploJit(DuploResource):
     ```
 
     Returns:
-      msg: The message that the browser is opening.
+      message: The message that the browser is opening.
     """
     b = self.duplo.browser
     wb = webbrowser if not b else webbrowser.get(b)

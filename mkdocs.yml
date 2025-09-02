@@ -24,7 +24,7 @@ plugins:
           show_signature: false
           inherited_members: true
           filters:
-          - "^(?!__).*"
+          - "^(?!_).*"
 
 markdown_extensions:
 - pymdownx.highlight:

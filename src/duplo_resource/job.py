@@ -42,9 +42,10 @@ class DuploJob(DuploTenantResourceV3):
       \"\"\" | duploctl job create -f -
       ```
 
-    Example: Create a Job using a file.
+    Example: Create Job from file and wait with log output
+      This waits till all pods are in a completed status. While waiting the logs from the job will be streamed to stderr. 
       ```sh
-      duploctl job create -f job.yaml
+      duploctl job create -f job.yaml --wait --loglevel INFO
       ```
 
     Args:
