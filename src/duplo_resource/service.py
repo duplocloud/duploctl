@@ -18,15 +18,15 @@ _STATUS_CODES = {
 @Resource("service")
 class DuploService(DuploTenantResourceV2):
   """Duplocloud Service Resource
-  
+
   This resource is used to manage services in Duplocloud. Using the `duploctl` command line tool, you can manage services with actions:
-  
-  Usage: Basic CLI Use  
+
+  Usage: Basic CLI Use
     ```sh
     duploctl service <action>
     ```
   """
-  
+
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
     self.paths = {
@@ -97,10 +97,10 @@ class DuploService(DuploTenantResourceV2):
       return body.get("DockerImage", body.get("Image", None))
   
   @Command()
-  def find(self, 
+  def find(self,
            name: args.NAME) -> dict:
     """Find a service by name.
-    
+
     First we try for the endpoint that gives one by name. Otherwise we default to finding it in the list.
 
     Usage:
@@ -120,22 +120,22 @@ class DuploService(DuploTenantResourceV2):
     except DuploError:
       self.duplo.logger.debug(f"Service {name} not found using new endpoint, falling back to list.")
       return super().find(name)
-    
+
   @Command()
-  def update(self, 
+  def update(self,
              name: args.NAME,
              body: args.BODY = None,
              patches: args.PATCHES = None) -> dict:
     """Update a service.
-    
+
     Update the state of a service.
 
     Usage: Basic CLI Use
       Update the replicas to 3 for a service.
       ```sh
-      duploctl service update <service-name> --replace Replicas 3 
+      duploctl service update <service-name> --replace Replicas 3
       ```
-    
+
     Args:
       name: The name of the service to update.
       body: The body of the service to update.
@@ -143,7 +143,7 @@ class DuploService(DuploTenantResourceV2):
         The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
         Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
       wait: Whether to wait for the service to update.
-    
+
     """
     if (name is None and body is None):
       raise DuploError("No arguments provided to update service", 400)
@@ -169,14 +169,14 @@ class DuploService(DuploTenantResourceV2):
     return {
       "message": f"Successfully updated service '{body['Name']}'"
     }
-  
+
   @Command()
   def create(self,
              body: args.BODY) -> dict:
     """Create a service.
-    
+
     Create a service in Duplocloud.
-    
+
     Usage: Basic CLI Use
       ```sh
       duploctl service create --file service.yaml
@@ -210,7 +210,7 @@ class DuploService(DuploTenantResourceV2):
   def delete(self,
              name: args.NAME) -> dict:
     """Delete a service.
-    
+
     Delete a service in Duplocloud.
 
     Usage: Basic CLI Use
@@ -234,7 +234,7 @@ class DuploService(DuploTenantResourceV2):
     }
 
   @Command()
-  def update_replicas(self, 
+  def update_replicas(self,
                       name: args.NAME,
                       replica: args.REPLICAS) -> dict:
     """Scale Service
@@ -268,8 +268,8 @@ class DuploService(DuploTenantResourceV2):
     return {"message": f"Successfully updated replicas for service '{name}'"} 
   
   @Command()
-  def update_image(self, 
-                   name: args.NAME, 
+  def update_image(self,
+                   name: args.NAME,
                    image: args.IMAGE = None,
                    container_image: args.CONTAINER_IMAGE = None,
                    init_container_image: args.INIT_CONTAINER_IMAGE = None) -> dict:
@@ -353,9 +353,9 @@ class DuploService(DuploTenantResourceV2):
       response_message += f" Could not find containers: {', '.join(not_found_containers)}."
 
     return {"message": response_message}
- 
+
   @Command()
-  def update_env(self, 
+  def update_env(self,
                  name: args.NAME,
                  setvar: args.SETVAR,
                  strategy: args.STRATEGY,
@@ -389,7 +389,7 @@ class DuploService(DuploTenantResourceV2):
     # Returns an array of key and value mappings with provided keys
     def new_env_vars(setvar, key_name="Name", value_name="Value"):
       return [{key_name: i[0], value_name: i[1]} for i in setvar]
-  
+
     def detect_case_format(env_list):
       # Check if the environment variables are using upper, lower, or mixed case for Name and Value
       if all('Name' in env and 'Value' in env for env in env_list):
@@ -398,7 +398,7 @@ class DuploService(DuploTenantResourceV2):
           return "lower"
       # No consistent standard
       return "mixed"
-    
+
     service = self.find(name)
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
     currentEnv = currentDockerconfig.get("Env", [])
@@ -437,7 +437,7 @@ class DuploService(DuploTenantResourceV2):
         try:
           currentDockerconfig['Env'] = [d for d in currentDockerconfig['Env'] if d['Name'] != key]
         except KeyError:
-          currentDockerconfig['Env'] = [d for d in currentDockerconfig['Env'] if d['name'] != key] 
+          currentDockerconfig['Env'] = [d for d in currentDockerconfig['Env'] if d['name'] != key]
     payload = {
       "Name": name,
       "OtherDockerConfig": dumps(currentDockerconfig),
@@ -448,7 +448,7 @@ class DuploService(DuploTenantResourceV2):
       service["Replicaset"] = self.current_replicaset(name)
       self._wait(service, payload)
     return {"message": f"Successfully updated environment variables for service '{name}'"}
-    
+
   @Command()
   def update_pod_label(self,
                  name: args.NAME,
@@ -502,7 +502,7 @@ class DuploService(DuploTenantResourceV2):
     if deletevar is not None:
       for key in deletevar:
         del currentDockerconfig['PodLabels'][key]
-      
+
     payload = {
       "Name": name,
       "OtherDockerConfig": dumps(currentDockerconfig),
@@ -513,9 +513,9 @@ class DuploService(DuploTenantResourceV2):
       service["Replicaset"] = self.current_replicaset(name)
       self._wait(service, payload)
     return {"message": f"Successfully updated pod labels for service '{name}'"}
-  
+
   @Command()
-  def bulk_update_image(self, 
+  def bulk_update_image(self,
                         serviceimage: args.SERVICEIMAGE) -> dict:
     """Bulk Update Images
 
@@ -527,7 +527,7 @@ class DuploService(DuploTenantResourceV2):
       ```
 
     Args:
-      serviceimage: Takes n sets of two arguments, service name and image name. 
+      serviceimage: Takes n sets of two arguments, service name and image name.
                     e.g., -S service1 image1:tag -S service2 image2:tag
 
     Returns:
@@ -558,7 +558,7 @@ class DuploService(DuploTenantResourceV2):
     return {"message": "Successfully updated images for services"}
 
   @Command()
-  def restart(self, 
+  def restart(self,
               name: args.NAME) -> dict:
     """Restart a service.
 
@@ -589,7 +589,7 @@ class DuploService(DuploTenantResourceV2):
       service = self.find(name)
       self._wait(service, service)
     return {"message": f"Successfully restarted service '{name}'"}
-  
+
   @Command()
   def stop(self,
            name: args.NAME = None,
@@ -617,9 +617,9 @@ class DuploService(DuploTenantResourceV2):
       all: Boolean flag to stop all services. Defaults to False.
       targets: List of service names to stop. Cannot be used with name or all.
 
-    Returns: 
+    Returns:
       A summary containing services that were stopped successfully and those that encountered errors.
-      
+
     Raises:
       DuploError: If the service could not be stopped.
     """
@@ -652,7 +652,7 @@ class DuploService(DuploTenantResourceV2):
       all: Boolean flag to start all services. Defaults to False.
       targets: List of service names to start. Cannot be used with name or all.
 
-    Returns: 
+    Returns:
       A summary containing services that were started successfully and those that encountered errors.
 
     Raises:
@@ -661,7 +661,7 @@ class DuploService(DuploTenantResourceV2):
     return self._perform_action("start", name, all, targets, self.duplo.wait)
 
   @Command()
-  def pods(self, 
+  def pods(self,
            name: args.NAME) -> dict:
     """Get Pods
 
@@ -690,13 +690,15 @@ class DuploService(DuploTenantResourceV2):
         return same_name and cb.get("QualifiedType", None) == "kubernetes:apps/v1/ReplicaSet" 
     pods = self._pod_svc.list()
     return [ pod for pod in pods if controlled_by_service(pod) ]
-  
+
   @Command()
   def logs(self,
            name: args.NAME) -> dict:
     """Service Logs
     
     Get the logs for a service. This will be an aggregate of all logs from the pods. The pod names will be prefixed on each line. 
+
+    Get the logs for a service.
 
     Usage: Basic CLI Use
       ```sh
@@ -854,13 +856,13 @@ class DuploService(DuploTenantResourceV2):
     if "HPASpecs" in updates:
       hpa_enabled = updates["HPASpecs"] is not None # it's been disabled if it's None
 
-    # is the replica count changing and are we using the new api? 
+    # is the replica count changing and are we using the new api?
     replica_key = "ReplicasActive" if "ReplicasActive" in old else "Replicas" # only used in wait_check
     new_replicas = updates.get("Replicas", None)
     replicas_changed = (old["Replicas"] != new_replicas) if new_replicas else False
     true_count = (replica_key == "ReplicasActive" or not hpa_enabled) # check if we can know the true count of replicas
 
-    # Is a rollover needed? 
+    # Is a rollover needed?
     new_conf = updates.get("OtherDockerConfig", None)
     conf_changed = (old["Template"].get("OtherDockerConfig", None) != new_conf) if new_conf else False
     rollover = False
@@ -873,12 +875,19 @@ class DuploService(DuploTenantResourceV2):
       The true count is {'known' if true_count else 'unknown'}.
       A rollover is {'required' if rollover else 'not required'}.
       """)
+    def normalize_image(image):
+      """Normalize image name by removing Docker registry prefixes."""
+      return image.removeprefix("docker.io/library/").removeprefix("docker.io/").removeprefix("library/")
     def get_pod_image(pod):
       """Get the image of a pod."""
-      return pod["Containers"][0]["Image"].removeprefix("docker.io/library/")
+      raw_image=pod["Containers"][0]["Image"]
+      self.duplo.logger.debug(f"Retrieved raw image {raw_image} for {pod['InstanceId']}")
+      normalized_image = normalize_image(raw_image)
+      self.duplo.logger.debug(f"Returning normalized image {normalized_image} for {pod['InstanceId']}\n")
+      return normalized_image
     def check_pod_faults(pod, faults):
       """Check if the pod has any faults.
-      
+
       This is for aws and gke because the faults are at the pod level.
       """
       for f in faults:
@@ -886,7 +895,7 @@ class DuploService(DuploTenantResourceV2):
           raise DuploFailedResource(f"Pod {pod['InstanceId']} raised a fault.\n{f['Description']}")
     def check_service_faults(faults):
       """Check if the service has any faults.
-      
+
       This is only for azure because the faults are at the service level only
       """
       for f in faults:
@@ -895,13 +904,14 @@ class DuploService(DuploTenantResourceV2):
     def running_pod(pod, faults):
       """Check if a pod is running and return 1 if it is, 0 otherwise."""
       # azure doesn't have controlled by, so we skip this check if it's not there
-      cb = pod.get("ControlledBy", None) 
+      cb = pod.get("ControlledBy", None)
       # skip if the pod is not controlled by the new replicaset
       if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
+        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by the old Replicaset: {old.get('Replicaset', None)}")
         return 0
-
       # ignore this pod if the image is the old image
       if image_changed and get_pod_image(pod) == old_img:
+        self.duplo.logger.debug(f"Ignoring status of {pod['InstanceId']} because it's on the old image, {old_img}")
         return 0
 
       # check for aws and gke faults on pod
@@ -925,8 +935,9 @@ class DuploService(DuploTenantResourceV2):
         raise DuploStillWaiting(f"Service {name} waiting for replicas update")
       if (conf_changed and svc["Template"].get("OtherDockerConfig", None) != new_conf):
         raise DuploStillWaiting(f"Service {name} waiting for pod to update")
-      
+
       # now let's start checking the pods
+      self.duplo.logger.debug("Service update completed, checking status of pods")
       pods = self.pods(name)
       faults = self.tenant_svc.faults(id=self.tenant_id)
 
@@ -936,6 +947,7 @@ class DuploService(DuploTenantResourceV2):
 
       # make sure all the replicas are up if we know the true replica count
       running = sum(running_pod(p, faults) for p in pods)
+      self.duplo.logger.debug(f"Detected {running} running pods")
       if true_count and replicas != running:
         raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{replicas}")
       else:
@@ -944,8 +956,8 @@ class DuploService(DuploTenantResourceV2):
         running_old = sum(1 for pod in pods if get_pod_image(pod) == old_img)
         min_replicas = svc.get("HPASpecs", {}).get("minReplicas", 1)
         if running_old > 0 and running < min_replicas:
-          raise DuploStillWaiting(f"Service {name} waiting for pods {running}/{min_replicas} and {running_old} pods using old image to cleanup.")
-    
+          raise DuploStillWaiting(f"Service {name} waiting for minimum pods: {running}/{min_replicas}.  Waiting to clean up {running_old} pods that are still using the old image.")
+
     # send to the base class to do the waiting
     super().wait(wait_check, 3600, 11)
   
