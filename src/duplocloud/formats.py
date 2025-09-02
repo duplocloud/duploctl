@@ -2,7 +2,7 @@
 def tostring(obj):
   """Converts a python object to a string.
 
-  The default formatter with no fancy pants tranforming.
+  The default formatter that performs basic string conversion.
 
   Args:
     obj: The python object to convert.

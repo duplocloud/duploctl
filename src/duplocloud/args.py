@@ -37,11 +37,11 @@ CONTEXT = Arg("context", "--ctx",
               env='DUPLO_CONTEXT')
 
 HOST = Arg('host', '-H', 
-            help='The url to specified duplo portal.',
+            help='The URL to specified Duplo portal.',
             env='DUPLO_HOST')
 
 TOKEN = Arg('token', '-t', 
-            help='The token to authenticate with duplocloud portal api.',
+            help='The token to authenticate with DuploCloud Portal API.',
             env='DUPLO_TOKEN')
 
 TENANT = Arg("tenant", "-T",
@@ -65,7 +65,7 @@ PLAN = Arg("plan", "-P",
             env='DUPLO_PLAN')
 """Plan Name
 
-This is another high level placement style argument. This is used to scope the command to a specific plan aka infrastructure. 
+Scopes the command to a specific infrastructure plan.
 """
 
 BODY = Arg("file", "-f", "--cli-input",
@@ -74,7 +74,7 @@ BODY = Arg("file", "-f", "--cli-input",
             action=YamlAction)
 """File Body  
 
-This is the file path to a file with the specified resources body within. Each Resource will have it's own schema for the body. This is a yaml/json file that will be parsed and used as the body of the request. View the docs for each individual resource to see the schema for the body.
+This is the file path to a file with the specified resource's body within. Each Resource will have its own schema for the body. This is a YAML/JSON file that will be parsed and used as the body of the request. View the docs for each individual resource to see the schema for the body.
 """
 
 DATAMAP = Arg("fromfile","--from-file", "--from-literal",
