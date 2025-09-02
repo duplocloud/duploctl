@@ -462,8 +462,8 @@ class DuploService(DuploTenantResourceV2):
 
     Usage: Basic CLI Use
       ```sh
-      duploctl service update_pod_label <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --setvar env-key3 env-val3 -strat merge --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
-      duploctl service update_pod_label <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 -strat replace --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      duploctl service update_pod_label <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --setvar env-key3 env-val3 --strategy merge --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
+      duploctl service update_pod_label <service-name> --setvar env-key1 env-val1 --setvar env-key2 env-val2 --strategy replace --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
       duploctl service update_pod_label <service-name> --deletevar env-key1 --host $DUPLO_HOST --tenant $DUPLO_TENANT --token $DUPLO_TOKEN
       ```
     Args:
