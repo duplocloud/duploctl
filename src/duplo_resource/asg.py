@@ -227,3 +227,41 @@ class DuploAsg(DuploTenantResourceV2):
       return img.get("ImageId")
     except IndexError:
       raise DuploError(f"Image for agent '{agent}' not found", 404)
+
+  @Command()
+  def update_allocation_tag(self,
+                            name: args.NAME,
+                            allocationtag: args.ALLOCATION_TAG) -> dict:
+    """Update the allocation tag for an Auto Scaling Group.
+
+    Updates the allocation tag for an existing Auto Scaling Group. The allocation tag
+    is used to specify custom allocation rules for the ASG instances.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl asg update_allocation_tag <name> --allocation-tag <allocationtag>
+      ```
+
+    Example: Update an ASG with new allocation tag
+      ```sh
+      duploctl asg update_allocation_tag duploservices-test-asg --allocation-tag duploctl
+      ```
+
+    Args:
+      name: The name of an existing ASG
+      allocationtag: The new allocation tag value to set
+
+    Returns:
+      message: Success message and the updated ASG allocation tag.
+    """
+    asg = self.find(name)
+    tenant_id = self.tenant["TenantId"]
+    payload = {
+        "ComponentId": asg["FriendlyName"],
+        "ComponentType": 3,
+        "Key": "AllocationTags",
+        "Value": allocationtag,
+        "State": "create"
+    }
+    self.duplo.post(f"subscriptions/{tenant_id}/UpdateCustomData", payload)
+    return {"message": f"Successfully updated allocation tag for asg '{name}'"}
