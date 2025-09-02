@@ -83,7 +83,9 @@ class DuploEcsService(DuploTenantResourceV2):
       DuploError: If the ECS task definition could not be found.
     """
     name = self.prefixed_name(name)
-    tdf = self.find_task_def_family(name)
+    svcFam = self.find_service_family(name)
+    family = svcFam["TaskDefFamily"]
+    tdf = self.find_task_def_family(family)
     arn = tdf["VersionArns"][-1]
     return self.find_def_by_arn(arn)
 
