@@ -31,7 +31,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
   def find(self, 
            name: args.NAME,
            show_sensitive: args.SHOW_SENSITIVE=False) -> dict:
-    """Find as AWS Secretmanager secret by name and return its content
+    """Find an AWS Secrets Manager secret by name and return its content
 
     Usage: cli usage
       ```sh
@@ -74,7 +74,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
              data: args.DATAMAP=None,
              value: args.CONTENT=None,
              dryrun: args.DRYRUN=False) -> dict:
-    """Create an AWS Secretmanager Secret
+    """Create an AWS Secrets Manager Secret
 
     Using DuploCloud's native support for AWS Secrets Manager, you can create a new secret. This method acts and feels like how the Kubernetes secrets work within this cli. Supports the secrets value as a string or a key/value JSON object where each value is a string. If you give a JSON object with any key that is not a string, the entire value will be simply a string with a JSON value. The examples below mostly include the `--dry-run` so you can see the output. Simply remove that to actually create the secret.
 
@@ -110,12 +110,12 @@ class DuploAwsSecret(DuploTenantResourceV3):
     Args:
       name: The name of the AWS Secret to create.
       body: The full body of an AWS Secrets Manager secret for DuploCloud.
-      data: A map of key-value pairs to be merged into the SecretString field of the AWS Secretmanager secret. Can't be used with the value argument. A datamap is a combination of all of the `--from-literal` and `--from-file` flags.
-      value: The value of the AWS Secretmanager secret. This overwrites the existing value! Can't be used with the data argument.
+      data: A map of key-value pairs to be merged into the SecretString field of the AWS Secrets Manager secret. Can't be used with the value argument. A datamap is a combination of all of the `--from-literal` and `--from-file` flags.
+      value: The value of the AWS Secrets Manager secret. This overwrites the existing value! Can't be used with the data argument.
       dryrun: If true, returns the body that would be sent to the API without actually creating the resource.
 
     Returns: 
-      message: Either a succes message is returned or if --dry-run is passed then the body is what is returned. 
+      message: Either a success message is returned or if --dry-run is passed then the body is what is returned. 
       
     Raises:
       DuploError: If the AWS secret already exists.
@@ -148,7 +148,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
              data: args.DATAMAP=None,
              value: args.CONTENT=None,
              dryrun: args.DRYRUN=False) -> dict:
-    """Update an AWS Secretmanager secret.
+    """Update an AWS Secrets Manager secret.
 
     Follows all the same arguments and style of the create method. This requires the secret to already exist. 
 
@@ -165,7 +165,7 @@ class DuploAwsSecret(DuploTenantResourceV3):
       dryrun: If true, returns the body that would be sent to the API without actually creating the resource.
 
     Returns: 
-      message: Either a succes message is returned or if --dry-run is passed then the body is what is returned. 
+      message: Either a success message is returned or if --dry-run is passed then the body is what is returned. 
       
     Raises:
       DuploError: If the AWS secret could not be found or doesn't exist.
@@ -200,9 +200,9 @@ class DuploAwsSecret(DuploTenantResourceV3):
   @Command()
   def delete(self,
              name: args.NAME) -> dict:
-    """Delete an AWS Secretmanager secret.
+    """Delete an AWS Secrets Manager secret.
 
-    Deletes an AWS Secretmanager secret by name.
+    Deletes an AWS Secrets Manager secret by name.
 
     Usage: cli
       ```sh
@@ -210,8 +210,8 @@ class DuploAwsSecret(DuploTenantResourceV3):
       ```
 
     Args:
-      name: The name of an AWS Secretmanager secret to delete. This can either be the short name or the full name including the tenant prefix.
-      wait: Wait for an AWS Secretmanager secret to be deleted.
+      name: The name of an AWS Secrets Manager secret to delete. This can either be the short name or the full name including the tenant prefix.
+      wait: Wait for an AWS Secrets Manager secret to be deleted.
 
     Returns:
       message: A success message.
