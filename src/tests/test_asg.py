@@ -66,6 +66,42 @@ class TestAsg:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_asg"], scope="session")
+    @pytest.mark.order(5)
+    def test_scale_asg_min_zero(self, asg_resource):
+        """Test scaling ASG with minimum size of 0."""
+        r, asg_name = asg_resource
+        response = execute_test(r.scale, asg_name, min=0)
+        assert "Successfully updated asg" in response["message"]
+
+    @pytest.mark.integration
+    @pytest.mark.dependency(depends=["create_asg"], scope="session")
+    @pytest.mark.order(5)
+    def test_scale_asg_max_zero(self, asg_resource):
+        """Test scaling ASG with maximum size of 0."""
+        r, asg_name = asg_resource
+        response = execute_test(r.scale, asg_name, max=0)
+        assert "Successfully updated asg" in response["message"]
+
+    @pytest.mark.integration
+    @pytest.mark.dependency(depends=["create_asg"], scope="session")
+    @pytest.mark.order(5)
+    def test_scale_asg_both_zero(self, asg_resource):
+        """Test scaling ASG with both min and max size of 0."""
+        r, asg_name = asg_resource
+        response = execute_test(r.scale, asg_name, min=0, max=0)
+        assert "Successfully updated asg" in response["message"]
+
+    @pytest.mark.integration
+    @pytest.mark.dependency(depends=["create_asg"], scope="session")
+    @pytest.mark.order(5)
+    def test_scale_asg_no_params_error(self, asg_resource):
+        """Test that scaling ASG with no parameters raises an error."""
+        r, asg_name = asg_resource
+        with pytest.raises(DuploError, match="Must provide either min or max"):
+            r.scale(asg_name)
+
+    @pytest.mark.integration
+    @pytest.mark.dependency(depends=["create_asg"], scope="session")
     @pytest.mark.order(6)
     def test_delete_asg(self, asg_resource):
         r, _ = asg_resource

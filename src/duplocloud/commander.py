@@ -77,7 +77,7 @@ def extract_args(function: Callable) -> List[Arg]:
 def aliased_method(cls: Type, command: str) -> str:
   """Aliased Method
   
-  Given a name of a command, check the schema and find the real method name because the command might be aliased.
+  Given the name of a command, check the schema and find the real method name because the command might be aliased.
   The given class will be used to discover any ancestors because the command may actually come from a parent class.
 
   Args:

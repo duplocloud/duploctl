@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed ASG scale command to properly handle zero values for min and max parameters. Previously, setting min=0 or max=0 would incorrectly raise a "Must provide either min or max" error.
 - Removed agentHostTenantId from ticket creation payload.
 - Update ECS find_def to use the TaskDefFamily from the service endpoint, fixing update_image when the service name and task definition family are different.
+- Added debug logging to wait functions
+- Added additional normalization to image names.
+- Updated some spelling errors in error messages and doc strings
 
 ### Added
 
