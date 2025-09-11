@@ -666,21 +666,21 @@ class DuploTenant(DuploResource):
 
     Usage: CLI Usage
       ```sh
-  # List metadata (read-only)
-  duploctl tenant metadata -T mytenant
+      # List metadata (read-only)
+      duploctl tenant metadata -T mytenant
 
-  # Get a single metadata object (Name, Type, Value)
-  duploctl tenant metadata -T mytenant --get featureFlag
+      # Get a single metadata object (Name, Type, Value)
+      duploctl tenant metadata -T mytenant --get featureFlag
 
-  # Get just the value for a single metadata key
-  duploctl tenant metadata -T mytenant --get-value featureFlag
+      # Get just the value for a single metadata key
+      duploctl tenant metadata -T mytenant --get-value featureFlag
 
       # Create entries (repeat --set for multiple)
       duploctl tenant metadata -T mytenant --set featureFlag text enabled \
         --set dashboard url https://internal.example.com
 
-  # Delete entries (repeat --delete for multiple)
-  duploctl tenant metadata -T mytenant --delete featureFlag
+      # Delete entries (repeat --delete for multiple)
+      duploctl tenant metadata -T mytenant --delete featureFlag
 
       # Mixed create & delete
       duploctl tenant metadata -T mytenant \

@@ -1,3 +1,4 @@
+import argparse
 import pytest
 from duplocloud.errors import DuploError
 
@@ -76,11 +77,11 @@ class TestTenantMetadata:
   def test_invalid_type_rejected(self, duplo):
     """Invalid metadata types should be rejected by argparse layer.
 
-    We expect a SystemExit (argparse behavior) when providing an unsupported type.
+    We expect an ArgumentTypeError when providing an unsupported type.
     """
     r = duplo.load("tenant")
     name = duplo.tenant
-    with pytest.raises(SystemExit):
+    with pytest.raises(argparse.ArgumentTypeError):
       r("metadata", name, "--set", "badkey", "notatype", "value")
 
   @pytest.mark.integration
