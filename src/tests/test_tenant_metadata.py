@@ -20,7 +20,7 @@ class TestTenantMetadata:
       pytest.fail(f"Failed to list tenant metadata: {e}")
 
     # If key already exists from a previous run, delete it to start clean (best-effort)
-    if any(m.get("Name") == META_KEY for m in current if isinstance(m, dict)):
+    if any(m.get("Key") == META_KEY for m in current if isinstance(m, dict)):
       try:
         r("metadata", name, "--delete", META_KEY)
       except DuploError:
@@ -36,7 +36,7 @@ class TestTenantMetadata:
     # 3. Verify created value
     try:
       after_create = r("metadata", name)
-      found = next((m for m in after_create if isinstance(m, dict) and m.get("Name") == META_KEY), None)
+      found = next((m for m in after_create if isinstance(m, dict) and m.get("Key") == META_KEY), None)
       assert found is not None and found.get("Value") == "v1"
     except DuploError as e:
       pytest.fail(f"Failed to read back created metadata key: {e}")
@@ -51,7 +51,7 @@ class TestTenantMetadata:
     # 5. Ensure value unchanged
     try:
       after_skip = r("metadata", name)
-      found = next((m for m in after_skip if isinstance(m, dict) and m.get("Name") == META_KEY), None)
+      found = next((m for m in after_skip if isinstance(m, dict) and m.get("Key") == META_KEY), None)
       assert found is not None and found.get("Value") == "v1"
     except DuploError as e:
       pytest.fail(f"Failed to verify skipped create behavior: {e}")
@@ -66,7 +66,7 @@ class TestTenantMetadata:
     # 7. Confirm deletion
     try:
       final_list = r("metadata", name)
-      assert all(m.get("Name") != META_KEY for m in final_list if isinstance(m, dict))
+      assert all(m.get("Key") != META_KEY for m in final_list if isinstance(m, dict))
     except DuploError as e:
       pytest.fail(f"Failed to confirm deletion of metadata key: {e}")
 
@@ -99,7 +99,7 @@ class TestTenantMetadata:
     r("metadata", name, "--set", key, "text", "value123")
     # get full object
     obj = r("metadata", name, "--get", key)
-    assert isinstance(obj, dict) and obj.get("Name") == key and obj.get("Value") == "value123"
+    assert isinstance(obj, dict) and obj.get("Key") == key and obj.get("Value") == "value123"
     # get value only
     val = r("metadata", name, "--get-value", key)
     assert val == "value123"
