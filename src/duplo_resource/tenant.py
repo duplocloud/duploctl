@@ -664,29 +664,29 @@ class DuploTenant(DuploResource):
                getmetavalue: args.GETMETAVALUE=None) -> dict:
     """Manage tenant metadata (list, get single object, get single value, create, delete).
 
-    Usage: CLI Usage
-      ```sh
-  # List metadata (read-only)
-  duploctl tenant metadata -T mytenant
+    Usage: Basic CLI Use
+      ```bash
+      // List metadata (read-only)
+      duploctl tenant metadata -T mytenant
 
-  # Get a single metadata object (Name, Type, Value)
-  duploctl tenant metadata -T mytenant --get featureFlag
+      // Get a single metadata object (Name, Type, Value)
+      duploctl tenant metadata -T mytenant --get featureFlag
 
-  # Get just the value for a single metadata key
-  duploctl tenant metadata -T mytenant --get-value featureFlag
+      // Get just the value for a single metadata key
+      duploctl tenant metadata -T mytenant --get-value featureFlag
 
-  # Create entries (repeat --set for multiple)
-  duploctl tenant metadata -T mytenant --set featureFlag text enabled \
-    --set dashboard url https://internal.example.com
+      // Create entries (repeat --set for multiple)
+      duploctl tenant metadata -T mytenant --set featureFlag text enabled \
+        --set dashboard url https://internal.example.com
 
-  # Delete entries (repeat --delete for multiple)
-  duploctl tenant metadata -T mytenant --delete featureFlag
+      // Delete entries (repeat --delete for multiple)
+      duploctl tenant metadata -T mytenant --delete featureFlag
 
-  # Mixed create & delete
-  duploctl tenant metadata -T mytenant \
-    --set featureFlag text enabled \
-    --set buildNumber text 42 \
-    --delete dashboard
+      // Mixed create & delete
+      duploctl tenant metadata -T mytenant \
+        --set featureFlag text enabled \
+        --set buildNumber text 42 \
+        --delete dashboard
       ```
 
     Args:
