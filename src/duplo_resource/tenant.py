@@ -729,8 +729,6 @@ class DuploTenant(DuploResource):
     current = {m.get("Key"): m for m in current_list if isinstance(m, dict) and m.get("Key")}
     changes = {"created": [], "deleted": [], "skipped": []}
 
-    # Debug: Print what's in current dict
-    print(f"DEBUG: Current metadata keys: {list(current.keys())}")
 
     # create only (no update semantics; skip if exists)
     for k, t, v in (setmeta or []):
@@ -752,12 +750,9 @@ class DuploTenant(DuploResource):
       if k in current:
         try:
           # Use POST with delete action since DELETE endpoint doesn't work
-          print(f"DEBUG: Deleting key '{k}' using POST")
           delete_body = {"Key": k, "ComponentId": tenant_id, "Action": "delete"}
           response = self.duplo.post("admin/UpdateTenantConfigData", delete_body)
-          print(f"DEBUG: Delete response status: {response.status_code}")
           if response.status_code >= 400:
-            print(f"DEBUG: Delete response text: {response.text}")
             raise DuploError(f"Failed to delete metadata key '{k}': {response.text}", response.status_code)
           changes["deleted"].append(k)
         except Exception as e:
