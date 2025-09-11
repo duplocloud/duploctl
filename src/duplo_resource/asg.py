@@ -198,7 +198,7 @@ class DuploAsg(DuploTenantResourceV2):
     Raises:
       DuploError: If neither min nor max is provided, or if the scaling operation fails.
     """
-    if not min and not max:
+    if min is None and max is None:
       raise DuploError("Must provide either min or max")
     asg = self.find(name)
     data = {
@@ -207,9 +207,9 @@ class DuploAsg(DuploTenantResourceV2):
       "MinSize": asg.get("MinSize", None),# this really is a string unlike the other two? 
       "MaxSize": asg.get("MaxSize", None),
     }
-    if min:
+    if min is not None:
       data["MinSize"] = str(min)
-    if max:
+    if max is not None:
       data["MaxSize"] = max
     return self.update(data)
   
