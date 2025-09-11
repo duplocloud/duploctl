@@ -690,11 +690,11 @@ class DuploTenant(DuploResource):
       ```
 
     Args:
-    name: Optional tenant name; overrides -T/--tenant if provided.
-    setmeta: Zero or more (key type value) triples to create metadata entries. Type must be one of: aws_console, url, text. Existing keys cannot be updated; delete then recreate. (Flag: --set)
-    deletes: Zero or more keys to delete from metadata (use --delete per key). (Flag: --delete)
-  getmeta: A single key to fetch the full metadata object (Name, Type, Value). Cannot combine with mutations or --get-value. (Flag: --get)
-  getmetavalue: A single key to fetch the raw value only. Cannot combine with mutations or --get. (Flag: --get-value)
+      name: Optional tenant name; overrides -T/--tenant if provided.
+      setmeta: Zero or more (key type value) triples to create metadata entries. Type must be one of: aws_console, url, text. Existing keys cannot be updated; delete then recreate. (Flag: --set)
+      deletes: Zero or more keys to delete from metadata (use --delete per key). (Flag: --delete)
+      getmeta: A single key to fetch the full metadata object (Name, Type, Value). Cannot combine with mutations or --get-value. (Flag: --get)
+      getmetavalue: A single key to fetch the raw value only. Cannot combine with mutations or --get. (Flag: --get-value)
 
     Returns:
       If --get is supplied alone:
