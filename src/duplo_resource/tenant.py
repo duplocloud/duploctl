@@ -730,7 +730,7 @@ class DuploTenant(DuploResource):
     changes = {"created": [], "deleted": [], "skipped": []}
 
 
-    # create only (no update semantics; skip if exists)
+    # Create metadata entries; skip if key already exists (no update semantics)
     for k, t, v in (setmeta or []):
       if k in current:
         changes["skipped"].append(k)
