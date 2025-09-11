@@ -760,23 +760,27 @@ class DuploTenant(DuploResource):
       else:
         # Key doesn't exist in current metadata
         raise DuploError(f"Metadata key '{k}' not found in tenant '{tenant['AccountName']}'")
-    # Build simple success message
+    # Build success response
     if setmeta and not deletes:
       if changes['created'] and changes['skipped']:
-        return f"Successfully set: {', '.join(changes['created'])} for Tenant: {tenant['AccountName']} (skipped existing: {', '.join(changes['skipped'])})"
+        message = f"Successfully set: {', '.join(changes['created'])} for Tenant: {tenant['AccountName']} (skipped existing: {', '.join(changes['skipped'])})"
       elif changes['created']:
-        return f"Successfully set: {', '.join(changes['created'])} for Tenant: {tenant['AccountName']}"
+        message = f"Successfully set: {', '.join(changes['created'])} for Tenant: {tenant['AccountName']}"
       elif changes['skipped']:
-        return f"Key: {', '.join(changes['skipped'])} already exists for Tenant: {tenant['AccountName']}"
+        message = f"Key: {', '.join(changes['skipped'])} already exists for Tenant: {tenant['AccountName']}"
       else:
-        return f"No changes made for Tenant: {tenant['AccountName']}"
+        message = f"No changes made for Tenant: {tenant['AccountName']}"
+      return {"message": message, "changes": changes}
     elif deletes and not setmeta:
-      return f"Successfully deleted: {', '.join(changes['deleted'])} for Tenant: {tenant['AccountName']}"
+      message = f"Successfully deleted: {', '.join(changes['deleted'])} for Tenant: {tenant['AccountName']}"
+      return {"message": message, "changes": changes}
     elif setmeta and deletes:
       set_msg = f"set: {', '.join(changes['created'])}" if changes['created'] else ""
       delete_msg = f"deleted: {', '.join(changes['deleted'])}" if changes['deleted'] else ""
       skip_msg = f"skipped: {', '.join(changes['skipped'])}" if changes['skipped'] else ""
       actions = [msg for msg in [set_msg, delete_msg, skip_msg] if msg]
-      return f"Successfully {', '.join(actions)} for Tenant: {tenant['AccountName']}"
+      message = f"Successfully {', '.join(actions)} for Tenant: {tenant['AccountName']}"
+      return {"message": message, "changes": changes}
     else:
-      return f"No changes made for Tenant: {tenant['AccountName']}"
+      message = f"No changes made for Tenant: {tenant['AccountName']}"
+      return {"message": message, "changes": changes}
