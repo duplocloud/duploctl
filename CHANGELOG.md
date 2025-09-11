@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed agentHostTenantId from ticket creation payload.
 - Update ECS find_def to use the TaskDefFamily from the service endpoint, fixing update_image when the service name and task definition family are different.
 
+### Added
+
+- Implement `tenant metadata` command to list, create, and delete tenant metadata entries.
+  - Use `--set key type value` (supports multiple) where type is one of: aws_console, url, text.
+  - Use `--delete key` (supports multiple) to remove entries.
+  - Use `--get key` to retrieve the full metadata object (Name, Type, Value).
+  - Use `--get-value key` to retrieve only the value for scripting convenience.
+
 ## [0.3.6] - 2025-08-19
 
 ### Fixed
