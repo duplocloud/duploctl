@@ -75,10 +75,6 @@ class TestTenantMetadata:
   @pytest.mark.order(3)
   @pytest.mark.dependency(depends=["create_tenant"], scope='session')
   def test_invalid_type_rejected(self, duplo):
-    """Invalid metadata types should be rejected by argparse layer.
-
-    We expect an ArgumentTypeError when providing an unsupported type.
-    """
     r = duplo.load("tenant")
     name = duplo.tenant
     with pytest.raises(argparse.ArgumentTypeError):
