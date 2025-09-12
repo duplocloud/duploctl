@@ -87,21 +87,21 @@ class TestTenantMetadata:
     name = duplo.tenant
     key1 = META_KEY + "-mixed1"
     key2 = META_KEY + "-mixed2"
-    
+
     # ensure clean
     try:
       r("set_metadata", name, "--delete", key1, "--delete", key2)
     except DuploError:
       pass
-    
+
     # create both keys
     r("set_metadata", name, "--metadata", key1, "text", "value1")
     r("set_metadata", name, "--metadata", key2, "url", "https://example.com")
-    
+
     # mixed create and delete
     result = r("set_metadata", name, "--metadata", key1, "text", "newvalue", "--delete", key2)
     assert key1 in result["changes"]["skipped"]  # key1 already exists
     assert key2 in result["changes"]["deleted"]  # key2 was deleted
-    
+
     # cleanup
     r("set_metadata", name, "--delete", key1)

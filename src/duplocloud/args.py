@@ -5,16 +5,16 @@ from .commander import available_resources, available_formats, VERSION
 
 # the global args for the CLI
 
-HOME_DIR = Arg('homedir', '--home-dir', 
+HOME_DIR = Arg('homedir', '--home-dir',
             help='The home directory for duplo configurations',
             env='DUPLO_HOME')
 """Home Directory
 
 Defaults to users home directory at `$HOME/.duplo`
-This is where the cli will look by default for the config and cache as well. 
+This is where the cli will look by default for the config and cache as well.
 """
 
-CACHE_DIR = Arg('cachedir', '--cache-dir', 
+CACHE_DIR = Arg('cachedir', '--cache-dir',
             help='The cache directory for saved credentials.',
             env='DUPLO_CACHE')
 """Cache Directory
@@ -28,7 +28,7 @@ LOGLEVEL = Arg('log-level', '--loglevel', '-L',
             env='DUPLO_LOG_LEVEL',
             choices=list(logging._nameToLevel.keys()))
 
-CONFIG = Arg('configfile', '--config-file', 
+CONFIG = Arg('configfile', '--config-file',
             help='The path to the duploctl configuration file.',
             env='DUPLO_CONFIG')
 
@@ -36,11 +36,11 @@ CONTEXT = Arg("context", "--ctx",
               help='Use the specified context from the config file.',
               env='DUPLO_CONTEXT')
 
-HOST = Arg('host', '-H', 
+HOST = Arg('host', '-H',
             help='The URL to specified Duplo portal.',
             env='DUPLO_HOST')
 
-TOKEN = Arg('token', '-t', 
+TOKEN = Arg('token', '-t',
             help='The token to authenticate with DuploCloud Portal API.',
             env='DUPLO_TOKEN')
 
@@ -72,7 +72,7 @@ BODY = Arg("file", "-f", "--cli-input",
             help='A file to read the input from',
             type=argparse.FileType('r'),
             action=YamlAction)
-"""File Body  
+"""File Body
 
 This is the file path to a file with the specified resource's body within. Each Resource will have its own schema for the body. This is a YAML/JSON file that will be parsed and used as the body of the request. View the docs for each individual resource to see the schema for the body.
 """
@@ -90,26 +90,26 @@ ARN = Arg("aws-arn", "--arn",
            help='The aws arn',
            default=None)
 
-INTERACTIVE = Arg("interactive","-I", 
+INTERACTIVE = Arg("interactive","-I",
               help='Use interactive Login mode for temporary tokens. Do not use with --token.',
               type=bool,
               action='store_true')
 
-ISADMIN = Arg("admin","--isadmin", 
+ISADMIN = Arg("admin","--isadmin",
               help='Request admin access when using interactive login.',
               type=bool,
               action='store_true')
 
-NOCACHE = Arg("no-cache","--nocache", 
+NOCACHE = Arg("no-cache","--nocache",
               help='Do not use cache credentials.',
               type=bool,
               action='store_true')
 
-BROWSER = Arg("web-browser","--browser", 
+BROWSER = Arg("web-browser","--browser",
               help='The desired web browser to use for interactive login',
               env='DUPLO_BROWSER',
               choices=[
-                'chrome', 'chromium', 'firefox', 'safari', 'epiphany', 
+                'chrome', 'chromium', 'firefox', 'safari', 'epiphany',
                 'edge', 'opera', 'konqueror', "kfm", 'w3m', 'lynx'
               ])
 """Web Browser
@@ -131,7 +131,7 @@ PATCHES = Arg("patches", "--add", "--remove", "--copy", "--replace", "--test", "
               action=JsonPatchAction)
 
 VERSION = Arg("version", "--version",
-              action='version', 
+              action='version',
               version=f"%(prog)s {VERSION}",
               type=bool)
 
@@ -140,23 +140,23 @@ EXCLUDE = Arg("exclude", '--exclude',
               help='Exclude from the command')
 
 # The rest are resource level args for commands
-SERVICE = Arg('service', 
+SERVICE = Arg('service',
               help='The service to run',
               choices=available_resources())
 
-COMMAND = Arg('command', 
+COMMAND = Arg('command',
              help='The subcommand to run')
 
 # generic first positional arg for resource name
-NAME = Arg("name", 
+NAME = Arg("name",
             nargs='?',
             help='The resource name')
 
-DISTRIBUTION_ID = Arg("distribution_id", 
+DISTRIBUTION_ID = Arg("distribution_id",
             nargs='?',
             help='The distribution id')
 
-IMAGE = Arg("image", 
+IMAGE = Arg("image",
             nargs='?',
             help='The image to use')
 
@@ -241,13 +241,13 @@ DELETEVAR = Arg("deletevar", "-D",
             action='append',
             help='a key to delete from the environment variables')
 
-SCHEDULE = Arg("schedule","-s", 
+SCHEDULE = Arg("schedule","-s",
                help='The schedule to use')
 
-CRONSCHEDULE = Arg("cronschedule", 
+CRONSCHEDULE = Arg("cronschedule",
                help='The schedule to use')
 
-ENABLE = Arg("enable","-y", 
+ENABLE = Arg("enable","-y",
               help='Enable or disable the feature',
               type=bool,
               action=argparse.BooleanOptionalAction)
@@ -335,11 +335,11 @@ MESSAGE = Arg("message", "--content", "--msg", "--message",
               default=None,
               help="The message you want to send to the AI agent")
 
-DAYS = Arg("days", 
+DAYS = Arg("days",
             help='The days to use',
             type=int)
 
-CONTENT_DIR = Arg('content', '--content-dir', 
+CONTENT_DIR = Arg('content', '--content-dir',
             help='The content directory for a website.',
             default='dist',
             env='DUPLO_CONTENT')

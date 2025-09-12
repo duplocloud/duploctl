@@ -658,7 +658,7 @@ class DuploTenant(DuploResource):
   @Command()
   def get_metadata(self, name: args.NAME=None):
     """Get Tenant Metadata
-    
+
     Get the metadata for the tenant.
 
     Usage: Basic CLI Use
@@ -683,7 +683,7 @@ class DuploTenant(DuploResource):
                    metadata: args.METADATA=[],
                    deletes: args.DELETES=[]) -> dict:
     """Set Tenant Metadata
-    
+
     Set or delete metadata for the tenant.
 
     Usage: Basic CLI Use
