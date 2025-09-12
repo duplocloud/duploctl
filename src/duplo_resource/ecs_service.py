@@ -6,13 +6,29 @@ import duplocloud.args as args
 
 @Resource("ecs")
 class DuploEcsService(DuploTenantResourceV2):
+  """Manage Duplo ECS Resources
+  
+  A collection of commands to manage ECS services and task definitions.
+  
+  """
 
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
 
   @Command()
-  def list_services(self):
-    """Retrieve a list of all ECS services in a tenant."""
+  def list_services(self) -> list:
+    """List ECS Services
+
+    Retrieve a list of all ECS services in a tenant.
+    
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs list_services
+      ```
+
+    Returns:
+      list: A list of ECS services in the tenant.
+    """
     tenant_id = self.tenant["TenantId"]
     url = f"subscriptions/{tenant_id}/GetEcsServices"
     response = self.duplo.get(url)
@@ -20,13 +36,17 @@ class DuploEcsService(DuploTenantResourceV2):
 
   @Command()
   def find_service_family(self,
-           name: args.NAME):
-    """Find an ECS Services task definition family by name.
+                          name: args.NAME):
+    """Find Service Family by Name
+    
+    Find an ECS Services task definition family by name.
 
     Args:
-      name (str): The name of the ECS task definition to find.
+      name: The name of the ECS task definition to find.
+
     Returns:
-      The ECS task definition object.
+      task_definition_family: The ECS task definition object.
+
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
@@ -42,6 +62,7 @@ class DuploEcsService(DuploTenantResourceV2):
 
     Args:
       name: The name of the ECS service to delete.
+
     Returns:
       message: A message indicating the service has been deleted.
     """
@@ -63,7 +84,7 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Returns:
-      task_def_family: A list of ECS task definitions.
+      task_def_family: The historical list of ECS task definitions within a family.
     """
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/taskDefFamily"
@@ -76,9 +97,11 @@ class DuploEcsService(DuploTenantResourceV2):
     """Find a ECS task definition by name.
 
     Args:
-      name (str): The name of the ECS task definition to find.
+      name: The name of the ECS task definition to find.
+
     Returns:
-      The ECS task definition object.
+      task_definition: The ECS task definition object.
+
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
@@ -91,13 +114,17 @@ class DuploEcsService(DuploTenantResourceV2):
 
   @Command()
   def find_def_by_arn(self,
-                      arn: args.ARN):
+                      arn: args.ARN) -> dict:
     """Find a ECS task definition by ARN.
 
+    Find a task definition by its AWS ARN.
+
     Args:
-      arn (str): The ARN of the ECS task definition to find.
+      arn: The ARN of the ECS task definition to find.
+
     Returns:
-      The ECS task definition object.
+      task_definition: The ECS task definition object.
+
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
@@ -108,12 +135,14 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def find_task_def_family(self,
                            name: args.NAME):
-    """Find a ECS task definition by name.
+    """Find a ECS task definition family by name.
 
     Args:
-      name (str): The name of the ECS task definition to find.
+      name: The name of the ECS task definition to find.
+
     Returns:
       The ECS task definition object.
+
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
@@ -125,13 +154,15 @@ class DuploEcsService(DuploTenantResourceV2):
 
   @Command()
   def update_service(self,
-             body: args.BODY):
+             body: args.BODY) -> dict:
     """Update an ECS service.
 
     Args:
       body (dict): The updated ECS service object.
+
     Returns:
-      The updated ECS object.
+      message: A success message. 
+
     Raises:
       DuploError: If the ECS service could not be updated.
     """
@@ -141,13 +172,18 @@ class DuploEcsService(DuploTenantResourceV2):
 
   @Command()
   def update_taskdef(self,
-                     body: args.BODY):
+                     body: args.BODY) -> dict:
     """Update an ECS task definition.
 
+    Updates a task definition. This creates a new revision of the task definition and returns the new ARN.
+    Note each definition is immutable so this is effectively a create operation for one item in a set and the latest one is the active one.
+
     Args:
-      body (dict): The updated ECS task definition object.
+      body: The updated ECS task definition object.
+
     Returns:
-      The updated ECS object.
+      task_definition: The updated ECS task definition object.
+
     Raises:
       DuploError: If the ECS task definition could not be updated.
     """
@@ -161,7 +197,9 @@ class DuploEcsService(DuploTenantResourceV2):
                    name: args.NAME,
                    image: args.IMAGE = None,
                    container_image: args.CONTAINER_IMAGE = None) -> dict:
-    """Update the image for an ECS service container.
+    """Update Image
+    
+    Update the image for an ECS task definition and service container if one exists.
 
     Usage: Basic CLI Use
       ```sh
@@ -169,6 +207,13 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
       ```sh
         duploctl ecs update_image <service-name> --container-image <container-name> <container-image>
+      ```
+
+    Example: Update image and wait
+      This supports the global `--wait` flag to hold the terminal until the service update is complete.
+      Waits for the status of the service to be the desired running status. 
+      ```sh
+        duploctl ecs update_image myapp myimage:latest --wait
       ```
 
     Args:
@@ -259,7 +304,20 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def list_tasks(self,
                  name: args.NAME) -> list:
-    """List tasks for an ECS service.
+    """List Tasks
+    
+    List ECS tasks given a name.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl ecs list_tasks <service-name>
+      ```
+
+    Args:
+      name: The name of the ECS service to list tasks for.
+
+    Returns:
+      list: A list of ECS tasks associated with the service.
     """
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/ecsTasks/{name}"
@@ -274,10 +332,22 @@ class DuploEcsService(DuploTenantResourceV2):
 
     Execute a task based on some definition.
 
+    Usage: Basic CLI Use
+      ```sh
+      duploctl ecs run_task <service-name> <replicas>
+      ```
+
+    Example: Wait for task to complete
+      This supports the global `--wait` flag to hold the terminal until the task is complete.
+      Waits for the status of the task to be the desired complete status.
+      ```sh
+      duploctl ecs run_task myapp 3 --wait
+      ```
+
     Args:
       name: The name of the ECS service to run the task for.
       replicas: The number of replicas to run.
-      wait: Whether to wait for the task to complete.
+
     Returns:
       message: A message indicating the task has been run.
     """
@@ -290,12 +360,11 @@ class DuploEcsService(DuploTenantResourceV2):
     }
     res = self.duplo.post(path, body)
     if self.duplo.wait:
-      self.wait(lambda: self.wait_on_task(name))
+      self.wait(lambda: self._wait_on_task(name))
     return res.json()
 
-  def wait_on_task(self,
+  def _wait_on_task(self,
                    name: str) -> None:
-    """Wait for an ECS task to complete."""
     tasks = self.list_tasks(name)
     # filter the tasks down to any where the DesiredStatus and LastStatus are different
     running_tasks = [t for t in tasks if t["DesiredStatus"] != t["LastStatus"]]

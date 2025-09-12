@@ -28,7 +28,7 @@ class DuploPod(DuploTenantResourceV2):
            pod: dict = None):
     """View Pod Logs
     
-    Retrieve logs for a pod and print to stderr. 
+    Retrieve logs for a pod and print to stderr. This methods does not return anything. 
 
     Usage: CLI Usage
       ```sh
@@ -39,8 +39,6 @@ class DuploPod(DuploTenantResourceV2):
       name: The name of the pod to retrieve logs for.
       pod: The pod object to retrieve logs for (optional).
 
-    Returns:
-      None
     """
     if not pod:
       pod = self.find(name)
