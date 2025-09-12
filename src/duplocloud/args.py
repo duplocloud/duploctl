@@ -224,19 +224,13 @@ SETVAR = Arg("setvar", "-V",
             nargs=2,
             metavar=('key', 'value'))
 
-SETMETA = Arg("setmeta", "--set",
-            help=f"Create tenant metadata entries: --set key type value (repeatable). Type in {{{', '.join(sorted(ALLOWED_METADATA_TYPES))}}}.",
+METADATA = Arg("metadata", "--metadata",
+            help=f"Create tenant metadata entries: --metadata key type value (repeatable). Type in {{{', '.join(sorted(ALLOWED_METADATA_TYPES))}}}.",
             action=MetadataAction)
 
 DELETES = Arg("deletemetadata", "--delete",
             action='append',
             help='Delete tenant metadata key (repeatable).')
-
-GETMETA = Arg("getmetadata", "--get",
-            help='Get a single tenant metadata value by key')
-
-GETMETAVALUE = Arg("getmetavalue", "--get-value",
-            help='Get only the value for a single tenant metadata key')
 
 STRATEGY = Arg("strategy", "-strat",
             help='The merge strategy to use. Valid options are \"merge\" or \"replace\".  Default is merge.',

@@ -18,11 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Implement `tenant metadata` command to list, create, and delete tenant metadata entries.
-  - Use `--set key type value` (supports multiple) where type is one of: aws_console, url, text.
-  - Use `--delete key` (supports multiple) to remove entries.
-  - Use `--get key` to retrieve the full metadata object (Name, Type, Value).
-  - Use `--get-value key` to retrieve only the value for scripting convenience.
+- Implement `tenant get_metadata` and `tenant set_metadata` commands for managing tenant metadata.
+  - `get_metadata`: List all metadata entries for a tenant.
+  - `set_metadata`: Create/delete metadata with `--metadata key type value` and `--delete key` flags.
+  - Supported types: aws_console, url, text.
 
 ## [0.3.6] - 2025-08-19
 

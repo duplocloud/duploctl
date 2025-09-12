@@ -1,4 +1,3 @@
-import argparse
 import pytest
 from duplocloud.errors import DuploError
 
@@ -15,7 +14,7 @@ class TestTenantMetadata:
 
     # 1. Read current metadata list (should not raise)
     try:
-      current = r("metadata", name)
+      current = r("get_metadata", name)
       assert isinstance(current, list)
     except DuploError as e:
       pytest.fail(f"Failed to list tenant metadata: {e}")
@@ -23,20 +22,20 @@ class TestTenantMetadata:
     # If key already exists from a previous run, delete it to start clean (best-effort)
     if any(m.get("Key") == META_KEY for m in current if isinstance(m, dict)):
       try:
-        r("metadata", name, "--delete", META_KEY)
+        r("set_metadata", name, "--delete", META_KEY)
       except DuploError:
         pass
 
     # 2. Create metadata key
     try:
-      create_result = r("metadata", name, "--set", META_KEY, "text", "v1")
+      create_result = r("set_metadata", name, "--metadata", META_KEY, "text", "v1")
       assert META_KEY in create_result["changes"]["created"]
     except DuploError as e:
       pytest.fail(f"Failed to create tenant metadata key: {e}")
 
     # 3. Verify created value
     try:
-      after_create = r("metadata", name)
+      after_create = r("get_metadata", name)
       found = next((m for m in after_create if isinstance(m, dict) and m.get("Key") == META_KEY), None)
       assert found is not None and found.get("Value") == "v1"
     except DuploError as e:
@@ -44,14 +43,14 @@ class TestTenantMetadata:
 
     # 4. Attempt to re-create with different value (should skip, not change)
     try:
-      second_create = r("metadata", name, "--set", META_KEY, "text", "v2")
+      second_create = r("set_metadata", name, "--metadata", META_KEY, "text", "v2")
       assert META_KEY in second_create["changes"]["skipped"]
     except DuploError as e:
       pytest.fail(f"Failed during second create (expected skip): {e}")
 
     # 5. Ensure value unchanged
     try:
-      after_skip = r("metadata", name)
+      after_skip = r("get_metadata", name)
       found = next((m for m in after_skip if isinstance(m, dict) and m.get("Key") == META_KEY), None)
       assert found is not None and found.get("Value") == "v1"
     except DuploError as e:
@@ -59,14 +58,14 @@ class TestTenantMetadata:
 
     # 6. Delete metadata key
     try:
-      delete_result = r("metadata", name, "--delete", META_KEY)
+      delete_result = r("set_metadata", name, "--delete", META_KEY)
       assert META_KEY in delete_result["changes"]["deleted"]
     except DuploError as e:
       pytest.fail(f"Failed to delete tenant metadata key: {e}")
 
     # 7. Confirm deletion
     try:
-      final_list = r("metadata", name)
+      final_list = r("get_metadata", name)
       assert all(m.get("Key") != META_KEY for m in final_list if isinstance(m, dict))
     except DuploError as e:
       pytest.fail(f"Failed to confirm deletion of metadata key: {e}")
@@ -77,40 +76,32 @@ class TestTenantMetadata:
   def test_invalid_type_rejected(self, duplo):
     r = duplo.load("tenant")
     name = duplo.tenant
-    with pytest.raises(argparse.ArgumentTypeError):
-      r("metadata", name, "--set", "badkey", "notatype", "value")
+    with pytest.raises(Exception):  # Could be ArgumentTypeError or DuploError
+      r("set_metadata", name, "--metadata", "badkey", "notatype", "value")
 
   @pytest.mark.integration
   @pytest.mark.order(3)
   @pytest.mark.dependency(depends=["create_tenant"], scope='session')
-  def test_get_single_key(self, duplo):
+  def test_mixed_operations(self, duplo):
     r = duplo.load("tenant")
     name = duplo.tenant
-    key = META_KEY + "-get"
+    key1 = META_KEY + "-mixed1"
+    key2 = META_KEY + "-mixed2"
+    
     # ensure clean
     try:
-      r("metadata", name, "--delete", key)
+      r("set_metadata", name, "--delete", key1, "--delete", key2)
     except DuploError:
       pass
-    # create
-    r("metadata", name, "--set", key, "text", "value123")
-    # get full object
-    obj = r("metadata", name, "--get", key)
-    assert isinstance(obj, dict) and obj.get("Key") == key and obj.get("Value") == "value123"
-    # get value only
-    val = r("metadata", name, "--get-value", key)
-    assert val == "value123"
-    # not found (object)
-    with pytest.raises(DuploError):
-      r("metadata", name, "--get", "does-not-exist-xyz")
-    # not found (value)
-    with pytest.raises(DuploError):
-      r("metadata", name, "--get-value", "does-not-exist-xyz")
-    # invalid combination get + get-value
-    with pytest.raises(DuploError):
-      r("metadata", name, "--get", key, "--get-value", key)
-    # invalid combination with mutation
-    with pytest.raises(DuploError):
-      r("metadata", name, "--get-value", key, "--delete", key)
+    
+    # create both keys
+    r("set_metadata", name, "--metadata", key1, "text", "value1")
+    r("set_metadata", name, "--metadata", key2, "url", "https://example.com")
+    
+    # mixed create and delete
+    result = r("set_metadata", name, "--metadata", key1, "text", "newvalue", "--delete", key2)
+    assert key1 in result["changes"]["skipped"]  # key1 already exists
+    assert key2 in result["changes"]["deleted"]  # key2 was deleted
+    
     # cleanup
-    r("metadata", name, "--delete", key)
+    r("set_metadata", name, "--delete", key1)

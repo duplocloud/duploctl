@@ -656,82 +656,68 @@ class DuploTenant(DuploResource):
       return f"User '{name}' removed from tenant '{self.duplo.tenant}'"
 
   @Command()
-  def metadata(self,
-               name: args.NAME=None,
-               setmeta: args.SETMETA=[],
-               deletes: args.DELETES=[],
-               getmeta: args.GETMETA=None,
-               getmetavalue: args.GETMETAVALUE=None) -> dict:
-    """Manage tenant metadata (list, get single object, get single value, create, delete).
+  def get_metadata(self, name: args.NAME=None):
+    """Get Tenant Metadata
+    
+    Get the metadata for the tenant.
 
     Usage: Basic CLI Use
       ```bash
-      // List metadata (read-only)
-      duploctl tenant metadata -T mytenant
-
-      // Get a single metadata object (Name, Type, Value)
-      duploctl tenant metadata -T mytenant --get featureFlag
-
-      // Get just the value for a single metadata key
-      duploctl tenant metadata -T mytenant --get-value featureFlag
-
-      // Create entries (repeat --set for multiple)
-      duploctl tenant metadata -T mytenant --set featureFlag text enabled \
-        --set dashboard url https://internal.example.com
-
-      // Delete entries (repeat --delete for multiple)
-      duploctl tenant metadata -T mytenant --delete featureFlag
-
-      // Mixed create & delete
-      duploctl tenant metadata -T mytenant \
-        --set featureFlag text enabled \
-        --set buildNumber text 42 \
-        --delete dashboard
+      duploctl tenant get_metadata -T mytenant
       ```
 
     Args:
       name: Optional tenant name; overrides -T/--tenant if provided.
-      setmeta: Zero or more (key type value) triples to create metadata entries. Type must be one of: aws_console, url, text. Existing keys cannot be updated; delete then recreate. (Flag: --set)
-      deletes: Zero or more keys to delete from metadata (use --delete per key). (Flag: --delete)
-      getmeta: A single key to fetch the full metadata object (Name, Type, Value). Cannot combine with mutations or --get-value. (Flag: --get)
-      getmetavalue: A single key to fetch the raw value only. Cannot combine with mutations or --get. (Flag: --get-value)
 
     Returns:
-      If --get is supplied alone:
-        Returns the full metadata object dict for that key, or raises DuploError if not found.
-      If --get-value is supplied alone:
-        Returns the raw value string for that key, or raises DuploError if not found.
-      If no mutation flags are provided (no --set / --delete / --get / --get-value):
-        The current list of metadata objects as returned by the API.
-      Otherwise:
-        A dict with keys:
-          message: Human readable summary.
-          changes: Dict with lists 'created', 'deleted', and 'skipped' (attempted creates for existing keys).
+      metadata: The metadata for the tenant.
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"admin/GetTenantConfigData/{tenant_id}")
+    return response.json()
+
+  @Command()
+  def set_metadata(self,
+                   name: args.NAME=None,
+                   metadata: args.METADATA=[],
+                   deletes: args.DELETES=[]) -> dict:
+    """Set Tenant Metadata
+    
+    Set or delete metadata for the tenant.
+
+    Usage: Basic CLI Use
+      ```bash
+      // Set metadata entries
+      duploctl tenant set_metadata -T mytenant --metadata featureFlag text enabled
+      duploctl tenant set_metadata -T mytenant --metadata dashboard url https://internal.example.com
+
+      // Delete metadata entries
+      duploctl tenant set_metadata -T mytenant --delete featureFlag
+
+      // Mixed operations
+      duploctl tenant set_metadata -T mytenant --metadata featureFlag text enabled --delete dashboard
+      ```
+
+    Args:
+      name: Optional tenant name; overrides -T/--tenant if provided.
+      metadata: Zero or more (key type value) triples to create metadata entries. Type must be one of: aws_console, url, text.
+      deletes: Zero or more keys to delete from metadata.
+
+    Returns:
+      A dict with keys:
+        message: Human readable summary.
+        changes: Dict with lists 'created', 'deleted', and 'skipped' (attempted creates for existing keys).
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"admin/GetTenantConfigData/{tenant_id}")
     current_list = response.json() or []
-    # validation for mutually exclusive operations
-    get_flags = [f for f in [getmeta, getmetavalue] if f]
-    if len(get_flags) > 1:
-      raise DuploError("--get and --get-value cannot be used together")
-    if (getmeta or getmetavalue) and (setmeta or deletes):
-      raise DuploError("--get/--get-value cannot be combined with --set or --delete")
-    if getmeta or getmetavalue:
-      key_lookup = getmeta or getmetavalue
-      match = next((m for m in current_list if isinstance(m, dict) and m.get("Key") == key_lookup), None)
-      if not match:
-        raise DuploError(f"Metadata key '{key_lookup}' not found in tenant '{tenant['AccountName']}'")
-      return match if getmeta else match.get("Value")
-    if not setmeta and not deletes:
-      return current_list
     current = {m.get("Key"): m for m in current_list if isinstance(m, dict) and m.get("Key")}
     changes = {"created": [], "deleted": [], "skipped": []}
 
-
     # Create metadata entries; skip if key already exists (no update semantics)
-    for k, t, v in (setmeta or []):
+    for k, t, v in (metadata or []):
       if k in current:
         changes["skipped"].append(k)
         continue
@@ -745,7 +731,8 @@ class DuploTenant(DuploResource):
         current[k] = {"Key": k, "Value": v, "Type": t}
       except Exception as e:
         raise DuploError(f"Failed to create metadata key '{k}': {str(e)}")
-    # deletes
+
+    # Delete metadata entries
     for k in (deletes or []):
       if k in current:
         try:
@@ -760,8 +747,9 @@ class DuploTenant(DuploResource):
       else:
         # Key doesn't exist in current metadata
         raise DuploError(f"Metadata key '{k}' not found in tenant '{tenant['AccountName']}'")
+
     # Build success response
-    if setmeta and not deletes:
+    if metadata and not deletes:
       if changes['created'] and changes['skipped']:
         message = f"Successfully set: {', '.join(changes['created'])} for Tenant: {tenant['AccountName']} (skipped existing: {', '.join(changes['skipped'])})"
       elif changes['created']:
@@ -771,10 +759,10 @@ class DuploTenant(DuploResource):
       else:
         message = f"No changes made for Tenant: {tenant['AccountName']}"
       return {"message": message, "changes": changes}
-    elif deletes and not setmeta:
+    elif deletes and not metadata:
       message = f"Successfully deleted: {', '.join(changes['deleted'])} for Tenant: {tenant['AccountName']}"
       return {"message": message, "changes": changes}
-    elif setmeta and deletes:
+    elif metadata and deletes:
       set_msg = f"set: {', '.join(changes['created'])}" if changes['created'] else ""
       delete_msg = f"deleted: {', '.join(changes['deleted'])}" if changes['deleted'] else ""
       skip_msg = f"skipped: {', '.join(changes['skipped'])}" if changes['skipped'] else ""
