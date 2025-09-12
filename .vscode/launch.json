@@ -21,10 +21,10 @@
       "consoleName": "Duploctl Debugger",
       "justMyCode": true,
       "args": [
-        "tenant",
-        "metadata",
-        "-T", "mikl3",
-        "--delete", "test6"
+        "service",
+        "list",
+        "--interactive", 
+        "--admin"
       ],
       "cwd": "${workspaceFolder}",
       "env": {
