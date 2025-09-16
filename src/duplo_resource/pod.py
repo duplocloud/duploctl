@@ -26,7 +26,20 @@ class DuploPod(DuploTenantResourceV2):
   def logs(self,
            name: args.NAME = None,
            pod: dict = None):
-    """Retrieve logs for a pod."""
+    """View Pod Logs
+    
+    Retrieve logs for a pod and print to stderr. This methods does not return anything. 
+
+    Usage: CLI Usage
+      ```sh
+      duploctl pod logs <name>
+      ```
+
+    Args:
+      name: The name of the pod to retrieve logs for.
+      pod: The pod object to retrieve logs for (optional).
+
+    """
     if not pod:
       pod = self.find(name)
     # must be certain status for logs and a host is present
@@ -51,7 +64,7 @@ class DuploPod(DuploTenantResourceV2):
       title = id
       spaces = len(title) * " "
       for line in lines[-diff:]:
-        self.duplo.logger.warn(f"{title}: {line}")
+        self.duplo.logger.warning(f"{title}: {line}")
         title = spaces
     return None
 

@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Incosistent documentation in the services and jobs. Included examples and info about the --wait arg.
 - Fixed ASG scale command to properly handle zero values for min and max parameters. Previously, setting min=0 or max=0 would incorrectly raise a "Must provide either min or max" error.
 - Removed agentHostTenantId from ticket creation payload.
 - Update ECS find_def to use the TaskDefFamily from the service endpoint, fixing update_image when the service name and task definition family are different.
 - Added debug logging to wait functions
 - Added additional normalization to image names.
 - Updated some spelling errors in error messages and doc strings
+- Fixed all the documentation issues in the ECS resource
 
 ### Added
 
@@ -79,7 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The aws_secrets resource was inconsistent with how other similar resources work. This is a breaking change that changes how you interact with aws secrets. [Please read more about how to properly use this resource in the wiki](https://cli.duplocloud.com/AwsSecret/). The create and update methods both changed and follow the same style of usage.
-
 - ECS tasks failed when cpu/memory are not present in the task definition, which is allowed for EC2-hosted services.
 
 ## [0.2.51] - 2025-05-29
@@ -139,7 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
- - Fixed issue where AgentPlatform key needed to be copied up to the top level of the service object
+- Fixed issue where AgentPlatform key needed to be copied up to the top level of the service object
 
 ## [0.2.45] - 2025-02-25
 
@@ -151,15 +152,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-  - Added support for updating the environment variables of a lambda.
-  - Added support for SSM Parameter CRUD operations.
-  - Added support for AWS Secrets Manager
-  - Added support for configuring a load balancer for a service.
-  - start, stop, restart for service with `--wait`
+- Added support for updating the environment variables of a lambda.
+- Added support for SSM Parameter CRUD operations.
+- Added support for AWS Secrets Manager
+- Added support for configuring a load balancer for a service.
+- start, stop, restart for service with `--wait`
 
 ### Fixed
 
-  - Fixed duploctl ecs update_image service bug
+- Fixed duploctl ecs update_image service bug
 
 ## [0.2.41] - 2024-12-06
 
@@ -171,39 +172,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-  - Removed potential cyclic dependencies in `docker-compose.yaml` by explicitly defining inherited sections
+- Removed potential cyclic dependencies in `docker-compose.yaml` by explicitly defining inherited sections
 
 ## [0.2.39] - 2024-11-12
 
 ### Fixed
 
-  - Issue with wait breaking when a pod didn't have the `Name` key
-  - Jobs were not failing gracefully when waiting for completion but faults were present for pods on the job
+- Issue with wait breaking when a pod didn't have the `Name` key
+- Jobs were not failing gracefully when waiting for completion but faults were present for pods on the job
 
 ## [0.2.38] - 2024-10-28
 
 ### Added
 
-  - much better local installer for gha actions
-  - Update Kubeconfig now has a name argument to name the user/context anything you want.
-  - Update Kubeconfig will always name the server after the Plan. This will share the same server for all tenants in the same plan. Also prevents unnecessary duplicates of the same server.
-  - Update kubeconfig will update the sections instead of skipping if they already exist. For example you can switch to interactive mode.
-  - Added more duplo component versions to the version command.
+- much better local installer for gha actions
+- Update Kubeconfig now has a name argument to name the user/context anything you want.
+- Update Kubeconfig will always name the server after the Plan. This will share the same server for all tenants in the same plan. Also prevents unnecessary duplicates of the same server.
+- Update kubeconfig will update the sections instead of skipping if they already exist. For example you can switch to interactive mode.
+- Added more duplo component versions to the version command.
 
 ### Fixed
 
-  - fixed the duplicating user section in the update kubeconfig command.
-  - fixed the wait on bulk update image.
+- fixed the duplicating user section in the update kubeconfig command.
+- fixed the wait on bulk update image.
 
 ## [0.2.37] - 2024-10-18
 
 ### Fixed
 
-  - Fixed handling of case in name/value keys in environment variables as backend permits both.
-  - Fixes issue in service update argument where strategy required three dashes.
-  - Gracefully handles situations where user attempts to merge with a service that has no existing env vars.
-  - Fixed issue where the wait flag would cause an error when updating an image and the images were the same.
-  - Fixed issue when updating an image and the image was the same, it would not report the last deployed by when and who
+- Fixed handling of case in name/value keys in environment variables as backend permits both.
+- Fixes issue in service update argument where strategy required three dashes.
+- Gracefully handles situations where user attempts to merge with a service that has no existing env vars.
+- Fixed issue where the wait flag would cause an error when updating an image and the images were the same.
+- Fixed issue when updating an image and the image was the same, it would not report the last deployed by when and who
 
 ## [0.2.36] - 2024-09-25
 
@@ -280,8 +281,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - New aws plugin which can
-  - generate boto3 clients using JIT
-  - `update_website` command to push new code to an S3 bucket and invalidate the cloudfront cache
+   - generate boto3 clients using JIT
+   - `update_website` command to push new code to an S3 bucket and invalidate the cloudfront cache
+
 - Tenant resource has a new `region` command to get just the current region for the tenant.
 - generating an aws profile without a name will default to "duplo"
 - publish linux/arm64 standalone binary
