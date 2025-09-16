@@ -132,10 +132,11 @@ jobs:
   installer_darwin_arm64:
     name: Pyinstaller for Mac Arm64
     if: inputs.include_mac_arm64
-    runs-on:
-    - self-hosted
-    - darwin
-    - arm64
+    # runs-on:
+    # - self-hosted
+    # - darwin
+    # - arm64
+    runs-on: macos-latest-xlarge
     env:
       PY_VERSION: ${{ vars.PY_VERSION }}
     steps:
