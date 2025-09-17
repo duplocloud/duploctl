@@ -81,6 +81,8 @@ jobs:
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
 
+        echo "The arch is $(uname -m)"
+
     - name: Setup
       id: setup
       uses: duplocloud/duploctl/.github/actions/setup@main
