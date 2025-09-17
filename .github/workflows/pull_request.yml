@@ -11,7 +11,7 @@ permissions:
 jobs: 
 
   prerequisites:
-    name: PR Checks
+    name: Prerequisites
     runs-on: ubuntu-latest
     steps:
     - name: Auto Assign 
