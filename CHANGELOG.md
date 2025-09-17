@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed all the documentation issues in the ECS resource
 - darwin arm builds are now stable with the new large runners
 
+### Added
+
+- Implement `tenant get_metadata` and `tenant set_metadata` commands for managing tenant metadata.
+  - `get_metadata`: List all metadata entries for a tenant.
+  - `set_metadata`: Create/delete metadata with `--metadata key type value` and `--delete key` flags.
+  - Supported types: aws_console, url, text.
+
 ## [0.3.6] - 2025-08-19
 
 ### Fixed

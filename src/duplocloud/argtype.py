@@ -8,6 +8,8 @@ import json
 import os
 from .errors import DuploError
 
+ALLOWED_METADATA_TYPES = {"aws_console", "url", "text"}
+
 class Arg(NewType):
   """Duplo ArgType
   
@@ -196,3 +198,22 @@ class DataMapAction(argparse.Action):
     if len(parts) != 2:
       raise argparse.ArgumentTypeError("Literal values must be in the format key=value")
     return parts
+
+class MetadataAction(argparse._AppendAction):
+  """Argparse action for --set enforcing allowed metadata types.
+
+  Each occurrence expects three arguments: key type value. The type must be one of
+  aws_console, url, text (case-insensitive). The stored value is a tuple
+  (key, normalized_type, value).
+  """
+  def __init__(self, option_strings, dest, nargs=3, metavar=("key", "type", "value"), **kwargs):
+    super().__init__(option_strings, dest, nargs=nargs, metavar=metavar, **kwargs)
+  def __call__(self, parser, namespace, values, option_string=None):
+    if len(values) != 3:
+      raise argparse.ArgumentTypeError("--set requires exactly three arguments: key type value")
+    key, mtype, val = values
+    mt_norm = mtype.lower()
+    if mt_norm not in ALLOWED_METADATA_TYPES:
+      raise argparse.ArgumentTypeError(f"Invalid metadata type '{mtype}'. Allowed: aws_console, url, text")
+    # append normalized triple
+    super().__call__(parser, namespace, (key, mt_norm, val), option_string)
