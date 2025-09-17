@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added command to update allocation tags for an ASG resource.
+
 ### Fixed
 
 - Incosistent documentation in the services and jobs. Included examples and info about the --wait arg.

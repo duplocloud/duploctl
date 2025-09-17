@@ -55,6 +55,15 @@ class TestAsg:
         r, _ = asg_resource
         asgs = execute_test(r.list)
         assert isinstance(asgs, list) and len(asgs) > 0
+        
+    @pytest.mark.integration
+    @pytest.mark.dependency(depends=["create_asg"], scope="session")
+    @pytest.mark.order(5)
+    def test_update_allocation_tags(self, asg_resource):
+        r, asg_name = asg_resource
+        test_tags = "duploctl"
+        response = execute_test(r.update_allocation_tags, asg_name, test_tags)
+        assert "Successfully updated allocation tag for asg" in response["message"]
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_asg"], scope="session")
