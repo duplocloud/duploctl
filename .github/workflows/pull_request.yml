@@ -4,14 +4,20 @@ on:
   pull_request:
     branches:
     - main
-
+permissions:
+  issues: write
+  pull-requests: write
 jobs: 
 
-  changelog_check:
-    name: Changelog Updated
+  prerequisites:
+    name: PR Checks
     runs-on: ubuntu-latest
     steps:
-    - name: Make sure changes are logged
+    - name: Auto Assign 
+      uses: kentaro-m/auto-assign-action@v2.0.0
+      with:
+        configuration-path: .github/assign.yml
+    - name: Make sure Changleog is updated
       uses: tarides/changelog-check-action@v3
       with:
         changelog: CHANGELOG.md
