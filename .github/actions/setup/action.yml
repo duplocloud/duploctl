@@ -16,7 +16,7 @@ inputs:
   python-version:
     description: The python version to use
     required: false
-    default: "3.12"
+    default: "3.13"
   app-id:
     description: The GitHub App ID
     required: true
