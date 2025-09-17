@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "options": {
     "env": {
-      "PY_VERSION": "3.12",
+      "PY_VERSION": "3.13",
       "IMAGE": "duplocloud/duploctl",
     }
   },
