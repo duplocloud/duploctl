@@ -57,6 +57,10 @@ jobs:
           runs-on: macos-latest
           multiarch: false
           arch: amd64
+        - name: darwin
+          runs-on: macos-latest-xlarge
+          multiarch: false
+          arch: arm64
     env:
       PY_VERSION: ${{ vars.PY_VERSION }}
     steps:

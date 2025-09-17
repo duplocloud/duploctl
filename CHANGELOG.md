@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added additional normalization to image names.
 - Updated some spelling errors in error messages and doc strings
 - Fixed all the documentation issues in the ECS resource
+- darwin arm builds are now stable with the new large runners
 
 ## [0.3.6] - 2025-08-19
 
