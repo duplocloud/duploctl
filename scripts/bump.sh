@@ -20,8 +20,7 @@ gh auth status || gh auth login --hostname github.com --git-protocol ssh --web -
 gh workflow run publish.yml \
     --ref main \
     -f "action=$1" \
-    -f "push=$2" \
-    -f "include_mac_arm64=true"
+    -f "push=$2"
 
 # while the JOB_ID is empty keep trying to get it every three seconds, but only try 7 times
 while [ -z "$JOB_ID" ]; do
