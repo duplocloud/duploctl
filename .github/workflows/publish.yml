@@ -88,7 +88,6 @@ jobs:
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: true # just pushes to artifacts
-      include_mac_arm64: ${{ inputs.include_mac_arm64 }}
 
   docs:
     name: Docs
