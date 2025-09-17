@@ -41,7 +41,7 @@ def test_restart_service(mocker):
     }
     mocker.patch.object(service, 'find', return_value=mock_service_details)
     # Mock the wait method
-    mocker.patch.object(service, 'wait')
+    mocker.patch.object(service, '_wait')
     # Enable wait flag
     mock_client.wait = True
     service.restart("test-service")
