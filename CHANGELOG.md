@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added command to update allocation tags for an ASG resource.
+
 ### Fixed
 
 - Fixed ASG scale command to properly handle zero values for min and max parameters. Previously, setting min=0 or max=0 would incorrectly raise a "Must provide either min or max" error.
