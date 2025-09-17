@@ -735,14 +735,21 @@ Available Resources:
     """Sanitize Host
     
     Sanitize the host using urlparse. This will ensure that the host is a valid URL and that it is using HTTPS.
+    Handles hosts with or without scheme (http/https).
 
     Args:
       host: The host to sanitize.
     Returns:
-      The sanitized host with scheme.
+      The sanitized host with https scheme.
     """
     if not host:
       return None
+
+    # Check if the host has a scheme
+    if not host.startswith('http://') and not host.startswith('https://'):
+      # If no scheme, prepend https:// temporarily to make urlparse work correctly
+      host = f"https://{host}"
+
     url = urlparse(host)
     return f"https://{url.netloc}"
   
