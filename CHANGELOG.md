@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2025-09-17
+
 ### Added
 
 - Added command to update allocation tags for an ASG resource.
