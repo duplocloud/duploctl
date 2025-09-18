@@ -54,3 +54,33 @@ def test_cache_dir():
   # delete the cache file
   os.remove(cf)
   os.rmdir(cache_dir)
+
+@pytest.mark.unit
+def test_sanitize_host_with_http_scheme():
+  """Test that hosts with http:// scheme are converted to https://"""
+  c = DuploClient(host="http://example.duplocloud.net")
+  assert c.host == "https://example.duplocloud.net"
+
+@pytest.mark.unit
+def test_sanitize_host_with_https_scheme():
+  """Test that hosts with https:// scheme remain https://"""
+  c = DuploClient(host="https://example.duplocloud.net")
+  assert c.host == "https://example.duplocloud.net"
+
+@pytest.mark.unit
+def test_sanitize_host_without_scheme():
+  """Test that hosts without scheme get https:// added"""
+  c = DuploClient(host="example.duplocloud.net")
+  assert c.host == "https://example.duplocloud.net"
+
+@pytest.mark.unit
+def test_sanitize_host_with_path_and_query():
+  """Test that paths and query parameters are removed"""
+  c = DuploClient(host="example.duplocloud.net/path?query=value")
+  assert c.host == "https://example.duplocloud.net"
+
+@pytest.mark.unit
+def test_sanitize_host_with_trailing_slash():
+  """Test that trailing slashes are handled correctly"""
+  c = DuploClient(host="example.duplocloud.net/")
+  assert c.host == "https://example.duplocloud.net"
