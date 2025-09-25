@@ -26,7 +26,7 @@ class DuploAI(DuploTenantResourceV3):
 
     Usage:
       ```sh
-      duploctl ai create_ticket --title <title> --content <content> --agent_name <agent name> --instance_id <instance id> [--helpdesk-origin <origin>] [--api_version v1]
+      duploctl ai create_ticket --title <title> --content <content> --agent_name <agent name> --instance_id <instance id> [--origin <origin>] [--api_version v1]
       ```
 
     Example: Create DuploCloud AI helpdesk ticket
@@ -38,7 +38,7 @@ class DuploAI(DuploTenantResourceV3):
         --content "Build pipeline failed at unit test stage with error ..." \\
         --agent_name "cicd" \\
         --instance_id "cicd" \\
-        --helpdesk-origin "pipelines" \\
+        --origin "pipelines" \\
         --api_version v1
       ```
 
@@ -47,7 +47,7 @@ class DuploAI(DuploTenantResourceV3):
       agent_name: The agent name.
       instance_id: The agent instance ID.
       content: Content or message of the ticket.
-      helpdesk_origin: The helpdesk origin to use for the ticket.
+      helpdesk_origin: The helpdesk origin to use for the ticket (e.g., "pipelines", "api", "duploctl").
       api_version: Helpdesk API version.
 
     Returns:
@@ -75,7 +75,7 @@ class DuploAI(DuploTenantResourceV3):
       payload["process_message"] = True
 
     if helpdesk_origin:
-      payload["helpdesk_origin"] = helpdesk_origin
+      payload["Origin"] = helpdesk_origin
 
     response = self.duplo.post(path, payload)
     data = response.json()
