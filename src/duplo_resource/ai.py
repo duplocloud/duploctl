@@ -47,7 +47,7 @@ class DuploAI(DuploTenantResourceV3):
       agent_name: The agent name.
       instance_id: The agent instance ID.
       content: Content or message of the ticket.
-      helpdesk_origin: The helpdesk origin to use for the ticket (e.g., "pipelines", "api", "duploctl").
+      helpdesk_origin: The helpdesk origin to use for the ticket (e.g., "pipelines", "api", "duploctl"). Defaults to "duploctl" if not specified.
       api_version: Helpdesk API version.
 
     Returns:
@@ -74,8 +74,8 @@ class DuploAI(DuploTenantResourceV3):
       payload["content"] = content
       payload["process_message"] = True
 
-    if helpdesk_origin:
-      payload["Origin"] = helpdesk_origin
+    # Always include Origin field, defaulting to "duploctl" if not specified
+    payload["Origin"] = helpdesk_origin if helpdesk_origin else "duploctl"
 
     response = self.duplo.post(path, payload)
     data = response.json()

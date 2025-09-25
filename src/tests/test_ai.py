@@ -66,6 +66,26 @@ class TestDuploAI:
         assert "ai_response" in response
 
     @pytest.mark.integration
+    @pytest.mark.order(2)
+    def test_create_ticket_with_default_origin(self, helpdesk_resource):
+        """Test creating a helpdesk ticket without origin parameter (should default to 'duploctl')."""
+        response = execute_test(
+            helpdesk_resource.create_ticket,
+            title="Default origin ticket",
+            content="This ticket should use default origin",
+            agent_name=self.ticket_data["agent_name"],
+            instance_id=self.ticket_data["instance_id"],
+            api_version=self.ticket_data.get("api_version", "v1")
+        )
+
+        assert isinstance(response, dict)
+        assert "ticketname" in response
+        assert response["ticketname"]
+        assert "chat_url" in response
+        assert response["chat_url"].endswith(response["ticketname"])
+        assert "ai_response" in response
+
+    @pytest.mark.integration
     @pytest.mark.order(3)
     def test_send_message(self, helpdesk_resource):
         """Test sending a message to an existing ticket."""
