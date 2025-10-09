@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added support for duplo hosts with or without scheme (http/https)
+- Added --origin support for AI helpdesk ticket creation
 
 ## [0.3.7] - 2025-09-17
 
@@ -25,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added debug logging to wait functions
 - Added additional normalization to image names.
 
-### Updates 
+### Updates
 
 - Incosistent documentation in the services and jobs. Included examples and info about the --wait arg.
 - Updated some spelling errors in error messages and doc strings
