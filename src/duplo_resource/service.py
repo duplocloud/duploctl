@@ -171,6 +171,44 @@ class DuploService(DuploTenantResourceV2):
     }
 
   @Command()
+  def update_otherdockerconfig(self,
+                             name: args.NAME,
+                             patches: args.PATCHES = None) -> dict:
+    """Update Other Docker Config of a service.
+
+    Example: Add a new secret reference to OtherDockerConfig:
+      ```sh
+      duploctl service update_otherdockerconfig <service-name> --add EnvFrom/- '{"secretRef":{"name":"add-secret"}}'
+      ```
+
+    Example: Replace existing OtherDockerConfig:
+      ```sh
+      duploctl service update_otherdockerconfig <service-name> --replace /EnvFrom/0/secretRef/name 'updated-secret'
+      ```
+
+    Args:
+      name: The name of the service to update.
+      patches: A list of JSON patches to apply to the service's OtherDockerConfig.
+        The options are `--add`, `--remove`, `--replace`, `--move`, and `--copy`.
+        Then followed by `<path>` and `<value>` for `--add`, `--replace`, and `--test`.
+        The path is relative to OtherDockerConfig root.
+
+    Returns:
+      message: Success message.
+    """
+    body = self.find(name)
+    docker_config = body["Template"].get("OtherDockerConfig", "{}")
+    if isinstance(docker_config, str):
+      docker_config = loads(docker_config)
+    docker_config = self.duplo.jsonpatch(docker_config, patches)
+    body["Template"]["OtherDockerConfig"] = dumps(docker_config)
+    body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
+    self.duplo.post(self.endpoint("ReplicationControllerChangeAll"), body)
+    return {
+      "message": f"Successfully updated OtherDockerConfig for service '{name}'"
+    }
+
+  @Command()
   def create(self,
              body: args.BODY) -> dict:
     """Create a service.
