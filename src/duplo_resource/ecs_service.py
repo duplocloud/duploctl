@@ -299,6 +299,8 @@ class DuploEcsService(DuploTenantResourceV2):
         update_body["Memory"] = container_def["Memory"]
     if container_def.get("MemoryReservation") not in (None, 0):
         update_body["MemoryReservation"] = container_def["MemoryReservation"]
+    if container_def.get("RepositoryCredentials") not in (None, 0):
+        update_body["RepositoryCredentials"] = container_def["RepositoryCredentials"]
     return update_body
 
   @Command()

@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for duplo hosts with or without scheme (http/https)
 - Added update_otherdockerconfig command in service
 
+### Fixed
+- Fixed ecs update_image command to handle RepositoryCredentials values
+
 ## [0.3.7] - 2025-09-17
 
 ### Added
