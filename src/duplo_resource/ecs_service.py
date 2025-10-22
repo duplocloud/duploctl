@@ -264,7 +264,8 @@ class DuploEcsService(DuploTenantResourceV2):
       "InferenceAccelerators": task_def.get("InferenceAccelerators", []),
       "NetworkMode": task_def.get("NetworkMode", {}),
       "ContainerDefinitions": containers,
-      "RuntimePlatform": task_def.get("RuntimePlatform", {})
+      "RuntimePlatform": task_def.get("RuntimePlatform", {}),
+      "RequiresCompatibilities": task_def.get("RequiresCompatibilities", []),
     }
     if task_def.get("Cpu") not in (None, 0):
       result["Cpu"] = task_def["Cpu"]
