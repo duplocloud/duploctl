@@ -47,6 +47,19 @@ def test_update_image_without_container(mocker):
     mock_task_def = {
         "ContainerDefinitions": [
             {"Name": "app", "Image": "old-image:1"}
+        ],
+        "Volumes": [
+            {
+                "ConfiguredAtLaunch": False,
+                "EfsVolumeConfiguration": {
+                    "FileSystemId": "<my-efs-id>",
+                    "RootDirectory": "/",
+                    "TransitEncryption": {
+                        "Value": "ENABLED"
+                    }
+                },
+                "Name": "my-volume"
+            }
         ]
     }
     # Mock service family
