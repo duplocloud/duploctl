@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- updating image for an ecs task definition ignored existing defined volumes when mapping to new payload
+
 ### Added
 
 - Added support for duplo hosts with or without scheme (http/https)
