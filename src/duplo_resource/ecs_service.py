@@ -259,12 +259,20 @@ class DuploEcsService(DuploTenantResourceV2):
       self.__ecs_container_update_body(c)
       for c in task_def.get("ContainerDefinitions", [])
     ]
+
+    def sanitize_efs_port_if_needed(v):
+      if "EfsVolumeConfiguration" in v and "TransitEncryptionPort" in v["EfsVolumeConfiguration"] and v["EfsVolumeConfiguration"]["TransitEncryptionPort"] == 0:
+        del v["EfsVolumeConfiguration"]["TransitEncryptionPort"]
+      return v
+
     result = {
       "Family": task_def["Family"],
       "InferenceAccelerators": task_def.get("InferenceAccelerators", []),
       "NetworkMode": task_def.get("NetworkMode", {}),
       "ContainerDefinitions": containers,
-      "RuntimePlatform": task_def.get("RuntimePlatform", {})
+      "RuntimePlatform": task_def.get("RuntimePlatform", {}),
+      "RequiresCompatibilities": task_def.get("RequiresCompatibilities", []),
+      "Volumes": list(map(sanitize_efs_port_if_needed, task_def.get("Volumes", []))),
     }
     if task_def.get("Cpu") not in (None, 0):
       result["Cpu"] = task_def["Cpu"]
@@ -299,6 +307,8 @@ class DuploEcsService(DuploTenantResourceV2):
         update_body["Memory"] = container_def["Memory"]
     if container_def.get("MemoryReservation") not in (None, 0):
         update_body["MemoryReservation"] = container_def["MemoryReservation"]
+    if container_def.get("RepositoryCredentials") not in (None, 0):
+        update_body["RepositoryCredentials"] = container_def["RepositoryCredentials"]
     return update_body
 
   @Command()

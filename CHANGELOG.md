@@ -7,10 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- updating image for an ecs task definition ignored existing defined volumes when mapping to new payload
+
 ### Added
 
 - Added support for duplo hosts with or without scheme (http/https)
 - Added --origin support for AI helpdesk ticket creation
+- Added update_otherdockerconfig command in service
+
+### Fixed
+
+- Fixed ecs update_image command to handle RepositoryCredentials values
+- Fixed ecs update_image command to handle RequiresCompatibilities value
 
 ## [0.3.7] - 2025-09-17
 

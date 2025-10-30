@@ -21,7 +21,9 @@
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+		   "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+			   "moby": false
+		   }
 	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -41,7 +43,8 @@
 				"ms-python.vscode-pylance",
 				"ms-python.debugpy",
 				"redhat.vscode-yaml",
-				"charliermarsh.ruff"
+				"charliermarsh.ruff",
+				"tamasfe.even-better-toml"
 			],
 			"settings": {
 				"python.defaultInterpreterPath": "/usr/local/bin/python"

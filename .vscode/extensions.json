@@ -2,12 +2,19 @@
   "recommendations": [
     "mads-hartmann.bash-ide-vscode",
     "github.vscode-github-actions",
-    "ms-python.python",
     "spmeesseman.vscode-taskexplorer",
     "redhat.vscode-yaml",
     "samuelcolvin.jinjahtml",
     "tamasfe.even-better-toml",
     "github.vscode-pull-request-github",
-    "charliermarsh.ruff"
+    "charliermarsh.ruff",
+    "eamodio.gitlens",
+    "ms-toolsai.jupyter",
+    "ms-toolsai.vscode-jupyter-cell-tags",
+    "ms-toolsai.jupyter-renderers",
+    "ms-toolsai.vscode-jupyter-powertoys",
+    "ms-toolsai.vscode-jupyter-slideshow",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy"
   ]
 }
