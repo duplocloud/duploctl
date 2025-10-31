@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - updating image for an ecs task definition ignored existing defined volumes when mapping to new payload
+- updating image for an ECS service failed to comprehensively map existing payload properties to new tesk definition version
 
 ### Added
 
