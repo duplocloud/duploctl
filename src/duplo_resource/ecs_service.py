@@ -191,6 +191,14 @@ class DuploEcsService(DuploTenantResourceV2):
     b = self.__ecs_task_def_body(body)
     response = self.duplo.post(path, b)
     return {"arn": response.json()}
+  
+  @Command()
+  def update_taskdef_image(self, name: args.NAME, image: args.IMAGE, container_image: args.CONTAINER_IMAGE) -> dict:
+    """Update Task Definition Image
+    
+    
+
+    """
 
   @Command()
   def update_image(self,
@@ -255,10 +263,20 @@ class DuploEcsService(DuploTenantResourceV2):
     }
 
   def __ecs_task_def_body(self, task_def):
-    containers = [
-      self.__ecs_container_update_body(c)
-      for c in task_def.get("ContainerDefinitions", [])
-    ]
+    def sanitize_container_definition(containerDefinition):
+        if containerDefinition.get("Cpu") in (None, 0):
+          del containerDefinition["Cpu"]
+        if containerDefinition.get("Memory") in (None, 0):
+          del containerDefinition["Memory"]
+        if containerDefinition.get("MemoryReservation") in (None, 0):
+          del containerDefinition["MemoryReservation"]
+        if containerDefinition.get("StartTimeout") in (None, 0):
+          del containerDefinition["StartTimeout"]
+        if containerDefinition.get("StopTimeout") in (None, 0):
+          del containerDefinition["StopTimeout"]
+        return containerDefinition
+    
+    containers = list(map(sanitize_container_definition, task_def.get("ContainerDefinitions", [])))
 
     def sanitize_efs_port_if_needed(v):
       if "EfsVolumeConfiguration" in v and "TransitEncryptionPort" in v["EfsVolumeConfiguration"] and v["EfsVolumeConfiguration"]["TransitEncryptionPort"] == 0:
@@ -280,36 +298,30 @@ class DuploEcsService(DuploTenantResourceV2):
       result["Memory"] = task_def["Memory"]
     if task_def.get("MemoryReservation") not in (None, 0):
       result["MemoryReservation"] = task_def["MemoryReservation"]
+    if "EphemeralStorage" in task_def:
+      result["EphemeralStorage"] = task_def["EphemeralStorage"]
+    if "ExecutionRoleArn" in task_def:
+      result["ExecutionRoleArn"] = task_def["ExecutionRoleArn"]
+    if "InferenceAccelerators" in task_def:
+      result["InferenceAccelerators"] = task_def["InferenceAccelerators"]
+    if "IpcMode" in task_def:
+      result["IpcMode"] = task_def["IpcMode"]
+    if "IpcMode" in task_def:
+      result["IpcMode"] = task_def["IpcMode"]
+    if "NetworkMode" in task_def:
+      result["NetworkMode"] = task_def["NetworkMode"]
+    if "PlacementConstraints" in task_def:
+      result["PlacementConstraints"] = task_def["PlacementConstraints"]
+    if "ProxyConfiguration" in task_def:
+      result["ProxyConfiguration"] = task_def["ProxyConfiguration"]
+    if "RequiresCompatibilities" in task_def:
+      result["RequiresCompatibilities"] = task_def["RequiresCompatibilities"]
+    if "RuntimePlatform" in task_def:
+      result["RuntimePlatform"] = task_def["RuntimePlatform"]
+    if "TaskRoleArn" in task_def:
+      result["TaskRoleArn"] = task_def["TaskRoleArn"]
+
     return result
-
-
-  def __ecs_container_update_body(self, container_def):
-    update_body = {
-        "Essential": container_def.get("Essential"),
-        "Image": container_def.get("Image") ,
-        "Name": container_def.get("Name") ,
-        "PortMappings": container_def.get("PortMappings", []) ,
-        "Environment": container_def.get("Environment", {}) ,
-        "Command": container_def.get("Command", {}) ,
-        "Secrets": container_def.get("Secrets", {}) ,
-        "EnvironmentFiles": container_def.get("EnvironmentFiles", {})
-    }
-
-    # Add LogConfiguration only if it exists in container_def
-    if "LogConfiguration" in container_def:
-        update_body["LogConfiguration"] = container_def["LogConfiguration"]
-    # Add FirelensConfiguration only if it exists in container_def
-    if "FirelensConfiguration" in container_def:
-        update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
-    if container_def.get("Cpu") not in (None, 0):
-        update_body["Cpu"] = container_def["Cpu"]
-    if container_def.get("Memory") not in (None, 0):
-        update_body["Memory"] = container_def["Memory"]
-    if container_def.get("MemoryReservation") not in (None, 0):
-        update_body["MemoryReservation"] = container_def["MemoryReservation"]
-    if container_def.get("RepositoryCredentials") not in (None, 0):
-        update_body["RepositoryCredentials"] = container_def["RepositoryCredentials"]
-    return update_body
 
   @Command()
   def list_tasks(self,
