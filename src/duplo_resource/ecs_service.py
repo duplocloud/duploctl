@@ -194,10 +194,14 @@ class DuploEcsService(DuploTenantResourceV2):
   
   @Command()
   def update_taskdef_image(self, name: args.NAME, image: args.IMAGE, container_image: args.CONTAINER_IMAGE) -> dict:
-    """Update Task Definition Image
-    
+    """Update Image command strictly for task definition
     
 
+
+    Args:
+      name: The name of the family of the ECS task definition
+      image: the new image to use in the new task definition version
+      container-image: A list of key-value pairs to set as container image.
     """
 
   @Command()
@@ -278,7 +282,7 @@ class DuploEcsService(DuploTenantResourceV2):
     
     containers = list(map(sanitize_container_definition, task_def.get("ContainerDefinitions", [])))
 
-    def sanitize_efs_port_if_needed(v):
+    def sanitize_volume(v):
       if "EfsVolumeConfiguration" in v and "TransitEncryptionPort" in v["EfsVolumeConfiguration"] and v["EfsVolumeConfiguration"]["TransitEncryptionPort"] == 0:
         del v["EfsVolumeConfiguration"]["TransitEncryptionPort"]
       return v
@@ -290,7 +294,7 @@ class DuploEcsService(DuploTenantResourceV2):
       "ContainerDefinitions": containers,
       "RuntimePlatform": task_def.get("RuntimePlatform", {}),
       "RequiresCompatibilities": task_def.get("RequiresCompatibilities", []),
-      "Volumes": list(map(sanitize_efs_port_if_needed, task_def.get("Volumes", []))),
+      "Volumes": list(map(sanitize_volume, task_def.get("Volumes", []))),
     }
     if task_def.get("Cpu") not in (None, 0):
       result["Cpu"] = task_def["Cpu"]
