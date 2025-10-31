@@ -191,18 +191,6 @@ class DuploEcsService(DuploTenantResourceV2):
     b = self.__ecs_task_def_body(body)
     response = self.duplo.post(path, b)
     return {"arn": response.json()}
-  
-  @Command()
-  def update_taskdef_image(self, name: args.NAME, image: args.IMAGE, container_image: args.CONTAINER_IMAGE) -> dict:
-    """Update Image command strictly for task definition
-    
-
-
-    Args:
-      name: The name of the family of the ECS task definition
-      image: the new image to use in the new task definition version
-      container-image: A list of key-value pairs to set as container image.
-    """
 
   @Command()
   def update_image(self,
