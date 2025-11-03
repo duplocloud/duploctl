@@ -121,7 +121,7 @@ def test_find_def_uses_taskdef_family_from_service(mocker):
     assert result == {'TaskDefinitionArn': 'arn:tdf:2'}
 
 @pytest.mark.unit
-def test_manual_taskdef_mapping(mocker):
+def test_taskdef_mapping_comprehensive_enough(mocker):
     mock_client = mocker.MagicMock()
     service = DuploEcsService(mock_client)
 
@@ -192,3 +192,53 @@ def test_manual_taskdef_mapping(mocker):
     assert result["Volumes"] == existing_taskdef["Volumes"]
     assert result["Family"] == existing_taskdef["Family"]
     assert result["ContainerDefinitions"] == existing_taskdef["ContainerDefinitions"]
+
+@pytest.mark.unit
+def test_taskdef_mapping_properly_sanitizes_properties(mocker):
+    mock_client = mocker.MagicMock()
+    service = DuploEcsService(mock_client)
+    existing_taskdef = {
+        "Family": "my-family",
+        "ContainerDefinitions": [
+            {
+                "Name": "app",
+                "Image": "my-image:1",
+                "Cpu": 0,
+                "Memory": 0,
+                "MemoryReservation": 0,
+                "StartTimeout": 0,
+                "StopTimeout": 0,
+                "MountPoints" : [
+                    {
+                        "ContainerPath" : "/mnt/my-volume",
+                        "ReadOnly" : "false",
+                        "SourceVolume" : "my-volume"
+                    }
+                ]
+            }
+        ],
+        "Volumes": [
+            {
+                "ConfiguredAtLaunch": False,
+                "EfsVolumeConfiguration": {
+                    "FileSystemId": "<my-efs-id>",
+                    "RootDirectory": "/",
+                    "TransitEncryption": {
+                        "Value": "ENABLED"
+                    },
+                    "TransitEncryptionPort": 0
+                },
+                "Name": "my-volume"
+            }
+        ]
+    }
+
+    result = execute_test(service._DuploEcsService__ecs_task_def_body, existing_taskdef)
+
+    assert "Cpu" not in result["ContainerDefinitions"][0]
+    assert "Memory" not in result["ContainerDefinitions"][0]
+    assert "MemoryReservation" not in result["ContainerDefinitions"][0]
+    assert "StartTimeout" not in result["ContainerDefinitions"][0]
+    assert "StopTimeout" not in result["ContainerDefinitions"][0]
+
+    assert "TransitEncryptionPort" not in result["Volumes"][0]["EfsVolumeConfiguration"]
