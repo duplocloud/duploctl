@@ -122,15 +122,6 @@ def test_find_def_uses_taskdef_family_from_service(mocker):
 
 @pytest.mark.unit
 def test_manual_taskdef_mapping(mocker):
-
-    class DuploEcsServiceStub(DuploEcsService):
-        def __init__(self, duplo: DuploClient):
-            super().__init__(duplo)
-
-        def map_taskdef_stub(self, taskdef):
-            return super.__ecs_task_def_body(taskdef)
-            
-
     mock_client = mocker.MagicMock()
     service = DuploEcsService(mock_client)
 
