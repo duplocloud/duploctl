@@ -256,15 +256,15 @@ class DuploEcsService(DuploTenantResourceV2):
 
   def __ecs_task_def_body(self, task_def):
     def sanitize_container_definition(containerDefinition):
-        if containerDefinition.get("Cpu") in (None, 0):
+        if containerDefinition.get("Cpu") == 0:
           del containerDefinition["Cpu"]
-        if containerDefinition.get("Memory") in (None, 0):
+        if containerDefinition.get("Memory") == 0:
           del containerDefinition["Memory"]
-        if containerDefinition.get("MemoryReservation") in (None, 0):
+        if containerDefinition.get("MemoryReservation") == 0:
           del containerDefinition["MemoryReservation"]
-        if containerDefinition.get("StartTimeout") in (None, 0):
+        if containerDefinition.get("StartTimeout") == 0:
           del containerDefinition["StartTimeout"]
-        if containerDefinition.get("StopTimeout") in (None, 0):
+        if containerDefinition.get("StopTimeout") == 0:
           del containerDefinition["StopTimeout"]
         return containerDefinition
     
@@ -294,22 +294,14 @@ class DuploEcsService(DuploTenantResourceV2):
       result["EphemeralStorage"] = task_def["EphemeralStorage"]
     if "ExecutionRoleArn" in task_def:
       result["ExecutionRoleArn"] = task_def["ExecutionRoleArn"]
-    if "InferenceAccelerators" in task_def:
-      result["InferenceAccelerators"] = task_def["InferenceAccelerators"]
     if "IpcMode" in task_def:
       result["IpcMode"] = task_def["IpcMode"]
     if "IpcMode" in task_def:
       result["IpcMode"] = task_def["IpcMode"]
-    if "NetworkMode" in task_def:
-      result["NetworkMode"] = task_def["NetworkMode"]
     if "PlacementConstraints" in task_def:
       result["PlacementConstraints"] = task_def["PlacementConstraints"]
     if "ProxyConfiguration" in task_def:
       result["ProxyConfiguration"] = task_def["ProxyConfiguration"]
-    if "RequiresCompatibilities" in task_def:
-      result["RequiresCompatibilities"] = task_def["RequiresCompatibilities"]
-    if "RuntimePlatform" in task_def:
-      result["RuntimePlatform"] = task_def["RuntimePlatform"]
     if "TaskRoleArn" in task_def:
       result["TaskRoleArn"] = task_def["TaskRoleArn"]
 
