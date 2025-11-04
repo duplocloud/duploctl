@@ -94,22 +94,20 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def find_def(self,
                name: args.NAME):
-    """Find a ECS task definition by name.
+    """Find the latest version of an ECS task definition by family name.
 
     Args:
-      name: The name of the ECS task definition to find.
+      name: The family name of the ECS task definition to find.
 
     Returns:
-      task_definition: The ECS task definition object.
+      task_definition: The latest version of that ECS task definition in the family.
 
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
     name = self.prefixed_name(name)
-    svcFam = self.find_service_family(name)
-    family = svcFam["TaskDefFamily"]
-    tdf = self.find_task_def_family(family)
-    arn = tdf["VersionArns"][-1]
+    task_definition_family = self.find_task_def_family(name)
+    arn = task_definition_family["VersionArns"][-1]
     return self.find_def_by_arn(arn)
 
   @Command()
@@ -199,14 +197,16 @@ class DuploEcsService(DuploTenantResourceV2):
                    container_image: args.CONTAINER_IMAGE = None) -> dict:
     """Update Image
     
-    Update the image for an ECS task definition and service container if one exists.
+    Creates a new task definition version cloning the latest existing version in the family except for image arguments
+
+    If task family is used by an ECS service, method also updates the service to use that newly created definition version
 
     Usage: Basic CLI Use
       ```sh
-        duploctl ecs update_image <service-name> <service-image>
+        duploctl ecs update_image <task-definition-family-name> <new-image>
       ```
       ```sh
-        duploctl ecs update_image <service-name> --container-image <container-name> <container-image>
+        duploctl ecs update_image <task-definition-family-name> --container-image <container-name> <new-container-image>
       ```
 
     Example: Update image and wait
@@ -217,7 +217,7 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Args:
-      name: The name of the ECS service to update.
+      name: The name of the ECS task definition family to update.
       image: The new image to use for the container.
       container-image: A list of key-value pairs to set as container image.
 
@@ -225,7 +225,7 @@ class DuploEcsService(DuploTenantResourceV2):
       dict: A dictionary containing a message about the update status.
 
     Raises:
-      DuploError: If the ECS service could not be updated.
+      DuploError: If the ECS task definition family could not be updated.
     """
     name = self.prefixed_name(name)
     tdf = self.find_def(name)
@@ -296,8 +296,6 @@ class DuploEcsService(DuploTenantResourceV2):
       result["ExecutionRoleArn"] = task_def["ExecutionRoleArn"]
     if "IpcMode" in task_def:
       result["IpcMode"] = task_def["IpcMode"]
-    if "IpcMode" in task_def:
-      result["IpcMode"] = task_def["IpcMode"]
     if "PlacementConstraints" in task_def:
       result["PlacementConstraints"] = task_def["PlacementConstraints"]
     if "ProxyConfiguration" in task_def:
@@ -334,13 +332,13 @@ class DuploEcsService(DuploTenantResourceV2):
   def run_task(self,
                name: args.NAME,
                replicas: args.REPLICAS) -> dict:
-    """Run a task for an ECS service."
+    """Run a task from an ECS task definition family's latest definition version."
 
     Execute a task based on some definition.
 
     Usage: Basic CLI Use
       ```sh
-      duploctl ecs run_task <service-name> <replicas>
+      duploctl ecs run_task <task-definition-family-name> <replicas>
       ```
 
     Example: Wait for task to complete
@@ -351,7 +349,7 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Args:
-      name: The name of the ECS service to run the task for.
+      name: The name of the ECS task definition family the task will be spawned from.
       replicas: The number of replicas to run.
 
     Returns:
