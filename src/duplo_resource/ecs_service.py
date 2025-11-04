@@ -331,13 +331,13 @@ class DuploEcsService(DuploTenantResourceV2):
   def run_task(self,
                name: args.NAME,
                replicas: args.REPLICAS) -> dict:
-    """Run a task for an ECS service."
+    """Run a task from an ECS task definition family's latest definition version."
 
     Execute a task based on some definition.
 
     Usage: Basic CLI Use
       ```sh
-      duploctl ecs run_task <service-name> <replicas>
+      duploctl ecs run_task <task-definition-family-name> <replicas>
       ```
 
     Example: Wait for task to complete
@@ -348,7 +348,7 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Args:
-      name: The name of the ECS service to run the task for.
+      name: The name of the ECS task definition family the task will be spawned from.
       replicas: The number of replicas to run.
 
     Returns:
