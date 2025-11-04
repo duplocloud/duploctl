@@ -197,14 +197,16 @@ class DuploEcsService(DuploTenantResourceV2):
                    container_image: args.CONTAINER_IMAGE = None) -> dict:
     """Update Image
     
-    Update the image for an ECS task definition and service container if one exists.
+    Creates a new task definition version cloning the latest existing version in the family except for image arguments
+
+    If task family is used by an ECS service, method also updates the service to use that newly created definition version
 
     Usage: Basic CLI Use
       ```sh
-        duploctl ecs update_image <service-name> <service-image>
+        duploctl ecs update_image <task-definition-family-name> <new-image>
       ```
       ```sh
-        duploctl ecs update_image <service-name> --container-image <container-name> <container-image>
+        duploctl ecs update_image <task-definition-family-name> --container-image <container-name> <new-container-image>
       ```
 
     Example: Update image and wait
@@ -215,7 +217,7 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Args:
-      name: The name of the ECS service to update.
+      name: The name of the ECS task definition family to update.
       image: The new image to use for the container.
       container-image: A list of key-value pairs to set as container image.
 
@@ -223,11 +225,10 @@ class DuploEcsService(DuploTenantResourceV2):
       dict: A dictionary containing a message about the update status.
 
     Raises:
-      DuploError: If the ECS service could not be updated.
+      DuploError: If the ECS task definition family could not be updated.
     """
     name = self.prefixed_name(name)
-    ecs_service = self.find_service_family(name)
-    tdf = self.find_def(ecs_service["TaskDefFamily"])
+    tdf = self.find_def(name)
     if container_image:
       container_updates = dict(container_image)
       for container_def in tdf["ContainerDefinitions"]:
