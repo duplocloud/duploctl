@@ -94,22 +94,20 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def find_def(self,
                name: args.NAME):
-    """Find a ECS task definition by name.
+    """Find the latest version of an ECS task definition by family name.
 
     Args:
-      name: The name of the ECS task definition to find.
+      name: The family name of the ECS task definition to find.
 
     Returns:
-      task_definition: The ECS task definition object.
+      task_definition: The latest version of that ECS task definition in the family.
 
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
     name = self.prefixed_name(name)
-    svcFam = self.find_service_family(name)
-    family = svcFam["TaskDefFamily"]
-    tdf = self.find_task_def_family(family)
-    arn = tdf["VersionArns"][-1]
+    task_definition_family = self.find_task_def_family(name)
+    arn = task_definition_family["VersionArns"][-1]
     return self.find_def_by_arn(arn)
 
   @Command()
@@ -228,7 +226,8 @@ class DuploEcsService(DuploTenantResourceV2):
       DuploError: If the ECS service could not be updated.
     """
     name = self.prefixed_name(name)
-    tdf = self.find_def(name)
+    ecs_service = self.find_service_family(name)
+    tdf = self.find_def(ecs_service["TaskDefFamily"])
     if container_image:
       container_updates = dict(container_image)
       for container_def in tdf["ContainerDefinitions"]:
@@ -294,8 +293,6 @@ class DuploEcsService(DuploTenantResourceV2):
       result["EphemeralStorage"] = task_def["EphemeralStorage"]
     if "ExecutionRoleArn" in task_def:
       result["ExecutionRoleArn"] = task_def["ExecutionRoleArn"]
-    if "IpcMode" in task_def:
-      result["IpcMode"] = task_def["IpcMode"]
     if "IpcMode" in task_def:
       result["IpcMode"] = task_def["IpcMode"]
     if "PlacementConstraints" in task_def:
