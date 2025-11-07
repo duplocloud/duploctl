@@ -94,22 +94,20 @@ class DuploEcsService(DuploTenantResourceV2):
   @Command()
   def find_def(self,
                name: args.NAME):
-    """Find a ECS task definition by name.
+    """Find the latest version of an ECS task definition by family name.
 
     Args:
-      name: The name of the ECS task definition to find.
+      name: The family name of the ECS task definition to find.
 
     Returns:
-      task_definition: The ECS task definition object.
+      task_definition: The latest version of that ECS task definition in the family.
 
     Raises:
       DuploError: If the ECS task definition could not be found.
     """
     name = self.prefixed_name(name)
-    svcFam = self.find_service_family(name)
-    family = svcFam["TaskDefFamily"]
-    tdf = self.find_task_def_family(family)
-    arn = tdf["VersionArns"][-1]
+    task_definition_family = self.find_task_def_family(name)
+    arn = task_definition_family["VersionArns"][-1]
     return self.find_def_by_arn(arn)
 
   @Command()
@@ -199,14 +197,16 @@ class DuploEcsService(DuploTenantResourceV2):
                    container_image: args.CONTAINER_IMAGE = None) -> dict:
     """Update Image
     
-    Update the image for an ECS task definition and service container if one exists.
+    Creates a new task definition version cloning the latest existing version in the family except for image arguments
+
+    If task family is used by an ECS service, method also updates the service to use that newly created definition version
 
     Usage: Basic CLI Use
       ```sh
-        duploctl ecs update_image <service-name> <service-image>
+        duploctl ecs update_image <task-definition-family-name> <new-image>
       ```
       ```sh
-        duploctl ecs update_image <service-name> --container-image <container-name> <container-image>
+        duploctl ecs update_image <task-definition-family-name> --container-image <container-name> <new-container-image>
       ```
 
     Example: Update image and wait
@@ -217,7 +217,7 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Args:
-      name: The name of the ECS service to update.
+      name: The name of the ECS task definition family to update.
       image: The new image to use for the container.
       container-image: A list of key-value pairs to set as container image.
 
@@ -225,7 +225,7 @@ class DuploEcsService(DuploTenantResourceV2):
       dict: A dictionary containing a message about the update status.
 
     Raises:
-      DuploError: If the ECS service could not be updated.
+      DuploError: If the ECS task definition family could not be updated.
     """
     name = self.prefixed_name(name)
     tdf = self.find_def(name)
@@ -255,12 +255,22 @@ class DuploEcsService(DuploTenantResourceV2):
     }
 
   def __ecs_task_def_body(self, task_def):
-    containers = [
-      self.__ecs_container_update_body(c)
-      for c in task_def.get("ContainerDefinitions", [])
-    ]
+    def sanitize_container_definition(containerDefinition):
+        if containerDefinition.get("Cpu") == 0:
+          del containerDefinition["Cpu"]
+        if containerDefinition.get("Memory") == 0:
+          del containerDefinition["Memory"]
+        if containerDefinition.get("MemoryReservation") == 0:
+          del containerDefinition["MemoryReservation"]
+        if containerDefinition.get("StartTimeout") == 0:
+          del containerDefinition["StartTimeout"]
+        if containerDefinition.get("StopTimeout") == 0:
+          del containerDefinition["StopTimeout"]
+        return containerDefinition
+    
+    containers = list(map(sanitize_container_definition, task_def.get("ContainerDefinitions", [])))
 
-    def sanitize_efs_port_if_needed(v):
+    def sanitize_volume(v):
       if "EfsVolumeConfiguration" in v and "TransitEncryptionPort" in v["EfsVolumeConfiguration"] and v["EfsVolumeConfiguration"]["TransitEncryptionPort"] == 0:
         del v["EfsVolumeConfiguration"]["TransitEncryptionPort"]
       return v
@@ -272,7 +282,7 @@ class DuploEcsService(DuploTenantResourceV2):
       "ContainerDefinitions": containers,
       "RuntimePlatform": task_def.get("RuntimePlatform", {}),
       "RequiresCompatibilities": task_def.get("RequiresCompatibilities", []),
-      "Volumes": list(map(sanitize_efs_port_if_needed, task_def.get("Volumes", []))),
+      "Volumes": list(map(sanitize_volume, task_def.get("Volumes", []))),
     }
     if task_def.get("Cpu") not in (None, 0):
       result["Cpu"] = task_def["Cpu"]
@@ -280,36 +290,20 @@ class DuploEcsService(DuploTenantResourceV2):
       result["Memory"] = task_def["Memory"]
     if task_def.get("MemoryReservation") not in (None, 0):
       result["MemoryReservation"] = task_def["MemoryReservation"]
+    if "EphemeralStorage" in task_def:
+      result["EphemeralStorage"] = task_def["EphemeralStorage"]
+    if "ExecutionRoleArn" in task_def:
+      result["ExecutionRoleArn"] = task_def["ExecutionRoleArn"]
+    if "IpcMode" in task_def:
+      result["IpcMode"] = task_def["IpcMode"]
+    if "PlacementConstraints" in task_def:
+      result["PlacementConstraints"] = task_def["PlacementConstraints"]
+    if "ProxyConfiguration" in task_def:
+      result["ProxyConfiguration"] = task_def["ProxyConfiguration"]
+    if "TaskRoleArn" in task_def:
+      result["TaskRoleArn"] = task_def["TaskRoleArn"]
+
     return result
-
-
-  def __ecs_container_update_body(self, container_def):
-    update_body = {
-        "Essential": container_def.get("Essential"),
-        "Image": container_def.get("Image") ,
-        "Name": container_def.get("Name") ,
-        "PortMappings": container_def.get("PortMappings", []) ,
-        "Environment": container_def.get("Environment", {}) ,
-        "Command": container_def.get("Command", {}) ,
-        "Secrets": container_def.get("Secrets", {}) ,
-        "EnvironmentFiles": container_def.get("EnvironmentFiles", {})
-    }
-
-    # Add LogConfiguration only if it exists in container_def
-    if "LogConfiguration" in container_def:
-        update_body["LogConfiguration"] = container_def["LogConfiguration"]
-    # Add FirelensConfiguration only if it exists in container_def
-    if "FirelensConfiguration" in container_def:
-        update_body["FirelensConfiguration"] = container_def["FirelensConfiguration"]
-    if container_def.get("Cpu") not in (None, 0):
-        update_body["Cpu"] = container_def["Cpu"]
-    if container_def.get("Memory") not in (None, 0):
-        update_body["Memory"] = container_def["Memory"]
-    if container_def.get("MemoryReservation") not in (None, 0):
-        update_body["MemoryReservation"] = container_def["MemoryReservation"]
-    if container_def.get("RepositoryCredentials") not in (None, 0):
-        update_body["RepositoryCredentials"] = container_def["RepositoryCredentials"]
-    return update_body
 
   @Command()
   def list_tasks(self,
@@ -338,13 +332,13 @@ class DuploEcsService(DuploTenantResourceV2):
   def run_task(self,
                name: args.NAME,
                replicas: args.REPLICAS) -> dict:
-    """Run a task for an ECS service."
+    """Run a task from an ECS task definition family's latest definition version."
 
     Execute a task based on some definition.
 
     Usage: Basic CLI Use
       ```sh
-      duploctl ecs run_task <service-name> <replicas>
+      duploctl ecs run_task <task-definition-family-name> <replicas>
       ```
 
     Example: Wait for task to complete
@@ -355,7 +349,7 @@ class DuploEcsService(DuploTenantResourceV2):
       ```
 
     Args:
-      name: The name of the ECS service to run the task for.
+      name: The name of the ECS task definition family the task will be spawned from.
       replicas: The number of replicas to run.
 
     Returns:

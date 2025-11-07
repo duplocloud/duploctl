@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import ANY, MagicMock
 from duplo_resource.ecs_service import DuploEcsService
+from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
 from tests.test_utils import execute_test, assert_response
 
@@ -46,20 +47,7 @@ def test_update_image_without_container(mocker):
     # Mock task definition with single container
     mock_task_def = {
         "ContainerDefinitions": [
-            {"Name": "app", "Image": "old-image:1"}
-        ],
-        "Volumes": [
-            {
-                "ConfiguredAtLaunch": False,
-                "EfsVolumeConfiguration": {
-                    "FileSystemId": "<my-efs-id>",
-                    "RootDirectory": "/",
-                    "TransitEncryption": {
-                        "Value": "ENABLED"
-                    }
-                },
-                "Name": "my-volume"
-            }
+            { "Name": "app", "Image": "old-image:1" }
         ]
     }
     # Mock service family
@@ -108,26 +96,124 @@ def test_update_image_no_service(mocker):
     assert_response(result, "No Service Configured, only the definition is updated.")
 
 @pytest.mark.unit
-def test_find_def_uses_taskdef_family_from_service(mocker):
+def test_taskdef_mapping_comprehensive_enough(mocker):
     mock_client = mocker.MagicMock()
     service = DuploEcsService(mock_client)
 
-    # Arrange
-    mocker.patch.object(service, 'prefixed_name', return_value='prefixed-svc')
-    mocker.patch.object(service, 'find_service_family', return_value={
-        'TaskDefFamily': 'actual-family'
-    })
-    mock_find_tdf = mocker.patch.object(service, 'find_task_def_family', return_value={
-        'VersionArns': ['arn:tdf:1', 'arn:tdf:2']
-    })
-    mock_find_by_arn = mocker.patch.object(service, 'find_def_by_arn', return_value={
-        'TaskDefinitionArn': 'arn:tdf:2'
-    })
+    existing_taskdef = {
+        "Family": "my-family",
+        "ContainerDefinitions": [
+            {
+                "Name": "app",
+                "Image": "my-image:1",
+                "CredentialSpecs" : [],
+                "Environment" : [
+                    {
+                        "Name" : "ENV_VAR1",
+                        "Value" : "VALUE1"
+                    },
+                    {
+                        "Name" : "ENV_VAR2",
+                        "Value" : "VALUE2"
+                    },
+                ],
+                "EnvironmentFiles" : [
+                    {
+                    "Type" : {
+                        "Value" : "s3"
+                    },
+                    "Value" : "arn:aws:s3:::my-example-bucket/sample.env"
+                    }
+                ],
+                "LogConfiguration" : {
+                    "LogDriver" : {
+                        "Value" : "dummy-driver"
+                    },
+                    "Options" : {
+                        "OptionKey1": "OptionValue1",
+                        "OptionKey2": "OptionValue2"
+                    },
+                    "SecretOptions" : []
+                },
+                "stopTimeout" : 120,
+                "MountPoints" : [
+                    {
+                        "ContainerPath" : "/mnt/my-volume",
+                        "ReadOnly" : "false",
+                        "SourceVolume" : "my-volume"
+                    }
+                ]
+            }
+        ],
+        "Volumes": [
+            {
+                "ConfiguredAtLaunch": False,
+                "EfsVolumeConfiguration": {
+                    "FileSystemId": "<my-efs-id>",
+                    "RootDirectory": "/",
+                    "TransitEncryption": {
+                        "Value": "ENABLED"
+                    }
+                },
+                "Name": "my-volume"
+            }
+        ]
+    }
 
-    # Act
-    result = execute_test(service.find_def, 'svc-name')
+    # Even though this is a private method and should not be part of a behavior driven test suite
+    # Issues with this method has caused enough problems to justify this extra coverage
+    result = execute_test(service._DuploEcsService__ecs_task_def_body, existing_taskdef)
 
-    # Assert
-    mock_find_tdf.assert_called_once_with('actual-family')
-    mock_find_by_arn.assert_called_once_with('arn:tdf:2')
-    assert result == {'TaskDefinitionArn': 'arn:tdf:2'}
+    assert result["Volumes"] == existing_taskdef["Volumes"]
+    assert result["Family"] == existing_taskdef["Family"]
+    assert result["ContainerDefinitions"] == existing_taskdef["ContainerDefinitions"]
+
+@pytest.mark.unit
+def test_taskdef_mapping_properly_sanitizes_properties(mocker):
+    mock_client = mocker.MagicMock()
+    service = DuploEcsService(mock_client)
+    existing_taskdef = {
+        "Family": "my-family",
+        "ContainerDefinitions": [
+            {
+                "Name": "app",
+                "Image": "my-image:1",
+                "Cpu": 0,
+                "Memory": 0,
+                "MemoryReservation": 0,
+                "StartTimeout": 0,
+                "StopTimeout": 0,
+                "MountPoints" : [
+                    {
+                        "ContainerPath" : "/mnt/my-volume",
+                        "ReadOnly" : "false",
+                        "SourceVolume" : "my-volume"
+                    }
+                ]
+            }
+        ],
+        "Volumes": [
+            {
+                "ConfiguredAtLaunch": False,
+                "EfsVolumeConfiguration": {
+                    "FileSystemId": "<my-efs-id>",
+                    "RootDirectory": "/",
+                    "TransitEncryption": {
+                        "Value": "ENABLED"
+                    },
+                    "TransitEncryptionPort": 0
+                },
+                "Name": "my-volume"
+            }
+        ]
+    }
+
+    result = execute_test(service._DuploEcsService__ecs_task_def_body, existing_taskdef)
+
+    assert "Cpu" not in result["ContainerDefinitions"][0]
+    assert "Memory" not in result["ContainerDefinitions"][0]
+    assert "MemoryReservation" not in result["ContainerDefinitions"][0]
+    assert "StartTimeout" not in result["ContainerDefinitions"][0]
+    assert "StopTimeout" not in result["ContainerDefinitions"][0]
+
+    assert "TransitEncryptionPort" not in result["Volumes"][0]["EfsVolumeConfiguration"]
