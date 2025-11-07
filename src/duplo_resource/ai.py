@@ -18,6 +18,7 @@ class DuploAI(DuploTenantResourceV3):
                     agent_name: args.AGENTNAME,
                     instance_id: args.INSTANCEID,
                     content: args.MESSAGE = None,
+                    helpdesk_origin: args.HELPDESK_ORIGIN = None,
                     api_version: args.APIVERSION = "v1") -> dict:
     """Create DuploCloud AI ticket.
 
@@ -25,7 +26,7 @@ class DuploAI(DuploTenantResourceV3):
 
     Usage:
       ```sh
-      duploctl ai create_ticket --title <title> --content <content> --agent_name <agent name> --instance_id <instance id> [--api_version v1]
+      duploctl ai create_ticket --title <title> --content <content> --agent_name <agent name> --instance_id <instance id> [--origin <origin>] [--api_version v1]
       ```
 
     Example: Create DuploCloud AI helpdesk ticket
@@ -37,6 +38,7 @@ class DuploAI(DuploTenantResourceV3):
         --content "Build pipeline failed at unit test stage with error ..." \\
         --agent_name "cicd" \\
         --instance_id "cicd" \\
+        --origin "pipelines" \\
         --api_version v1
       ```
 
@@ -45,13 +47,14 @@ class DuploAI(DuploTenantResourceV3):
       agent_name: The agent name.
       instance_id: The agent instance ID.
       content: Content or message of the ticket.
+      helpdesk_origin: The helpdesk origin to use for the ticket (e.g., "pipelines", "api", "duploctl"). Defaults to "duploctl" if not specified.
       api_version: Helpdesk API version.
 
     Returns:
-      ticket_response: A dictionary containing the following keys:  
-        ticketname : The name of the created AI helpdesk ticket.  
-        ai_response: The AI agent's response object or message content returned from the service.  
-        chat_url: The URL to the helpdesk chat interface for the created ticket.  
+      ticket_response: A dictionary containing the following keys:
+        ticketname : The name of the created AI helpdesk ticket.
+        ai_response: The AI agent's response object or message content returned from the service.
+        chat_url: The URL to the helpdesk chat interface for the created ticket.
     """
     tenant_id = self.tenant_id
     api_version = api_version.strip().lower()
@@ -70,6 +73,9 @@ class DuploAI(DuploTenantResourceV3):
     if content:
       payload["content"] = content
       payload["process_message"] = True
+
+    # Always include Origin field, defaulting to "duploctl" if not specified
+    payload["Origin"] = helpdesk_origin if helpdesk_origin else "duploctl"
 
     response = self.duplo.post(path, payload)
     data = response.json()
@@ -116,9 +122,9 @@ class DuploAI(DuploTenantResourceV3):
       api_version: Helpdesk API version.
 
     Returns:
-      chat_response: A dictionary containing the following keys:  
-        ai_response: The AI agent's response object or message content returned from the service.  
-        chat_url: The URL to the helpdesk chat interface for the specified ticket.  
+      chat_response: A dictionary containing the following keys:
+        ai_response: The AI agent's response object or message content returned from the service.
+        chat_url: The URL to the helpdesk chat interface for the specified ticket.
     """
     if not content or not content.strip():
       raise ValueError("The 'content' parameter is required and cannot be empty.")
