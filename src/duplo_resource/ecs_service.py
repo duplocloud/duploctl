@@ -249,7 +249,7 @@ class DuploEcsService(DuploTenantResourceV2):
     if svc:
       self.update_service(svc)
       if self.duplo.wait:
-        self.wait(lambda: self.wait_on_task(name))
+        self.wait(lambda: self._wait_on_task(name))
     return {
       "message": msg
     }
