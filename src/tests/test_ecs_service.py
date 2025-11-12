@@ -62,7 +62,7 @@ def test_update_image_without_container(mocker):
     mocker.patch.object(service, 'update_taskdef', return_value={"arn": "new-arn"})
     mocker.patch.object(service, 'find_service_family', return_value=mock_service_family)
     mocker.patch.object(service, 'update_service')
-    mocker.patch.object(service, 'wait')
+    mocker.patch.object(service, '_wait_on_task')
     # Enable wait flag
     mock_client.wait = True
     # Test updating without specifying container (should update first container)
