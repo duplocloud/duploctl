@@ -375,7 +375,9 @@ class DuploEcsService(DuploTenantResourceV2):
     
     # especially when waiting on ECS service updates, we need to wait until tasks with the new target version have been created
     # before assessing that all tasks have desired status, else wait for ecs services may return immediately unexpectedly
-    has_any_target_task_started = any(t["TaskDefinitionArn"] == target_task_definition_arn for t in tasks)
+    has_any_target_task_started = any(
+      "TaskDefinitionArn" in t and t["TaskDefinitionArn"] == target_task_definition_arn for t in tasks
+      )
 
     # filter the tasks down to any where the DesiredStatus and LastStatus are different
     running_tasks = [t for t in tasks if t["DesiredStatus"] != t["LastStatus"]]
