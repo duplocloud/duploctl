@@ -249,7 +249,7 @@ class DuploEcsService(DuploTenantResourceV2):
     if svc:
       self.update_service(svc)
       if self.duplo.wait:
-        self.wait(lambda: self._wait_on_task(name))
+        self.wait(lambda: self._wait_on_task(name, svc["TaskDefinition"]))
     return {
       "message": msg
     }
@@ -355,6 +355,7 @@ class DuploEcsService(DuploTenantResourceV2):
     Returns:
       message: A message indicating the task has been run.
     """
+    name = self.prefixed_name(name)
     td = self.find_def(name)
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/runEcsTask"
@@ -364,13 +365,19 @@ class DuploEcsService(DuploTenantResourceV2):
     }
     res = self.duplo.post(path, body)
     if self.duplo.wait:
-      self.wait(lambda: self._wait_on_task(name))
+      self.wait(lambda: self._wait_on_task(name, td["TaskDefinitionArn"]))
     return res.json()
 
   def _wait_on_task(self,
-                   name: str) -> None:
+                   name: str,
+                   target_task_definition_arn: str) -> None:
     tasks = self.list_tasks(name)
+    
+    # especially when waiting on ECS service updates, we need to wait until tasks with the new target version have been created
+    # before assessing that all tasks have desired status, else wait for ecs services may return immediately unexpectedly
+    has_any_target_task_started = any(t["TaskDefinitionArn"] == target_task_definition_arn for t in tasks)
+
     # filter the tasks down to any where the DesiredStatus and LastStatus are different
     running_tasks = [t for t in tasks if t["DesiredStatus"] != t["LastStatus"]]
-    if len(running_tasks) > 0:
+    if not has_any_target_task_started or len(running_tasks) > 0:
       raise DuploStillWaiting(f"Service {name} waiting for replicas update")
