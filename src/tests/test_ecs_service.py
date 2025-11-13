@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import ANY, MagicMock
 from duplo_resource.ecs_service import DuploEcsService
 from duplocloud.client import DuploClient
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploStillWaiting
 from tests.test_utils import execute_test, assert_response
 
 @pytest.mark.unit
@@ -217,3 +217,37 @@ def test_taskdef_mapping_properly_sanitizes_properties(mocker):
     assert "StopTimeout" not in result["ContainerDefinitions"][0]
 
     assert "TransitEncryptionPort" not in result["Volumes"][0]["EfsVolumeConfiguration"]
+
+@pytest.mark.unit
+def test_wait_on_task(mocker):
+    mock_client = mocker.MagicMock()
+    service = DuploEcsService(mock_client)
+
+    mock_tasks_delayed_deployment = [
+        { "TaskDefinitionArn": "old_arn", "DesiredStatus": "Running", "LastStatus": "Running" }
+    ]
+
+    mock_tasks_pending = [
+        { "TaskDefinitionArn": "old_arn", "DesiredStatus": "Stopped", "LastStatus": "Draining" },
+        { "TaskDefinitionArn": "my_target_taskdef_arn", "DesiredStatus": "Running", "LastStatus": "Provisioning" },
+    ]
+
+    mock_tasks_stable = [
+        { "TaskDefinitionArn": "old_arn", "DesiredStatus": "Stopped", "LastStatus": "Stopped" },
+        { "TaskDefinitionArn": "my_target_taskdef_arn", "DesiredStatus": "Running", "LastStatus": "Running" },
+    ]
+
+    mocker.patch.object(service, "list_tasks", side_effect=[mock_tasks_delayed_deployment, mock_tasks_pending, mock_tasks_stable])
+
+    # catches wait for cases when service is still in previous state and new deployment has not started
+    with pytest.raises(DuploStillWaiting):
+        service._wait_on_task("test", "my_target_taskdef_arn")
+
+    # catches case where deployment has started but there are still tasks not in desired state
+    with pytest.raises(DuploStillWaiting):
+        service._wait_on_task("test", "my_target_taskdef_arn")
+
+    # settled ecs tasks state should just run and not throw
+    service._wait_on_task("test", "my_target_taskdef_arn")
+
+    
