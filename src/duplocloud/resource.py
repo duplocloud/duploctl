@@ -36,8 +36,9 @@ class DuploResource():
       raise DuploError(f"Invalid command: {name}")
     cliargs = extract_args(command)
     parser = get_parser(cliargs)
-    def wrapped(*args):
+    def wrapped(*args, **kwargs):
       pargs = vars(parser.parse_args(args))
+      pargs.update(kwargs)
       return command(**pargs)
     return wrapped
   

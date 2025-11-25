@@ -39,7 +39,7 @@ class DuploTenant(DuploResource):
   
   @Command()
   def list_users(self, 
-               name: args.NAME) -> dict:
+                 name: args.NAME) -> dict:
     """List users assigned to a tenant
     
     Retrieve a list of all users with access to a tenant

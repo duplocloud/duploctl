@@ -17,7 +17,8 @@ resources = {}
 def Resource(name: str):
   def decorator(cls):
     resources[name] = {
-      "class": cls.__qualname__
+      "class": cls.__qualname__,
+      "parent": cls.__bases__[0].__name__ if cls.__bases__ and cls.__bases__[0].__name__ != "object" else None
     }
     setattr(cls, "kind", name)
     return cls
@@ -159,3 +160,52 @@ def available_formats() -> List[str]:
     A list of available format names.
   """
   return list(fep.names)
+
+def commands_for(name: str) -> dict:
+  """Commands For
+
+  Get all command methods decorated with @Command for a given resource.
+  
+  This function builds a dictionary of all available commands for a resource,
+  including inherited commands from parent classes. Parent class commands are added
+  first to simulate class extension, then the resource's own commands are added,
+  allowing child classes to override parent methods.
+
+  The schema is built from the global `schema` dict which tracks all @Command decorated
+  methods, and the `resources` dict which tracks class inheritance relationships.
+
+  Args:
+    name: The name of the resource (e.g., "tenant", "service").
+    
+  Returns:
+    A dict where keys are method names and values are command metadata dicts containing:
+      - class: The class name where the method is defined
+      - method: The method name
+      - aliases: List of alternative command names
+      
+  Example:
+    ```python
+    commands_for("tenant")
+    # Returns: {"find": {"class": "DuploTenant", "method": "find", "aliases": []}}
+    ```
+  """
+  if name not in resources:
+    raise DuploError(f"Resource named {name} not found.", 404)
+  
+  resource = resources[name]
+  result = {}
+  
+  # First, add parent class methods if parent exists
+  if resource["parent"]:
+    parent_class = resource["parent"]
+    for method_schema in schema.values():
+      if method_schema["class"] == parent_class:
+        result[method_schema["method"]] = method_schema
+  
+  # Then, add or override with the resource's own methods
+  resource_class = resource["class"]
+  for method_schema in schema.values():
+    if method_schema["class"] == resource_class:
+      result[method_schema["method"]] = method_schema
+  
+  return result
