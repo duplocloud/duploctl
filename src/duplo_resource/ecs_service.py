@@ -1,3 +1,4 @@
+import time
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV2
 from duplocloud.errors import DuploError, DuploStillWaiting
@@ -31,6 +32,24 @@ class DuploEcsService(DuploTenantResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     url = f"subscriptions/{tenant_id}/GetEcsServices"
+    response = self.duplo.get(url)
+    return response.json()
+  
+  def list_detailed_services(self) -> list:
+    """List ECS Services
+
+    Retrieve a list of all ECS services in a tenant.
+    
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs list_services
+      ```
+
+    Returns:
+      list: A list of ECS services in the tenant.
+    """
+    tenant_id = self.tenant["TenantId"]
+    url = f"v3/subscriptions/{tenant_id}/aws/ecs/service"
     response = self.duplo.get(url)
     return response.json()
 
@@ -249,7 +268,7 @@ class DuploEcsService(DuploTenantResourceV2):
     if svc:
       self.update_service(svc)
       if self.duplo.wait:
-        self.wait(lambda: self._wait_on_task(name, svc["TaskDefinition"]))
+        self.wait(lambda: self._wait_on_service(svcFam.get("EcsServiceName", None)))
     return {
       "message": msg
     }
@@ -365,21 +384,39 @@ class DuploEcsService(DuploTenantResourceV2):
     }
     res = self.duplo.post(path, body)
     if self.duplo.wait:
-      self.wait(lambda: self._wait_on_task(name, td["TaskDefinitionArn"]))
+      self.wait(lambda: self._wait_on_task(name))
     return res.json()
 
-  def _wait_on_task(self,
-                   name: str,
-                   target_task_definition_arn: str) -> None:
+  def _wait_on_task(self, name: str) -> None:
     tasks = self.list_tasks(name)
-    
-    # especially when waiting on ECS service updates, we need to wait until tasks with the new target version have been created
-    # before assessing that all tasks have desired status, else wait for ecs services may return immediately unexpectedly
-    has_any_target_task_started = any(
-      "TaskDefinitionArn" in t and t["TaskDefinitionArn"] == target_task_definition_arn for t in tasks
-      )
 
     # filter the tasks down to any where the DesiredStatus and LastStatus are different
     running_tasks = [t for t in tasks if t["DesiredStatus"] != t["LastStatus"]]
-    if not has_any_target_task_started or len(running_tasks) > 0:
-      raise DuploStillWaiting(f"Service {name} waiting for replicas update")
+    if len(running_tasks) > 0:
+      raise DuploStillWaiting(f"{name} still have unsettled tasks")
+
+  def _wait_on_service(self, name: str) -> None:
+    if name is None:
+      raise DuploError(f"Attempted to wait on invalid ECS service name \"{name}\"")
+
+    try:
+      services = self.list_detailed_services()
+      service = [found for found in services if found.get("EcsServiceName", None) == name].pop()
+    except IndexError:
+      raise DuploError(f"Unable to find ECS service {name}")
+
+    try:
+      primary_deployment = [deployment for deployment in service.get("AwsEcsService", {}).get("Deployments", []) if deployment.get("Status", None) == "PRIMARY"][0]
+    except IndexError:
+      raise DuploError(f"Failed to find primary deployment for ECS Service {name}")
+
+    state = primary_deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
+
+    if state == "IN_PROGRESS":
+      raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
+    
+    if state == "FAILED":
+      raise DuploError(f"ECS Service {name} deployment failed with reason {primary_deployment.get("RolloutStateReason", "Unknown")}")
+    
+    # if ECS Service primary deployment is not IN_PROGRESS or FAILED, assume COMPLETED and exit
+    return

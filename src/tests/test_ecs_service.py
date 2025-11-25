@@ -62,7 +62,7 @@ def test_update_image_without_container(mocker):
     mocker.patch.object(service, 'update_taskdef', return_value={"arn": "new-arn"})
     mocker.patch.object(service, 'find_service_family', return_value=mock_service_family)
     mocker.patch.object(service, 'update_service')
-    mocker.patch.object(service, '_wait_on_task')
+    mocker.patch.object(service, '_wait_on_service')
     # Enable wait flag
     mock_client.wait = True
     # Test updating without specifying container (should update first container)
@@ -223,10 +223,6 @@ def test_wait_on_task(mocker):
     mock_client = mocker.MagicMock()
     service = DuploEcsService(mock_client)
 
-    mock_tasks_delayed_deployment = [
-        { "TaskDefinitionArn": "old_arn", "DesiredStatus": "Running", "LastStatus": "Running" }
-    ]
-
     mock_tasks_pending = [
         { "TaskDefinitionArn": "old_arn", "DesiredStatus": "Stopped", "LastStatus": "Draining" },
         { "TaskDefinitionArn": "my_target_taskdef_arn", "DesiredStatus": "Running", "LastStatus": "Provisioning" },
@@ -237,17 +233,105 @@ def test_wait_on_task(mocker):
         { "TaskDefinitionArn": "my_target_taskdef_arn", "DesiredStatus": "Running", "LastStatus": "Running" },
     ]
 
-    mocker.patch.object(service, "list_tasks", side_effect=[mock_tasks_delayed_deployment, mock_tasks_pending, mock_tasks_stable])
+    mocker.patch.object(service, "list_tasks", side_effect=[mock_tasks_pending, mock_tasks_stable])
 
     # catches wait for cases when service is still in previous state and new deployment has not started
     with pytest.raises(DuploStillWaiting):
-        service._wait_on_task("test", "my_target_taskdef_arn")
-
-    # catches case where deployment has started but there are still tasks not in desired state
-    with pytest.raises(DuploStillWaiting):
-        service._wait_on_task("test", "my_target_taskdef_arn")
+        service._wait_on_task("test")
 
     # settled ecs tasks state should just run and not throw
-    service._wait_on_task("test", "my_target_taskdef_arn")
+    service._wait_on_task("test")
 
-    
+@pytest.mark.unit
+def test_wait_on_service(mocker):
+    mock_client = mocker.MagicMock()
+    service = DuploEcsService(mock_client)
+
+    # wait on service called with invalid target service name
+    mock_missing_service = [
+        { "EcsServiceName": "not-target-service1" },
+        { "EcsServiceName": "not-target-service2" },
+        { "EcsServiceName": "not-target-service3" },
+    ]
+
+    # wait on service finds target service but struct is mal formed
+    mock_malformed = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {}
+        },
+    ]
+
+    # wait on service finds primary deployment but it is incomplete
+    mock_deployment_incomplete = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "IN_PROGRESS" }
+                    }
+                ]
+            }
+        },
+    ]
+
+    # wait on service finds primary deployment but deployment failed
+    mock_deployment_failed = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "FAILED" },
+                        "RolloutStateReason": "Opsie... My bad"
+                    }
+                ]
+            }
+        },
+    ]
+
+    # wait on service finds primary deployment in complete state
+    mock_deployment_succeeded = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "COMPLETED" },
+                        "RolloutStateReason": "ECS deployment ecs-svc/8289837686899327606 completed."
+                    }
+                ]
+            }
+        },
+    ]
+
+    mocker.patch.object(service, "list_detailed_services", side_effect=[
+        mock_missing_service,
+        mock_malformed,
+        mock_deployment_incomplete,
+        mock_deployment_failed,
+        mock_deployment_succeeded,
+    ])
+
+    # catches wait for cases when target service is not found
+    with pytest.raises(DuploError, match=r"Unable to find ECS service"):
+        service._wait_on_service("target-service")
+
+    # catches wait for cases when target service is malformed
+    with pytest.raises(DuploError, match=r"Failed to find primary deployment for ECS Service"):
+        service._wait_on_service("target-service")
+
+    # catches wait for cases when service primary deployment is in progress
+    with pytest.raises(DuploStillWaiting):
+        service._wait_on_service("target-service")
+
+    # catches wait for cases when target service primary deployment fails
+    with pytest.raises(DuploError, match=r"deployment failed with reason"):
+        service._wait_on_service("target-service")
+
+    # passes if service found with primary dpeloyment in complete state
+    service._wait_on_service("target-service")
