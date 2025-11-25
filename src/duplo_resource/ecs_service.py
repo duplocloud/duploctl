@@ -416,7 +416,7 @@ class DuploEcsService(DuploTenantResourceV2):
       raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
     
     if state == "FAILED":
-      raise DuploError(f"ECS Service {name} deployment failed with reason {primary_deployment.get("RolloutStateReason", "Unknown")}")
+      raise DuploError(f"ECS Service {name} deployment failed with reason {primary_deployment.get('RolloutStateReason', 'Unknown')}")
     
     # if ECS Service primary deployment is not IN_PROGRESS or FAILED, assume COMPLETED and exit
     return
