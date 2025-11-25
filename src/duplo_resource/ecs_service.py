@@ -1,4 +1,3 @@
-import time
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploTenantResourceV2
 from duplocloud.errors import DuploError, DuploStillWaiting
