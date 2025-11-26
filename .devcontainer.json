@@ -15,6 +15,17 @@
 		"dockerfile": "Dockerfile",
 		"target": "dev"
 	},
+
+	// Environment variables for the container
+	"containerEnv": {
+		"DUPLO_USE_VENV": "1"
+	},
+
+	// Load .env file if it exists
+	"runArgs": [
+		"--env-file=${localWorkspaceFolder}/.env"
+	],
+
 	// The optional 'workspaceFolder' property is the path VS Code should open by default when
 	// connected. This is typically a file mount in .devcontainer/docker-compose.yml
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
@@ -47,7 +58,9 @@
 				"tamasfe.even-better-toml"
 			],
 			"settings": {
-				"python.defaultInterpreterPath": "/usr/local/bin/python"
+				"python.defaultInterpreterPath": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/python",
+				"python.envFile": "${workspaceFolder}/.env",
+        		"python.terminal.useEnvFile": true
 			}
 		}
 	}
