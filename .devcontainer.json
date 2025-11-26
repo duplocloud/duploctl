@@ -18,7 +18,12 @@
 
 	// Environment variables for the container
 	"containerEnv": {
-		"DUPLO_USE_VENV": "1"
+		"DUPLO_USE_VENV": "1",
+		"DUPLO_CONFIG": "${containerWorkspaceFolder}/config/duploconfig.yaml",
+		"DUPLO_HOME": "${containerWorkspaceFolder}/config",
+		"DUPLO_CACHE": "${containerWorkspaceFolder}/config/cache",
+		"AWS_CONFIG_FILE": "${containerWorkspaceFolder}/config/aws",
+		"KUBECONFIG": "${containerWorkspaceFolder}/config/kubeconfig.yaml"
 	},
 
 	// Load .env file if it exists
