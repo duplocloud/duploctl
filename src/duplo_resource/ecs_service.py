@@ -35,17 +35,12 @@ class DuploEcsService(DuploTenantResourceV2):
     return response.json()
   
   def list_detailed_services(self) -> list:
-    """List ECS Services
+    """List detailed ECS Services
 
-    Retrieve a list of all ECS services in a tenant.
-    
-    Usage: CLI Usage
-      ```sh
-      duploctl ecs list_services
-      ```
+    Retrieve a list of all detailed ECS services in a tenant.
 
     Returns:
-      list: A list of ECS services in the tenant.
+      list: A list of detailed ECS services in the tenant.
     """
     tenant_id = self.tenant["TenantId"]
     url = f"v3/subscriptions/{tenant_id}/aws/ecs/service"
