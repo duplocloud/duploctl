@@ -1,11 +1,11 @@
 from duplocloud import args
 from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 
-@Resource("secret")
-class DuploSecret(DuploTenantResourceV3):
+@Resource("secret", scope="tenant")
+class DuploSecret(DuploResourceV3):
   """Kubernetes Secrets
   
   This class provides methods to manage Kubernetes Secrets in DuploCloud.

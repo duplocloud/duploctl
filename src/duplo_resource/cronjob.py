@@ -1,10 +1,10 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("cronjob")
-class DuploCronJob(DuploTenantResourceV3):
+@Resource("cronjob", scope="tenant")
+class DuploCronJob(DuploResourceV3):
   """
   Duplo CronJob are scheduled jobs that run containers in a Kubernetes cluster.
   """

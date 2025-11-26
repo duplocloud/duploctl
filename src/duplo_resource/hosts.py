@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV2
+from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("hosts")
-class DuploHosts(DuploTenantResourceV2):
+@Resource("hosts", scope="tenant")
+class DuploHosts(DuploResourceV2):
   """Manage Duplo Hosts
   
   Duplo hosts are virtual machines that run your services within a tenant. You can perform

@@ -1,13 +1,13 @@
 from datetime import timedelta
 import datetime
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploResource
+from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 @Resource("tenant")
-class DuploTenant(DuploResource):
+class DuploTenant(DuploResourceV2):
   """Duplo Tenant Resource
   
   The tenant resource provides a set of commands to manage tenants in the Duplo system.

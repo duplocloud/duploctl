@@ -14,13 +14,123 @@ fep = entry_points(group=FORMATS)
 schema = {}
 resources = {}
 
-def Resource(name: str):
+def _inject_tenant_scope(cls):
+  """Inject tenant-scoped functionality into a resource class.
+  
+  This adds properties and methods needed for tenant-scoped resources without
+  requiring deep inheritance hierarchies.
+  
+  Args:
+    cls: The class to inject tenant functionality into.
+    
+  Returns:
+    cls: The modified class with tenant functionality.
+  """
+  # Add private attributes initialization
+  original_init = cls.__init__
+  
+  def new_init(self, duplo, *args, **kwargs):
+    original_init(self, duplo, *args, **kwargs)
+    self._tenant = None
+    self._tenant_id = None
+    self.tenant_svc = duplo.load('tenant')
+  
+  setattr(cls, '__init__', new_init)
+  
+  # Add tenant property
+  @property
+  def tenant(self):
+    if not self._tenant:
+      self._tenant = self.tenant_svc.find()
+      self._tenant_id = self._tenant["TenantId"]
+    return self._tenant
+  
+  setattr(cls, 'tenant', tenant)
+  
+  # Add tenant_id property
+  @property
+  def tenant_id(self):
+    if not self._tenant_id:
+      if self._tenant:
+        self._tenant_id = self._tenant["TenantId"]
+      elif self.duplo.tenantid:
+        self._tenant_id = self.duplo.tenantid
+      else:
+        self._tenant_id = self.tenant["TenantId"]
+    return self._tenant_id
+  
+  setattr(cls, 'tenant_id', tenant_id)
+  
+  # Add prefix property
+  @property
+  def prefix(self):
+    return f"duploservices-{self.tenant['AccountName']}-"
+  
+  setattr(cls, 'prefix', prefix)
+  
+  # Add prefixed_name method
+  def prefixed_name(self, name: str) -> str:
+    if not name.startswith(self.prefix):
+      name = f"{self.prefix}{name}"
+    return name
+  
+  setattr(cls, 'prefixed_name', prefixed_name)
+  
+  # Override endpoint method with tenant-scoped version
+  def endpoint(self, name_or_path: str=None, path: str=None):
+    """Tenant-scoped endpoint builder.
+    
+    For V2 resources: endpoint(path) -> f"subscriptions/{tenant_id}/{path}"
+    For V3 resources: endpoint(name, path) -> f"v3/subscriptions/{tenant_id}/{slug}/{name}/{path}"
+    """
+    if self.api_version == "v3":
+      # V3 behavior: endpoint(name, path)
+      p = f"v3/subscriptions/{self.tenant_id}/{self.slug}"
+      if name_or_path:  # This is 'name' for V3
+        p += f"/{name_or_path}"
+      if path:
+        p += f"/{path}"
+      return p
+    else:
+      # V2 behavior: endpoint(path)
+      path = name_or_path  # For V2, first param is the path
+      return f"subscriptions/{self.tenant_id}/{path}"
+  
+  setattr(cls, 'endpoint', endpoint)
+  
+  return cls
+
+def Resource(name: str, scope: str = "portal"):
+  """Resource decorator
+  
+  Registers a class as a resource and optionally injects scope-specific functionality.
+  
+  Args:
+    name: The name of the resource.
+    scope: The scope of the resource. Valid values are "portal" or "tenant". Defaults to "portal".
+    
+  Returns:
+    decorator: The decorator function.
+    
+  Raises:
+    ValueError: If an invalid scope is provided.
+  """
+  if scope not in ("portal", "tenant"):
+    raise ValueError(f"Invalid scope '{scope}'. Must be 'portal' or 'tenant'.")
+  
   def decorator(cls):
     resources[name] = {
       "class": cls.__qualname__,
-      "parent": cls.__bases__[0].__name__ if cls.__bases__ and cls.__bases__[0].__name__ != "object" else None
+      "parent": cls.__bases__[0].__name__ if cls.__bases__ and cls.__bases__[0].__name__ != "object" else None,
+      "scope": scope
     }
     setattr(cls, "kind", name)
+    setattr(cls, "scope", scope)
+    
+    # Inject tenant functionality if tenant-scoped
+    if scope == "tenant":
+      cls = _inject_tenant_scope(cls)
+    
     return cls
   return decorator
 

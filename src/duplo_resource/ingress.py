@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError
 from duplocloud.commander import Resource, Command
 import duplocloud.args as args
 
-@Resource("ingress")
-class DuploIngress(DuploTenantResourceV3):
+@Resource("ingress", scope="tenant")
+class DuploIngress(DuploResourceV3):
   """Kubernetes Ingress
 
   This class offers methods to manage Kubernetes Ingress within DuploCloud.

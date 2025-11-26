@@ -12,8 +12,8 @@ _STATUS_CODES = {
   "11": "Succeeded"
 }
 
-@Resource("pod")
-class DuploPod(DuploTenantResourceV2):
+@Resource("pod", scope="tenant")
+class DuploPod(DuploResourceV2):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)

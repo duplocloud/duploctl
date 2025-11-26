@@ -7,7 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Fixed
+### Added
+
+- **Decorator-based scope system** for resources using `@Resource(name, scope="portal"|"tenant")`
+  - Eliminates deep inheritance hierarchies (removed `DuploTenantResourceV2` and `DuploTenantResourceV3` classes)
+  - Dynamic tenant functionality injection via mixin pattern
+  - Automatic tenant properties: `tenant`, `tenant_id`, `prefix`, `prefixed_name()`, `endpoint()`
+  - 23 resources updated to use new scoping pattern
+- **Version-aware endpoint method** that checks `api_version` at runtime
+  - Single `endpoint()` method works for V2 and V3 APIs with portal/tenant scopes
+  - Reduces code duplication and simplifies resource implementation
+- **Base class guidelines** clarifying when to extend `DuploResourceV2`/`DuploResourceV3`
+  - Only extend base classes for CRUD resources (find, create, update, delete, apply)
+  - Non-CRUD resources (version, jit, system, plan) use bare `@Resource` decorator
+- **Comprehensive GitHub Copilot documentation**
+  - `.github/copilot-instructions.md` with complete architecture overview
+  - `.github/instructions/py.instructions.md` and `.github/instructions/yaml.instructions.md` for coding conventions
+  - `.github/agents/` for custom workspace and coder agents
+  - Documents decorator patterns, scope system, API versioning, and common pitfalls
+
+### Changed
+
+- Resource scope is now defined via decorator parameter instead of class inheritance
+  - Example: `@Resource("service", scope="tenant")` replaces extending `DuploTenantResourceV2`
+- Endpoint generation simplified to single method supporting V2/V3 and portal/tenant combinations
+- Import discipline enforced: all imports must be at top of file, never inside functions
+
+### Fixed
 
 - Fix typo in ecsService _wait_on_task
 - Fix wait option for ecs resources finishing immediately

@@ -14,9 +14,14 @@ class DuploCommand():
 
 class DuploResource():
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploClient, api_version: str="v1", slug: str=None, prefixed: bool=False):
     self.duplo = duplo
     self.__logger = None
+    self.slug = slug
+    self.wait_timeout = 200
+    self.wait_poll = 10
+    self._prefixed = prefixed
+    self.api_version = api_version
   
   def __call__(self, cmd: str, *args):
     c = self.command(cmd)
@@ -60,10 +65,20 @@ class DuploResource():
 
 class DuploResourceV2(DuploResource):
 
+  def __init__(self, duplo: DuploClient, slug: str = None, prefixed: bool = False):
+    super().__init__(duplo, api_version="v2", slug=slug, prefixed=prefixed)
+
   def name_from_body(self, body):
     return body["Name"]
+  
   def endpoint(self, path: str=None):
+    """Portal-scoped endpoint for V2 resources.
+    
+    Returns the path as-is for portal-level resources.
+    This will be overridden by tenant-scoped injection if scope="tenant".
+    """
     return path
+  
   @Command()
   def list(self) -> list:
     """Retrieve a List of {{kind}}
@@ -114,83 +129,18 @@ class DuploResourceV2(DuploResource):
     except DuploError:
       return self.create(body, wait)
   
-class DuploTenantResourceV2(DuploResourceV2):
-  def __init__(self, duplo: DuploClient):
-    super().__init__(duplo)
-    self._tenant = None
-    self._tenant_id = None
-    self.tenant_svc = duplo.load('tenant')
-  @property
-  def tenant(self):
-    if not self._tenant:
-      self._tenant = self.tenant_svc.find()
-      self._tenant_id = self._tenant["TenantId"]
-    return self._tenant
-  
-  @property
-  def tenant_id(self):
-    if not self._tenant_id:
-      if self._tenant:
-        self._tenant_id = self._tenant["TenantId"]
-      elif self.duplo.tenantid:
-        self._tenant_id = self.duplo.tenantid
-      else:
-        self._tenant_id = self.tenant["TenantId"]
-    return self._tenant_id
-  
-  def prefixed_name(self, name: str) -> str:
-    tenant_name = self.tenant["AccountName"]
-    prefix = f"duploservices-{tenant_name}-"
-    if not name.startswith(prefix):
-      name = f"{prefix}{name}"
-    return name
-  
-  def endpoint(self, path: str=None):
-    return f"subscriptions/{self.tenant_id}/{path}"
-  
 
-class DuploTenantResourceV3(DuploResource):
+class DuploResourceV3(DuploResource):
   def __init__(self, duplo: DuploClient, slug: str, prefixed: bool = False):
-    super().__init__(duplo)
-    self._prefixed = prefixed
-    self._tenant = None
-    self._tenant_id = None
-    self.tenant_svc = duplo.load('tenant')
-    self.slug = slug
-    self.wait_timeout = 200
-    self.wait_poll = 10
-  @property
-  def tenant(self):
-    if not self._tenant:
-      self._tenant = self.tenant_svc.find()
-      self._tenant_id = self._tenant["TenantId"]
-    return self._tenant
-  
-  @property
-  def tenant_id(self):
-    if not self._tenant_id:
-      if self._tenant:
-        self._tenant_id = self._tenant["TenantId"]
-      elif self.duplo.tenantid:
-        self._tenant_id = self.duplo.tenantid
-      else:
-        self._tenant_id = self.tenant["TenantId"]
-    return self._tenant_id
-  
-  @property
-  def prefix(self):
-    return f"duploservices-{self.tenant['AccountName']}-"
-  
-  def prefixed_name(self, name: str) -> str:
-    if not name.startswith(self.prefix):
-      name = f"{self.prefix}{name}"
-    return name
-  
-  def name_from_body(self, body):
-    return body["metadata"]["name"]
+    super().__init__(duplo, api_version="v3", slug=slug, prefixed=prefixed)
 
   def endpoint(self, name: str=None, path: str=None):
-    p = f"v3/subscriptions/{self.tenant_id}/{self.slug}"
+    """Portal-scoped endpoint for V3 resources.
+    
+    Returns a v3 API path for portal-level resources.
+    This will be overridden by tenant-scoped injection if scope="tenant".
+    """
+    p = f"v3/{self.slug}"
     if name:
       p += f"/{name}"
     if path:

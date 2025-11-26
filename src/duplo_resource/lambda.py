@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV2
+from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("lambda")
-class DuploLambda(DuploTenantResourceV2):
+@Resource("lambda", scope="tenant")
+class DuploLambda(DuploResourceV2):
   """Manage Duplo Lambdas
   
   Duplo Lambdas are serverless functions that run in response to events.
