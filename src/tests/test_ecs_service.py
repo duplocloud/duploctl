@@ -247,6 +247,8 @@ def test_wait_on_service(mocker):
     mock_client = mocker.MagicMock()
     service = DuploEcsService(mock_client)
 
+    updated_task_definition_revision = "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:2"
+
     # wait on service called with invalid target service name
     mock_missing_service = [
         { "EcsServiceName": "not-target-service1" },
@@ -262,6 +264,22 @@ def test_wait_on_service(mocker):
         },
     ]
 
+    # wait on service continues waiting if primary deployment is complete but task definition revision does not match expected revision
+    mock_deployment_stale = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
+                        "RolloutState": { "Value": "COMPLETE" }
+                    }
+                ]
+            }
+        },
+    ]
+
     # wait on service finds primary deployment but it is incomplete
     mock_deployment_incomplete = [
         {
@@ -270,6 +288,7 @@ def test_wait_on_service(mocker):
                 "Deployments": [
                     {
                         "Status": "PRIMARY",
+                        "TaskDefinition": updated_task_definition_revision,
                         "RolloutState": { "Value": "IN_PROGRESS" }
                     }
                 ]
@@ -286,6 +305,7 @@ def test_wait_on_service(mocker):
                     {
                         "Status": "PRIMARY",
                         "RolloutState": { "Value": "FAILED" },
+                        "TaskDefinition": updated_task_definition_revision,
                         "RolloutStateReason": "Opsie... My bad"
                     }
                 ]
@@ -302,6 +322,7 @@ def test_wait_on_service(mocker):
                     {
                         "Status": "PRIMARY",
                         "RolloutState": { "Value": "COMPLETED" },
+                        "TaskDefinition": updated_task_definition_revision,
                         "RolloutStateReason": "ECS deployment ecs-svc/8289837686899327606 completed."
                     }
                 ]
@@ -312,6 +333,8 @@ def test_wait_on_service(mocker):
     mocker.patch.object(service, "list_detailed_services", side_effect=[
         mock_missing_service,
         mock_malformed,
+        mock_deployment_stale,
+        mock_deployment_stale,
         mock_deployment_incomplete,
         mock_deployment_failed,
         mock_deployment_succeeded,
@@ -319,19 +342,26 @@ def test_wait_on_service(mocker):
 
     # catches wait for cases when target service is not found
     with pytest.raises(DuploError, match=r"Unable to find ECS service"):
-        service._wait_on_service("target-service")
+        service._wait_on_service("target-service", updated_task_definition_revision)
 
     # catches wait for cases when target service is malformed
     with pytest.raises(DuploError, match=r"Failed to find primary deployment for ECS Service"):
-        service._wait_on_service("target-service")
+        service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # succeeds even if deployment is stale if no target task definition revision is defined
+    service._wait_on_service("target-service")
+
+    # catches wait for cases when service primary is still from and older task definition revision
+    with pytest.raises(DuploStillWaiting):
+        service._wait_on_service("target-service", updated_task_definition_revision)
 
     # catches wait for cases when service primary deployment is in progress
     with pytest.raises(DuploStillWaiting):
-        service._wait_on_service("target-service")
+        service._wait_on_service("target-service", updated_task_definition_revision)
 
     # catches wait for cases when target service primary deployment fails
     with pytest.raises(DuploError, match=r"deployment failed with reason"):
-        service._wait_on_service("target-service")
+        service._wait_on_service("target-service", updated_task_definition_revision)
 
     # passes if service found with primary dpeloyment in complete state
-    service._wait_on_service("target-service")
+    service._wait_on_service("target-service", updated_task_definition_revision)

@@ -267,7 +267,7 @@ class DuploEcsService(DuploTenantResourceV2):
     if svc:
       self.update_service(svc)
       if self.duplo.wait:
-        self.wait(lambda: self._wait_on_service(svcFam.get("EcsServiceName", None)))
+        self.wait(lambda: self._wait_on_service(svcFam.get("EcsServiceName", None), arn))
     return {
       "message": msg
     }
@@ -394,7 +394,9 @@ class DuploEcsService(DuploTenantResourceV2):
     if len(running_tasks) > 0:
       raise DuploStillWaiting(f"{name} still have unsettled tasks")
 
-  def _wait_on_service(self, name: str) -> None:
+  # only define target definition ARN we know for sure the target service WILL trigger a new deployment
+  # with target_definition_arn as its task definition
+  def _wait_on_service(self, name: str, target_definition_arn: str = None) -> None:
     if name is None:
       raise DuploError(f"Attempted to wait on invalid ECS service name \"{name}\"")
 
@@ -411,7 +413,7 @@ class DuploEcsService(DuploTenantResourceV2):
 
     state = primary_deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
 
-    if state == "IN_PROGRESS":
+    if state == "IN_PROGRESS" or (target_definition_arn is not None and primary_deployment.get("TaskDefinition", None) != target_definition_arn):
       raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
     
     if state == "FAILED":
