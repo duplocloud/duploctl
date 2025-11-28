@@ -591,7 +591,7 @@ class DuploService(DuploTenantResourceV2):
 
     if self.duplo.wait:
       for update_info in wait_list:
-        self._wait(**update_info)
+        self._wait(update_info['old'],update_info['updated'])
 
     return {"message": "Successfully updated images for services"}
 
