@@ -1,0 +1,12 @@
+template:
+  metadata:
+    name: duploctl-test-hello-world
+    namespace: my-tenant
+  spec:
+    entrypoint: hello
+    templates:
+      - name: hello
+        container:
+          image: alpine:latest
+          command: [echo]
+          args: ["Hello from duploctl test!"]

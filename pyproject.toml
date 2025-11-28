@@ -160,6 +160,7 @@ batch_queue = "duplo_resource.batch_queue:DuploBatchQueue"
 batch_definition = "duplo_resource.batch_definition:DuploBatchDefinition"
 batch_job = "duplo_resource.batch_job:DuploBatchJob"
 batch_scheduling_policy = "duplo_resource.batch_scheduling_policy:DuploBatchSchedulingPolicy"
+argo_wf = "duplo_resource.argo_wf:DuploArgoWorkflow"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
