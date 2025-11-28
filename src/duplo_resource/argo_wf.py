@@ -25,11 +25,17 @@ class DuploArgoWorkflow(DuploResource):
     self._tenant_id = None
     self._argo_auth = None
     self._system_info = None
+    self._infra_config = None
     self.tenant_svc = duplo.load('tenant')
+    self.infra_svc = duplo.load('infrastructure')
 
   @property
   def tenant(self):
-    """Get the current tenant."""
+    """Get the current tenant.
+
+    info: 
+      This is not a cli command. It's used internally.
+    """
     if not self._tenant:
       self._tenant = self.tenant_svc.find()
       self._tenant_id = self._tenant["TenantId"]
@@ -37,7 +43,11 @@ class DuploArgoWorkflow(DuploResource):
 
   @property
   def tenant_id(self):
-    """Get the current tenant ID."""
+    """Get the current tenant ID.
+
+    info: 
+      This is not a cli command. It's used internally.
+    """
     if not self._tenant_id:
       if self.duplo.tenantid:
         self._tenant_id = self.duplo.tenantid
@@ -47,12 +57,47 @@ class DuploArgoWorkflow(DuploResource):
 
   @property
   def namespace(self):
-    """Get the Kubernetes namespace for the current tenant using system prefix."""
+    """Get the Kubernetes namespace for the current tenant using system prefix.
+
+    info: 
+      This is not a cli command. It's used internally.
+    """
     prefix = self.get_resource_prefix()
     return f"{prefix}-{self.tenant['AccountName']}"
 
+  def ensure_argo_enabled(self):
+    """Check if Argo Workflows feature is enabled for the tenant's infrastructure.
+
+    info: 
+      This is not a cli command. It's used internally.
+
+    Raises:
+      DuploError: If Argo Workflows is not enabled (DuploCiTenant not configured).
+    """
+    if self._infra_config is None:
+      plan_id = self.tenant.get("PlanID")
+      if not plan_id:
+        raise DuploError("Tenant has no associated infrastructure plan", 400)
+      self._infra_config = self.infra_svc.find(plan_id)
+
+    # DuploCiTenant is in CustomData array as {"Key": "DuploCiTenant", "Value": "..."}
+    custom_data = self._infra_config.get("CustomData", [])
+    ci_tenant = next(
+      (item.get("Value") for item in custom_data if item.get("Key") == "DuploCiTenant"),
+      None
+    )
+    if not ci_tenant:
+      raise DuploError(
+        "Argo Workflows is not enabled for this infrastructure. "
+        "Please contact administrator.",
+        400
+      )
+
   def get_resource_prefix(self) -> str:
     """Get the resource name prefix from system info.
+
+    info: 
+      This is not a cli command. It's used internally.
 
     Returns:
       str: The resource name prefix (e.g., 'duploservices', 'msi')
@@ -68,10 +113,17 @@ class DuploArgoWorkflow(DuploResource):
     Makes a POST call to the Duplo API to obtain an Argo Workflow token and admin status.
     The response includes a Kubernetes token for Argo API calls.
 
+    info: 
+      This is not a cli command. It's used internally.
+
     Returns:
       dict: Authentication info containing Token, IsAdmin, TenantId, ExpiresAt
+
+    Raises:
+      DuploError: If Argo Workflows is not enabled for the infrastructure.
     """
     if self._argo_auth is None:
+      self.ensure_argo_enabled()
       path = f"v3/auth/argo-wf/{self.tenant_id}/admin"
       response = self.duplo.post(path)
       self._argo_auth = response.json()
@@ -82,6 +134,9 @@ class DuploArgoWorkflow(DuploResource):
 
     Uses the Argo token obtained from Duplo for authentication, and also
     passes the Duplo token in the 'duplotoken' header.
+
+    info: 
+      This is not a cli command. It's used internally.
 
     Args:
       method: HTTP method (GET, POST, PUT, DELETE)
@@ -221,6 +276,10 @@ class DuploArgoWorkflow(DuploResource):
       ```bash
       duploctl argo_wf submit -f workflow.yaml
       ```
+      Contents of the `workflow.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/argo_workflow.yaml"
+      ```
 
     Args:
       body: The workflow specification.
@@ -260,6 +319,10 @@ class DuploArgoWorkflow(DuploResource):
     Usage: Basic CLI Use
       ```bash
       duploctl argo_wf create_template -f template.yaml
+      ```
+      Contents of the `template.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/argo_wf_template.yaml"
       ```
 
     Args:

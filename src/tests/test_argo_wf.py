@@ -10,9 +10,22 @@ def _setup_argo_resource(mocker):
     mock_client.token = "test-token"
     mock_client.timeout = 60
     mock_client.tenantid = None
+    # Mock tenant service
     mock_tenant_svc = mocker.MagicMock()
-    mock_tenant_svc.find.return_value = {"TenantId": "tenant-123", "AccountName": "test-tenant"}
-    mock_client.load.return_value = mock_tenant_svc
+    mock_tenant_svc.find.return_value = {"TenantId": "tenant-123", "AccountName": "test-tenant", "PlanID": "test-plan"}
+    # Mock infrastructure service
+    mock_infra_svc = mocker.MagicMock()
+    mock_infra_svc.find.return_value = {
+        "CustomData": [{"Key": "DuploCiTenant", "Value": "ci-tenant-id"}]
+    }
+    # Return appropriate service based on load call
+    def load_service(name):
+        if name == "tenant":
+            return mock_tenant_svc
+        elif name == "infrastructure":
+            return mock_infra_svc
+        return mocker.MagicMock()
+    mock_client.load.side_effect = load_service
     # Mock auth response
     mock_auth = mocker.MagicMock()
     mock_auth.json.return_value = {"Token": "argo-token", "IsAdmin": True, "TenantId": "ctrl-tenant"}
