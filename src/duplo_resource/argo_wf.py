@@ -62,14 +62,11 @@ class DuploArgoWorkflow(DuploResource):
     info: 
       This is not a cli command. It's used internally.
     """
-    prefix = self.get_resource_prefix()
+    prefix = self._get_resource_prefix()
     return f"{prefix}-{self.tenant['AccountName']}"
 
-  def ensure_argo_enabled(self):
+  def _ensure_argo_enabled(self):
     """Check if Argo Workflows feature is enabled for the tenant's infrastructure.
-
-    info: 
-      This is not a cli command. It's used internally.
 
     Raises:
       DuploError: If Argo Workflows is not enabled (DuploCiTenant not configured).
@@ -93,11 +90,8 @@ class DuploArgoWorkflow(DuploResource):
         400
       )
 
-  def get_resource_prefix(self) -> str:
+  def _get_resource_prefix(self) -> str:
     """Get the resource name prefix from system info.
-
-    info: 
-      This is not a cli command. It's used internally.
 
     Returns:
       str: The resource name prefix (e.g., 'duploservices', 'msi')
@@ -107,14 +101,11 @@ class DuploArgoWorkflow(DuploResource):
       self._system_info = response.json()
     return self._system_info.get("ResourceNamePrefix", "duploservices")
 
-  def get_argo_auth(self) -> dict:
+  def _get_argo_auth(self) -> dict:
     """Get Argo Workflow authentication token.
 
     Makes a POST call to the Duplo API to obtain an Argo Workflow token and admin status.
     The response includes a Kubernetes token for Argo API calls.
-
-    info: 
-      This is not a cli command. It's used internally.
 
     Returns:
       dict: Authentication info containing Token, IsAdmin, TenantId, ExpiresAt
@@ -123,20 +114,17 @@ class DuploArgoWorkflow(DuploResource):
       DuploError: If Argo Workflows is not enabled for the infrastructure.
     """
     if self._argo_auth is None:
-      self.ensure_argo_enabled()
+      self._ensure_argo_enabled()
       path = f"v3/auth/argo-wf/{self.tenant_id}/admin"
       response = self.duplo.post(path)
       self._argo_auth = response.json()
     return self._argo_auth
 
-  def argo_request(self, method: str, path: str, data: dict = None) -> dict:
+  def _argo_request(self, method: str, path: str, data: dict = None) -> dict:
     """Make a request to the Argo Workflow API.
 
     Uses the Argo token obtained from Duplo for authentication, and also
     passes the Duplo token in the 'duplotoken' header.
-
-    info: 
-      This is not a cli command. It's used internally.
 
     Args:
       method: HTTP method (GET, POST, PUT, DELETE)
@@ -146,7 +134,7 @@ class DuploArgoWorkflow(DuploResource):
     Returns:
       dict: JSON response from the Argo API
     """
-    auth = self.get_argo_auth()
+    auth = self._get_argo_auth()
     argo_tenant_id = auth["TenantId"]  # Tenant where workflow controller runs
     argo_token = auth["Token"]
 
@@ -190,7 +178,7 @@ class DuploArgoWorkflow(DuploResource):
     Returns:
       dict: Authentication info with Token, IsAdmin, TenantId, ExpiresAt
     """
-    return self.get_argo_auth()
+    return self._get_argo_auth()
 
   @Command()
   def list_templates(self) -> list:
@@ -207,7 +195,7 @@ class DuploArgoWorkflow(DuploResource):
       list: A list of workflow templates.
     """
     path = f"workflow-templates/{self.namespace}"
-    return self.argo_request("GET", path)
+    return self._argo_request("GET", path)
 
   @Command()
   def get_template(self, name: args.NAME) -> dict:
@@ -227,7 +215,7 @@ class DuploArgoWorkflow(DuploResource):
       dict: The workflow template object.
     """
     path = f"workflow-templates/{self.namespace}/{name}"
-    return self.argo_request("GET", path)
+    return self._argo_request("GET", path)
 
   @Command()
   def list_workflows(self) -> list:
@@ -244,7 +232,7 @@ class DuploArgoWorkflow(DuploResource):
       list: A list of workflows.
     """
     path = f"workflows/{self.namespace}"
-    return self.argo_request("GET", path)
+    return self._argo_request("GET", path)
 
   @Command()
   def get_workflow(self, name: args.NAME) -> dict:
@@ -264,7 +252,7 @@ class DuploArgoWorkflow(DuploResource):
       dict: The workflow object.
     """
     path = f"workflows/{self.namespace}/{name}"
-    return self.argo_request("GET", path)
+    return self._argo_request("GET", path)
 
   @Command()
   def submit(self, body: args.BODY) -> dict:
@@ -288,7 +276,7 @@ class DuploArgoWorkflow(DuploResource):
       dict: The created workflow object.
     """
     path = f"workflows/{self.namespace}"
-    return self.argo_request("POST", path, body)
+    return self._argo_request("POST", path, body)
 
   @Command()
   def delete_workflow(self, name: args.NAME) -> dict:
@@ -308,7 +296,7 @@ class DuploArgoWorkflow(DuploResource):
       dict: Deletion confirmation.
     """
     path = f"workflows/{self.namespace}/{name}"
-    return self.argo_request("DELETE", path)
+    return self._argo_request("DELETE", path)
 
   @Command()
   def create_template(self, body: args.BODY) -> dict:
@@ -332,7 +320,7 @@ class DuploArgoWorkflow(DuploResource):
       dict: The created workflow template object.
     """
     path = f"workflow-templates/{self.namespace}"
-    return self.argo_request("POST", path, body)
+    return self._argo_request("POST", path, body)
 
   @Command()
   def delete_template(self, name: args.NAME) -> dict:
@@ -352,4 +340,4 @@ class DuploArgoWorkflow(DuploResource):
       dict: Deletion confirmation.
     """
     path = f"workflow-templates/{self.namespace}/{name}"
-    return self.argo_request("DELETE", path)
+    return self._argo_request("DELETE", path)
