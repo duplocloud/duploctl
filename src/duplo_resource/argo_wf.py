@@ -173,8 +173,10 @@ class DuploArgoWorkflow(DuploResource):
     Usage: Basic CLI Use
       ```bash
       duploctl argo_wf auth
-      ```
 
+      if response.status_code == 204 or not response.content:
+        return {}
+      return response.json()
     Returns:
       dict: Authentication info with Token, IsAdmin, TenantId, ExpiresAt
     """
