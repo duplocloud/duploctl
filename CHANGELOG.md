@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import discipline enforced: all imports must be at top of file, never inside functions
 
 ### Fixed
+## Added
+
+- ECS Service wait function based on deployment status instead of task state
+
+## Fixed
 
 - Fix typo in ecsService _wait_on_task
 - Fix wait option for ecs resources finishing immediately
