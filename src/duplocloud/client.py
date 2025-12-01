@@ -729,6 +729,7 @@ Available Resources:
     if response.status_code == 400:
       raise DuploError(response.text, response.status_code)
 
+    self.logger.error(f"Unexpected exception caught: {response.text} status code {response.status_code}")
     raise DuploError("Duplo responded with an error", response.status_code)
     
   def __sanitize_host(self, host: str) -> str:
