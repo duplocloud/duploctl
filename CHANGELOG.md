@@ -7,11 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Added
+### Added
 
 - ECS Service wait function based on deployment status instead of task state
+- added a wait timeout for the global wait operation. 
 
-## Fixed
+### Fixed
 
 - Fix typo in ecsService _wait_on_task
 - Fix wait option for ecs resources finishing immediately
