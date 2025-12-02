@@ -35,3 +35,31 @@ jobs:
     name: Test
     uses: ./.github/workflows/test_unit.yml
     secrets: inherit
+
+  docs_check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: "true"
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install ".[docs]"
+
+    - name: Validate MkDocs configuration
+      run: mkdocs --config mkdocs.yml --verbose build --quiet --clean
+
+    - name: Check for broken links
+      run: |
+        pip install --upgrade markdown-link-check
+        find wiki -name "*.md" -exec markdown-link-check {} \; || true
