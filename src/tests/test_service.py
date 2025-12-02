@@ -80,3 +80,33 @@ def test_start_service(mocker):
     mock_client.wait = True
     service.start("test-service")
     mock_client.post.assert_called_once_with(ANY)
+
+
+@pytest.mark.unit
+def test_list_pods(mocker):
+    mock_client = mocker.MagicMock()
+    service = DuploService(mock_client)
+
+    target_service = "DuploServiceArgument"
+    mocker.patch.object(service._pod_svc, "list", side_effect=[
+        [{ "ControlledBy": { "QualifiedType": "kubernetes:apps/v1/ReplicaSet" }, "Name": target_service }], # positive happy path
+        [{ "ControlledBy": { "QualifiedType": "wrong:qualifier/type" }, "Name": target_service }], # negative happy path
+        [{ "Name": target_service }], # No ControlledBy but pod has name matching pods service argument
+        [{ "Name": "NotMyIntendedService" }], # edge case: No ControlledBy and pod has name NOT matching pods service argument
+        [{}], # edge case: no ControlledBy nor Name defined handled gracefully
+        ])
+    
+    # belongs to a duplo service
+    assert service.pods(target_service) == [{ "ControlledBy": { "QualifiedType": "kubernetes:apps/v1/ReplicaSet" }, "Name": target_service }]
+
+    # does not belong to a duplo service, gets filtered out
+    assert service.pods(target_service) == []
+
+    # belongs to a duplo service (alternative case)
+    assert service.pods(target_service) == [{ "Name": target_service }]
+
+    # does not belong to a duplo service, gets filtered out
+    assert service.pods(target_service) == []
+
+    # does not belong to a duplo service, gets filtered out
+    assert service.pods(target_service) == []
