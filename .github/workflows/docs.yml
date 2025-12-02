@@ -4,9 +4,6 @@ on:
   push: 
     branches:
     - main
-  pull_request:
-    branches:
-    - main
   workflow_dispatch:
     inputs:
       push:
@@ -27,13 +24,8 @@ on:
         type: boolean
       tag:
         description: Ref to build docs from?
-        required: false
+        required: true
         type: string
-      check-only:
-        description: Only check build, don't upload artifacts?
-        required: false
-        default: false
-        type: boolean
     secrets:
       GH_APP_KEY:
         description: GitHub App private key
@@ -43,16 +35,13 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        check-only: ${{ (inputs.check-only || github.event_name == 'pull_request') && fromJSON('[true]') || fromJSON('[false]') }}
     steps:
 
     - name: Setup
       id: setup
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
-        ref: ${{ inputs.tag || github.ref }}
+        ref: ${{ inputs.tag }}
         fetch-depth: 0
         install: ".[build,docs]"
         app-id: ${{ vars.GH_APP_ID }}
@@ -73,7 +62,6 @@ jobs:
         done
 
     - name: Upload Pages artifact
-      if: matrix.check-only == false
       uses: actions/upload-pages-artifact@v3
       with:
         path: dist/site
@@ -82,7 +70,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: build
-    if: (inputs.push || github.ref == 'refs/heads/main') && !inputs.check-only && github.event_name != 'pull_request'
+    if: inputs.push || github.ref == 'refs/heads/main'
     permissions:
       pages: write
       id-token: write
