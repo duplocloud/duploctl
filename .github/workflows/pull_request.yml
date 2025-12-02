@@ -57,7 +57,7 @@ jobs:
         pip install ".[docs]"
 
     - name: Validate MkDocs configuration
-      run: mkdocs --config mkdocs.yml --verbose build --quiet --clean
+      run: mkdocs build --verbose --quiet --clean
 
     - name: Check for broken links
       run: |
