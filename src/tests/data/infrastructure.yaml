@@ -1,0 +1,16 @@
+Name: duploctl
+IsServerlessKubernetes: false
+Accountid: ''
+EnableK8Cluster: true
+AzCount: 2
+Vnet:
+  SubnetCidr: 22
+  AddressPrefix: 10.120.0.0/16
+Cloud: 0
+OnPremConfig: 
+Region: us-east-1
+CustomData:
+- Key: K8sVersion
+  Value: '1.34'
+HubName: None
+LogAnalyticsConfig: 

@@ -1,12 +1,12 @@
 from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 
-@Resource("ai")
-class DuploAI(DuploTenantResourceV3):
+@Resource("ai", scope="tenant")
+class DuploAI(DuploResourceV3):
   """Resource for creating tickets in the DuploCloud AI HelpDesk."""
 
   def __init__(self, duplo: DuploClient):

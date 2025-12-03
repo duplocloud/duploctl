@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient  # Importing necessary modules
 from duplocloud.errors import DuploFailedResource, DuploStillWaiting
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("job")  # Decorator to define a resource
-class DuploJob(DuploTenantResourceV3):
+@Resource("job", scope="tenant")  # Decorator to define a resource
+class DuploJob(DuploResourceV3):
   """Manage Duplo Kubernetes Jobs
 
   Duplo Jobs provide a way to run containerized tasks to completion in a Kubernetes cluster.

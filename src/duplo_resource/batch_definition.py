@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("batch_definition")
-class DuploBatchDefinition(DuploTenantResourceV3):
+@Resource("batch_definition", scope="tenant")
+class DuploBatchDefinition(DuploResourceV3):
   """Manage AWS Batch Job Definition Resources
 
   Manage batch Job Definitions as a resource in Duplo.

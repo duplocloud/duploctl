@@ -1,6 +1,6 @@
 import time
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV2
+from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 from json import dumps, loads
@@ -15,8 +15,8 @@ _STATUS_CODES = {
   "11": "Succeeded"
 }
 
-@Resource("service")
-class DuploService(DuploTenantResourceV2):
+@Resource("service", "tenant")
+class DuploService(DuploResourceV2):
   """Duplocloud Service Resource
 
   This resource is used to manage services in Duplocloud. Using the `duploctl` command line tool, you can manage services with actions:

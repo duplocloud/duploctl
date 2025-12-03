@@ -1,10 +1,10 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Resource
 
 
-@Resource("storageclass")
-class DuploStorageClass(DuploTenantResourceV3):
+@Resource("storageclass", scope="tenant")
+class DuploStorageClass(DuploResourceV3):
   """
   DuploStorageClass is a resource that represents a Kubernetes StorageClass.  
 

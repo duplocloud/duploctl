@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV2
+from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("asg")
-class DuploAsg(DuploTenantResourceV2):
+@Resource("asg", scope="tenant")
+class DuploAsg(DuploResourceV2):
   """Manage Duplo ASGs
 
   Duplo ASGs (Auto Scaling Groups) manage the number of hosts within a tenant, enabling automatic scaling of instances based on demand.

@@ -1,10 +1,10 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Resource
 
 
-@Resource("s3")
-class DuploS3(DuploTenantResourceV3):
+@Resource("s3", scope="tenant")
+class DuploS3(DuploResourceV3):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "aws/s3bucket")
 

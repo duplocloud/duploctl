@@ -1,11 +1,11 @@
 from duplocloud import args
 from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 
-@Resource("ssm_param")
-class DuploParam(DuploTenantResourceV3):
+@Resource("ssm_param", scope="tenant")
+class DuploParam(DuploResourceV3):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "aws/ssmParameter")

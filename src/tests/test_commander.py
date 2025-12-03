@@ -2,7 +2,7 @@ import pathlib
 import pytest 
 # import unittest
 import argparse
-from duplocloud.commander import schema, resources, Command, get_parser, aliased_method, extract_args, available_resources, load_resource
+from duplocloud.commander import schema, resources, Command, Resource, get_parser, aliased_method, extract_args, available_resources, load_resource, commands_for
 from duplocloud.argtype import Arg, DataMapAction
 from duplocloud.errors import DuploError
 # from duplo_resource.service import DuploService
@@ -36,6 +36,40 @@ class SomeResource():
              foo: str="bar"):
     print(name, image_name, foo, enabled)
   def not_a_command(self):
+    pass
+
+# Test classes for schema_for testing
+class ParentTestResource():
+  @Command()
+  def list(self):
+    pass
+  
+  @Command("get")
+  def find(self):
+    pass
+  
+  @Command()
+  def create(self):
+    pass
+
+@Resource("testchild")
+class ChildTestResource(ParentTestResource):
+  @Command()
+  def update(self):
+    pass
+  
+  @Command("get")  # Override parent's find method
+  def find(self):
+    pass
+
+@Resource("teststandalone")
+class StandaloneTestResource():
+  @Command("ls")
+  def list(self):
+    pass
+  
+  @Command()
+  def delete(self):
     pass
 
 @pytest.mark.unit
@@ -118,3 +152,50 @@ def test_datamap_action():
     "renamed": password,
     "foo": "bar"
   }
+
+@pytest.mark.unit
+def test_commands_for():
+  # Test commands_for with child resource
+  result = commands_for("testchild")
+  
+  # Should have 4 methods: list, create (from parent), update, find (overridden)
+  assert len(result) == 4
+  assert "list" in result
+  assert "find" in result
+  assert "create" in result
+  assert "update" in result
+  
+  # Verify parent methods are included
+  assert result["list"]["class"] == "ParentTestResource"
+  assert result["list"]["method"] == "list"
+  assert result["create"]["class"] == "ParentTestResource"
+  
+  # Verify child's own method
+  assert result["update"]["class"] == "ChildTestResource"
+  assert result["update"]["method"] == "update"
+  
+  # Verify overridden method uses child class
+  assert result["find"]["class"] == "ChildTestResource"
+  assert result["find"]["method"] == "find"
+  assert result["find"]["aliases"] == ["get"]
+  
+  # Test with non-existent resource
+  with pytest.raises(DuploError) as exc_info:
+    commands_for("nonexistent")
+  assert "Resource named nonexistent not found" in str(exc_info.value)
+
+@pytest.mark.unit
+def test_commands_for_no_parent():
+  result = commands_for("teststandalone")
+  
+  # Should only have the resource's own methods
+  assert len(result) == 2
+  assert "list" in result
+  assert "delete" in result
+  
+  # Verify methods
+  assert result["list"]["class"] == "StandaloneTestResource"
+  assert result["list"]["aliases"] == ["ls"]
+  assert result["delete"]["class"] == "StandaloneTestResource"
+  assert result["delete"]["aliases"] == []
+

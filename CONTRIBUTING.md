@@ -10,27 +10,126 @@ Clone the repo with the wiki submodule. The wiki submodule contains the static c
 git clone --recurse-submodules git@github.com:duplocloud/duploctl.git
 ```
 
-## [Direnv](https://github.com/direnv/direnv) Setup
+## Environment Configuration
 
-Here is a good start for a decent `.envrc` file.
+### Using Direnv (Local Development without Devcontainer)
+
+If you're developing locally without using devcontainers, we recommend using [direnv](https://github.com/direnv/direnv) to automatically manage your environment variables. Direnv loads environment variables from `.envrc` and `.env` files when you `cd` into the project directory.
+
+**Important: Environment Variable Security**
+- `.envrc` - Contains **ONLY** direnv-specific commands (committed to git)
+- `.env` - Contains **ALL** project variables and secrets (gitignored, never committed)
+- `.env.example` - Template showing available configuration options (committed to git)
+
+The `.envrc` file is configured to automatically load `.env` if it exists using `dotenv_if_exists`.
+
+#### Setup Steps
+
+1. **Install direnv** if you haven't already:
+   ```sh
+   # macOS
+   brew install direnv
+   
+   # Ubuntu/Debian
+   apt install direnv
+   ```
+
+2. **Hook direnv into your shell** (add to `~/.bashrc` or `~/.zshrc`):
+   ```sh
+   # For bash
+   eval "$(direnv hook bash)"
+   
+   # For zsh
+   eval "$(direnv hook zsh)"
+   ```
+
+3. **Create your `.env` file** from the example:
+   ```sh
+   cp .env.example .env
+   ```
+
+4. **Edit `.env` with your actual values**, especially:
+   - `DUPLO_HOST` - Your DuploCloud portal URL
+   - `DUPLO_TOKEN` - Your authentication token
+   - `DUPLO_TENANT` - Your default tenant name
+   - Other project-specific settings
+
+5. **Allow direnv** to load the configuration:
+   ```sh
+   direnv allow
+   ```
+
+6. **Run the setup script** to install dependencies:
+   ```sh
+   ./scripts/setup.sh
+   ```
+
+#### The .envrc File
+
+The `.envrc` file should **only** contain direnv stdlib commands:
 
 ```sh
-source_up .envrc # only when this is under a parent workspace containing a .envrc file
-layout python3 # creates the python venv using direnv and sets the VIRTUAL_ENV environment variable to use it
-PATH_add ./scripts # adds the scripts folder to the path
+# Load parent .envrc if it exists
+source_up
 
-# this localizes the entire duploctl environment so all is generated within the config folder
-# otherwise all of this would default to your home directory, ie $HOME
-export DUPLO_HOME="config"
-export KUBECONFIG="${DUPLO_HOME}/kubeconfig.yaml"
-export AWS_CONFIG_FILE="${DUPLO_HOME}/aws"
-export DUPLO_CONFIG="${DUPLO_HOME}/duploconfig.yaml"
-export DUPLO_CACHE="${DUPLO_HOME}/cache"
+# Setup Python 3 virtual environment (managed by direnv)
+layout python3
+
+# Add scripts directory to PATH
+PATH_add ./scripts
+
+# Load project-specific environment variables from .env
+dotenv_if_exists
 ```
+
+**⚠️ CRITICAL: Do NOT add secrets or tokens to `.envrc`!** This file is committed to git. All sensitive information and project-specific configuration should go in `.env`.
+
+#### The .env File
+
+The `.env` file contains all your project-specific environment variables and secrets. See `.env.example` for a complete list of available options. Key variables include:
+
+- **Python Configuration**: `PY_VERSION`, `DUPLO_USE_VENV`
+- **Portal Configuration**: `DUPLO_HOST`, `DUPLO_TOKEN`, `DUPLO_TENANT`, `DUPLO_INFRA`
+- **Paths**: `DUPLO_HOME`, `DUPLO_CONFIG`, `DUPLO_CACHE`, `AWS_CONFIG_FILE`, `KUBECONFIG`
+- **CLI Settings**: `DUPLO_OUTPUT`, `DUPLO_LOG_LEVEL`, `DUPLO_CONTEXT`
+- **Secrets**: GitHub tokens, runner tokens, portal credentials
+
+**Tip: Use 1Password CLI** to securely load tokens:
+```sh
+export DUPLO_TOKEN=$(op read 'op://Private/Duplo QA Token/credential')
+```
+
+### Using Devcontainer
+
+If you're using the devcontainer (VS Code's Remote Containers), you don't need direnv. The devcontainer is configured to:
+
+1. Automatically create a Python virtual environment (via `DUPLO_USE_VENV=1`)
+2. Run `scripts/setup.sh` on container creation
+3. Load environment variables if you provide a `.env` file (optional)
+
+The devcontainer provides a consistent development environment with all dependencies pre-installed.
+
+### Optional: Python Virtual Environment
+
+By default, the setup script installs packages using your system Python. You can optionally create a virtual environment in `.venv` by setting:
+
+```sh
+export DUPLO_USE_VENV=1
+```
+
+This is automatically enabled in devcontainers. For local development with direnv, you can:
+- Add `export DUPLO_USE_VENV=1` to your `.env` file, OR
+- Use direnv's built-in `layout python3` (already in `.envrc`) which creates a venv in `.direnv/`
 
 ## Installation
 
 Install dependencies in editable mode so you can use step through debugging. All of the optional dependencies are included within the square brackets. You can see what they all are in the [`pyproject.toml`](pyproject.toml) file.
+
+```sh
+./scripts/setup.sh
+```
+
+Or manually:
 
 ```sh
 pip install --editable '.[build,test,aws,docs]'

@@ -470,15 +470,28 @@ Available Resources:
     svc = load_resource(kind)
     return svc(self)
   
-  def format(self, data: dict) -> str:
+  def load_formatter(self, name: str="string"):
+    """Load Formatter
+    
+    Load a Formatter function from the entry points.
+
+    Args:
+      name: The name of the format.
+    Returns:
+      The class of the format.
+    """
+    return load_format(name)
+  
+  def format(self, data: dict, output: str = None) -> str:
     """Format data.
     
     Args:
       data: The data to format.
+      output: The output format to use. Defaults to self.output if None.
     Returns:
       The data as a string.
     """
-    fmt = load_format(self.output)
+    fmt = self.load_formatter(output or self.output)
     return fmt(data)
   
   def use_context(self, name: str = None) -> None:

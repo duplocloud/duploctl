@@ -1,5 +1,5 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV2
+from duplocloud.resource import DuploResourceV2
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -12,8 +12,8 @@ _STATUS_CODES = {
   "11": "Succeeded"
 }
 
-@Resource("pod")
-class DuploPod(DuploTenantResourceV2):
+@Resource("pod", scope="tenant")
+class DuploPod(DuploResourceV2):
   
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)

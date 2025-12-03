@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV2
+from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("ecs")
-class DuploEcsService(DuploTenantResourceV2):
+@Resource("ecs", scope="tenant")
+class DuploEcsService(DuploResourceV2):
   """Manage Duplo ECS Resources
   
   A collection of commands to manage ECS services and task definitions.
