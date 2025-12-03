@@ -721,7 +721,7 @@ class DuploService(DuploTenantResourceV2):
     """
     def controlled_by_service(pod):
       cb = pod.get("ControlledBy", None)
-      same_name = pod["Name"] == name
+      same_name = pod.get("Name", "CONTROLLER_NOT_FOUND") == name
       if cb is None:
         return same_name
       else:
