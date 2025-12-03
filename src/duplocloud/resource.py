@@ -48,6 +48,16 @@ class DuploResource():
     return wrapped
   
   def wait(self, wait_check: callable, timeout: int=3600, poll: int=10):
+    """Wait for Resource
+    
+    Waits for a the given wait_check callable to complete successfully. If the global wait_timeout is set on the DuploClient, it will override the timeout parameter so that a user can always choose their own timeout for waiting operations. The timeout param for other functions is just a default value for that particular resource operation.
+    
+    Args:
+      wait_check: A callable function to check if the resource is ready.
+      timeout: The maximum time to wait in seconds. Default is 3600 seconds (1 hour).
+      poll: The polling interval in seconds. Default is 10 seconds.
+    """
+    timeout = self.duplo.wait_timeout or timeout
     exp = math.ceil(timeout / poll)
     for _ in range(exp):
       try:

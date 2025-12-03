@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Endpoint generation simplified to single method supporting V2/V3 and portal/tenant combinations
 - Import discipline enforced: all imports must be at top of file, never inside functions
 
+- Argo Workflow resource
+- ECS Service wait function based on deployment status instead of task state
+- added a wait timeout for the global wait operation. 
+
 ### Fixed
 
 - Fix typo in ecsService _wait_on_task

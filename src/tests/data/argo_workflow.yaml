@@ -1,0 +1,12 @@
+workflow:
+  metadata:
+    generateName: duploctl-test-wf-
+    namespace: my-tenant
+  spec:
+    entrypoint: hello
+    templates:
+      - name: hello
+        container:
+          image: alpine:latest
+          command: [echo]
+          args: ["Hello from duploctl workflow test!"]
