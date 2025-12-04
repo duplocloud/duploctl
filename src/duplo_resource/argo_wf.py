@@ -31,11 +31,6 @@ class DuploArgoWorkflow(DuploResource):
 
   @property
   def tenant(self):
-    """Get the current tenant.
-
-    info: 
-      This is not a cli command. It's used internally.
-    """
     if not self._tenant:
       self._tenant = self.tenant_svc.find()
       self._tenant_id = self._tenant["TenantId"]
@@ -43,11 +38,6 @@ class DuploArgoWorkflow(DuploResource):
 
   @property
   def tenant_id(self):
-    """Get the current tenant ID.
-
-    info: 
-      This is not a cli command. It's used internally.
-    """
     if not self._tenant_id:
       if self.duplo.tenantid:
         self._tenant_id = self.duplo.tenantid
@@ -57,11 +47,6 @@ class DuploArgoWorkflow(DuploResource):
 
   @property
   def namespace(self):
-    """Get the Kubernetes namespace for the current tenant using system prefix.
-
-    info: 
-      This is not a cli command. It's used internally.
-    """
     prefix = self._get_resource_prefix()
     return f"{prefix}-{self.tenant['AccountName']}"
 
@@ -173,10 +158,7 @@ class DuploArgoWorkflow(DuploResource):
     Usage: Basic CLI Use
       ```bash
       duploctl argo_wf auth
-
-      if response.status_code == 204 or not response.content:
-        return {}
-      return response.json()
+      ```
     Returns:
       dict: Authentication info with Token, IsAdmin, TenantId, ExpiresAt
     """
