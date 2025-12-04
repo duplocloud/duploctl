@@ -138,7 +138,7 @@ class DuploArgoWorkflow(DuploResource):
     argo_tenant_id = auth["TenantId"]  # Tenant where workflow controller runs
     argo_token = auth["Token"]
 
-    url = f"{self.duplo.host}/argo-wf/{argo_tenant_id}/api/v1/{path}"
+    url = f"{self.duplo.host}/argo-wf/{argo_tenant_id}/api/v1/{path}?current_tenant_id={self.tenant_id}"
     headers = {
       'Content-Type': 'application/json',
       'Authorization': f'Bearer {argo_token}',
