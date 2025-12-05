@@ -183,6 +183,9 @@ def test_taskdef_mapping_properly_sanitizes_properties(mocker):
                 "MemoryReservation": 0,
                 "StartTimeout": 0,
                 "StopTimeout": 0,
+                "LinuxParameters": {
+                    "SharedMemorySize": 0
+                },
                 "MountPoints" : [
                     {
                         "ContainerPath" : "/mnt/my-volume",
@@ -215,6 +218,7 @@ def test_taskdef_mapping_properly_sanitizes_properties(mocker):
     assert "MemoryReservation" not in result["ContainerDefinitions"][0]
     assert "StartTimeout" not in result["ContainerDefinitions"][0]
     assert "StopTimeout" not in result["ContainerDefinitions"][0]
+    assert "SharedMemorySize" not in result["ContainerDefinitions"][0]["LinuxParameters"]
 
     assert "TransitEncryptionPort" not in result["Volumes"][0]["EfsVolumeConfiguration"]
 
