@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fix typo in ecsService _wait_on_task
 - Fix wait option for ecs resources finishing immediately
-- Handle pods without a clear duplo service controlling them gracefully
+- Handle pods without a clear duplo service controlling them gracefully\
+- Fixed missing replicas arg in service update_replicas doc
 
 ## [0.3.8] - 2025-11-07
 
