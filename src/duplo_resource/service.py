@@ -881,7 +881,6 @@ class DuploService(DuploTenantResourceV2):
     Returns:
       None
     """
-    self.duplo.logger.debug(f"wait recieved {old} and {updates}")
     name = old["Name"]
     cloud = old["Template"]["Cloud"]
 
