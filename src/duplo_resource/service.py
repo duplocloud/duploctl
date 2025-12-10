@@ -36,13 +36,13 @@ class DuploService(DuploTenantResourceV2):
     self._old = None
     self._updates = None
     self._old_replicaset = None
-  
+
   def name_from_body(self, body: dict) -> str:
     """Service name from body.
-    
+
     Simply returns the services name given an entire service object.
 
-    info: 
+    info:
       This is not a cli command. It's primarily used internally but could be useful in a custom script.
 
     Args:
@@ -52,19 +52,19 @@ class DuploService(DuploTenantResourceV2):
       name: The name of the service.
     """
     return body["Name"]
-  
+
   def current_replicaset(self, name: str) -> str:
     """Get the current replicaset for a service.
 
     Finds the name of the underlying replicaset for a named service.
 
-    info: 
+    info:
       This is not a cli command. It's primarily used internally but could be useful in a custom script.
 
     Args:
       name: The name of the service to get replicaset for.
 
-    Returns: 
+    Returns:
       The current replicaset for the service.
 
     Raises:
@@ -75,17 +75,17 @@ class DuploService(DuploTenantResourceV2):
     if cb is None:
       return None
     return cb.get("NativeId", None)
-  
+
   def image_from_body(self, body: dict) -> str:
     """Get the image from a service body.
 
-    info: 
+    info:
       This is not a cli command. It's primarily used internally but could be useful in a custom script.
 
     Args:
       body: The body of the service.
 
-    Returns: 
+    Returns:
       image: The image for the service.
     """
     tpl = body.get("Template", {})
@@ -95,7 +95,7 @@ class DuploService(DuploTenantResourceV2):
         return c["Image"]
     else:
       return body.get("DockerImage", body.get("Image", None))
-  
+
   @Command()
   def find(self,
            name: args.NAME) -> dict:
@@ -225,7 +225,7 @@ class DuploService(DuploTenantResourceV2):
       ```
 
     Example: Create and Wait
-      Use the global --wait flag to wait for the service to be created and all replicas in a ready status. 
+      Use the global --wait flag to wait for the service to be created and all replicas in a ready status.
       ```sh
       duploctl service create --file service.yaml --wait
       ```
@@ -238,7 +238,7 @@ class DuploService(DuploTenantResourceV2):
     """
     self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
     if self.duplo.wait:
-      # TODO: This is lazy. The _wait method in this class should actually handle create. 
+      # TODO: This is lazy. The _wait method in this class should actually handle create.
       super().wait(lambda: self.find(body["Name"]))
     return {
       "message": f"Successfully created service '{body['Name']}'"
@@ -285,7 +285,7 @@ class DuploService(DuploTenantResourceV2):
       ```
 
     Example: Wait for Scaling
-      The update replicas supports the global `--wait` flag. This will wait till the number of pods match the desired count. 
+      The update replicas supports the global `--wait` flag. This will wait till the number of pods match the desired count.
       ```sh
       duploctl service update_replicas myapp 99 --wait
       ```
@@ -303,8 +303,8 @@ class DuploService(DuploTenantResourceV2):
     self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
     if self.duplo.wait:
       self._wait(service, data)
-    return {"message": f"Successfully updated replicas for service '{name}'"} 
-  
+    return {"message": f"Successfully updated replicas for service '{name}'"}
+
   @Command()
   def update_image(self,
                    name: args.NAME,
@@ -337,7 +337,7 @@ class DuploService(DuploTenantResourceV2):
     """
     if [image, container_image, init_container_image].count(None) != 2:
       raise DuploError("Provide a service image, container images, or init container images.")
-
+    self.duplo.logger.debug("UPDATE IMAGE")
     service = self.find(name)
     data = {}
     updated_containers = []
@@ -382,6 +382,7 @@ class DuploService(DuploTenantResourceV2):
     self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
 
     if self.duplo.wait:
+      self.duplo.logger.debug(f"Wait enabled, beginning wait process")
       self._wait(service, data)
 
     response_message = "Successfully updated image for service."
@@ -399,7 +400,7 @@ class DuploService(DuploTenantResourceV2):
                  strategy: args.STRATEGY,
                  deletevar: args.DELETEVAR) -> dict:
     """Update environment variables
-     
+
     Updates the environment variables of a service. If service has no environment variables set, use -strat replace to set new values.
     You may pass any number of --setvar flags to set multiple environment variables.
 
@@ -408,7 +409,7 @@ class DuploService(DuploTenantResourceV2):
       duploctl service update_env <service-name> --strategy <replace,merge> --setvar <key> <value>
       ```
     Example: Update all environment variables
-      All variables for the service would be replaced by the variables in the command. This is a full state refresh. 
+      All variables for the service would be replaced by the variables in the command. This is a full state refresh.
       ```sh
       duploctl service update_env myapp --strategy replace --setvar FOO bar --setvar MESSAGE "Hello?"
       ```
@@ -493,9 +494,9 @@ class DuploService(DuploTenantResourceV2):
                  setvar: args.SETVAR,
                  strategy: args.STRATEGY,
                  deletevar: args.DELETEVAR):
-  
-    """Update pod labels 
-    
+
+    """Update pod labels
+
     Updates the labels on the pod of a service. If service has no pod labels set, use -strat replace to set new values.
 
     Usage: Basic CLI Use
@@ -511,7 +512,7 @@ class DuploService(DuploTenantResourceV2):
       deletevar: A list of keys to delete from the environment variables.
 
     Returns:
-      message: A message about success. 
+      message: A message about success.
     """
     service = self.find(name)
     currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
@@ -600,7 +601,7 @@ class DuploService(DuploTenantResourceV2):
               name: args.NAME) -> dict:
     """Restart a service.
 
-    Restart a service. Cause kubernetes to do a full rollover of it's replicaset. This does honor the deployment strategy settings. 
+    Restart a service. Cause kubernetes to do a full rollover of it's replicaset. This does honor the deployment strategy settings.
 
     Usage: Basic CLI Use
       ```sh
@@ -608,7 +609,7 @@ class DuploService(DuploTenantResourceV2):
       ```
 
     Example: Wait for Restart
-      This command supports the global --wait. Waits for the desired count of pods to become ready. 
+      This command supports the global --wait. Waits for the desired count of pods to become ready.
       ```sh
       duploctl service restart myapp --wait --loglevel INFO
       ```
@@ -616,7 +617,7 @@ class DuploService(DuploTenantResourceV2):
     Args:
       name: The name of the service to restart.
 
-    Returns: 
+    Returns:
       message: A success message if the service was restarted successfully.
 
     Raises:
@@ -703,7 +704,7 @@ class DuploService(DuploTenantResourceV2):
            name: args.NAME) -> dict:
     """Get Pods
 
-    Get a list of all of the pods owned by this service. 
+    Get a list of all of the pods owned by this service.
 
     Usage: Basic CLI Use
       ```sh
@@ -713,7 +714,7 @@ class DuploService(DuploTenantResourceV2):
     Args:
       name: The name of the service to get pods for.
 
-    Returns: 
+    Returns:
       message: A list of pods for the service.
 
     Raises:
@@ -721,11 +722,11 @@ class DuploService(DuploTenantResourceV2):
     """
     def controlled_by_service(pod):
       cb = pod.get("ControlledBy", None)
-      same_name = pod.get("Name", "CONTROLLER_NOT_FOUND") == name
+      same_name = pod.get("Name", "NAME_NOT_FOUND") == name
       if cb is None:
         return same_name
       else:
-        return same_name and cb.get("QualifiedType", None) == "kubernetes:apps/v1/ReplicaSet" 
+        return same_name and cb.get("QualifiedType", None) == "kubernetes:apps/v1/ReplicaSet"
     pods = self._pod_svc.list()
     return [ pod for pod in pods if controlled_by_service(pod) ]
 
@@ -733,8 +734,8 @@ class DuploService(DuploTenantResourceV2):
   def logs(self,
            name: args.NAME) -> dict:
     """Service Logs
-    
-    Get the logs for a service. This will be an aggregate of all logs from the pods. The pod names will be prefixed on each line. 
+
+    Get the logs for a service. This will be an aggregate of all logs from the pods. The pod names will be prefixed on each line.
 
     Get the logs for a service.
 
@@ -768,7 +769,7 @@ class DuploService(DuploTenantResourceV2):
         pass
     else:
       show_logs()
-    
+
   @Command()
   def expose(self,
              name: args.NAME,
@@ -781,7 +782,7 @@ class DuploService(DuploTenantResourceV2):
              health_check_url: args.HEALTH_CHECK_URL=None) -> dict:
     """Expose a service.
 
-    Exposes a service through a load balancer. Attaches a Duplocloud service lb configuration to the service. 
+    Exposes a service through a load balancer. Attaches a Duplocloud service lb configuration to the service.
 
     Usage: Basic CLI Use
       ```sh
@@ -870,7 +871,7 @@ class DuploService(DuploTenantResourceV2):
 
   def _wait(self, old: dict, updates: dict):
     """Wait for a service to update.
-    
+
     This will wait for the service to update based on the changes made. It will check the image, replicas, and hpa settings.
 
     Args:
@@ -880,8 +881,10 @@ class DuploService(DuploTenantResourceV2):
     Returns:
       None
     """
+    self.duplo.logger.debug(f"wait recieved {old} and {updates}")
     name = old["Name"]
     cloud = old["Template"]["Cloud"]
+
 
     # track image changes
     new_img = self.image_from_body(updates)
@@ -961,8 +964,9 @@ class DuploService(DuploTenantResourceV2):
         self.duplo.logger.info(f"Pod {pod['InstanceId']} is running")
         return 1
       return 0
-    
+
     def wait_check():
+      self.duplo.logger.debug(f"Running wait check for {name}")
       svc = self.find(name)
       replicas = svc[replica_key]
 
@@ -975,7 +979,7 @@ class DuploService(DuploTenantResourceV2):
         raise DuploStillWaiting(f"Service {name} waiting for pod to update")
 
       # now let's start checking the pods
-      self.duplo.logger.debug("Service update completed, checking status of pods")
+      self.duplo.logger.debug(f"Service update completed, checking status of pods for {name}")
       pods = self.pods(name)
       faults = self.tenant_svc.faults(id=self.tenant_id)
 
@@ -998,7 +1002,7 @@ class DuploService(DuploTenantResourceV2):
 
     # send to the base class to do the waiting
     super().wait(wait_check, 3600, 11)
-  
+
   def _validate_args(self, name, all, targets):
     if sum(bool(x) for x in [name, all, targets]) > 1:
       raise DuploError("You can only specify one of: a service name, the '--all' flag, or the '--targets' flag.")
@@ -1044,4 +1048,3 @@ class DuploService(DuploTenantResourceV2):
       "message": f"Service {action} operation completed.",
       "details": results,
     }
-
