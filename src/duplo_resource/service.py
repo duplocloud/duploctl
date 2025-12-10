@@ -953,11 +953,13 @@ class DuploService(DuploTenantResourceV2):
         self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by the old Replicaset: {old.get('Replicaset', None)}")
         return 0
       # ignore this pod if the image is the old image
-      if image_changed and get_pod_image(pod) != normalize_image(new_img):
-        self.duplo.logger.debug(f"IGNORING: Pod {pod['InstanceId']} is not on the new image, {new_img}. It is on {get_pod_image(pod)}")
-        return 0
-      else:
-        self.duplo.logger.debug(f"CONTINUING: Pod {pod['InstanceId']} is running image {get_pod_image(pod)}, which matches desired image: {new_img}")
+      if image_changed:
+        pod_image = get_pod_image(pod)
+        if pod_image != normalize_image(new_img):
+          self.duplo.logger.debug(f"IGNORING: Pod {pod['InstanceId']} is not on the new image, {new_img}. It is on {pod_image}")
+          return 0
+        else:
+          self.duplo.logger.debug(f"CONTINUING: Pod {pod['InstanceId']} is running image {pod_image}, which matches desired image: {new_img}")
 
       # check for aws and gke faults on pod
       if cloud != 2:
