@@ -382,7 +382,7 @@ class DuploService(DuploTenantResourceV2):
     self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
 
     if self.duplo.wait:
-      self.duplo.logger.debug(f"Wait enabled, beginning wait process")
+      self.duplo.logger.debug("Wait enabled, beginning wait process")
       self._wait(service, data)
 
     response_message = "Successfully updated image for service."
@@ -953,7 +953,7 @@ class DuploService(DuploTenantResourceV2):
         self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by the old Replicaset: {old.get('Replicaset', None)}")
         return 0
       # ignore this pod if the image is the old image
-      if image_changed and get_pod_image(pod) != new_img:
+      if image_changed and get_pod_image(pod) != normalize_image(new_img):
         self.duplo.logger.debug(f"IGNORING: Pod {pod['InstanceId']} is not on the new image, {new_img}. It is on {get_pod_image(pod)}")
         return 0
       else:
