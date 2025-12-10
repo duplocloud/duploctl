@@ -930,9 +930,12 @@ class DuploService(DuploTenantResourceV2):
 
       This is for aws and gke because the faults are at the pod level.
       """
+      self.duplo.logger.debug(f"checking {pod['InstanceId']} for faults....")
       for f in faults:
         if f["Resource"]["Name"] == pod["InstanceId"]:
           raise DuploFailedResource(f"Pod {pod['InstanceId']} raised a fault.\n{f['Description']}")
+        else:
+          self.duplo.logger.debug(f"fault founnd for {f['Resource']['Name']}, did not match current pod {pod['InstanceId']}.")
     def check_service_faults(faults):
       """Check if the service has any faults.
 
@@ -949,14 +952,12 @@ class DuploService(DuploTenantResourceV2):
       if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
         self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by the old Replicaset: {old.get('Replicaset', None)}")
         return 0
-      else:
-        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}, not the old replicaset: {old.get('Replicaset', None)}.")
       # ignore this pod if the image is the old image
-      if image_changed and get_pod_image(pod) == old_img:
-        self.duplo.logger.debug(f"Ignoring status of {pod['InstanceId']} because it's on the old image, {old_img}")
+      if image_changed and get_pod_image(pod) != new_img:
+        self.duplo.logger.debug(f"IGNORING: Pod {pod['InstanceId']} is not on the new image, {new_img}. It is on {get_pod_image(pod)}")
         return 0
       else:
-        self.duplo.logger.debug(f"Pod {pod['InstanceId']} is not on the old image, {old_img}.  it is on {get_pod_image(pod)}")
+        self.duplo.logger.debug(f"CONTINUING: Pod {pod['InstanceId']} is running image {get_pod_image(pod)}, which matches desired image: {new_img}")
 
       # check for aws and gke faults on pod
       if cloud != 2:
@@ -964,7 +965,7 @@ class DuploService(DuploTenantResourceV2):
 
       # update total running pod count if one is running
       if ((pod["CurrentStatus"] == pod["DesiredStatus"]) and pod["DesiredStatus"] == 1):
-        self.duplo.logger.info(f"Pod {pod['InstanceId']} is running")
+        self.duplo.logger.info(f"Pod {pod['InstanceId']} is running.")
         return 1
       return 0
 
