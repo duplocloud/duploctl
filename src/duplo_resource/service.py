@@ -935,7 +935,7 @@ class DuploService(DuploTenantResourceV2):
         if f["Resource"]["Name"] == pod["InstanceId"]:
           raise DuploFailedResource(f"Pod {pod['InstanceId']} raised a fault.\n{f['Description']}")
         else:
-          self.duplo.logger.debug(f"fault founnd for {f['Resource']['Name']}, did not match current pod {pod['InstanceId']}.")
+          self.duplo.logger.debug(f"fault found for {f['Resource']['Name']}, did not match current pod {pod['InstanceId']}.")
     def check_service_faults(faults):
       """Check if the service has any faults.
 
