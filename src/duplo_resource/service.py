@@ -950,10 +950,14 @@ class DuploService(DuploTenantResourceV2):
       if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
         self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by the old Replicaset: {old.get('Replicaset', None)}")
         return 0
+      else:
+        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}, not the old replicaset: {old.get('Replicaset', None)}.")
       # ignore this pod if the image is the old image
       if image_changed and get_pod_image(pod) == old_img:
         self.duplo.logger.debug(f"Ignoring status of {pod['InstanceId']} because it's on the old image, {old_img}")
         return 0
+      else:
+        self.duplo.logger.debug(f"Pod {pod['InstanceId']} is not on the old image, {old_img}.  it is on {get_pod_image(pod)}")
 
       # check for aws and gke faults on pod
       if cloud != 2:
@@ -999,6 +1003,8 @@ class DuploService(DuploTenantResourceV2):
         min_replicas = svc.get("HPASpecs", {}).get("minReplicas", 1)
         if running_old > 0 and running < min_replicas:
           raise DuploStillWaiting(f"Service {name} waiting for minimum pods: {running}/{min_replicas}.  Waiting to clean up {running_old} pods that are still using the old image.")
+        else:
+          self.duplo.logger.debug(f"Service {name} running/min: {running}/{min_replicas}.")
 
     # send to the base class to do the waiting
     super().wait(wait_check, 3600, 11)
