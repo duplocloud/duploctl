@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Argo Workflow resource
 - ECS Service wait function based on deployment status instead of task state
 - doc build check to pull request pipeline
-- added a wait timeout for the global wait operation. 
+- added a wait timeout for the global wait operation.
+- updated wait logic to validate new image instead of not old image
+- added additional debug logging around wait functionality
 
 ### Fixed
 
