@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix typo in ecsService _wait_on_task
 - Fix wait option for ecs resources finishing immediately
 - Handle pods without a clear duplo service controlling them gracefully
+- Fix invalid SharedMemorySize when we defined LinuxParameters dict inside containerDefinitions of an ECS task def
 
 ## [0.3.8] - 2025-11-07
 
