@@ -281,13 +281,13 @@ class DuploService(DuploTenantResourceV2):
 
     Usage: Basic CLI Use
       ```sh
-      duploctl service update_replicas <service-name> <replicas>
+      duploctl service update_replicas <service-name> --replicas <replicas>
       ```
 
     Example: Wait for Scaling
       The update replicas supports the global `--wait` flag. This will wait till the number of pods match the desired count.
       ```sh
-      duploctl service update_replicas myapp 99 --wait
+      duploctl service update_replicas myapp --replicas 99 --wait
       ```
 
     Args:
