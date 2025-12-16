@@ -144,6 +144,9 @@ class DuploResourceV3(DuploResource):
   def __init__(self, duplo: DuploClient, slug: str, prefixed: bool = False):
     super().__init__(duplo, api_version="v3", slug=slug, prefixed=prefixed)
 
+  def name_from_body(self, body):
+    return body["metadata"]["name"]
+
   def endpoint(self, name: str=None, path: str=None):
     """Portal-scoped endpoint for V3 resources.
     
