@@ -1,7 +1,7 @@
 from . import args
 from .client import DuploClient
 from .errors import DuploError, DuploFailedResource, DuploStillWaiting
-from .commander import get_parser, extract_args, Command
+from .commander import get_parser, extract_args, Command, aliased_method
 import math
 import time
 import requests
@@ -36,9 +36,8 @@ class DuploResource():
   #   return self.__logger
   
   def command(self, name: str):
-    # TODO: Test the aliased_method further before actually releasing this feature. This will be disabled for now.
-    # method = aliased_method(self.__class__, name)
-    if not (command := getattr(self, name, None)):
+    method = aliased_method(self.__class__, name)
+    if not (command := getattr(self, method, None)):
       raise DuploError(f"Invalid command: {name}")
     cliargs = extract_args(command)
     parser = get_parser(cliargs)
