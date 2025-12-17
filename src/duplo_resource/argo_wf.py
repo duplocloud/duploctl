@@ -150,7 +150,7 @@ class DuploArgoWorkflow(DuploProxyResource):
     Returns:
       dict: The workflow template object.
     """
-    path = f"workflow-templates/{self.namespace}/{name}"
+    path = f"workflow-templates/{self.namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("GET", path)
 
   @Command()
@@ -187,7 +187,7 @@ class DuploArgoWorkflow(DuploProxyResource):
     Returns:
       dict: The workflow object.
     """
-    path = f"workflows/{self.namespace}/{name}"
+    path = f"workflows/{self.namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("GET", path)
 
   @Command()
@@ -231,7 +231,7 @@ class DuploArgoWorkflow(DuploProxyResource):
     Returns:
       dict: Deletion confirmation.
     """
-    path = f"workflows/{self.namespace}/{name}"
+    path = f"workflows/{self.namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("DELETE", path)
 
   @Command()
@@ -275,5 +275,5 @@ class DuploArgoWorkflow(DuploProxyResource):
     Returns:
       dict: Deletion confirmation.
     """
-    path = f"workflow-templates/{self.namespace}/{name}"
+    path = f"workflow-templates/{self.namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("DELETE", path)
