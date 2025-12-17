@@ -153,7 +153,7 @@ class DuploArgoWorkflow(DuploProxyResource):
     path = f"workflow-templates/{self.namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("GET", path)
 
-  @Command()
+  @Command("list_workflows")
   def list(self) -> list:
     """List Workflows
 
@@ -170,7 +170,7 @@ class DuploArgoWorkflow(DuploProxyResource):
     path = f"workflows/{self.namespace}"
     return self._proxy_request("GET", path)
 
-  @Command()
+  @Command("get_workflow")
   def get(self, name: args.NAME) -> dict:
     """Get Workflow
 
@@ -214,7 +214,7 @@ class DuploArgoWorkflow(DuploProxyResource):
     path = f"workflows/{self.namespace}"
     return self._proxy_request("POST", path, body)
 
-  @Command()
+  @Command("delete_workflow")
   def delete(self, name: args.NAME) -> dict:
     """Delete Workflow
 
