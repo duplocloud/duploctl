@@ -37,13 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Argo Workflow resource
 - ECS Service wait function based on deployment status instead of task state
 - doc build check to pull request pipeline
+- added a wait timeout for the global wait operation.
+- updated wait logic to validate new image instead of not old image
+- added additional debug logging around wait functionality
 - added a wait timeout for the global wait operation. 
+- Argo workflow related imporvements
 
 ### Fixed
 
 - Fix typo in ecsService _wait_on_task
 - Fix wait option for ecs resources finishing immediately
+- Handle pods without a clear duplo service controlling them gracefully\
+- Fixed missing replicas arg in service update_replicas doc
 - Handle pods without a clear duplo service controlling them gracefully
+- Fix invalid SharedMemorySize when we defined LinuxParameters dict inside containerDefinitions of an ECS task def
 
 ## [0.3.8] - 2025-11-07
 

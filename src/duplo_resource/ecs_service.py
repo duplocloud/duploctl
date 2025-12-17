@@ -279,6 +279,9 @@ class DuploEcsService(DuploResourceV2):
           del containerDefinition["StartTimeout"]
         if containerDefinition.get("StopTimeout") == 0:
           del containerDefinition["StopTimeout"]
+        if containerDefinition.get("LinuxParameters", None) is not None and \
+            containerDefinition.get("LinuxParameters").get("SharedMemorySize") == 0:
+          del containerDefinition["LinuxParameters"]["SharedMemorySize"]
         return containerDefinition
     
     containers = list(map(sanitize_container_definition, task_def.get("ContainerDefinitions", [])))
