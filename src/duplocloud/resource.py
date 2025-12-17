@@ -487,20 +487,38 @@ class DuploProxyResource(DuploTenantResourceV4):
   def _sanitize_path_segment(self, segment: str) -> str:
     """Sanitize a path segment to prevent path traversal.
     
+    Checks for both URL-encoded and unencoded path separators/traversal
+    patterns and returns a URL-encoded segment for safe interpolation.
+    
     Args:
       segment: The path segment to sanitize.
       
     Returns:
-      str: The sanitized segment.
+      str: The URL-encoded sanitized segment.
       
     Raises:
       DuploError: If segment contains path traversal patterns.
     """
-    if not segment:
+    from urllib.parse import unquote, quote
+    
+    if segment is None or segment == "":
       return segment
-    if '..' in segment or segment.startswith('/'):
+    
+    raw = str(segment)
+    decoded = unquote(raw)
+    
+    def _invalid(s: str) -> bool:
+      return (
+        s.startswith("/") or
+        ".." in s or
+        "/" in s or
+        "\\" in s
+      )
+    
+    if _invalid(raw) or _invalid(decoded):
       raise DuploError(f"Invalid path segment: {segment}", 400)
-    return segment
+    
+    return quote(raw, safe="")
 
   def _make_request(self, method: str, url: str, headers: dict, 
                     data: dict = None, service_name: str = "Proxy"):
@@ -546,7 +564,8 @@ class DuploProxyResource(DuploTenantResourceV4):
     """Build headers for proxy requests.
     
     Creates a base header dict with Content-Type and Authorization,
-    then merges any extra headers provided by subclasses.
+    then merges any extra headers provided by subclasses. Critical
+    headers (Authorization, Content-Type) cannot be overridden.
     
     Args:
       proxy_token: The authentication token for the proxy service
@@ -562,5 +581,7 @@ class DuploProxyResource(DuploTenantResourceV4):
       'Authorization': f'Bearer {proxy_token}'
     }
     if extra_headers:
-      headers.update(extra_headers)
+      protected = {"authorization", "content-type"}
+      safe_extra = {k: v for k, v in extra_headers.items() if k.lower() not in protected}
+      headers.update(safe_extra)
     return headers
