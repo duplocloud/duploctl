@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - added additional debug logging around wait functionality
 - added a wait timeout for the global wait operation. 
 - Argo workflow related imporvements
+- Optimizations related to argo
 
 ### Fixed
 
