@@ -485,6 +485,24 @@ class DuploProxyResource(DuploTenantResourceV4):
     """
     raise NotImplementedError("Subclasses must implement _proxy_request")
 
+  def _sanitize_path_segment(self, segment: str) -> str:
+    """Sanitize a path segment to prevent path traversal.
+    
+    Args:
+      segment: The path segment to sanitize.
+      
+    Returns:
+      str: The sanitized segment.
+      
+    Raises:
+      DuploError: If segment contains path traversal patterns.
+    """
+    if not segment:
+      return segment
+    if '..' in segment or segment.startswith('/'):
+      raise DuploError(f"Invalid path segment: {segment}", 400)
+    return segment
+
   def _make_request(self, method: str, url: str, headers: dict, 
                     data: dict = None, service_name: str = "Proxy"):
     """Make an HTTP request with proper exception handling.
@@ -506,6 +524,7 @@ class DuploProxyResource(DuploTenantResourceV4):
     Raises:
       DuploError: On timeout, connection error, or HTTP error status
     """
+    self.duplo.logger.debug(f"{service_name} {method} {url}")
     try:
       response = requests.request(
         method=method,
@@ -521,6 +540,7 @@ class DuploProxyResource(DuploTenantResourceV4):
     except requests.exceptions.RequestException as e:
       raise DuploError(f"Failed to send request to {service_name}", 500) from e
     
+    self.duplo.logger.debug(f"{service_name} response: {response.status_code}")
     return self.duplo.validate_response(response, service_name)
 
   def _build_proxy_headers(self, proxy_token: str, extra_headers: dict = None) -> dict:
