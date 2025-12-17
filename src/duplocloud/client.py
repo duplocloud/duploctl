@@ -278,6 +278,30 @@ class DuploClient():
       "AvailableResources": available_resources()
     }
   
+  @property
+  def system_info(self) -> dict:
+    """Get System Info
+    
+    Retrieve global system information from the Duplo portal. This is cached
+    at the client level via the TTL cache on the get method.
+
+    Returns:
+      dict: System information including ResourceNamePrefix, features, etc.
+    """
+    return self.get("v3/features/system").json()
+  
+  @property
+  def resource_prefix(self) -> str:
+    """Get Resource Prefix
+    
+    Get the resource name prefix from system info. This is the prefix used
+    for Kubernetes namespaces and other resource names (e.g., 'duploservices', 'msi').
+    
+    Returns:
+      str: The resource name prefix.
+    """
+    return self.system_info.get("ResourceNamePrefix", "duploservices")
+  
   def __str__(self) -> str:
      return f"""
 Host: {self.host}
@@ -718,33 +742,56 @@ Available Resources:
       'Authorization': f"Bearer {t}"
     }
   
-  def __validate_response(self, response: requests.Response) -> requests.Response:
+  def validate_response(self, response: requests.Response, 
+                        service_name: str = None) -> requests.Response:
+    """Validate an HTTP response and raise appropriate errors.
+    
+    Public method for validating API responses. Can be used by resources
+    that make custom HTTP requests (e.g., proxy resources).
+    
+    Args:
+      response: The requests.Response object to validate.
+      service_name: Optional service name to prefix error messages.
+      
+    Raises:
+      DuploError: If the response indicates an error (non-2xx status).
+      
+    Returns:
+      The validated response object.
+    """
+    return self.__validate_response(response, service_name)
+
+  def __validate_response(self, response: requests.Response, 
+                          service_name: str = None) -> requests.Response:
     """Validate a response from Duplo.
     
     Args:
       response: The response to validate.
+      service_name: Optional service name for error context.
     Raises:
-      DuploError: If the response was not 200. 
+      DuploError: If the response was not 2xx. 
     Returns:
-      The response as a JSON object.
+      The validated response object.
     """
-    # contentType = response.headers.get('content-type', 'application/json').split(';')[0]
     if 200 <= response.status_code < 300:
       return response
     
+    # Build prefix only if service_name provided
+    prefix = f"{service_name}: " if service_name else ""
+    
     if response.status_code == 404:
-      raise DuploError("Resource not found", response.status_code)
+      raise DuploError(f"{prefix}Resource not found", response.status_code)
     
     if response.status_code == 401:
-      raise DuploError(response.text, response.status_code)
+      raise DuploError(f"{prefix}{response.text}" if service_name else response.text, response.status_code)
     
     if response.status_code == 403:
-      raise DuploError("Unauthorized", response.status_code)  
+      raise DuploError(f"{prefix}Unauthorized", response.status_code)
     
     if response.status_code == 400:
-      raise DuploError(response.text, response.status_code)
+      raise DuploError(f"{prefix}{response.text}" if service_name else response.text, response.status_code)
 
-    raise DuploError("Duplo responded with an error", response.status_code)
+    raise DuploError(f"{prefix}API error" if service_name else "Duplo responded with an error", response.status_code)
     
   def __sanitize_host(self, host: str) -> str:
     """Sanitize Host

@@ -1,17 +1,21 @@
-import requests
-from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
-from duplocloud.resource import DuploResource
+from duplocloud.resource import DuploProxyResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 @Resource("argo_wf")
-class DuploArgoWorkflow(DuploResource):
+class DuploArgoWorkflow(DuploProxyResource):
   """Resource for creating and managing Argo Workflow resources in DuploCloud.
 
   This resource provides commands to interact with Argo Workflows via the DuploCloud proxy.
   It handles the two-step authentication: first obtaining an Argo token from Duplo, then
   using that token to communicate with the Argo Workflow API.
+
+  Extends DuploProxyResource which provides:
+  - Tenant and tenant_id properties with caching
+  - Resource prefix and namespace from system info
+  - Infrastructure config caching
+  - Common proxy request helpers
 
   Usage: Basic CLI Use
     ```sh
@@ -19,51 +23,18 @@ class DuploArgoWorkflow(DuploResource):
     ```
   """
 
-  def __init__(self, duplo: DuploClient):
-    super().__init__(duplo)
-    self._tenant = None
-    self._tenant_id = None
-    self._argo_auth = None
-    self._system_info = None
-    self._infra_config = None
-    self.tenant_svc = duplo.load('tenant')
-    self.infra_svc = duplo.load('infrastructure')
-
-  @property
-  def tenant(self):
-    if not self._tenant:
-      self._tenant = self.tenant_svc.find()
-      self._tenant_id = self._tenant["TenantId"]
-    return self._tenant
-
-  @property
-  def tenant_id(self):
-    if not self._tenant_id:
-      if self.duplo.tenantid:
-        self._tenant_id = self.duplo.tenantid
-      else:
-        self._tenant_id = self.tenant["TenantId"]
-    return self._tenant_id
-
-  @property
-  def namespace(self):
-    prefix = self._get_resource_prefix()
-    return f"{prefix}-{self.tenant['AccountName']}"
-
   def _ensure_argo_enabled(self):
     """Check if Argo Workflows feature is enabled for the tenant's infrastructure.
+
+    Uses inherited get_infra_config() for caching.
 
     Raises:
       DuploError: If Argo Workflows is not enabled (DuploCiTenant not configured).
     """
-    if self._infra_config is None:
-      plan_id = self.tenant.get("PlanID")
-      if not plan_id:
-        raise DuploError("Tenant has no associated infrastructure plan", 400)
-      self._infra_config = self.infra_svc.find(plan_id)
-
+    infra_config = self.get_infra_config()
+    
     # DuploCiTenant is in CustomData array as {"Key": "DuploCiTenant", "Value": "..."}
-    custom_data = self._infra_config.get("CustomData", [])
+    custom_data = infra_config.get("CustomData", [])
     ci_tenant = next(
       (item.get("Value") for item in custom_data if item.get("Key") == "DuploCiTenant"),
       None
@@ -75,22 +46,15 @@ class DuploArgoWorkflow(DuploResource):
         400
       )
 
-  def _get_resource_prefix(self) -> str:
-    """Get the resource name prefix from system info.
-
-    Returns:
-      str: The resource name prefix (e.g., 'duploservices', 'msi')
-    """
-    if self._system_info is None:
-      response = self.duplo.get("v3/features/system")
-      self._system_info = response.json()
-    return self._system_info.get("ResourceNamePrefix", "duploservices")
-
-  def _get_argo_auth(self) -> dict:
+  def _get_proxy_auth(self) -> dict:
     """Get Argo Workflow authentication token.
 
+    Implements DuploProxyResource._get_proxy_auth for Argo-specific auth flow.
     Makes a POST call to the Duplo API to obtain an Argo Workflow token and admin status.
     The response includes a Kubernetes token for Argo API calls.
+    
+    Checks for token expiration using _is_proxy_auth_expired() and refreshes
+    the token if needed.
 
     Returns:
       dict: Authentication info containing Token, IsAdmin, TenantId, ExpiresAt
@@ -98,16 +62,18 @@ class DuploArgoWorkflow(DuploResource):
     Raises:
       DuploError: If Argo Workflows is not enabled for the infrastructure.
     """
-    if self._argo_auth is None:
+    if self._is_proxy_auth_expired():
       self._ensure_argo_enabled()
       path = f"v3/auth/argo-wf/{self.tenant_id}/admin"
       response = self.duplo.post(path)
-      self._argo_auth = response.json()
-    return self._argo_auth
+      self._proxy_auth = response.json()
+    return self._proxy_auth
 
-  def _argo_request(self, method: str, path: str, data: dict = None) -> dict:
+  def _proxy_request(self, method: str, path: str, data: dict = None) -> dict:
     """Make a request to the Argo Workflow API.
 
+    Implements DuploProxyResource._proxy_request for Argo-specific requests.
+    Uses _make_request from base class for consistent error handling.
     Uses the Argo token obtained from Duplo for authentication, and also
     passes the Duplo token in the 'duplotoken' header.
 
@@ -119,34 +85,20 @@ class DuploArgoWorkflow(DuploResource):
     Returns:
       dict: JSON response from the Argo API
     """
-    auth = self._get_argo_auth()
+    auth = self._get_proxy_auth()
     argo_tenant_id = auth["TenantId"]  # Tenant where workflow controller runs
     argo_token = auth["Token"]
 
     url = f"{self.duplo.host}/argo-wf/{argo_tenant_id}/api/v1/{path}?current_tenant_id={self.tenant_id}"
-    headers = {
-      'Content-Type': 'application/json',
-      'Authorization': f'Bearer {argo_token}',
-      'duplotoken': self.duplo.token
-    }
+    headers = self._build_proxy_headers(argo_token, {'duplotoken': self.duplo.token})
 
-    response = requests.request(
+    response = self._make_request(
       method=method,
       url=url,
       headers=headers,
-      json=data,
-      timeout=self.duplo.timeout
+      data=data,
+      service_name="Argo"
     )
-
-    if response.status_code == 404:
-      raise DuploError("Argo resource not found", 404)
-    if response.status_code == 401:
-      raise DuploError("Unauthorized: Invalid or expired Argo token", 401)
-    if response.status_code == 403:
-      raise DuploError("Forbidden: Insufficient permissions for Argo operation", 403)
-    if not (200 <= response.status_code < 300):
-      raise DuploError(f"Argo API error: {response.text}", response.status_code)
-
     return response.json()
 
   @Command()
@@ -162,7 +114,7 @@ class DuploArgoWorkflow(DuploResource):
     Returns:
       dict: Authentication info with Token, IsAdmin, TenantId, ExpiresAt
     """
-    return self._get_argo_auth()
+    return self._get_proxy_auth()
 
   @Command()
   def list_templates(self) -> list:
@@ -179,7 +131,7 @@ class DuploArgoWorkflow(DuploResource):
       list: A list of workflow templates.
     """
     path = f"workflow-templates/{self.namespace}"
-    return self._argo_request("GET", path)
+    return self._proxy_request("GET", path)
 
   @Command()
   def get_template(self, name: args.NAME) -> dict:
@@ -199,34 +151,34 @@ class DuploArgoWorkflow(DuploResource):
       dict: The workflow template object.
     """
     path = f"workflow-templates/{self.namespace}/{name}"
-    return self._argo_request("GET", path)
+    return self._proxy_request("GET", path)
 
   @Command()
-  def list_workflows(self) -> list:
+  def list(self) -> list:
     """List Workflows
 
     Retrieve a list of all workflows in the current tenant/namespace.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf list_workflows
+      duploctl argo_wf list
       ```
 
     Returns:
       list: A list of workflows.
     """
     path = f"workflows/{self.namespace}"
-    return self._argo_request("GET", path)
+    return self._proxy_request("GET", path)
 
   @Command()
-  def get_workflow(self, name: args.NAME) -> dict:
+  def get(self, name: args.NAME) -> dict:
     """Get Workflow
 
     Retrieve a specific workflow by name.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf get_workflow <name>
+      duploctl argo_wf get <name>
       ```
 
     Args:
@@ -236,7 +188,7 @@ class DuploArgoWorkflow(DuploResource):
       dict: The workflow object.
     """
     path = f"workflows/{self.namespace}/{name}"
-    return self._argo_request("GET", path)
+    return self._proxy_request("GET", path)
 
   @Command()
   def submit(self, body: args.BODY) -> dict:
@@ -260,17 +212,17 @@ class DuploArgoWorkflow(DuploResource):
       dict: The created workflow object.
     """
     path = f"workflows/{self.namespace}"
-    return self._argo_request("POST", path, body)
+    return self._proxy_request("POST", path, body)
 
   @Command()
-  def delete_workflow(self, name: args.NAME) -> dict:
+  def delete(self, name: args.NAME) -> dict:
     """Delete Workflow
 
     Delete a workflow by name.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf delete_workflow <name>
+      duploctl argo_wf delete <name>
       ```
 
     Args:
@@ -280,7 +232,7 @@ class DuploArgoWorkflow(DuploResource):
       dict: Deletion confirmation.
     """
     path = f"workflows/{self.namespace}/{name}"
-    return self._argo_request("DELETE", path)
+    return self._proxy_request("DELETE", path)
 
   @Command()
   def create_template(self, body: args.BODY) -> dict:
@@ -304,7 +256,7 @@ class DuploArgoWorkflow(DuploResource):
       dict: The created workflow template object.
     """
     path = f"workflow-templates/{self.namespace}"
-    return self._argo_request("POST", path, body)
+    return self._proxy_request("POST", path, body)
 
   @Command()
   def delete_template(self, name: args.NAME) -> dict:
@@ -324,4 +276,4 @@ class DuploArgoWorkflow(DuploResource):
       dict: Deletion confirmation.
     """
     path = f"workflow-templates/{self.namespace}/{name}"
-    return self._argo_request("DELETE", path)
+    return self._proxy_request("DELETE", path)
