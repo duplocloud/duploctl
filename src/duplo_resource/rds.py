@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
 from duplocloud.errors import DuploStillWaiting
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("rds")
-class DuploRDS(DuploTenantResourceV3):
+@Resource("rds", scope="tenant")
+class DuploRDS(DuploResourceV3):
   """Resource for managing RDS instances."""
   
   def __init__(self, duplo: DuploClient):

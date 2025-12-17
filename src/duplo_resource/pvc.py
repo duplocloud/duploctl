@@ -1,10 +1,10 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Resource
 
 
-@Resource("pvc")
-class PersistentVolumeClaim(DuploTenantResourceV3):
+@Resource("pvc", scope="tenant")
+class PersistentVolumeClaim(DuploResourceV3):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "k8s/pvc")
 

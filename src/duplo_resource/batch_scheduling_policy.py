@@ -1,9 +1,9 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Resource
 
-@Resource("batch_job")
-class DuploBatchSchedulingPolicy(DuploTenantResourceV3):
+@Resource("batch_job", scope="tenant")
+class DuploBatchSchedulingPolicy(DuploResourceV3):
   """Manage AWS Batch Scheduling Policies
 
   Run batch jobs as a managed service on AWS infrastructure. 

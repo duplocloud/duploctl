@@ -1,12 +1,12 @@
 from duplocloud import args
 from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import json
 
-@Resource("aws_secret")
-class DuploAwsSecret(DuploTenantResourceV3):
+@Resource("aws_secret", scope="tenant")
+class DuploAwsSecret(DuploResourceV3):
   """AWS Secrets Manager Secrets resource.
 
   This resource allows you to create, find, update, and delete AWS Secrets Manager secrets.
