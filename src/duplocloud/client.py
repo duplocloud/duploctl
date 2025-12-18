@@ -290,18 +290,6 @@ class DuploClient():
     """
     return self.get("v3/features/system").json()
   
-  @property
-  def resource_prefix(self) -> str:
-    """Get Resource Prefix
-    
-    Get the resource name prefix from system info. This is the prefix used
-    for Kubernetes namespaces and other resource names (e.g., 'duploservices', 'msi').
-    
-    Returns:
-      str: The resource name prefix.
-    """
-    return self.system_info.get("ResourceNamePrefix", "duploservices")
-  
   def __str__(self) -> str:
      return f"""
 Host: {self.host}
@@ -392,7 +380,7 @@ Available Resources:
       raise DuploError("Failed to establish connection with Duplo", 500) from e
     except requests.exceptions.RequestException as e:
       raise DuploError("Failed to send request to Duplo", 500) from e
-    return self.__validate_response(response)
+    return self.validate_response(response)
   
   def post(self, path: str, data: dict={}):
     """Post data to a Duplo resource.
@@ -409,7 +397,7 @@ Available Resources:
       timeout = self.timeout,
       json = data
     )
-    return self.__validate_response(response)
+    return self.validate_response(response)
   
   def put(self, path: str, data: dict={}):
     """Put data to a Duplo resource.
@@ -426,7 +414,7 @@ Available Resources:
       timeout = self.timeout,
       json = data
     )
-    return self.__validate_response(response)
+    return self.validate_response(response)
   
   def delete(self, path: str):
     """Delete a Duplo resource.
@@ -441,7 +429,7 @@ Available Resources:
       headers = self.__headers(),
       timeout = self.timeout
     )
-    return self.__validate_response(response)
+    return self.validate_response(response)
   
   def jsonpatch(self, data, patches):
     """Json Patch
@@ -756,20 +744,6 @@ Available Resources:
     Raises:
       DuploError: If the response indicates an error (non-2xx status).
       
-    Returns:
-      The validated response object.
-    """
-    return self.__validate_response(response, service_name)
-
-  def __validate_response(self, response: requests.Response, 
-                          service_name: str = None) -> requests.Response:
-    """Validate a response from Duplo.
-    
-    Args:
-      response: The response to validate.
-      service_name: Optional service name for error context.
-    Raises:
-      DuploError: If the response was not 2xx. 
     Returns:
       The validated response object.
     """

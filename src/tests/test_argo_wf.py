@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch
 from duplo_resource.argo_wf import DuploArgoWorkflow
+from duplocloud.commander import aliased_method
 
 # Patch target for requests - imported inside _make_request method
 REQUESTS_PATCH_TARGET = 'requests.request'
@@ -53,24 +54,6 @@ def test_auth(mocker):
 
 
 @pytest.mark.unit
-def test_list_templates(mocker):
-    argo, _ = _setup_argo_resource(mocker)
-    with patch(REQUESTS_PATCH_TARGET) as mock_req:
-        mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {"items": []})
-        result = argo.list_templates()
-        assert "items" in result
-
-
-@pytest.mark.unit
-def test_get_template(mocker):
-    argo, _ = _setup_argo_resource(mocker)
-    with patch(REQUESTS_PATCH_TARGET) as mock_req:
-        mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {"metadata": {"name": "tpl1"}})
-        result = argo.get_template("tpl1")
-        assert result["metadata"]["name"] == "tpl1"
-
-
-@pytest.mark.unit
 def test_list(mocker):
     argo, _ = _setup_argo_resource(mocker)
     with patch(REQUESTS_PATCH_TARGET) as mock_req:
@@ -80,20 +63,20 @@ def test_list(mocker):
 
 
 @pytest.mark.unit
-def test_get(mocker):
+def test_find(mocker):
     argo, _ = _setup_argo_resource(mocker)
     with patch(REQUESTS_PATCH_TARGET) as mock_req:
         mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {"metadata": {"name": "wf1"}})
-        result = argo.get("wf1")
+        result = argo.find("wf1")
         assert result["metadata"]["name"] == "wf1"
 
 
 @pytest.mark.unit
-def test_submit(mocker):
+def test_create(mocker):
     argo, _ = _setup_argo_resource(mocker)
     with patch(REQUESTS_PATCH_TARGET) as mock_req:
         mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {"metadata": {"name": "new-wf"}})
-        result = argo.submit({"workflow": {}})
+        result = argo.create({"workflow": {}})
         assert result["metadata"]["name"] == "new-wf"
 
 
@@ -106,19 +89,74 @@ def test_delete(mocker):
         assert result == {}
 
 
+# Alias resolution tests
 @pytest.mark.unit
-def test_create_template(mocker):
-    argo, _ = _setup_argo_resource(mocker)
-    with patch(REQUESTS_PATCH_TARGET) as mock_req:
-        mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {"metadata": {"name": "tpl"}})
-        result = argo.create_template({"template": {}})
-        assert result["metadata"]["name"] == "tpl"
+def test_alias_get_resolves_to_find():
+    """Test that 'get' alias resolves to 'find' method."""
+    method = aliased_method(DuploArgoWorkflow, "get")
+    assert method == "find"
 
 
 @pytest.mark.unit
-def test_delete_template(mocker):
+def test_alias_get_workflow_resolves_to_find():
+    """Test that 'get_workflow' alias resolves to 'find' method."""
+    method = aliased_method(DuploArgoWorkflow, "get_workflow")
+    assert method == "find"
+
+
+@pytest.mark.unit
+def test_alias_submit_resolves_to_create():
+    """Test that 'submit' alias resolves to 'create' method."""
+    method = aliased_method(DuploArgoWorkflow, "submit")
+    assert method == "create"
+
+
+@pytest.mark.unit
+def test_alias_list_workflows_resolves_to_list():
+    """Test that 'list_workflows' alias resolves to 'list' method."""
+    method = aliased_method(DuploArgoWorkflow, "list_workflows")
+    assert method == "list"
+
+
+@pytest.mark.unit
+def test_alias_delete_workflow_resolves_to_delete():
+    """Test that 'delete_workflow' alias resolves to 'delete' method."""
+    method = aliased_method(DuploArgoWorkflow, "delete_workflow")
+    assert method == "delete"
+
+
+# Test aliases work via command() method
+@pytest.mark.unit
+def test_command_get_alias(mocker):
+    """Test that calling command('get') works via alias."""
     argo, _ = _setup_argo_resource(mocker)
     with patch(REQUESTS_PATCH_TARGET) as mock_req:
-        mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {})
-        result = argo.delete_template("tpl")
-        assert result == {}
+        mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {"metadata": {"name": "wf1"}})
+        cmd = argo.command("get")
+        result = cmd("wf1")
+        assert result["metadata"]["name"] == "wf1"
+
+
+@pytest.mark.unit
+def test_command_submit_alias(mocker, tmp_path):
+    """Test that calling command('submit') works via alias."""
+    argo, _ = _setup_argo_resource(mocker)
+    # Create a temp file for the body input
+    body_file = tmp_path / "workflow.yaml"
+    body_file.write_text('{"workflow": {}}')
+    with patch(REQUESTS_PATCH_TARGET) as mock_req:
+        mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {"metadata": {"name": "new-wf"}})
+        cmd = argo.command("submit")
+        result = cmd("-f", str(body_file))
+        assert result["metadata"]["name"] == "new-wf"
+
+
+@pytest.mark.unit
+def test_command_list_workflows_alias(mocker):
+    """Test that calling command('list_workflows') works via alias."""
+    argo, _ = _setup_argo_resource(mocker)
+    with patch(REQUESTS_PATCH_TARGET) as mock_req:
+        mock_req.return_value = mocker.MagicMock(status_code=200, json=lambda: {"items": []})
+        cmd = argo.command("list_workflows")
+        result = cmd()
+        assert "items" in result
