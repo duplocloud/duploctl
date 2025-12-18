@@ -28,6 +28,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `.github/agents/` for custom workspace and coder agents
   - Documents decorator patterns, scope system, API versioning, and common pitfalls
   - ECS Service wait function based on deployment status instead of task state
+- **Argo Workflow resources with proxy-based API support**
+  - `argo_wf` resource for workflows: `list`, `find`, `create`, `delete`, `apply`, `auth`
+  - `argo_wf_template` resource for workflow templates: `list`, `find`, `create`, `update`, `delete`, `apply`
+  - `ArgoBase` base class with shared authentication and proxy request logic
+  - `apply` on workflows creates if not found, errors if exists (workflows are immutable)
+  - `apply` on templates creates if not found, updates if exists
+  - Backwards-compatible aliases: `get`/`get_workflow` → `find`, `submit` → `create`, `list_workflows` → `list`, `delete_workflow` → `delete`
+- **`DuploProxyResource` base class for resources using external APIs through Duplo proxy**
+  - Tenant-scoped functionality with lazy-loaded properties
+  - Dynamic resource prefix from system info
+  - Infrastructure config caching
+  - Token expiration checking
+  - HTTP request wrapper with proper exception handling
+  - Path sanitization to prevent traversal vulnerabilities
+  - Protected headers to prevent critical header overrides
+- `system_info` property on `DuploClient`
+- `resource_prefix` property on `DuploResource`
 
 ### Changed
 
@@ -35,16 +52,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Example: `@Resource("service", scope="tenant")` replaces extending `DuploTenantResourceV2`
 - Endpoint generation simplified to single method supporting V2/V3 and portal/tenant combinations
 - Import discipline enforced: all imports must be at top of file, never inside functions
-
-- Argo Workflow resource
+- Public `validate_response` method on `DuploClient` for custom HTTP requests
+- Command aliasing support enabled in `DuploResource.command()`
 - ECS Service wait function based on deployment status instead of task state
 - doc build check to pull request pipeline
 - added a wait timeout for the global wait operation.
 - updated wait logic to validate new image instead of not old image
 - added additional debug logging around wait functionality
-- added a wait timeout for the global wait operation. 
-- Argo workflow related imporvements
-- Optimizations related to argo
+- added a wait timeout for the global wait operation
 
 ### Fixed
 

@@ -73,6 +73,19 @@ class DuploResource():
     else:
       raise DuploStillWaiting("Timed out waiting")
 
+  @property
+  def resource_prefix(self) -> str:
+    """Get Resource Prefix
+    
+    Get the resource name prefix from system info. This is the prefix used
+    for Kubernetes namespaces and other resource names (e.g., 'duploservices', 'msi').
+    
+    Returns:
+      str: The resource name prefix.
+    """
+    return self.duplo.system_info.get("ResourceNamePrefix", "duploservices")
+
+
 class DuploResourceV2(DuploResource):
 
   def __init__(self, duplo: DuploClient, slug: str = None, prefixed: bool = False):
@@ -324,18 +337,24 @@ class DuploResourceV3(DuploResource):
       return self.create(body, wait)
 
 
-class DuploTenantResourceV4(DuploResource):
-  """Base class for tenant-scoped resources (V4).
+class DuploProxyResource(DuploResource):
+  """Base class for resources that use external APIs through Duplo proxy.
   
-  This class provides common tenant-related functionality including:
+  This class provides tenant-scoped functionality and proxy-style API support:
   - Lazy-loaded tenant and tenant_id properties
   - Dynamic resource prefix from system info (via DuploClient.resource_prefix)
   - Kubernetes namespace generation
   - Infrastructure service access with caching
+  - HTTP request wrapper with proper exception handling
+  - Token expiration checking
+  - Standard header construction
+  - Response validation via DuploClient.validate_response()
   
-  Extend this class for resources that operate within a tenant context.
+  Subclasses should implement:
+  - _get_proxy_auth(): Get authentication for the proxy service
+  - _proxy_request(): Make requests to the proxied API (use _make_request internally)
   
-  Note: Named V4 to follow existing V2/V3 naming convention.
+  Example subclasses: Argo Workflows, future Kubernetes API proxies, etc.
   """
 
   def __init__(self, duplo: DuploClient):
@@ -343,6 +362,7 @@ class DuploTenantResourceV4(DuploResource):
     self._tenant = None
     self._tenant_id = None
     self._infra_config = None
+    self._proxy_auth = None
     self.tenant_svc = duplo.load('tenant')
     self.infra_svc = duplo.load('infrastructure')
 
@@ -363,10 +383,6 @@ class DuploTenantResourceV4(DuploResource):
       else:
         self._tenant_id = self.tenant["TenantId"]
     return self._tenant_id
-
-  @property
-  def resource_prefix(self) -> str:
-    return self.duplo.resource_prefix
 
   @property
   def namespace(self) -> str:
@@ -410,32 +426,6 @@ class DuploTenantResourceV4(DuploResource):
         raise DuploError("Tenant has no associated infrastructure plan", 400)
       self._infra_config = self.infra_svc.find(pid)
     return self._infra_config
-
-
-class DuploProxyResource(DuploTenantResourceV4):
-  """Base class for resources that use external APIs through Duplo proxy.
-  
-  This class extends DuploTenantResourceV4 to support proxy-style APIs where:
-  - Authentication may use a different token flow
-  - Requests go through Duplo as a proxy to external services
-  - Custom headers and URL patterns are needed
-  
-  Provides:
-  - _make_request(): HTTP request wrapper with proper exception handling
-  - _is_proxy_auth_expired(): Check if cached auth token is expired
-  - _build_proxy_headers(): Standard header construction
-  - Response validation via DuploClient.validate_response()
-  
-  Subclasses should implement:
-  - _get_proxy_auth(): Get authentication for the proxy service
-  - _proxy_request(): Make requests to the proxied API (use _make_request internally)
-  
-  Example subclasses: Argo Workflows, future Kubernetes API proxies, etc.
-  """
-
-  def __init__(self, duplo: DuploClient):
-    super().__init__(duplo)
-    self._proxy_auth = None
 
   def _is_proxy_auth_expired(self, expiration_key: str = "ExpiresAt") -> bool:
     """Check if the cached proxy auth token is expired.
