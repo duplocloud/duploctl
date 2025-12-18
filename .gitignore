@@ -29,3 +29,4 @@ foo.*
 !.vscode/
 .qodo
 .env
+.envrc
