@@ -24,7 +24,7 @@ class ArgoBase(DuploProxyResource):
     Raises:
       DuploError: If Argo Workflows is not enabled (DuploCiTenant not configured).
     """
-    infra_config = self.get_infra_config()
+    infra_config = self._get_infra_config()
     
     custom_data = infra_config.get("CustomData", [])
     ci_tenant = next(
@@ -114,8 +114,9 @@ class DuploArgoWorkflow(ArgoBase):
       ```bash
       duploctl argo_wf auth
       ```
+
     Returns:
-      dict: Authentication info with Token, IsAdmin, TenantId, ExpiresAt
+      dict: Authentication info with Token, IsAdmin, TenantId, ExpiresAt.
     """
     return self._get_proxy_auth()
 
@@ -130,10 +131,15 @@ class DuploArgoWorkflow(ArgoBase):
       duploctl argo_wf list
       ```
 
+    Example: List with JSON output
+      ```bash
+      duploctl argo_wf list --query "items[*].metadata.name"
+      ```
+
     Returns:
-      list: A list of workflows.
+      list: A list of workflows in the tenant.
     """
-    path = f"workflows/{self.namespace}"
+    path = f"workflows/{self._namespace}"
     return self._proxy_request("GET", path)
 
   @Command("get", "get_workflow")
@@ -144,31 +150,41 @@ class DuploArgoWorkflow(ArgoBase):
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf find <name>
+      duploctl argo_wf find <workflow-name>
+      ```
+
+    Example: Get workflow status
+      ```bash
+      duploctl argo_wf find my-workflow --query "status.phase"
       ```
 
     Args:
       name: The name of the workflow.
 
     Returns:
-      dict: The workflow object.
+      dict: The full workflow object.
     """
-    path = f"workflows/{self.namespace}/{self._sanitize_path_segment(name)}"
+    path = f"workflows/{self._namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("GET", path)
 
   @Command("submit")
   def create(self, body: args.BODY) -> dict:
     """Create Workflow
 
-    Create a new workflow from a workflow spec.
+    Create a new workflow from a workflow specification.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf create -f workflow.yaml
+      duploctl argo_wf create --file workflow.yaml
       ```
       Contents of the `workflow.yaml` file
       ```yaml
       --8<-- "src/tests/data/argo_workflow.yaml"
+      ```
+
+    Example: Create using -f flag
+      ```bash
+      duploctl argo_wf create -f workflow.yaml
       ```
 
     Args:
@@ -177,7 +193,7 @@ class DuploArgoWorkflow(ArgoBase):
     Returns:
       dict: The created workflow object.
     """
-    path = f"workflows/{self.namespace}"
+    path = f"workflows/{self._namespace}"
     return self._proxy_request("POST", path, body)
 
   @Command("delete_workflow")
@@ -188,7 +204,12 @@ class DuploArgoWorkflow(ArgoBase):
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf delete <name>
+      duploctl argo_wf delete <workflow-name>
+      ```
+
+    Example: Delete a specific workflow
+      ```bash
+      duploctl argo_wf delete my-workflow-abc123
       ```
 
     Args:
@@ -197,7 +218,7 @@ class DuploArgoWorkflow(ArgoBase):
     Returns:
       dict: Deletion confirmation.
     """
-    path = f"workflows/{self.namespace}/{self._sanitize_path_segment(name)}"
+    path = f"workflows/{self._namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("DELETE", path)
 
   @Command()
@@ -205,15 +226,20 @@ class DuploArgoWorkflow(ArgoBase):
     """Apply Workflow
 
     Create a new workflow if it does not exist. If the workflow already exists,
-    an error is raised since Argo Workflows are immutable once created.
+    an error is raised since Argo Workflows are immutable once created. If metadata.generateName is specified, a new workflow will be created with a random name and the given prefix.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf apply -f workflow.yaml
+      duploctl argo_wf apply --file workflow.yaml
       ```
       Contents of the `workflow.yaml` file
       ```yaml
       --8<-- "src/tests/data/argo_workflow.yaml"
+      ```
+
+    Example: Apply using -f flag
+      ```bash
+      duploctl argo_wf apply -f workflow.yaml
       ```
 
     Args:
@@ -263,10 +289,15 @@ class DuploArgoWorkflowTemplate(ArgoBase):
       duploctl argo_wf_template list
       ```
 
+    Example: List template names only
+      ```bash
+      duploctl argo_wf_template list --query "items[*].metadata.name"
+      ```
+
     Returns:
-      list: A list of workflow templates.
+      list: A list of workflow templates in the tenant.
     """
-    path = f"workflow-templates/{self.namespace}"
+    path = f"workflow-templates/{self._namespace}"
     return self._proxy_request("GET", path)
 
   @Command()
@@ -277,16 +308,21 @@ class DuploArgoWorkflowTemplate(ArgoBase):
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf_template find <name>
+      duploctl argo_wf_template find <template-name>
+      ```
+
+    Example: Get template entrypoint
+      ```bash
+      duploctl argo_wf_template find my-template --query "spec.entrypoint"
       ```
 
     Args:
       name: The name of the workflow template.
 
     Returns:
-      dict: The workflow template object.
+      dict: The full workflow template object.
     """
-    path = f"workflow-templates/{self.namespace}/{self._sanitize_path_segment(name)}"
+    path = f"workflow-templates/{self._namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("GET", path)
 
   @Command()
@@ -297,11 +333,16 @@ class DuploArgoWorkflowTemplate(ArgoBase):
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf_template create -f template.yaml
+      duploctl argo_wf_template create --file template.yaml
       ```
       Contents of the `template.yaml` file
       ```yaml
       --8<-- "src/tests/data/argo_wf_template.yaml"
+      ```
+
+    Example: Create using -f flag
+      ```bash
+      duploctl argo_wf_template create -f template.yaml
       ```
 
     Args:
@@ -310,7 +351,7 @@ class DuploArgoWorkflowTemplate(ArgoBase):
     Returns:
       dict: The created workflow template object.
     """
-    path = f"workflow-templates/{self.namespace}"
+    path = f"workflow-templates/{self._namespace}"
     return self._proxy_request("POST", path, body)
 
   @Command()
@@ -321,7 +362,12 @@ class DuploArgoWorkflowTemplate(ArgoBase):
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf_template delete <name>
+      duploctl argo_wf_template delete <template-name>
+      ```
+
+    Example: Delete a specific template
+      ```bash
+      duploctl argo_wf_template delete my-hello-world-template
       ```
 
     Args:
@@ -330,7 +376,7 @@ class DuploArgoWorkflowTemplate(ArgoBase):
     Returns:
       dict: Deletion confirmation.
     """
-    path = f"workflow-templates/{self.namespace}/{self._sanitize_path_segment(name)}"
+    path = f"workflow-templates/{self._namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("DELETE", path)
 
   @Command()
@@ -341,11 +387,16 @@ class DuploArgoWorkflowTemplate(ArgoBase):
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf_template update -f template.yaml
+      duploctl argo_wf_template update --file template.yaml
       ```
       Contents of the `template.yaml` file
       ```yaml
       --8<-- "src/tests/data/argo_wf_template.yaml"
+      ```
+
+    Example: Update using -f flag
+      ```bash
+      duploctl argo_wf_template update -f template.yaml
       ```
 
     Args:
@@ -362,7 +413,7 @@ class DuploArgoWorkflowTemplate(ArgoBase):
     resource_version = current.get("metadata", {}).get("resourceVersion")
     if resource_version:
       body["template"]["metadata"]["resourceVersion"] = resource_version
-    path = f"workflow-templates/{self.namespace}/{self._sanitize_path_segment(name)}"
+    path = f"workflow-templates/{self._namespace}/{self._sanitize_path_segment(name)}"
     return self._proxy_request("PUT", path, body)
 
   @Command()
@@ -374,18 +425,30 @@ class DuploArgoWorkflowTemplate(ArgoBase):
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf_template apply -f template.yaml
+      duploctl argo_wf_template apply --file template.yaml
       ```
       Contents of the `template.yaml` file
       ```yaml
       --8<-- "src/tests/data/argo_wf_template.yaml"
       ```
 
+    Example: Apply using -f flag
+      ```bash
+      duploctl argo_wf_template apply -f template.yaml
+      ```
+
+    Example: Apply and verify
+      Apply a template and then verify it was created.
+      ```bash
+      duploctl argo_wf_template apply -f template.yaml
+      duploctl argo_wf_template find my-template
+      ```
+
     Args:
       body: The workflow template specification.
 
     Returns:
-      dict: The created/updated workflow template object.
+      dict: The created or updated workflow template object.
     """
     name = body.get("template", {}).get("metadata", {}).get("name")
     if name:

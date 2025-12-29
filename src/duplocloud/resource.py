@@ -349,24 +349,21 @@ class DuploProxyResource(DuploResource):
     self.infra_svc = duplo.load('infrastructure')
 
   @property
-  def namespace(self) -> str:
+  def _namespace(self) -> str:
     """Get K8s namespace from prefix (prefix without trailing dash)."""
     return self.prefix.rstrip('-')
 
-  def get_infra_config(self, plan_id: str = None) -> dict:
-    """Get infrastructure configuration with caching.
+  def _get_infra_config(self, plan_id: str = None) -> dict:
+    """Get infrastructure configuration with caching (internal use only).
     
-    Fetches and caches the infrastructure configuration for the tenant's
-    plan or a specified plan ID.
+    Fetches infrastructure config for the tenant and caches it. The plan_id
+    parameter is optional and used for specific infrastructure plans.
     
     Args:
-      plan_id: Optional plan ID. If not provided, uses the tenant's PlanID.
+      plan_id: Optional infrastructure plan ID
       
     Returns:
-      dict: The infrastructure configuration.
-      
-    Raises:
-      DuploError: If tenant has no associated infrastructure plan.
+      dict: Infrastructure configuration
     """
     if self._infra_config is None:
       pid = plan_id or self.tenant.get("PlanID")
