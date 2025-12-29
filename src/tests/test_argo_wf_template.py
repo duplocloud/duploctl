@@ -14,8 +14,6 @@ def _setup_argo_template_resource(mocker):
     mock_client.token = "test-token"
     mock_client.timeout = 60
     mock_client.tenantid = None
-    # Mock system_info for resource_prefix
-    mock_client.system_info = {"ResourceNamePrefix": "msi"}
     # Mock validate_response to return the response passed to it
     mock_client.validate_response.side_effect = lambda r, *args: r
     # Mock tenant service
@@ -26,12 +24,17 @@ def _setup_argo_template_resource(mocker):
     mock_infra_svc.find.return_value = {
         "CustomData": [{"Key": "DuploCiTenant", "Value": "ci-tenant-id"}]
     }
+    # Mock system service for resource_prefix
+    mock_system_svc = mocker.MagicMock()
+    mock_system_svc.info.return_value = {"ResourceNamePrefix": "msi"}
     # Return appropriate service based on load call
     def load_service(name):
         if name == "tenant":
             return mock_tenant_svc
         elif name == "infrastructure":
             return mock_infra_svc
+        elif name == "system":
+            return mock_system_svc
         return mocker.MagicMock()
     mock_client.load.side_effect = load_service
     # Mock auth response

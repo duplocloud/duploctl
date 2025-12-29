@@ -14,8 +14,6 @@ def _setup_argo_resource(mocker):
     mock_client.token = "test-token"
     mock_client.timeout = 60
     mock_client.tenantid = None
-    # Mock resource_prefix property (now on DuploClient)
-    type(mock_client).resource_prefix = mocker.PropertyMock(return_value="msi")
     # Mock validate_response to return the response passed to it
     mock_client.validate_response.side_effect = lambda r, *args: r
     # Mock tenant service
@@ -26,22 +24,23 @@ def _setup_argo_resource(mocker):
     mock_infra_svc.find.return_value = {
         "CustomData": [{"Key": "DuploCiTenant", "Value": "ci-tenant-id"}]
     }
+    # Mock system service for resource_prefix
+    mock_system_svc = mocker.MagicMock()
+    mock_system_svc.info.return_value = {"ResourceNamePrefix": "msi"}
     # Return appropriate service based on load call
     def load_service(name):
         if name == "tenant":
             return mock_tenant_svc
         elif name == "infrastructure":
             return mock_infra_svc
+        elif name == "system":
+            return mock_system_svc
         return mocker.MagicMock()
     mock_client.load.side_effect = load_service
     # Mock auth response
     mock_auth = mocker.MagicMock()
     mock_auth.json.return_value = {"Token": "argo-token", "IsAdmin": True, "TenantId": "ctrl-tenant"}
     mock_client.post.return_value = mock_auth
-    # Mock system info response (kept for backwards compatibility with other tests)
-    mock_system = mocker.MagicMock()
-    mock_system.json.return_value = {"ResourceNamePrefix": "msi"}
-    mock_client.get.return_value = mock_system
     return DuploArgoWorkflow(mock_client), mock_client
 
 

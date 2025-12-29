@@ -278,18 +278,6 @@ class DuploClient():
       "AvailableResources": available_resources()
     }
   
-  @property
-  def system_info(self) -> dict:
-    """Get System Info
-    
-    Retrieve global system information from the Duplo portal. This is cached
-    at the client level via the TTL cache on the get method.
-
-    Returns:
-      dict: System information including ResourceNamePrefix, features, etc.
-    """
-    return self.get("v3/features/system").json()
-  
   def __str__(self) -> str:
      return f"""
 Host: {self.host}

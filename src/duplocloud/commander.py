@@ -61,10 +61,15 @@ def _inject_tenant_scope(cls):
   
   setattr(cls, 'tenant_id', tenant_id)
   
-  # Add prefix property
+  # Add prefix property (uses dynamic ResourceNamePrefix from system info)
   @property
   def prefix(self):
-    return f"duploservices-{self.tenant['AccountName']}-"
+    if not hasattr(self, '_prefix') or self._prefix is None:
+      sys_svc = self.duplo.load("system")
+      info = sys_svc.info()
+      resource_prefix = info.get("ResourceNamePrefix", "duploservices")
+      self._prefix = f"{resource_prefix}-{self.tenant['AccountName']}-"
+    return self._prefix
   
   setattr(cls, 'prefix', prefix)
   
