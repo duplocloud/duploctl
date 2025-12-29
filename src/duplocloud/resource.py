@@ -73,19 +73,6 @@ class DuploResource():
     else:
       raise DuploStillWaiting("Timed out waiting")
 
-  @property
-  def resource_prefix(self) -> str:
-    """Get Resource Prefix
-    
-    Get the resource name prefix from system info. This is the prefix used
-    for Kubernetes namespaces and other resource names (e.g., 'duploservices', 'msi').
-    
-    Returns:
-      str: The resource name prefix.
-    """
-    return self.duplo.system_info.get("ResourceNamePrefix", "duploservices")
-
-
 class DuploResourceV2(DuploResource):
 
   def __init__(self, duplo: DuploClient, slug: str = None, prefixed: bool = False):
@@ -340,10 +327,8 @@ class DuploResourceV3(DuploResource):
 class DuploProxyResource(DuploResource):
   """Base class for resources that use external APIs through Duplo proxy.
   
-  This class provides tenant-scoped functionality and proxy-style API support:
-  - Lazy-loaded tenant and tenant_id properties
-  - Dynamic resource prefix from system info (via DuploClient.resource_prefix)
-  - Kubernetes namespace generation
+  This class provides proxy-style API support for external services via Duplo:
+  - Kubernetes namespace derived from tenant prefix (use with scope="tenant")
   - Infrastructure service access with caching
   - HTTP request wrapper with proper exception handling
   - Token expiration checking
@@ -359,51 +344,14 @@ class DuploProxyResource(DuploResource):
 
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-    self._tenant = None
-    self._tenant_id = None
     self._infra_config = None
     self._proxy_auth = None
-    self.tenant_svc = duplo.load('tenant')
     self.infra_svc = duplo.load('infrastructure')
 
   @property
-  def tenant(self) -> dict:
-    if not self._tenant:
-      self._tenant = self.tenant_svc.find()
-      self._tenant_id = self._tenant["TenantId"]
-    return self._tenant
-
-  @property
-  def tenant_id(self) -> str:
-    if not self._tenant_id:
-      if self._tenant:
-        self._tenant_id = self._tenant["TenantId"]
-      elif self.duplo.tenantid:
-        self._tenant_id = self.duplo.tenantid
-      else:
-        self._tenant_id = self.tenant["TenantId"]
-    return self._tenant_id
-
-  @property
   def namespace(self) -> str:
-    return f"{self.resource_prefix}-{self.tenant['AccountName']}"
-
-  @property
-  def prefix(self) -> str:
-    return f"{self.namespace}-"
-
-  def prefixed_name(self, name: str) -> str:
-    """Add tenant prefix to a resource name if not already present.
-    
-    Args:
-      name: The resource name.
-      
-    Returns:
-      str: The prefixed resource name.
-    """
-    if not name.startswith(self.prefix):
-      name = f"{self.prefix}{name}"
-    return name
+    """Get K8s namespace from prefix (prefix without trailing dash)."""
+    return self.prefix.rstrip('-')
 
   def get_infra_config(self, plan_id: str = None) -> dict:
     """Get infrastructure configuration with caching.

@@ -11,8 +11,7 @@ class ArgoBase(DuploProxyResource):
   workflow and workflow template resources.
 
   Extends DuploProxyResource which provides:
-  - Tenant and tenant_id properties with caching
-  - Resource prefix and namespace from system info
+  - Namespace derived from tenant prefix (uses dynamic ResourceNamePrefix)
   - Infrastructure config caching
   - Common proxy request helpers
   """
