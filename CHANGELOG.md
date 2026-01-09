@@ -28,21 +28,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `.github/agents/` for custom workspace and coder agents
   - Documents decorator patterns, scope system, API versioning, and common pitfalls
   - ECS Service wait function based on deployment status instead of task state
-- **Argo Workflow resources with proxy-based API support**
+- **Argo Workflow resources**
   - `argo_wf` resource for workflows: `list`, `find`, `create`, `delete`, `apply`, `auth`
   - `argo_wf_template` resource for workflow templates: `list`, `find`, `create`, `update`, `delete`, `apply`
-  - `ArgoBase` base class with shared authentication and proxy request logic
+  - `ArgoBase` base class with JWT-based authentication caching and shared proxy logic
+  - JWT token caching with automatic expiration handling using `exp` claim (Unix timestamp)
+  - Authentication token cached and refreshed only when expired
   - `apply` on workflows creates if not found, errors if exists (workflows are immutable)
   - `apply` on templates creates if not found, updates if exists
   - Backwards-compatible aliases: `get`/`get_workflow` → `find`, `submit` → `create`, `list_workflows` → `list`, `delete_workflow` → `delete`
-- **`DuploProxyResource` base class for resources using external APIs through Duplo proxy**
-  - Tenant-scoped functionality with lazy-loaded properties
-  - Dynamic resource prefix from system info
-  - Infrastructure config caching
-  - Token expiration checking
-  - HTTP request wrapper with proper exception handling
-  - Path sanitization to prevent traversal vulnerabilities
-  - Protected headers to prevent critical header overrides
+- **Enhanced `DuploClient` with flexible header handling and caching**
+  - `headers` parameter on HTTP methods (`get`, `post`, `put`, `delete`) for custom headers
+  - `mergeHeaders` parameter to control header merging behavior (default: `True`)
+  - Custom cache key function for `get()` method that converts headers dict to hashable frozenset
+  - Caching works with custom headers - different headers create separate cache entries
+  - `_build_headers()` method to centralize header construction logic
+  - `sanitize_path_segment()` method moved from `DuploProxyResource` to `DuploClient`
 - `system_info` property on `DuploClient`
 - `resource_prefix` property on `DuploResource`
 

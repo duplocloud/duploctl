@@ -1,20 +1,50 @@
-from duplocloud.errors import DuploError
-from duplocloud.resource import DuploProxyResource
+from duplocloud.errors import DuploError, DuploExpiredCache
+from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
+import jwt
+from datetime import datetime, timezone
 
 
-class ArgoBase(DuploProxyResource):
+class ArgoBase(DuploResource):
   """Base class for Argo Workflow resources.
 
   Provides shared authentication and proxy request functionality for both
   workflow and workflow template resources.
 
-  Extends DuploProxyResource which provides:
-  - Namespace derived from tenant prefix (uses dynamic ResourceNamePrefix)
-  - Infrastructure config caching
-  - Common proxy request helpers
+  Uses DuploResource with enhanced DuploClient methods that support:
+  - Custom headers for proxy authentication
+  - Path sanitization via DuploClient.sanitize_path_segment()
   """
+
+  def __init__(self, duplo):
+    super().__init__(duplo)
+    self._infra_config = None
+    self.infra_svc = duplo.load('infrastructure')
+
+  @property
+  def _namespace(self) -> str:
+    """Get K8s namespace from prefix (prefix without trailing dash)."""
+    return self.prefix.rstrip('-')
+
+  def _get_infra_config(self, plan_id: str = None) -> dict:
+    """Get infrastructure configuration with caching (internal use only).
+    
+    Fetches infrastructure config for the tenant and caches it. The plan_id
+    parameter is optional and used for specific infrastructure plans.
+    
+    Args:
+      plan_id: Optional infrastructure plan ID
+      
+    Returns:
+      dict: Infrastructure configuration
+    """
+    if self._infra_config is None:
+      pid = plan_id or self.tenant.get("PlanID")
+      if not pid:
+        raise DuploError("Tenant has no associated infrastructure plan", 400)
+      self._infra_config = self.infra_svc.find(pid)
+    return self._infra_config
 
   def _ensure_argo_enabled(self):
     """Check if Argo Workflows feature is enabled for the tenant's infrastructure.
@@ -38,58 +68,78 @@ class ArgoBase(DuploProxyResource):
         400
       )
 
-  def _get_proxy_auth(self) -> dict:
-    """Get Argo Workflow authentication token.
+  def _get_argo_auth_headers(self) -> dict:
+    """Get cached Argo Workflow authentication headers.
 
-    Makes a POST call to the Duplo API to obtain an Argo Workflow token and admin status.
-    The response includes a Kubernetes token for Argo API calls.
+    Makes a POST call to the Duplo API to obtain an Argo Workflow JWT token.
+    Returns the headers needed for Argo API calls with proper caching.
     
-    Checks for token expiration using _is_proxy_auth_expired() and refreshes
-    the token if needed.
+    Uses DuploClient's cache system to store the JWT token and refreshes
+    it automatically when expired.
 
     Returns:
-      dict: Authentication info containing Token, IsAdmin, TenantId, ExpiresAt
+      dict: Headers for Argo API calls including Authorization and duplotoken
 
     Raises:
       DuploError: If Argo Workflows is not enabled for the infrastructure.
     """
-    if self._is_proxy_auth_expired():
+    cache_key = self.duplo.cache_key_for("argo-auth")
+    
+    try:
+      # Try to get from cache
+      auth_data = self.duplo.get_cached_item(cache_key)
+      
+      # Check if JWT token is expired (exp is Unix timestamp)
+      if "Token" in auth_data:
+        try:
+          decoded = jwt.decode(auth_data["Token"], options={"verify_signature": False})
+          exp = decoded.get("exp")
+          if exp:
+            # JWT exp is Unix timestamp, compare with current time
+            now = datetime.now(timezone.utc).timestamp()
+            if now > exp:
+              raise DuploExpiredCache(cache_key)
+        except jwt.DecodeError:
+          # If we can't decode, treat as expired
+          raise DuploExpiredCache(cache_key)
+      
+      # Check the expires at field as fallback
+      if self.duplo.expired(auth_data.get("ExpiresAt", None)):
+        raise DuploExpiredCache(cache_key)
+        
+    except (DuploExpiredCache, KeyError):
+      # Need to refresh the token
       self._ensure_argo_enabled()
       path = f"v3/auth/argo-wf/{self.tenant_id}/admin"
       response = self.duplo.post(path)
-      self._proxy_auth = response.json()
-    return self._proxy_auth
+      auth_data = response.json()
+      
+      # Cache the response
+      if "ExpiresAt" not in auth_data:
+        # Set default expiration if not provided
+        auth_data["ExpiresAt"] = self.duplo.expiration()
+      self.duplo.set_cached_item(cache_key, auth_data)
+    
+    return {
+      'headers': {
+        'Authorization': f'Bearer {auth_data["Token"]}',
+        'duplotoken': self.duplo.token
+      },
+      'argo_tenant_id': auth_data["TenantId"]
+    }
 
-  def _proxy_request(self, method: str, path: str, data: dict = None) -> dict:
-    """Make a request to the Argo Workflow API.
 
-    Uses _make_request from base class for consistent error handling.
-    Uses the Argo token obtained from Duplo for authentication, and also
-    passes the Duplo token in the 'duplotoken' header.
-
+  def _get_argo_path(self, path: str, argo_tenant_id: str) -> str:
+    """Get the full Argo API path.
+    
     Args:
-      method: HTTP method (GET, POST, PUT, DELETE)
-      path: API path (e.g., 'workflow-templates/namespace')
-      data: Optional request body for POST/PUT
-
+      path: The API path relative to Argo
+      argo_tenant_id: The Argo tenant ID from auth
+      
     Returns:
-      dict: JSON response from the Argo API
+      str: The full path including tenant info
     """
-    auth = self._get_proxy_auth()
-    argo_tenant_id = auth["TenantId"]
-    argo_token = auth["Token"]
-
-    url = f"{self.duplo.host}/argo-wf/{argo_tenant_id}/api/v1/{path}?current_tenant_id={self.tenant_id}"
-    headers = self._build_proxy_headers(argo_token, {'duplotoken': self.duplo.token})
-
-    response = self._make_request(
-      method=method,
-      url=url,
-      headers=headers,
-      data=data,
-      service_name="Argo"
-    )
-    return response.json()
+    return f"argo-wf/{argo_tenant_id}/api/v1/{path}?current_tenant_id={self.tenant_id}"
 
 
 @Resource("argo_wf", scope="tenant")
@@ -118,7 +168,13 @@ class DuploArgoWorkflow(ArgoBase):
     Returns:
       dict: Authentication info with Token, IsAdmin, TenantId, ExpiresAt.
     """
-    return self._get_proxy_auth()
+    cache_key = self.duplo.cache_key_for("argo-auth")
+    try:
+      return self.duplo.get_cached_item(cache_key)
+    except KeyError:
+      # Trigger auth to populate cache
+      self._get_argo_auth_headers()
+      return self.duplo.get_cached_item(cache_key)
 
   @Command("list_workflows")
   def list(self) -> list:
@@ -139,12 +195,14 @@ class DuploArgoWorkflow(ArgoBase):
     Returns:
       list: A list of workflows in the tenant.
     """
+    auth = self._get_argo_auth_headers()
     path = f"workflows/{self._namespace}"
-    return self._proxy_request("GET", path)
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.get(full_path, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command("get", "get_workflow")
   def find(self, name: args.NAME) -> dict:
-    """Find Workflow
+    """Get Workflow
 
     Find a specific workflow by name.
 
@@ -164,8 +222,10 @@ class DuploArgoWorkflow(ArgoBase):
     Returns:
       dict: The full workflow object.
     """
-    path = f"workflows/{self._namespace}/{self._sanitize_path_segment(name)}"
-    return self._proxy_request("GET", path)
+    auth = self._get_argo_auth_headers()
+    path = f"workflows/{self._namespace}/{self.duplo.sanitize_path_segment(name)}"
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.get(full_path, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command("submit")
   def create(self, body: args.BODY) -> dict:
@@ -193,8 +253,10 @@ class DuploArgoWorkflow(ArgoBase):
     Returns:
       dict: The created workflow object.
     """
+    auth = self._get_argo_auth_headers()
     path = f"workflows/{self._namespace}"
-    return self._proxy_request("POST", path, body)
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.post(full_path, data=body, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command("delete_workflow")
   def delete(self, name: args.NAME) -> dict:
@@ -218,8 +280,10 @@ class DuploArgoWorkflow(ArgoBase):
     Returns:
       dict: Deletion confirmation.
     """
-    path = f"workflows/{self._namespace}/{self._sanitize_path_segment(name)}"
-    return self._proxy_request("DELETE", path)
+    auth = self._get_argo_auth_headers()
+    path = f"workflows/{self._namespace}/{self.duplo.sanitize_path_segment(name)}"
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.delete(full_path, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command()
   def apply(self, body: args.BODY) -> dict:
@@ -297,12 +361,14 @@ class DuploArgoWorkflowTemplate(ArgoBase):
     Returns:
       list: A list of workflow templates in the tenant.
     """
+    auth = self._get_argo_auth_headers()
     path = f"workflow-templates/{self._namespace}"
-    return self._proxy_request("GET", path)
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.get(full_path, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command()
   def find(self, name: args.NAME) -> dict:
-    """Find Workflow Template
+    """Get Workflow Template
 
     Find a specific workflow template by name.
 
@@ -322,8 +388,10 @@ class DuploArgoWorkflowTemplate(ArgoBase):
     Returns:
       dict: The full workflow template object.
     """
-    path = f"workflow-templates/{self._namespace}/{self._sanitize_path_segment(name)}"
-    return self._proxy_request("GET", path)
+    auth = self._get_argo_auth_headers()
+    path = f"workflow-templates/{self._namespace}/{self.duplo.sanitize_path_segment(name)}"
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.get(full_path, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command()
   def create(self, body: args.BODY) -> dict:
@@ -351,8 +419,10 @@ class DuploArgoWorkflowTemplate(ArgoBase):
     Returns:
       dict: The created workflow template object.
     """
+    auth = self._get_argo_auth_headers()
     path = f"workflow-templates/{self._namespace}"
-    return self._proxy_request("POST", path, body)
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.post(full_path, data=body, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command()
   def delete(self, name: args.NAME) -> dict:
@@ -376,8 +446,10 @@ class DuploArgoWorkflowTemplate(ArgoBase):
     Returns:
       dict: Deletion confirmation.
     """
-    path = f"workflow-templates/{self._namespace}/{self._sanitize_path_segment(name)}"
-    return self._proxy_request("DELETE", path)
+    auth = self._get_argo_auth_headers()
+    path = f"workflow-templates/{self._namespace}/{self.duplo.sanitize_path_segment(name)}"
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.delete(full_path, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command()
   def update(self, body: args.BODY) -> dict:
@@ -404,7 +476,7 @@ class DuploArgoWorkflowTemplate(ArgoBase):
 
     Returns:
       dict: The updated workflow template object.
-    """
+    """  
     name = body.get("template", {}).get("metadata", {}).get("name")
     if not name:
       raise DuploError("Template name is required in metadata for update", 400)
@@ -413,8 +485,10 @@ class DuploArgoWorkflowTemplate(ArgoBase):
     resource_version = current.get("metadata", {}).get("resourceVersion")
     if resource_version:
       body["template"]["metadata"]["resourceVersion"] = resource_version
-    path = f"workflow-templates/{self._namespace}/{self._sanitize_path_segment(name)}"
-    return self._proxy_request("PUT", path, body)
+    auth = self._get_argo_auth_headers()
+    path = f"workflow-templates/{self._namespace}/{self.duplo.sanitize_path_segment(name)}"
+    full_path = self._get_argo_path(path, auth['argo_tenant_id'])
+    return self.duplo.put(full_path, data=body, headers=auth['headers'], mergeHeaders=False).json()
 
   @Command()
   def apply(self, body: args.BODY) -> dict:
