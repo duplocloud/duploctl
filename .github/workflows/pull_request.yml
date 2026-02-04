@@ -4,14 +4,21 @@ on:
   pull_request:
     branches:
     - main
-
+permissions:
+  issues: write
+  pull-requests: write
+  security-events: write
 jobs: 
 
-  changelog_check:
-    name: Changelog Updated
+  prerequisites:
+    name: Prerequisites
     runs-on: ubuntu-latest
     steps:
-    - name: Make sure changes are logged
+    - name: Auto Assign 
+      uses: kentaro-m/auto-assign-action@v2.0.0
+      with:
+        configuration-path: .github/assign.yml
+    - name: Make sure Changleog is updated
       uses: tarides/changelog-check-action@v3
       with:
         changelog: CHANGELOG.md
@@ -28,3 +35,25 @@ jobs:
     name: Test
     uses: ./.github/workflows/test_unit.yml
     secrets: inherit
+
+  docs_check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setup
+      id: setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        ref: ${{ github.ref }}
+        fetch-depth: 0
+        install: ".[build,docs]"
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+        submodules: "true"
+
+    - name: Generated Docs Folder
+      run: |
+        mkdir -p dist dist/docs
+
+    - name: Build Docs
+      run: mkdocs build

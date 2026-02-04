@@ -46,7 +46,7 @@ jobs:
       name: dockerhub
       url: https://hub.docker.com/r/duplocloud/duploctl
     env:
-      PY_VERSION: "3.12"
+      PY_VERSION: "3.13"
     steps:
 
     - name: Setup

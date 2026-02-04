@@ -26,11 +26,6 @@ on:
         description: An infra to use. Empty creates one.
         required: false
         type: string
-      include_mac_arm64:
-        description: Include the mac arm64 build
-        required: false
-        default: false
-        type: boolean
 jobs:
 
   quality:
@@ -57,7 +52,10 @@ jobs:
     name: Version
     uses: ./.github/workflows/version.yml
     secrets: inherit
-    needs: [quality, unit_test, integration_test]
+    needs: 
+    - quality
+    - unit_test
+    - integration_test
     with:
       action: ${{ inputs.action }}
       push: ${{ inputs.push }}
@@ -66,7 +64,8 @@ jobs:
     name: Publish
     uses: ./.github/workflows/package.yml
     secrets: inherit
-    needs: [version]
+    needs: 
+    - version
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}
@@ -75,7 +74,8 @@ jobs:
     name: Publish
     uses: ./.github/workflows/image.yml
     secrets: inherit
-    needs: [version]
+    needs: 
+    - version
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}
@@ -84,17 +84,18 @@ jobs:
     name: Publish
     uses: ./.github/workflows/installer.yml
     secrets: inherit
-    needs: [version]
+    needs: 
+    - version
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: true # just pushes to artifacts
-      include_mac_arm64: ${{ inputs.include_mac_arm64 }}
 
   docs:
     name: Docs
     uses: ./.github/workflows/docs.yml
     secrets: inherit
-    needs: [version]
+    needs: 
+    - version
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}
@@ -103,7 +104,12 @@ jobs:
     name: Release
     uses: ./.github/workflows/release.yml
     secrets: inherit
-    needs: [version, package, installer, image, docs]
+    needs: 
+    - version
+    - package
+    - installer
+    - image
+    - docs
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}
@@ -112,7 +118,9 @@ jobs:
     name: Release
     uses: ./.github/workflows/homebrew.yml
     secrets: inherit
-    needs: [version, release]
+    needs: 
+    - version
+    - release
     with:
       tag: ${{ needs.version.outputs.tag }}
       push: ${{ inputs.push }}

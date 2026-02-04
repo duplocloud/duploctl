@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("configmap")
-class DuploConfigMap(DuploTenantResourceV3):
+@Resource("configmap", scope="tenant")
+class DuploConfigMap(DuploResourceV3):
   """Kubernetes ConfigMaps
   
   This class offers methods to manage Kubernetes ConfigMaps within DuploCloud.

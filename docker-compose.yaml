@@ -6,7 +6,7 @@ services:
     build:
       target: runner
       args:
-        PY_VERSION: ${PY_VERSION:-3.12}
+        PY_VERSION: ${PY_VERSION:-3.13}
       tags:
       - duplocloud/duploctl:latest
       - duplocloud/duploctl:${GIT_SHA:-latest}
@@ -30,7 +30,7 @@ services:
     build:
       target: bin
       args:
-        PY_VERSION: ${PY_VERSION:-3.12}
+        PY_VERSION: ${PY_VERSION:-3.13}
       x-bake:
         platforms:
         - linux/amd64

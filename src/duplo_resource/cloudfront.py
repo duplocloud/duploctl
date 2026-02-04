@@ -1,11 +1,11 @@
 from duplocloud.client import DuploClient
-from duplocloud.resource import DuploTenantResourceV3
+from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
-@Resource("cloudfront")
-class DuploCloudFront(DuploTenantResourceV3):
+@Resource("cloudfront", scope="tenant")
+class DuploCloudFront(DuploResourceV3):
   """Manage CloudFront Distributions
 
   Configuring a CloudFront distributions in DuploCloud are content delivery network (CDN) configurations that

@@ -15,13 +15,31 @@
 		"dockerfile": "Dockerfile",
 		"target": "dev"
 	},
+
+	// Environment variables for the container
+	"containerEnv": {
+		"DUPLO_USE_VENV": "1",
+		"DUPLO_CONFIG": "${containerWorkspaceFolder}/config/duploconfig.yaml",
+		"DUPLO_HOME": "${containerWorkspaceFolder}/config",
+		"DUPLO_CACHE": "${containerWorkspaceFolder}/config/cache",
+		"AWS_CONFIG_FILE": "${containerWorkspaceFolder}/config/aws",
+		"KUBECONFIG": "${containerWorkspaceFolder}/config/kubeconfig.yaml"
+	},
+
+	// Load .env file if it exists
+	"runArgs": [
+		"--env-file=${localWorkspaceFolder}/.env"
+	],
+
 	// The optional 'workspaceFolder' property is the path VS Code should open by default when
 	// connected. This is typically a file mount in .devcontainer/docker-compose.yml
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+		   "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+			   "moby": false
+		   }
 	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -30,7 +48,7 @@
 	// Uncomment the next line if you want to keep your containers running after VS Code shuts down.
 	// "shutdownAction": "none",
 
-	// Uncomment the next line to run commands after the container is created.
+	"initializeCommand": "./scripts/init.devcontainer.sh",
 	"postCreateCommand": "./scripts/setup.sh",
 
 	// Configure tool-specific properties.
@@ -41,10 +59,13 @@
 				"ms-python.vscode-pylance",
 				"ms-python.debugpy",
 				"redhat.vscode-yaml",
-				"charliermarsh.ruff"
+				"charliermarsh.ruff",
+				"tamasfe.even-better-toml"
 			],
 			"settings": {
-				"python.defaultInterpreterPath": "/usr/local/bin/python"
+				"python.defaultInterpreterPath": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/python",
+				"python.envFile": "${workspaceFolder}/.env",
+        		"python.terminal.useEnvFile": true
 			}
 		}
 	}

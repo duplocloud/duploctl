@@ -7,16 +7,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Decorator-based scope system** for resources using `@Resource(name, scope="portal"|"tenant")`
+  - Eliminates deep inheritance hierarchies (removed `DuploTenantResourceV2` and `DuploTenantResourceV3` classes)
+  - Dynamic tenant functionality injection via mixin pattern
+  - Automatic tenant properties: `tenant`, `tenant_id`, `prefix`, `prefixed_name()`, `endpoint()`
+  - 23 resources updated to use new scoping pattern
+- **Version-aware endpoint method** that checks `api_version` at runtime
+  - Single `endpoint()` method works for V2 and V3 APIs with portal/tenant scopes
+  - Reduces code duplication and simplifies resource implementation
+- **Base class guidelines** clarifying when to extend `DuploResourceV2`/`DuploResourceV3`
+  - Only extend base classes for CRUD resources (find, create, update, delete, apply)
+  - Non-CRUD resources (version, jit, system, plan) use bare `@Resource` decorator
+- **Comprehensive GitHub Copilot documentation**
+  - `.github/copilot-instructions.md` with complete architecture overview
+  - `.github/instructions/py.instructions.md` and `.github/instructions/yaml.instructions.md` for coding conventions
+  - `.github/agents/` for custom workspace and coder agents
+  - Documents decorator patterns, scope system, API versioning, and common pitfalls
+  - ECS Service wait function based on deployment status instead of task state
+
+### Changed
+
+- Resource scope is now defined via decorator parameter instead of class inheritance
+  - Example: `@Resource("service", scope="tenant")` replaces extending `DuploTenantResourceV2`
+- Endpoint generation simplified to single method supporting V2/V3 and portal/tenant combinations
+- Import discipline enforced: all imports must be at top of file, never inside functions
+
+- Argo Workflow resource
+- ECS Service wait function based on deployment status instead of task state
+- doc build check to pull request pipeline
+- added a wait timeout for the global wait operation.
+- updated wait logic to validate new image instead of not old image
+- added additional debug logging around wait functionality
+- added a wait timeout for the global wait operation. 
+- Argo workflow related imporvements
+
 ### Fixed
 
-- Incosistent documentation in the services and jobs. Included examples and info about the --wait arg.
+- Fix typo in ecsService _wait_on_task
+- Fix wait option for ecs resources finishing immediately
+- Handle pods without a clear duplo service controlling them gracefully\
+- Fixed missing replicas arg in service update_replicas doc
+- Handle pods without a clear duplo service controlling them gracefully
+- Fix invalid SharedMemorySize when we defined LinuxParameters dict inside containerDefinitions of an ECS task def
+
+## [0.3.8] - 2025-11-07
+
+### Fixed
+
+- updating image for an ecs task definition ignored existing defined volumes when mapping to new payload
+- updating image for an ECS service failed to comprehensively map existing payload properties to new task definition version
+- reverts DUPLO-35823 and adds clarifications to duploctl ecs commands making intended usage clearer
+
+### Added
+
+- Added support for duplo hosts with or without scheme (http/https)
+- Added --origin support for AI helpdesk ticket creation
+- Added update_otherdockerconfig command in service
+
+### Fixed
+
+- Fixed ecs update_image command to handle RepositoryCredentials values
+- Fixed ecs update_image command to handle RequiresCompatibilities value
+
+## [0.3.7] - 2025-09-17
+
+### Added
+
+- Added command to update allocation tags for an ASG resource.
+
+### Fixed
+
 - Fixed ASG scale command to properly handle zero values for min and max parameters. Previously, setting min=0 or max=0 would incorrectly raise a "Must provide either min or max" error.
 - Removed agentHostTenantId from ticket creation payload.
 - Update ECS find_def to use the TaskDefFamily from the service endpoint, fixing update_image when the service name and task definition family are different.
 - Added debug logging to wait functions
 - Added additional normalization to image names.
+
+### Updates
+
+- Incosistent documentation in the services and jobs. Included examples and info about the --wait arg.
 - Updated some spelling errors in error messages and doc strings
 - Fixed all the documentation issues in the ECS resource
+- darwin arm builds are now stable with the new large runners
+- bump to python 3.13
 
 ### Added
 

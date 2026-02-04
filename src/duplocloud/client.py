@@ -58,7 +58,8 @@ class DuploClient():
                query: args.QUERY=None,
                output: args.OUTPUT="json",
                loglevel: args.LOGLEVEL="WARN",
-               wait: args.WAIT=False):
+               wait: args.WAIT=False,
+               wait_timeout: args.WAIT_TIMEOUT=None):
     """DuploClient Constructor
     
     Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each of the arguments are annotated types that are used by argparse to create the command line arguments.
@@ -117,6 +118,7 @@ class DuploClient():
     self.loglevel = loglevel
     self.logger = self.logger_for()
     self.wait = wait
+    self.wait_timeout = wait_timeout
 
   @staticmethod
   def from_env():
@@ -468,15 +470,28 @@ Available Resources:
     svc = load_resource(kind)
     return svc(self)
   
-  def format(self, data: dict) -> str:
+  def load_formatter(self, name: str="string"):
+    """Load Formatter
+    
+    Load a Formatter function from the entry points.
+
+    Args:
+      name: The name of the format.
+    Returns:
+      The class of the format.
+    """
+    return load_format(name)
+  
+  def format(self, data: dict, output: str = None) -> str:
     """Format data.
     
     Args:
       data: The data to format.
+      output: The output format to use. Defaults to self.output if None.
     Returns:
       The data as a string.
     """
-    fmt = load_format(self.output)
+    fmt = self.load_formatter(output or self.output)
     return fmt(data)
   
   def use_context(self, name: str = None) -> None:
@@ -735,14 +750,21 @@ Available Resources:
     """Sanitize Host
     
     Sanitize the host using urlparse. This will ensure that the host is a valid URL and that it is using HTTPS.
+    Handles hosts with or without scheme (http/https).
 
     Args:
       host: The host to sanitize.
     Returns:
-      The sanitized host with scheme.
+      The sanitized host with https scheme.
     """
     if not host:
       return None
+
+    # Check if the host has a scheme
+    if not host.startswith('http://') and not host.startswith('https://'):
+      # If no scheme, prepend https:// temporarily to make urlparse work correctly
+      host = f"https://{host}"
+
     url = urlparse(host)
     return f"https://{url.netloc}"
   

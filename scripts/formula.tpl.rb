@@ -13,7 +13,7 @@ class Duploctl < Formula
     include Language::Python::Virtualenv
     url "#{{base_url}}/duplocloud_client-#{{version}}.tar.gz"
     sha256 "{pip_sha}"
-    depends_on "python@3.12"
+    depends_on "python@3.13"
     {resources}
     def install
       virtualenv_install_with_resources

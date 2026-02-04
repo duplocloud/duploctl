@@ -12,9 +12,10 @@ notes-*
 __pycache__
 .direnv
 .mypy_cache
-.envrc
+.env
 notebooks
 venv
+.venv
 .idea
 .DS_Store
 .github/output
@@ -27,3 +28,4 @@ foo.*
 # can be ignored globally, we do want the tasks
 !.vscode/
 .qodo
+.env

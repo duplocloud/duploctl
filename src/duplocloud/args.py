@@ -269,7 +269,7 @@ WAIT = Arg("wait", "-w",
            type=bool,
            action='store_true')
 
-WAIT_TIMEOUT = Arg("wait-timeout", "--wait-timeout",
+WAIT_TIMEOUT = Arg("wait_timeout", "--wait-timeout", "--timeout",
                help = 'Wait timeout for the operation to complete',
                type = int)
 
@@ -335,6 +335,11 @@ MESSAGE = Arg("message", "--content", "--msg", "--message",
               default=None,
               help="The message you want to send to the AI agent")
 
+HELPDESK_ORIGIN = Arg("helpdesk_origin", "--helpdesk-origin", "--origin",
+                      help="The helpdesk origin to use for the ticket",
+                      required=False,
+                      default=None)
+
 DAYS = Arg("days",
             help='The days to use',
             type=int)
@@ -360,3 +365,6 @@ SHOW_SENSITIVE = Arg('showsensitive', '-show',
 BATCH_QUEUE = Arg("queue", "-BQ", "-bq", "--batch-queue",
              help='The name of a Batch Queue',
              env='DUPLO_BATCH_QUEUE')
+
+ALLOCATION_TAGS = Arg("allocationtags",
+             help='Allocation tag used to specify custom allocation rules')
