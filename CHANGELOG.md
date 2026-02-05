@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tenant metadata management** with `get_metadata` and `set_metadata` commands
+  - `duploctl tenant get_metadata` retrieves all metadata key-value pairs for a tenant
+  - `duploctl tenant set_metadata --metadata key type value` creates metadata entries (type: aws_console, url, text)
+  - `duploctl tenant set_metadata --delete key` removes metadata entries
+  - Mixed operations supported in single command
+  - Skip semantics for existing keys (no overwrite without explicit delete)
 - **Decorator-based scope system** for resources using `@Resource(name, scope="portal"|"tenant")`
   - Eliminates deep inheritance hierarchies (removed `DuploTenantResourceV2` and `DuploTenantResourceV3` classes)
   - Dynamic tenant functionality injection via mixin pattern
@@ -40,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - added a wait timeout for the global wait operation.
 - updated wait logic to validate new image instead of not old image
 - added additional debug logging around wait functionality
-- added a wait timeout for the global wait operation. 
+- added a wait timeout for the global wait operation.
 - Argo workflow related imporvements
 
 ### Fixed
