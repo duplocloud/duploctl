@@ -38,7 +38,7 @@ class DuploTenant(DuploResourceV2):
     return response.json()
 
   @Command()
-  def list_users(self, 
+  def list_users(self,
                  name: args.NAME) -> dict:
     """List users assigned to a tenant
 
@@ -656,7 +656,7 @@ class DuploTenant(DuploResourceV2):
       return f"User '{name}' removed from tenant '{self.duplo.tenant}'"
 
   @Command()
-  def get_metadata(self, name: args.NAME=None):
+  def get_metadata(self, name: args.NAME=None) -> list:
     """Get Tenant Metadata
 
     Get the metadata for the tenant.
