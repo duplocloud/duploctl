@@ -79,6 +79,7 @@ jobs:
       uses: actions/download-artifact@v7
       with:
         pattern: ${{ steps.info.outputs.NOTES_ARTIFACT }}
+        path: ${{ steps.info.outputs.NOTES_ARTIFACT }}
 
     # turn notes into multi line env var
     - name: Prep Notes
