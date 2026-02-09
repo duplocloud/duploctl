@@ -63,20 +63,20 @@ jobs:
         echo "REPO_URL=${REPO_URL}" >> $GITHUB_OUTPUT
     
     - name: Download Installer Artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         pattern: ${{ steps.info.outputs.NAME }}-*
         path: artifacts/installer
         merge-multiple: false
     
     - name: Download Package Artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         pattern: duplocloud_client-*
         path: artifacts
     
     - name: Download Notes
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         pattern: ${{ steps.info.outputs.NOTES_ARTIFACT }}
 

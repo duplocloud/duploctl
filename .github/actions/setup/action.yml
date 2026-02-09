@@ -40,7 +40,7 @@ runs:
   steps:
 
   - name: Create GitHub App Token
-    uses: actions/create-github-app-token@v1
+    uses: actions/create-github-app-token@v2
     id: app-token
     with:
       app-id: ${{ inputs.app-id }}
@@ -48,7 +48,7 @@ runs:
       repositories: ${{ inputs.repositories }}
 
   - name: Checkout Code
-    uses: actions/checkout@v4
+    uses: actions/checkout@v6
     with:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
@@ -57,7 +57,7 @@ runs:
       submodules: ${{ inputs.submodules }}
 
   - name: Set up Python ${{ inputs.python-version }}
-    uses: actions/setup-python@v5
+    uses: actions/setup-python@v6
     if: inputs.install
     with:
       python-version: ${{ inputs.python-version }}
