@@ -44,7 +44,7 @@ jobs:
           multiarch: true
           arch: amd64
         - name: darwin
-          runs-on: macos-13
+          runs-on: macos-15-intel
           multiarch: false
           arch: amd64
         - name: darwin
