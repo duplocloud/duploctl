@@ -54,7 +54,7 @@ class DuploAwsSecret(DuploResourceV3):
       response = self.duplo.get(self.endpoint(name))
     except DuploError as e:
       # if it wasn't found try with the full prefix
-      if e.code in (400, 404):
+      if e.code in (400, 404) and not self._is_prefixed(name):
         response = self.duplo.get(self.endpoint(self._prefix_name(name)))
       else:
         raise e
@@ -221,7 +221,7 @@ class DuploAwsSecret(DuploResourceV3):
       super().delete(name)
     except DuploError as e:
       # if it wasn't found try with the full prefix
-      if e.code == 404:
+      if e.code == 404 and not self._is_prefixed(name):
         super().delete(self._prefix_name(name))
       else:
         raise e
@@ -240,6 +240,9 @@ class DuploAwsSecret(DuploResourceV3):
     # now let's merge and set this puppy, woof
     secretData.update(data)
     return json.dumps(secretData)
+
+  def _is_prefixed(self, name: str) -> bool:
+    return name.startswith(f"duploservices-{self.duplo.tenant}")
 
   # adds the prefix only if the name does not start with a slash
   def _prefix_name(self, name: str) -> str:

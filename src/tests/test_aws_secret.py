@@ -99,6 +99,19 @@ def test_find_raises_on_other_errors(aws_secret):
 
 
 @pytest.mark.unit
+def test_find_does_not_double_prefix(aws_secret):
+    """find should not retry with a prefixed name when the name is already prefixed."""
+    prefixed = "duploservices-mytenant-mysecret"
+    aws_secret.duplo.get.side_effect = DuploError("Not found", 404)
+
+    with pytest.raises(DuploError) as exc_info:
+        aws_secret.find(prefixed, show_sensitive=True)
+    assert exc_info.value.code == 404
+    # Only one call — no retry with double prefix
+    assert aws_secret.duplo.get.call_count == 1
+
+
+@pytest.mark.unit
 def test_find_obfuscates_secret_by_default(aws_secret):
     """find should mask SecretString when show_sensitive is False."""
     secret_data = {"Name": "mysecret", "SecretString": "s3cret"}
@@ -310,6 +323,18 @@ def test_delete_retries_with_prefix_on_404(aws_secret, mocker):
 
 
 @pytest.mark.unit
+def test_delete_does_not_double_prefix(aws_secret, mocker):
+    """delete should not retry with a prefixed name when the name is already prefixed."""
+    prefixed = "duploservices-mytenant-mysecret"
+    mocker.patch.object(DuploResourceV3, "delete", side_effect=DuploError("Not found", 404))
+
+    with pytest.raises(DuploError) as exc_info:
+        aws_secret.delete(prefixed)
+    assert exc_info.value.code == 404
+    assert DuploResourceV3.delete.call_count == 1
+
+
+@pytest.mark.unit
 def test_delete_raises_on_other_errors(aws_secret, mocker):
     """delete propagates non-404 errors."""
     mocker.patch.object(DuploResourceV3, "delete", side_effect=DuploError("Server error", 500))
@@ -341,6 +366,19 @@ def test_merge_data_non_string_values_raises(aws_secret):
     """_merge_data raises when existing JSON has non-string values."""
     with pytest.raises(DuploError, match="All values.*must be strings"):
         aws_secret._merge_data('{"a": 123}', {"b": "2"})
+
+
+# --- _is_prefixed ---
+
+@pytest.mark.unit
+def test_is_prefixed_true(aws_secret):
+    """_is_prefixed returns True for names with the tenant prefix."""
+    assert aws_secret._is_prefixed("duploservices-mytenant-secret") is True
+
+@pytest.mark.unit
+def test_is_prefixed_false(aws_secret):
+    """_is_prefixed returns False for short names."""
+    assert aws_secret._is_prefixed("secret") is False
 
 
 # --- _prefix_name ---
