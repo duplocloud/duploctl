@@ -54,7 +54,7 @@ class DuploAwsSecret(DuploResourceV3):
       response = self.duplo.get(self.endpoint(name))
     except DuploError as e:
       # if it wasn't found try with the full prefix
-      if e.code == 400:
+      if e.code in (400, 404):
         response = self.duplo.get(self.endpoint(self._prefix_name(name)))
       else:
         raise e
