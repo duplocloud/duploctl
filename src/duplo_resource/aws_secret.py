@@ -54,8 +54,9 @@ class DuploAwsSecret(DuploResourceV3):
       response = self.duplo.get(self.endpoint(name))
     except DuploError as e:
       # if it wasn't found try with the full prefix
-      if e.code in (400, 404) and not self._is_prefixed(name):
-        response = self.duplo.get(self.endpoint(self._prefix_name(name)))
+      prefixed = self.prefixed_name(name)
+      if e.code in (400, 404) and prefixed != name:
+        response = self.duplo.get(self.endpoint(prefixed))
       else:
         raise e
     if not show_sensitive:
@@ -221,8 +222,9 @@ class DuploAwsSecret(DuploResourceV3):
       super().delete(name)
     except DuploError as e:
       # if it wasn't found try with the full prefix
-      if e.code == 404 and not self._is_prefixed(name):
-        super().delete(self._prefix_name(name))
+      prefixed = self.prefixed_name(name)
+      if e.code == 404 and prefixed != name:
+        super().delete(prefixed)
       else:
         raise e
     return {
@@ -241,10 +243,10 @@ class DuploAwsSecret(DuploResourceV3):
     secretData.update(data)
     return json.dumps(secretData)
 
-  def _is_prefixed(self, name: str) -> bool:
-    return name.startswith(f"duploservices-{self.duplo.tenant}")
-
-  # adds the prefix only if the name does not start with a slash
-  def _prefix_name(self, name: str) -> str:
-    dashed = "" if name.startswith("/") else "-"
-    return f"duploservices-{self.duplo.tenant}{dashed}{name}"
+  def prefixed_name(self, name: str) -> str:
+    """Override to handle slash-separated secret paths."""
+    base = self.prefix.rstrip("-")
+    if name.startswith(base):
+      return name
+    sep = "" if name.startswith("/") else "-"
+    return f"{base}{sep}{name}"

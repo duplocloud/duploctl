@@ -28,6 +28,7 @@ def aws_secret(mocker):
     mock_client.tenant = "mytenant"
     mock_client.wait = False
     secret = DuploAwsSecret(mock_client)
+    secret._tenant = {"AccountName": "mytenant", "TenantId": "tid-123"}
     secret._tenant_id = "tid-123"
     return secret
 
@@ -368,31 +369,27 @@ def test_merge_data_non_string_values_raises(aws_secret):
         aws_secret._merge_data('{"a": 123}', {"b": "2"})
 
 
-# --- _is_prefixed ---
+# --- prefixed_name ---
 
 @pytest.mark.unit
-def test_is_prefixed_true(aws_secret):
-    """_is_prefixed returns True for names with the tenant prefix."""
-    assert aws_secret._is_prefixed("duploservices-mytenant-secret") is True
+def test_prefixed_name_regular(aws_secret):
+    """prefixed_name adds a dash separator for regular names."""
+    assert aws_secret.prefixed_name("mysecret") == "duploservices-mytenant-mysecret"
 
 @pytest.mark.unit
-def test_is_prefixed_false(aws_secret):
-    """_is_prefixed returns False for short names."""
-    assert aws_secret._is_prefixed("secret") is False
-
-
-# --- _prefix_name ---
+def test_prefixed_name_slash(aws_secret):
+    """prefixed_name omits the dash when name starts with a slash."""
+    assert aws_secret.prefixed_name("/mysecret") == "duploservices-mytenant/mysecret"
 
 @pytest.mark.unit
-def test_prefix_name_regular(aws_secret):
-    """_prefix_name adds a dash separator for regular names."""
-    assert aws_secret._prefix_name("mysecret") == "duploservices-mytenant-mysecret"
-
+def test_prefixed_name_already_prefixed(aws_secret):
+    """prefixed_name returns the name unchanged when already prefixed."""
+    assert aws_secret.prefixed_name("duploservices-mytenant-secret") == "duploservices-mytenant-secret"
 
 @pytest.mark.unit
-def test_prefix_name_slash(aws_secret):
-    """_prefix_name omits the dash when name starts with a slash."""
-    assert aws_secret._prefix_name("/mysecret") == "duploservices-mytenant/mysecret"
+def test_prefixed_name_unprefixed(aws_secret):
+    """prefixed_name adds prefix to short names."""
+    assert aws_secret.prefixed_name("secret") != "secret"
 
 
 class TestAwsSecret:
