@@ -31,7 +31,7 @@ class DuploRDS(DuploResourceV3):
         self.duplo.logger.warn(f"DB instance {name} is {status}")
       if status != "available":
         raise DuploStillWaiting(f"DB instance '{name}' is waiting for status 'available'")
-    super().create(body, self.duplo.wait, wait_check)
+    super().create(body, wait_check)
 
   @Command()
   def find_cluster(self,
