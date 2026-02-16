@@ -34,6 +34,39 @@ class DuploRDS(DuploResourceV3):
     super().create(body, wait_check)
 
   @Command()
+  def apply(self,
+            body: args.BODY,
+            wait: args.WAIT = False,
+            patches: args.PATCHES = None,):
+    """Apply a {{kind}}
+
+    Create or Update a {{kind}} resource with Duplocloud cli. 
+
+    Usage: CLI Usage
+      ```sh
+      duploctl {{kind | lower}} apply -f '{{kind | lower}}.yaml'
+      ```
+      Contents of the `{{kind|lower}}.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/{{kind|lower}}.yaml"
+      ```
+
+    Args:
+      body: The resource to apply.
+      wait: Wait for the resource to be created.
+      patches: The patches to apply to the resource.
+
+    Returns:
+      message: Success message.
+    """
+    name = self.name_from_body(body)
+    try:
+        self.find(name)
+        return self.update(name=name, body=body, patches=patches)
+    except DuploError:
+        return self.create(body)
+
+  @Command()
   def find_cluster(self,
                    name: args.NAME):
     """Find a DB instance by name.
