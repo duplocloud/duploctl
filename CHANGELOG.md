@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Override `apply` method in RDS resource for proper create/update logic
+
 ### Fixed
 
 - Fixed RDS create method call to remove unnecessary wait parameter
