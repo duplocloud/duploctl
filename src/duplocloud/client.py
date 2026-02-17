@@ -9,7 +9,7 @@ import jsonpatch
 import logging
 import traceback
 from datetime import datetime, timezone, timedelta
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote, quote
 from cachetools import cachedmethod, TTLCache
 from pathlib import Path
 from .commander import load_resource,load_format
@@ -344,21 +344,29 @@ Available Resources:
     logger.addHandler(handler)
     return logger
 
-  @cachedmethod(lambda self: self.__ttl_cache)
-  def get(self, path: str):
+  @cachedmethod(lambda self: self.__ttl_cache, key=lambda self, path, headers=None, mergeHeaders=True: (
+    path,
+    frozenset(headers.items()) if headers else None,
+    mergeHeaders
+  ))
+  def get(self, path: str, headers: dict = None, mergeHeaders: bool = True):
     """Get a Duplo resource.
 
-    This request is cached for 60 seconds.
+    This request is cached for 60 seconds. Cache key includes path, headers, and mergeHeaders.
     
     Args:
       path: The path to the resource.
+      headers: Optional dict of headers to use.
+      mergeHeaders: If True (default), merge headers with default headers.
+                   If False, use only the provided headers.
+                   If None (and headers is None), use default headers.
     Returns:
       The resource as a JSON object.
     """
     try:
       response = requests.get(
         url = f"{self.host}/{path}",
-        headers = self.__headers(),
+        headers = self._build_headers(headers, mergeHeaders),
         timeout = self.timeout
       )
     except requests.exceptions.Timeout as e:
@@ -368,56 +376,125 @@ Available Resources:
       raise DuploError("Failed to establish connection with Duplo", 500) from e
     except requests.exceptions.RequestException as e:
       raise DuploError("Failed to send request to Duplo", 500) from e
-    return self.__validate_response(response)
+    return self.validate_response(response)
   
-  def post(self, path: str, data: dict={}):
+  def post(self, path: str, data: dict = {}, headers: dict = None, mergeHeaders: bool = True):
     """Post data to a Duplo resource.
     
     Args:
       path: The path to the resource.
       data: The data to post.
+      headers: Optional dict of headers to use.
+      mergeHeaders: If True (default), merge headers with default headers.
+                   If False, use only the provided headers.
+                   If None (and headers is None), use default headers.
     Returns:
       The response as a JSON object.
     """
     response = requests.post(
       url = f"{self.host}/{path}",
-      headers = self.__headers(),
+      headers = self._build_headers(headers, mergeHeaders),
       timeout = self.timeout,
       json = data
     )
-    return self.__validate_response(response)
+    return self.validate_response(response)
   
-  def put(self, path: str, data: dict={}):
+  def put(self, path: str, data: dict = {}, headers: dict = None, mergeHeaders: bool = True):
     """Put data to a Duplo resource.
     
     Args:
       path: The path to the resource.
       data: The data to post.
+      headers: Optional dict of headers to use.
+      mergeHeaders: If True (default), merge headers with default headers.
+                   If False, use only the provided headers.
+                   If None (and headers is None), use default headers.
     Returns:
       The response as a JSON object.
     """
     response = requests.put(
       url = f"{self.host}/{path}",
-      headers = self.__headers(),
+      headers = self._build_headers(headers, mergeHeaders),
       timeout = self.timeout,
       json = data
     )
-    return self.__validate_response(response)
+    return self.validate_response(response)
   
-  def delete(self, path: str):
+  def delete(self, path: str, headers: dict = None, mergeHeaders: bool = True):
     """Delete a Duplo resource.
     
     Args:
       path: The path to the resource.
+      headers: Optional dict of headers to use.
+      mergeHeaders: If True (default), merge headers with default headers.
+                   If False, use only the provided headers.
+                   If None (and headers is None), use default headers.
     Returns:
       The response as a JSON object.
     """
+    final_headers = self._build_headers(headers, mergeHeaders)
+    
     response = requests.delete(
       url = f"{self.host}/{path}",
-      headers = self.__headers(),
+      headers = final_headers,
       timeout = self.timeout
     )
-    return self.__validate_response(response)
+    return self.validate_response(response)
+  
+  def _build_headers(self, headers: dict = None, mergeHeaders: bool = True) -> dict:
+    """Build headers for HTTP requests.
+    
+    Args:
+      headers: Optional dict of headers to use.
+      mergeHeaders: If True (default), merge headers with default headers.
+                   If False, use only the provided headers.
+                   If None (and headers is None), use default headers.
+    Returns:
+      dict: The final headers to use.
+    """
+    if headers is not None:
+      if mergeHeaders:
+        final_headers = self.__headers()
+        final_headers.update(headers)
+      else:
+        final_headers = headers
+    else:
+      final_headers = self.__headers()
+    return final_headers
+  
+  def sanitize_path_segment(self, segment: str) -> str:
+    """Sanitize a path segment to prevent path traversal attacks.
+    
+    Checks for both URL-encoded and unencoded path separators/traversal
+    patterns and returns a URL-encoded segment for safe interpolation.
+    
+    Args:
+      segment: The path segment to sanitize.
+      
+    Returns:
+      str: The URL-encoded sanitized segment.
+      
+    Raises:
+      DuploError: If segment contains path traversal patterns.
+    """
+    if segment is None or segment == "":
+      return segment
+    
+    raw = str(segment)
+    decoded = unquote(raw)
+    
+    def _invalid(s: str) -> bool:
+      return (
+        s.startswith("/") or
+        ".." in s or
+        "/" in s or
+        "\\" in s
+      )
+    
+    if _invalid(raw) or _invalid(decoded):
+      raise DuploError(f"Invalid path segment: {segment}", 400)
+    
+    return quote(raw, safe="")
   
   def jsonpatch(self, data, patches):
     """Json Patch
@@ -718,33 +795,42 @@ Available Resources:
       'Authorization': f"Bearer {t}"
     }
   
-  def __validate_response(self, response: requests.Response) -> requests.Response:
-    """Validate a response from Duplo.
+  def validate_response(self, response: requests.Response, 
+                        service_name: str = None) -> requests.Response:
+    """Validate an HTTP response and raise appropriate errors.
+    
+    Public method for validating API responses. Can be used by resources
+    that make custom HTTP requests (e.g., proxy resources).
     
     Args:
-      response: The response to validate.
+      response: The requests.Response object to validate.
+      service_name: Optional service name to prefix error messages.
+      
     Raises:
-      DuploError: If the response was not 200. 
+      DuploError: If the response indicates an error (non-2xx status).
+      
     Returns:
-      The response as a JSON object.
+      The validated response object.
     """
-    # contentType = response.headers.get('content-type', 'application/json').split(';')[0]
     if 200 <= response.status_code < 300:
       return response
     
+    # Build prefix only if service_name provided
+    prefix = f"{service_name}: " if service_name else ""
+    
     if response.status_code == 404:
-      raise DuploError("Resource not found", response.status_code)
+      raise DuploError(f"{prefix}Resource not found", response.status_code)
     
     if response.status_code == 401:
-      raise DuploError(response.text, response.status_code)
+      raise DuploError(f"{prefix}{response.text}" if service_name else response.text, response.status_code)
     
     if response.status_code == 403:
-      raise DuploError("Unauthorized", response.status_code)  
+      raise DuploError(f"{prefix}Unauthorized", response.status_code)
     
     if response.status_code == 400:
-      raise DuploError(response.text, response.status_code)
+      raise DuploError(f"{prefix}{response.text}" if service_name else response.text, response.status_code)
 
-    raise DuploError("Duplo responded with an error", response.status_code)
+    raise DuploError(f"{prefix}API error" if service_name else "Duplo responded with an error", response.status_code)
     
   def __sanitize_host(self, host: str) -> str:
     """Sanitize Host

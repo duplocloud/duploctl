@@ -135,6 +135,18 @@ def test_aliased_command():
   assert method == "tester"
 
 @pytest.mark.unit
+def test_aliased_command_by_method_name():
+  """Test that the actual method name also resolves correctly."""
+  method = aliased_method(SomeResource, "tester")
+  assert method == "tester"
+
+@pytest.mark.unit
+def test_aliased_command_not_found():
+  """Test that non-existent command raises DuploError."""
+  with pytest.raises(DuploError, match="Command .* not found"):
+    aliased_method(SomeResource, "nonexistent_command")
+
+@pytest.mark.unit
 def test_datamap_action():
   fname = "password.txt"
   password = "verysecretpassword"

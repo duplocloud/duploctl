@@ -36,6 +36,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `.github/agents/` for custom workspace and coder agents
   - Documents decorator patterns, scope system, API versioning, and common pitfalls
   - ECS Service wait function based on deployment status instead of task state
+- **Argo Workflow resources**
+  - `argo_wf` resource for workflows: `list`, `find`, `create`, `delete`, `apply`, `auth`
+  - `argo_wf_template` resource for workflow templates: `list`, `find`, `create`, `update`, `delete`, `apply`
+  - `ArgoBase` base class with JWT-based authentication caching and shared proxy logic
+  - JWT token caching with automatic expiration handling using `exp` claim (Unix timestamp)
+  - Authentication token cached and refreshed only when expired
+  - `apply` on workflows creates if not found, errors if exists (workflows are immutable)
+  - `apply` on templates creates if not found, updates if exists
+  - Backwards-compatible aliases: `get`/`get_workflow` → `find`, `submit` → `create`, `list_workflows` → `list`, `delete_workflow` → `delete`
+- **Enhanced `DuploClient` with flexible header handling and caching**
+  - `headers` parameter on HTTP methods (`get`, `post`, `put`, `delete`) for custom headers
+  - `mergeHeaders` parameter to control header merging behavior (default: `True`)
+  - Custom cache key function for `get()` method that converts headers dict to hashable frozenset
+  - Caching works with custom headers - different headers create separate cache entries
+  - `_build_headers()` method to centralize header construction logic
+  - `sanitize_path_segment()` method moved from `DuploProxyResource` to `DuploClient`
+- `system_info` property on `DuploClient`
+- `resource_prefix` property on `DuploResource`
 
 ### Changed
 
@@ -43,15 +61,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Example: `@Resource("service", scope="tenant")` replaces extending `DuploTenantResourceV2`
 - Endpoint generation simplified to single method supporting V2/V3 and portal/tenant combinations
 - Import discipline enforced: all imports must be at top of file, never inside functions
-
-- Argo Workflow resource
+- Public `validate_response` method on `DuploClient` for custom HTTP requests
+- Command aliasing support enabled in `DuploResource.command()`
 - ECS Service wait function based on deployment status instead of task state
 - doc build check to pull request pipeline
 - added a wait timeout for the global wait operation.
 - updated wait logic to validate new image instead of not old image
 - added additional debug logging around wait functionality
-- added a wait timeout for the global wait operation. 
-- Argo workflow related imporvements
+- added a wait timeout for the global wait operation
 
 ### Fixed
 
