@@ -293,7 +293,6 @@ class DuploResourceV3(DuploResource):
   @Command()
   def apply(self,
              body: args.BODY,
-             wait: args.WAIT = False,
              patches: args.PATCHES = None,) -> dict:
     """Apply a {{kind}}
     
