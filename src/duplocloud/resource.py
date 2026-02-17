@@ -321,7 +321,6 @@ class DuploResourceV3(DuploResource):
       self.find(name)
       return self.update(name=name, body=body, patches=patches)
     except DuploError:
-      return self.create(body, wait)
-  
-  
-  
+      return self.create(body)
+
+
