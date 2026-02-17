@@ -68,13 +68,14 @@ def _inject_tenant_scope(cls):
   
   setattr(cls, 'prefix', prefix)
   
-  # Add prefixed_name method
-  def prefixed_name(self, name: str) -> str:
-    if not name.startswith(self.prefix):
-      name = f"{self.prefix}{name}"
-    return name
-  
-  setattr(cls, 'prefixed_name', prefixed_name)
+  # Add prefixed_name method (skip if class defines its own)
+  if 'prefixed_name' not in cls.__dict__:
+    def prefixed_name(self, name: str) -> str:
+      if not name.startswith(self.prefix):
+        name = f"{self.prefix}{name}"
+      return name
+
+    setattr(cls, 'prefixed_name', prefixed_name)
   
   # Override endpoint method with tenant-scoped version
   def endpoint(self, name_or_path: str=None, path: str=None):
