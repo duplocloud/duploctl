@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `batch_compute apply --wait` failing immediately with "not found" instead of polling until the environment is available. The default wait lambda in `DuploResourceV3.create()` now converts transient `DuploError` (404) into `DuploStillWaiting`, and `batch_compute` adds a status-aware wait that polls until `Status` is `VALID`.
 - Fixed `aws_secret find` returning "Resource not found" when the secret exists under the full prefixed name. The find method now retries with the `duploservices-<tenant>-<name>` prefix on both 400 and 404 responses, matching the behavior of delete.
+- Fixed ECS `update_image` returning a stale message when `--wait` is used — success message is now set after the wait completes
 
 ### Added
 
