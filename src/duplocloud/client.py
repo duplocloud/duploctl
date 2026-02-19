@@ -733,18 +733,18 @@ Available Resources:
       return response
     
     if response.status_code == 404:
-      raise DuploError("Resource not found", response.status_code)
-    
+      raise DuploError(f"Resource not found: {response.text}", response.status_code)
+
     if response.status_code == 401:
       raise DuploError(response.text, response.status_code)
-    
+
     if response.status_code == 403:
-      raise DuploError("Unauthorized", response.status_code)  
-    
+      raise DuploError(f"Unauthorized: {response.text}", response.status_code)
+
     if response.status_code == 400:
       raise DuploError(response.text, response.status_code)
 
-    raise DuploError("Duplo responded with an error", response.status_code)
+    raise DuploError(f"Duplo responded with ({response.status_code}): {response.text}", response.status_code)
     
   def __sanitize_host(self, host: str) -> str:
     """Sanitize Host
