@@ -1,6 +1,6 @@
 from duplocloud.client import DuploClient
 from duplocloud.resource import DuploResourceV3
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -39,10 +39,27 @@ class DuploBatchCompute(DuploResourceV3):
     Returns:
       dict: The created Batch Compute Environment object.
     """
-    arn = super().create(body)
+    name = self.name_from_body(body)
+    s = None
+    def wait_check():
+      nonlocal s
+      try:
+        env = self.find(name)
+      except DuploError:
+        raise DuploStillWaiting(f"Waiting for Batch Compute Environment '{name}' to be created")
+      status_field = env.get("Status", "CREATING")
+      status = status_field.get("Value", "CREATING") if isinstance(status_field, dict) else status_field
+      if s != status:
+        s = status
+        self.duplo.logger.warn(f"Batch Compute Environment {name} is {status}")
+      if status == "INVALID":
+        raise DuploFailedResource(name)
+      if status != "VALID":
+        raise DuploStillWaiting(f"Batch Compute Environment '{name}' is waiting for status 'VALID'")
+    response = super().create(body, wait_check)
     return {
       "Message": "Batch Compute Environment created successfully.",
-      "ComputeEnvironmentArn": arn
+      "ComputeEnvironmentArn": response
     }
   
   @Command()
