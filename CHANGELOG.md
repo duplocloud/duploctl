@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added 25 unit tests for the `aws_secret` resource achieving 100% code coverage.
+- Fixed `DuploResourceV3.apply()` passing a boolean `wait` to `create()` which expects a `wait_check` callable — `create()` already reads `self.duplo.wait` directly from the client
+- Removed `wait` parameter from `DuploResourceV3.apply()` — `create()` reads `self.duplo.wait` from the client directly, making it redundant
+- Fixed RDS `create()` passing an extra `wait` arg to `super().create()` and not returning the result
+- Fixed `ssm_param` passing `wait=self.duplo.wait` to `super().create()` for the same reason
 
 ## [0.4.0] - 2026-02-09
 

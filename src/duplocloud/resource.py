@@ -293,7 +293,6 @@ class DuploResourceV3(DuploResource):
   @Command()
   def apply(self,
              body: args.BODY,
-             wait: args.WAIT = False,
              patches: args.PATCHES = None,) -> dict:
     """Apply a {{kind}}
     
@@ -321,7 +320,6 @@ class DuploResourceV3(DuploResource):
       self.find(name)
       return self.update(name=name, body=body, patches=patches)
     except DuploError:
-      return self.create(body, wait)
-  
-  
-  
+      return self.create(body)
+
+
