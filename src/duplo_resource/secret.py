@@ -19,7 +19,12 @@ class DuploSecret(DuploResourceV3):
         super().__init__(duplo, "k8s/secret")
 
     def name_from_body(self, body):
-        return body["SecretName"]
+        if not isinstance(body, dict):
+            raise DuploError("Secret body must be a dictionary")
+        name = body.get("SecretName", None)
+        if not name:
+            raise DuploError("SecretName is required in the secret body")
+        return name
 
     @Command()
     def create(self,
