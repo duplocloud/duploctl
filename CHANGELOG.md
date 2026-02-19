@@ -10,10 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `aws_secret find` returning "Resource not found" when the secret exists under the full prefixed name. The find method now retries with the `duploservices-<tenant>-<name>` prefix on both 400 and 404 responses, matching the behavior of delete.
+- Fixed `batch_compute apply --wait` failing immediately with "not found" instead of polling until the environment is available. The default wait lambda in `DuploResourceV3.create()` now converts transient `DuploError` (404) into `DuploStillWaiting`, and `batch_compute` adds a status-aware wait that polls until `Status` is `VALID`.
+- Fixed `aws_secret find` returning "Resource not found" when the secret exists under the full prefixed name. The find method now retries with the `duploservices-<tenant>-<name>` prefix on both 400 and 404 responses, matching the behavior of delete.
+- Fixed ECS `update_image` returning a stale message when `--wait` is used — success message is now set after the wait completes
 
 ### Added
 
 - Added 25 unit tests for the `aws_secret` resource achieving 100% code coverage.
+- Fixed `DuploResourceV3.apply()` passing a boolean `wait` to `create()` which expects a `wait_check` callable — `create()` already reads `self.duplo.wait` directly from the client
+- Removed `wait` parameter from `DuploResourceV3.apply()` — `create()` reads `self.duplo.wait` from the client directly, making it redundant
+- Fixed RDS `create()` passing an extra `wait` arg to `super().create()` and not returning the result
+- Fixed `ssm_param` passing `wait=self.duplo.wait` to `super().create()` for the same reason
 
 ## [0.4.0] - 2026-02-09
 

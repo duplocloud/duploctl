@@ -263,6 +263,7 @@ class DuploEcsService(DuploResourceV2):
       self.update_service(svc)
       if self.duplo.wait:
         self.wait(lambda: self._wait_on_service(svcFam.get("EcsServiceName", None), arn))
+        msg = "ECS Service and Task Definition updated successfully."
     return {
       "message": msg
     }
