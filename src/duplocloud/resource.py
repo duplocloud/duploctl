@@ -259,7 +259,12 @@ class DuploResourceV3(DuploResource):
     name = self.name_from_body(body)
     response = self.duplo.post(self.endpoint(), body)
     if self.duplo.wait:
-      self.wait(wait_check or (lambda: self.find(name)), self.wait_timeout, self.wait_poll)
+      def _default_wait_check():
+        try:
+          self.find(name)
+        except DuploError:
+          raise DuploStillWaiting(f"Waiting for resource '{name}' to become available")
+      self.wait(wait_check or _default_wait_check, self.wait_timeout, self.wait_poll)
     return response.json()
   
   @Command()
