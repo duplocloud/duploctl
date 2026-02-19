@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `wait` parameter from `DuploResourceV3.apply()` — `create()` reads `self.duplo.wait` from the client directly, making it redundant
 - Fixed RDS `create()` passing an extra `wait` arg to `super().create()` and not returning the result
 - Fixed `ssm_param` passing `wait=self.duplo.wait` to `super().create()` for the same reason
+- **Fixed Secret Apply Command** for the Secret resource
+  - Made new apply method in secret.py
 
 ## [0.4.0] - 2026-02-09
 
