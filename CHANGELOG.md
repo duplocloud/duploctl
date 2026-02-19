@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-02-19
+
 ### Fixed
 
 - Fixed `aws_secret find` returning "Resource not found" when the secret exists under the full prefixed name. The find method now retries with the `duploservices-<tenant>-<name>` prefix on both 400 and 404 responses, matching the behavior of delete.
