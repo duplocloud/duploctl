@@ -38,7 +38,7 @@ def test_update_image_with_container(mocker):
     assert mock_task_def["ContainerDefinitions"][0]["Image"] == "old-image:1"
     # Verify service was updated with new task definition
     service.update_service.assert_called_once_with(mock_service_family["DuploEcsService"])
-    assert_response(result, "Updating a task definition and its corresponding service.")
+    assert_response(result, "ECS Service and Task Definition updated successfully.")
 
 @pytest.mark.unit
 def test_update_image_without_container(mocker):
@@ -71,7 +71,7 @@ def test_update_image_without_container(mocker):
     assert mock_task_def["ContainerDefinitions"][0]["Image"] == "new-image:2"
     # Verify service was updated with new task definition
     service.update_service.assert_called_once_with(mock_service_family["DuploEcsService"])
-    assert_response(result, "Updating a task definition and its corresponding service.")
+    assert_response(result, "ECS Service and Task Definition updated successfully.")
 
 @pytest.mark.unit
 def test_update_image_no_service(mocker):
