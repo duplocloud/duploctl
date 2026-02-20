@@ -185,7 +185,7 @@ class DuploBatchDefinition(DuploResourceV3):
 
     Usage: CLI Usage
       ```sh
-      duploctl batch_definition update_image <name> --image <image>
+      duploctl batch_definition update_image <name> <image>
       ```
 
     Args:
