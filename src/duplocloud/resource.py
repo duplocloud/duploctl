@@ -259,7 +259,12 @@ class DuploResourceV3(DuploResource):
     name = self.name_from_body(body)
     response = self.duplo.post(self.endpoint(), body)
     if self.duplo.wait:
-      self.wait(wait_check or (lambda: self.find(name)), self.wait_timeout, self.wait_poll)
+      def _default_wait_check():
+        try:
+          self.find(name)
+        except DuploError:
+          raise DuploStillWaiting(f"Waiting for resource '{name}' to become available")
+      self.wait(wait_check or _default_wait_check, self.wait_timeout, self.wait_poll)
     return response.json()
   
   @Command()
@@ -293,7 +298,6 @@ class DuploResourceV3(DuploResource):
   @Command()
   def apply(self,
              body: args.BODY,
-             wait: args.WAIT = False,
              patches: args.PATCHES = None,) -> dict:
     """Apply a {{kind}}
     
@@ -321,7 +325,6 @@ class DuploResourceV3(DuploResource):
       self.find(name)
       return self.update(name=name, body=body, patches=patches)
     except DuploError:
-      return self.create(body, wait)
-  
-  
-  
+      return self.create(body)
+
+

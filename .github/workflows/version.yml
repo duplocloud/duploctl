@@ -64,7 +64,7 @@ jobs:
         --push ${{ inputs.push }} 
         --token ${{ steps.setup.outputs.token }}
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: notes-${{ steps.bump.outputs.tag }}
         path: dist/notes.md

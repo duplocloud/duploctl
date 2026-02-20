@@ -60,7 +60,7 @@ class DuploParam(DuploResourceV3):
     if dryrun:
       return body
     else:
-      return super().create(body, wait=self.duplo.wait)
+      return super().create(body)
 
   @Command()
   #Implement find with opt-in option to display sensitive data for secureString params. 
