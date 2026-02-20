@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 from cachetools import cachedmethod, TTLCache
 from pathlib import Path
 from .commander import load_resource,load_format
-from .errors import DuploError, DuploExpiredCache
+from .errors import DuploError, DuploExpiredCache, DuploConnectionError
 from .server import TokenServer
 from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
@@ -362,12 +362,11 @@ Available Resources:
         timeout = self.timeout
       )
     except requests.exceptions.Timeout as e:
-      raise DuploError("Request timed out while connecting to Duplo", 500) from e
+      raise DuploConnectionError("Request timed out while connecting to Duplo") from e
     except requests.exceptions.ConnectionError as e:
-      print(e)
-      raise DuploError("Failed to establish connection with Duplo", 500) from e
+      raise DuploConnectionError("Failed to establish connection with Duplo") from e
     except requests.exceptions.RequestException as e:
-      raise DuploError("Failed to send request to Duplo", 500) from e
+      raise DuploConnectionError("Failed to send request to Duplo") from e
     return self.__validate_response(response)
   
   def post(self, path: str, data: dict={}):

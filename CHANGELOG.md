@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed `--wait` failing permanently when a transient network error (DNS failure, TCP timeout) occurs during polling. Introduced `DuploConnectionError` as a dedicated subclass of `DuploError` for network-level failures; the `wait` loop now retries on `DuploConnectionError` instead of propagating it. Server-side HTTP errors still surface immediately.
+
 ## [0.4.1] - 2026-02-19
 
 ### Fixed

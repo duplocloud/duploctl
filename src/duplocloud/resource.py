@@ -1,6 +1,6 @@
 from . import args
 from .client import DuploClient
-from .errors import DuploError, DuploFailedResource, DuploStillWaiting
+from .errors import DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
 from .commander import get_parser, extract_args, Command
 import math
 import time
@@ -67,6 +67,9 @@ class DuploResource():
         raise e
       except DuploStillWaiting as e:
         self.duplo.logger.info(e)
+        time.sleep(poll)
+      except DuploConnectionError as e:
+        self.duplo.logger.warning(f"Transient connection error during wait, retrying: {e}")
         time.sleep(poll)
       except KeyboardInterrupt as e:
         raise e

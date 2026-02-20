@@ -24,3 +24,8 @@ class DuploStillWaiting(DuploError):
   """Raised when a Duplo resource is in a waiting state."""
   def __init__(self, message: str = "Still waiting"):
     super().__init__(message, 408)
+
+class DuploConnectionError(DuploError):
+  """Raised when a network/connectivity error occurs talking to Duplo."""
+  def __init__(self, message: str):
+    super().__init__(message, 503)
