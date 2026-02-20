@@ -1,6 +1,6 @@
 import argparse
 import logging
-from .argtype import Arg, YamlAction, JsonPatchAction, DataMapAction
+from .argtype import Arg, YamlAction, JsonPatchAction, DataMapAction, MetadataAction, ALLOWED_METADATA_TYPES
 from .commander import available_resources, available_formats, VERSION
 
 # the global args for the CLI
@@ -223,6 +223,14 @@ SETVAR = Arg("setvar", "-V",
             action='append',
             nargs=2,
             metavar=('key', 'value'))
+
+METADATA = Arg("metadata", "--metadata",
+            help=f"Create tenant metadata entries: --metadata key type value (repeatable). Type in {{{', '.join(sorted(ALLOWED_METADATA_TYPES))}}}.",
+            action=MetadataAction)
+
+DELETES = Arg("deletemetadata", "--delete",
+            action='append',
+            help='Delete tenant metadata key (repeatable).')
 
 STRATEGY = Arg("strategy", "-strat",
             help='The merge strategy to use. Valid options are \"merge\" or \"replace\".  Default is merge.',

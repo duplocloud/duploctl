@@ -9,46 +9,46 @@ import duplocloud.args as args
 @Resource("tenant")
 class DuploTenant(DuploResourceV2):
   """Duplo Tenant Resource
-  
+
   The tenant resource provides a set of commands to manage tenants in the Duplo system.
 
-  Usage: Basic CLI Use  
+  Usage: Basic CLI Use
     ```sh
     duploctl tenant <action>
     ```
   """
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo)
-  
+
   @Command("ls")
   def list(self):
     """List Tenants
-    
-    Retrieve a list of all tenants in the Duplo system. 
+
+    Retrieve a list of all tenants in the Duplo system.
 
     Usage: Basic CLI Use
       ```bash
       duploctl tenant list
       ```
-    
+
     Returns:
       tenants (list): A list of tenants.
     """
     response = self.duplo.get("adminproxy/GetTenantNames")
     return response.json()
-  
+
   @Command()
-  def list_users(self, 
+  def list_users(self,
                  name: args.NAME) -> dict:
     """List users assigned to a tenant
-    
+
     Retrieve a list of all users with access to a tenant
 
     Usage: Basic CLI Use
       ```bash
       duploctl tenant list_users
       ```
-    
+
     Returns:
       users (list): A list of users with access to the tenants, their readonly status, and if they're an admin user
     """
@@ -82,20 +82,20 @@ class DuploTenant(DuploResourceV2):
                     "IsReadOnly": "False",
                     "IsAdmin": "True"
                 })
-    
+
     return tenant_users
 
   @Command("get")
-  def find(self, 
+  def find(self,
            name: args.NAME=None,
            id: str=None) -> dict:
     """Find a tenant.
 
     Find a tenant by name or id. Passing in a name directly takes highest precedence.
     If a name is not passed in, the id is second highest precedence. Lastly if the global
-    tenant name is set, that will be used. 
+    tenant name is set, that will be used.
 
-    The global tenant id takes care of the commandline. For other code, sometimes the id 
+    The global tenant id takes care of the commandline. For other code, sometimes the id
     needs to be passed in directly. If this happens, that id takes most precedence.
 
     Usage: Basic CLI Use
@@ -106,12 +106,12 @@ class DuploTenant(DuploResourceV2):
     Args:
       name: The name or id of the tenant to find.
       id: The id of the tenant to find. Optional and code only.
-    
+
     Returns:
       tenant: The tenant.
     """
-    key = None 
-    ref = None 
+    key = None
+    ref = None
     if id or (not name and self.duplo.tenantid):
       key = "TenantId"
       ref = id or self.duplo.tenantid
@@ -122,13 +122,13 @@ class DuploTenant(DuploResourceV2):
       return [t for t in self.list() if t[key] == ref][0]
     except IndexError:
       raise DuploError(f"Tenant '{ref}' not found", 404)
-  
+
   @Command()
-  def create(self, 
+  def create(self,
              body: args.BODY) -> dict:
     """Create Tenant.
-    
-    Create a new tenant with a new body for a tenant. 
+
+    Create a new tenant with a new body for a tenant.
 
     Usage: Basic CLI Use
       ```bash
@@ -142,13 +142,13 @@ class DuploTenant(DuploResourceV2):
       ```
 
     Example: Create One Liner
-      Here is how to create a tenant in one line.  
+      Here is how to create a tenant in one line.
       ```bash
       echo \"\"\"
       --8<-- "src/tests/data/tenant.yaml"
       \"\"\" | duploctl tenant create -f -
       ```
-    
+
     Args:
       body: The body of the tenant to create.
       wait: Wait for the tenant to be created.
@@ -165,7 +165,7 @@ class DuploTenant(DuploResourceV2):
     return {
       "message": f"Tenant '{name}' created"
     }
-  
+
   @Command()
   def delete(self,
              name: args.NAME=None) -> dict:
@@ -177,10 +177,10 @@ class DuploTenant(DuploResourceV2):
       ```sh
       duploctl tenant delete <name>
       ```
-    
+
     Args:
       name: The name of the tenant to delete.
-    
+
     Returns:
       message: The message that the tenant was deleted.
     """
@@ -190,13 +190,13 @@ class DuploTenant(DuploResourceV2):
     return {
       "message": f"Tenant '{name}' deleted"
     }
-    
+
   @Command()
-  def shutdown(self, 
-               name: args.NAME=None, 
+  def shutdown(self,
+               name: args.NAME=None,
                schedule: args.SCHEDULE=None) -> dict:
     """Shutdown Tenant
-    
+
     Shutdown a tenant by name and with a schedule.
 
     Usage: Basic CLI Use
@@ -210,7 +210,7 @@ class DuploTenant(DuploResourceV2):
     Args:
       name: The name of the tenant to shutdown.
       schedule: The schedule to shutdown the tenant.
-    
+
     Returns:
       message: The message that the tenant was shutdown
     """
@@ -251,22 +251,22 @@ class DuploTenant(DuploResourceV2):
       raise DuploError(f"Failed to expire tenant '{name}'", res.status_code)
 
   @Command()
-  def logging(self, 
-              name: args.NAME=None, 
+  def logging(self,
+              name: args.NAME=None,
               enable: args.ENABLE=True) -> dict:
     """Toggle Loggine
-    
+
     Enable or disable logging for a tenant.
 
     Usage: Basic CLI Use
       ```bash
       duploctl tenant logging <tenant-name> (default: true) // false not supported
       ```
-    
+
     Args:
       name: The name of the tenant to toggle logging.
       enable: Enable or disable logging.
-    
+
     Returns:
       message: The message that the tenant logging was toggled
     """
@@ -295,7 +295,7 @@ class DuploTenant(DuploResourceV2):
   def billing(self,
               name: args.NAME=None) -> dict:
     """Tenant Billing Information
-    
+
     Get the spend for the tenant.
 
     Usage: Basic CLI Use
@@ -313,14 +313,14 @@ class DuploTenant(DuploResourceV2):
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"v3/billing/subscriptions/{tenant_id}/aws/billing")
     return response.json()
-  
+
   @Command()
   def config(self,
              name: args.NAME=None,
              setvar: args.SETVAR=[],
              deletevar: args.DELETEVAR=[]) -> dict:
     """Manage Tenant Settings
-    
+
     Send a series of new settings and even some to delete.
 
     Usage: Basic CLI Use
@@ -332,7 +332,7 @@ class DuploTenant(DuploResourceV2):
       name: The name of the tenant to manage.
       setvar: A series of key value pairs to set.
       deletevar: The keys to delete.
-    
+
     Returns:
       message: The message that the tenant settings were updated.
     """
@@ -376,13 +376,13 @@ class DuploTenant(DuploResourceV2):
       "message": f"Successfully updated settings for tenant '{name}'",
       "changes": changes
     }
-    
+
   @Command()
   def host_images(self,
                   name: args.NAME = None) -> list:
     """Available Duplo Host Images
-    
-    Get the list of host images for the tenant. These AMI's are region scoped. 
+
+    Get the list of host images for the tenant. These AMI's are region scoped.
 
     Usage: Basic CLI Use
       ```bash
@@ -405,7 +405,7 @@ class DuploTenant(DuploResourceV2):
              name: args.NAME = None,
              id: str = None) -> list:
     """Tenant Faults
-    
+
     Retrieves the list of faults for a tenant.
 
     Usage: Basic CLI Use
@@ -416,7 +416,7 @@ class DuploTenant(DuploResourceV2):
     Args:
       name: The name of the tenant to get faults for.
       id: The id of the tenant to get faults for. Optional and code only.
-    
+
     Returns:
       faults: A list of faults.
     """
@@ -424,19 +424,19 @@ class DuploTenant(DuploResourceV2):
     tenant_id = tenant["TenantId"]
     response = self.duplo.get(f"subscriptions/{tenant_id}/GetFaultsByTenant")
     return response.json()
-  
+
   @Command()
   def region(self,
              name: args.NAME = None) -> dict:
     """Tenant Region
-    
+
     Get the region the tenants infrastructure is placed in.
 
     Usage: Basic CLI Use
       ```bash
       duploctl tenant region <tenant-name>
       ```
-    
+
     Args:
       name: The name of the tenant to get the region for.
 
@@ -451,8 +451,8 @@ class DuploTenant(DuploResourceV2):
     }
 
   @Command()
-  def start(self, 
-            name: args.NAME = None, 
+  def start(self,
+            name: args.NAME = None,
             exclude: args.EXCLUDE=None) -> dict:
     """Start Tenant All Resources
 
@@ -506,7 +506,7 @@ class DuploTenant(DuploResourceV2):
     }
 
   @Command()
-  def stop(self, 
+  def stop(self,
            name: args.NAME = None,
            exclude: args.EXCLUDE=None) -> dict:
     """Stop Tenant All Resources
@@ -575,7 +575,7 @@ class DuploTenant(DuploResourceV2):
     return host_at_exclude
 
   @Command()
-  def dns_config(self, 
+  def dns_config(self,
                  name: args.NAME=None) -> dict:
     """Tenant DNS Config
 
@@ -598,10 +598,10 @@ class DuploTenant(DuploResourceV2):
     return response.json()
 
   @Command()
-  def add_user(self, 
+  def add_user(self,
                name: args.NAME) -> dict:
     """Add User to Tenant
-    
+
     Usage: CLI Usage
       ```sh
       duploctl tenant add_user <user> --tenant <tenant_name>
@@ -624,12 +624,12 @@ class DuploTenant(DuploResourceV2):
       raise DuploError(f"Failed to add user '{name}' to tenant '{self.duplo.tenant}'", res["status_code"])
     else:
       return f"User '{name}' added to tenant '{self.duplo.tenant}'"
-    
+
   @Command()
-  def remove_user(self, 
+  def remove_user(self,
                  name: args.NAME) -> dict:
     """Remove a User from a Tenant
-    
+
     Usage: CLI Usage
       ```sh
       duploctl tenant remove_user <user> --tenant <tenant_name>
@@ -654,4 +654,121 @@ class DuploTenant(DuploResourceV2):
       raise DuploError(f"Failed to remove user '{name}' from tenant '{self.duplo.tenant}'", res["status_code"])
     else:
       return f"User '{name}' removed from tenant '{self.duplo.tenant}'"
-    
+
+  @Command()
+  def get_metadata(self, name: args.NAME=None) -> list:
+    """Get Tenant Metadata
+
+    Get the metadata for the tenant.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl tenant get_metadata -T mytenant
+      ```
+
+    Args:
+      name: Optional tenant name; overrides -T/--tenant if provided.
+
+    Returns:
+      metadata: The metadata for the tenant.
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"admin/GetTenantConfigData/{tenant_id}")
+    return response.json()
+
+  @Command()
+  def set_metadata(self,
+                   name: args.NAME=None,
+                   metadata: args.METADATA=[],
+                   deletes: args.DELETES=[]) -> dict:
+    """Set Tenant Metadata
+
+    Set or delete metadata for the tenant.
+
+    Usage: Basic CLI Use
+      ```bash
+      // Set metadata entries
+      duploctl tenant set_metadata -T mytenant --metadata featureFlag text enabled
+      duploctl tenant set_metadata -T mytenant --metadata dashboard url https://internal.example.com
+
+      // Delete metadata entries
+      duploctl tenant set_metadata -T mytenant --delete featureFlag
+
+      // Mixed operations
+      duploctl tenant set_metadata -T mytenant --metadata featureFlag text enabled --delete dashboard
+      ```
+
+    Args:
+      name: Optional tenant name; overrides -T/--tenant if provided.
+      metadata: Zero or more (key type value) triples to create metadata entries. Type must be one of: aws_console, url, text.
+      deletes: Zero or more keys to delete from metadata.
+
+    Returns:
+      A dict with keys:
+        message: Human readable summary.
+        changes: Dict with lists 'created', 'deleted', and 'skipped' (attempted creates for existing keys).
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.duplo.get(f"admin/GetTenantConfigData/{tenant_id}")
+    current_list = response.json() or []
+    current = {m.get("Key"): m for m in current_list if isinstance(m, dict) and m.get("Key")}
+    changes = {"created": [], "deleted": [], "skipped": []}
+
+    # Create metadata entries; skip if key already exists (no update semantics)
+    for k, t, v in (metadata or []):
+      if k in current:
+        changes["skipped"].append(k)
+        continue
+      body = {"Key": k, "Value": v, "Type": t, "ComponentId": tenant_id}
+      try:
+        response = self.duplo.post("admin/UpdateTenantConfigData", body)
+        if response.status_code >= 400:
+          raise DuploError(f"Failed to create metadata key '{k}': {response.text}", response.status_code)
+        changes["created"].append(k)
+        # Update current dict to include newly created key
+        current[k] = {"Key": k, "Value": v, "Type": t}
+      except Exception as e:
+        raise DuploError(f"Failed to create metadata key '{k}': {str(e)}")
+
+    # Delete metadata entries
+    for k in (deletes or []):
+      if k in current:
+        try:
+          # Use POST with delete action since DELETE endpoint doesn't work
+          delete_body = {"Key": k, "ComponentId": tenant_id, "Action": "delete"}
+          response = self.duplo.post("admin/UpdateTenantConfigData", delete_body)
+          if response.status_code >= 400:
+            raise DuploError(f"Failed to delete metadata key '{k}': {response.text}", response.status_code)
+          changes["deleted"].append(k)
+        except Exception as e:
+          raise DuploError(f"Failed to delete metadata key '{k}': {str(e)}")
+      else:
+        # Key doesn't exist in current metadata
+        raise DuploError(f"Metadata key '{k}' not found in tenant '{tenant['AccountName']}'")
+
+    # Build success response
+    if metadata and not deletes:
+      if changes['created'] and changes['skipped']:
+        message = f"Successfully set: {', '.join(changes['created'])} for Tenant: {tenant['AccountName']} (skipped existing: {', '.join(changes['skipped'])})"
+      elif changes['created']:
+        message = f"Successfully set: {', '.join(changes['created'])} for Tenant: {tenant['AccountName']}"
+      elif changes['skipped']:
+        message = f"Key: {', '.join(changes['skipped'])} already exists for Tenant: {tenant['AccountName']}"
+      else:
+        message = f"No changes made for Tenant: {tenant['AccountName']}"
+      return {"message": message, "changes": changes}
+    elif deletes and not metadata:
+      message = f"Successfully deleted: {', '.join(changes['deleted'])} for Tenant: {tenant['AccountName']}"
+      return {"message": message, "changes": changes}
+    elif metadata and deletes:
+      set_msg = f"set: {', '.join(changes['created'])}" if changes['created'] else ""
+      delete_msg = f"deleted: {', '.join(changes['deleted'])}" if changes['deleted'] else ""
+      skip_msg = f"skipped: {', '.join(changes['skipped'])}" if changes['skipped'] else ""
+      actions = [msg for msg in [set_msg, delete_msg, skip_msg] if msg]
+      message = f"Successfully {', '.join(actions)} for Tenant: {tenant['AccountName']}"
+      return {"message": message, "changes": changes}
+    else:
+      message = f"No changes made for Tenant: {tenant['AccountName']}"
+      return {"message": message, "changes": changes}
