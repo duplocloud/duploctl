@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Tenant metadata management** with `get_metadata` and `set_metadata` commands
+  - `duploctl tenant get_metadata` retrieves all metadata key-value pairs for a tenant
+  - `duploctl tenant set_metadata --metadata key type value` creates metadata entries (type: aws_console, url, text)
+  - `duploctl tenant set_metadata --delete key` removes metadata entries
+  - Mixed operations supported in single command
+  - Skip semantics for existing keys (no overwrite without explicit delete)
+
 ## [0.4.1] - 2026-02-19
 
 ### Fixed
@@ -30,12 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Tenant metadata management** with `get_metadata` and `set_metadata` commands
-  - `duploctl tenant get_metadata` retrieves all metadata key-value pairs for a tenant
-  - `duploctl tenant set_metadata --metadata key type value` creates metadata entries (type: aws_console, url, text)
-  - `duploctl tenant set_metadata --delete key` removes metadata entries
-  - Mixed operations supported in single command
-  - Skip semantics for existing keys (no overwrite without explicit delete)
 - **Decorator-based scope system** for resources using `@Resource(name, scope="portal"|"tenant")`
   - Eliminates deep inheritance hierarchies (removed `DuploTenantResourceV2` and `DuploTenantResourceV3` classes)
   - Dynamic tenant functionality injection via mixin pattern
@@ -119,13 +122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed all the documentation issues in the ECS resource
 - darwin arm builds are now stable with the new large runners
 - bump to python 3.13
-
-### Added
-
-- Implement `tenant get_metadata` and `tenant set_metadata` commands for managing tenant metadata.
-  - `get_metadata`: List all metadata entries for a tenant.
-  - `set_metadata`: Create/delete metadata with `--metadata key type value` and `--delete key` flags.
-  - Supported types: aws_console, url, text.
 
 ## [0.3.6] - 2025-08-19
 

@@ -722,31 +722,27 @@ class DuploTenant(DuploResourceV2):
         changes["skipped"].append(k)
         continue
       body = {"Key": k, "Value": v, "Type": t, "ComponentId": tenant_id}
-      try:
-        response = self.duplo.post("admin/UpdateTenantConfigData", body)
-        if response.status_code >= 400:
-          raise DuploError(f"Failed to create metadata key '{k}': {response.text}", response.status_code)
-        changes["created"].append(k)
-        # Update current dict to include newly created key
-        current[k] = {"Key": k, "Value": v, "Type": t}
-      except Exception as e:
-        raise DuploError(f"Failed to create metadata key '{k}': {str(e)}")
+      response = self.duplo.post("admin/UpdateTenantConfigData", body)
+      if response.status_code >= 400:
+        raise DuploError(f"Failed to create metadata key '{k}': {response.text}", response.status_code)
+      changes["created"].append(k)
+      current[k] = {"Key": k, "Value": v, "Type": t}
 
     # Delete metadata entries
     for k in (deletes or []):
-      if k in current:
-        try:
-          # Use POST with delete action since DELETE endpoint doesn't work
-          delete_body = {"Key": k, "ComponentId": tenant_id, "Action": "delete"}
-          response = self.duplo.post("admin/UpdateTenantConfigData", delete_body)
-          if response.status_code >= 400:
-            raise DuploError(f"Failed to delete metadata key '{k}': {response.text}", response.status_code)
-          changes["deleted"].append(k)
-        except Exception as e:
-          raise DuploError(f"Failed to delete metadata key '{k}': {str(e)}")
-      else:
-        # Key doesn't exist in current metadata
+      if k not in current:
         raise DuploError(f"Metadata key '{k}' not found in tenant '{tenant['AccountName']}'")
+      delete_body = {
+        "Type": current[k].get("Type", "text"),
+        "Key": k,
+        "Value": current[k].get("Value", ""),
+        "ComponentId": tenant_id,
+        "State": "delete"
+      }
+      response = self.duplo.post("admin/UpdateTenantConfigData", delete_body)
+      if response.status_code >= 400:
+        raise DuploError(f"Failed to delete metadata key '{k}': {response.text}", response.status_code)
+      changes["deleted"].append(k)
 
     # Build success response
     if metadata and not deletes:

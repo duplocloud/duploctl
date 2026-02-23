@@ -200,7 +200,7 @@ class DataMapAction(argparse.Action):
     return parts
 
 class MetadataAction(argparse._AppendAction):
-  """Argparse action for --set enforcing allowed metadata types.
+  """Argparse action for --metadata enforcing allowed metadata types.
 
   Each occurrence expects three arguments: key type value. The type must be one of
   aws_console, url, text (case-insensitive). The stored value is a tuple
