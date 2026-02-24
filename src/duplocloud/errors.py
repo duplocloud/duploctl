@@ -24,3 +24,8 @@ class DuploStillWaiting(DuploError):
   """Raised when a Duplo resource is in a waiting state."""
   def __init__(self, message: str = "Still waiting"):
     super().__init__(message, 408)
+
+class DuploInvalidError(DuploError):
+  """Raised when a resource body fails model validation."""
+  def __init__(self, message: str):
+    super().__init__(message, 422)

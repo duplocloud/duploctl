@@ -2,7 +2,7 @@ import pathlib
 import pytest 
 # import unittest
 import argparse
-from duplocloud.commander import schema, resources, Command, Resource, get_parser, aliased_method, extract_args, available_resources, load_resource, commands_for
+from duplocloud.commander import schema, resources, Command, Resource, get_parser, get_command_schema, extract_args, available_resources, load_resource, commands_for
 from duplocloud.argtype import Arg, DataMapAction
 from duplocloud.errors import DuploError
 # from duplo_resource.service import DuploService
@@ -129,10 +129,47 @@ def test_arg_type():
   name = NAME("foo")
   assert isinstance(name, str)
 
+class ModelResource():
+  @Command("add", model="SomeModel")
+  def create(self):
+    pass
+
+  @Command()
+  def list(self):
+    pass
+
 @pytest.mark.unit
-def test_aliased_command():
-  method = aliased_method(SomeResource, "test")
-  assert method == "tester"
+def test_get_command_schema():
+  cmd = get_command_schema(SomeResource, "test")
+  assert isinstance(cmd, dict)
+  assert cmd["method"] == "tester"
+  assert cmd["aliases"] == ["test"]
+  assert cmd["class"] == "SomeResource"
+
+@pytest.mark.unit
+def test_command_model_stored_in_schema():
+  # lookup by method name
+  cmd = get_command_schema(ModelResource, "create")
+  assert cmd["model"] == "SomeModel"
+  assert cmd["aliases"] == ["add"]
+  # lookup by alias also works
+  cmd_by_alias = get_command_schema(ModelResource, "add")
+  assert cmd_by_alias["model"] == "SomeModel"
+
+@pytest.mark.unit
+def test_command_no_model_is_none():
+  cmd = get_command_schema(ModelResource, "list")
+  assert cmd["model"] is None
+
+@pytest.mark.unit
+def test_get_command_schema_by_method_name():
+  cmd = get_command_schema(SomeResource, "tester")
+  assert cmd["method"] == "tester"
+
+@pytest.mark.unit
+def test_get_command_schema_not_found():
+  with pytest.raises(DuploError):
+    get_command_schema(SomeResource, "nonexistent")
 
 @pytest.mark.unit
 def test_datamap_action():

@@ -135,7 +135,7 @@ def Resource(name: str, scope: str = "portal"):
     return cls
   return decorator
 
-def Command(*aliases) -> Callable:
+def Command(*aliases, model: str = None) -> Callable:
   """Command decorator
 
   This decorator is used to register a function as a command. It will
@@ -150,7 +150,11 @@ def Command(*aliases) -> Callable:
     def hello(name: args.NAME = "world"):
       print(f"Hello {name}!")
     ```
-  
+
+  Args:
+    *aliases: Optional command aliases.
+    model: Optional Pydantic model name for the body parameter.
+
   Returns:
     decorator: The decorated function.
 
@@ -160,6 +164,7 @@ def Command(*aliases) -> Callable:
       "class": function.__qualname__.split(".")[0],
       "method": function.__name__,
       "aliases": list(aliases),
+      "model": model,
     }
     return function
   return decorator
@@ -186,18 +191,21 @@ def extract_args(function: Callable) -> List[Arg]:
     if v.annotation is not Parameter.empty and isinstance(v.annotation, Arg)
   ]
 
-def aliased_method(cls: Type, command: str) -> str:
-  """Aliased Method
-  
-  Given the name of a command, check the schema and find the real method name because the command might be aliased.
-  The given class will be used to discover any ancestors because the command may actually come from a parent class.
+def get_command_schema(cls: Type, command: str) -> dict:
+  """Get Command Schema
+
+  Given the name of a command (or alias), find the matching schema entry
+  by checking the class and its ancestors via MRO.
 
   Args:
-    cls: The class to check the schema for.
-    command: The command to find the
+    cls: The resource class to check.
+    command: The command name or alias.
 
   Returns:
-    method: The true name of the commands method.
+    The schema dict with class, method, aliases, model keys.
+
+  Raises:
+    DuploError: If the command is not found.
   """
   clss = [c.__name__ for c in getmro(cls) if c.__name__ != "object"]
   s = next((
@@ -206,7 +214,7 @@ def aliased_method(cls: Type, command: str) -> str:
   ), None)
   if not s:
     raise DuploError(f"Command {command} not found.", 404)
-  return s["method"]
+  return s
 
 def get_parser(args: List[Arg]) -> argparse.ArgumentParser:
   """Get Parser
