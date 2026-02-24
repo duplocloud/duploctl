@@ -19,6 +19,7 @@ from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
 from typing import TypeVar
 import duplocloud_sdk
+from pydantic import ValidationError
 
 T = TypeVar("T")
 
@@ -507,7 +508,6 @@ Available Resources:
     Raises:
       DuploInvalidError: If the data fails model validation.
     """
-    from pydantic import ValidationError
     try:
       instance = model.model_validate(data)
       return instance.model_dump(by_alias=True, exclude_none=True)
