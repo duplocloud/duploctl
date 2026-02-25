@@ -13,11 +13,13 @@ from urllib.parse import urlparse
 from cachetools import cachedmethod, TTLCache
 from pathlib import Path
 from .commander import load_resource,load_format
-from .errors import DuploError, DuploExpiredCache, DuploConnectionError
+from .errors import DuploError, DuploExpiredCache, DuploInvalidError, DuploConnectionError
 from .server import TokenServer
 from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
 from typing import TypeVar
+import duplocloud_sdk
+from pydantic import ValidationError
 
 T = TypeVar("T")
 
@@ -59,7 +61,8 @@ class DuploClient():
                output: args.OUTPUT="json",
                loglevel: args.LOGLEVEL="WARN",
                wait: args.WAIT=False,
-               wait_timeout: args.WAIT_TIMEOUT=None):
+               wait_timeout: args.WAIT_TIMEOUT=None,
+               validate: args.VALIDATE=False):
     """DuploClient Constructor
     
     Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each of the arguments are annotated types that are used by argparse to create the command line arguments.
@@ -119,6 +122,7 @@ class DuploClient():
     self.logger = self.logger_for()
     self.wait = wait
     self.wait_timeout = wait_timeout
+    self.validate = validate
 
   @staticmethod
   def from_env():
@@ -457,6 +461,46 @@ Available Resources:
     svc = load_resource(kind)
     return svc(self)
   
+  def load_model(self, model_name: str):
+    """Load Model
+
+    Load a Pydantic model class by name from the duplocloud_sdk.
+    Returns None if the model is not found.
+
+    Args:
+      model_name: The name of the Pydantic model class (e.g. "AddTenantRequest").
+
+    Returns:
+      The Pydantic model class, or None if not found.
+    """
+    if not model_name:
+      return None
+    return getattr(duplocloud_sdk, model_name, None)
+
+  def validate_model(self, model, data: dict) -> dict:
+    """Validate Model
+
+    Validate data against a Pydantic model class.
+    Takes the model class directly (not a name string).
+    Does not check the global validate flag — callers decide when to call this.
+    Raises DuploInvalidError if validation fails.
+
+    Args:
+      model: The Pydantic model class.
+      data: The dict to validate.
+
+    Returns:
+      The validated and serialized dict.
+
+    Raises:
+      DuploInvalidError: If the data fails model validation.
+    """
+    try:
+      instance = model.model_validate(data)
+      return instance.model_dump(by_alias=True, exclude_none=True)
+    except ValidationError as e:
+      raise DuploInvalidError(str(e)) from e
+
   def load_formatter(self, name: str="string"):
     """Load Formatter
     

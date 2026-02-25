@@ -1,7 +1,7 @@
 from . import args
 from .client import DuploClient
 from .errors import DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
-from .commander import get_parser, extract_args, Command
+from .commander import get_parser, extract_args, get_command_schema, Command
 import math
 import time
 
@@ -35,15 +35,18 @@ class DuploResource():
   #   return self.__logger
   
   def command(self, name: str):
-    # TODO: Test the aliased_method further before actually releasing this feature. This will be disabled for now.
-    # method = aliased_method(self.__class__, name)
-    if not (command := getattr(self, name, None)):
-      raise DuploError(f"Invalid command: {name}")
+    cmd = get_command_schema(self.__class__, name)
+    command = getattr(self, cmd["method"])
     cliargs = extract_args(command)
     parser = get_parser(cliargs)
+    # only get the model name if we have validation turned on
+    model = self.duplo.load_model(cmd.get("model")) if self.duplo.validate else None
     def wrapped(*args, **kwargs):
       pargs = vars(parser.parse_args(args))
       pargs.update(kwargs)
+      # if validation was enabled then the body will be validated
+      if model and "body" in pargs:
+        pargs["body"] = self.duplo.validate_model(model, pargs["body"])
       return command(**pargs)
     return wrapped
   

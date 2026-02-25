@@ -17,7 +17,7 @@ class DuploConfigMap(DuploResourceV3):
   def __init__(self, duplo: DuploClient):
     super().__init__(duplo, "k8s/configmap")
 
-  @Command()
+  @Command(model="V1ConfigMap")
   def create(self, 
              name: args.NAME=None,
              body: args.BODY=None,
@@ -89,7 +89,7 @@ class DuploConfigMap(DuploResourceV3):
     else:
       return super().create(body)
 
-  @Command()
+  @Command(model="V1ConfigMap")
   def update(self,
              name: args.NAME,
              body: args.BODY=None,

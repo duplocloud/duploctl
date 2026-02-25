@@ -28,7 +28,8 @@ dependencies = [
   "pyyaml>=6.0.1",
   "jsonpatch>=1.33",
   "pyjwt>=2.8.0",
-  "jsonpointer>=2.4"
+  "jsonpointer>=2.4",
+  "duplocloud-sdk"
 ]
 [project.optional-dependencies]
 build = [
