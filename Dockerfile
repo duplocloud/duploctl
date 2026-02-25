@@ -17,7 +17,7 @@ EOF
 
 # dev container build
 # docs: https://github.com/microsoft/vscode-dev-containers/blob/main/containers/python-3/README.md
-FROM mcr.microsoft.com/vscode/devcontainers/python:${PY_VERSION} AS dev
+FROM mcr.microsoft.com/vscode/devcontainers/python:3-${PY_VERSION} AS dev
 
 ARG NODE_VERSION="none"
 
