@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `--wait` failing permanently when a transient network error (DNS failure, TCP timeout) occurs during polling. Introduced `DuploConnectionError` as a dedicated subclass of `DuploError` for network-level failures; the `wait` loop now retries on `DuploConnectionError` instead of propagating it. Server-side HTTP errors still surface immediately.
 - Fixed `batch_definition update_image` docstring showing incorrect `--image <image>` flag syntax — the `image` argument is positional, so the correct usage is `duploctl batch_definition update_image <name> <image>`
 
 ## [0.4.1] - 2026-02-19

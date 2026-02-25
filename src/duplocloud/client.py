@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 from cachetools import cachedmethod, TTLCache
 from pathlib import Path
 from .commander import load_resource,load_format
-from .errors import DuploError, DuploExpiredCache
+from .errors import DuploError, DuploExpiredCache, DuploConnectionError
 from .server import TokenServer
 from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
@@ -344,80 +344,67 @@ Available Resources:
     logger.addHandler(handler)
     return logger
 
+  def __request(self, method: str, path: str, **kwargs):
+    try:
+      response = requests.request(
+        method,
+        url=f"{self.host}/{path}",
+        headers=self.__headers(),
+        timeout=self.timeout,
+        **kwargs,
+      )
+    except requests.exceptions.Timeout as e:
+      raise DuploConnectionError("Request timed out while connecting to Duplo") from e
+    except requests.exceptions.ConnectionError as e:
+      raise DuploConnectionError("Failed to establish connection with Duplo") from e
+    except requests.exceptions.RequestException as e:
+      raise DuploConnectionError("Failed to send request to Duplo") from e
+    return self.__validate_response(response)
+
   @cachedmethod(lambda self: self.__ttl_cache)
   def get(self, path: str):
     """Get a Duplo resource.
 
     This request is cached for 60 seconds.
-    
+
     Args:
       path: The path to the resource.
     Returns:
       The resource as a JSON object.
     """
-    try:
-      response = requests.get(
-        url = f"{self.host}/{path}",
-        headers = self.__headers(),
-        timeout = self.timeout
-      )
-    except requests.exceptions.Timeout as e:
-      raise DuploError("Request timed out while connecting to Duplo", 500) from e
-    except requests.exceptions.ConnectionError as e:
-      print(e)
-      raise DuploError("Failed to establish connection with Duplo", 500) from e
-    except requests.exceptions.RequestException as e:
-      raise DuploError("Failed to send request to Duplo", 500) from e
-    return self.__validate_response(response)
-  
+    return self.__request("GET", path)
+
   def post(self, path: str, data: dict={}):
     """Post data to a Duplo resource.
-    
+
     Args:
       path: The path to the resource.
       data: The data to post.
     Returns:
       The response as a JSON object.
     """
-    response = requests.post(
-      url = f"{self.host}/{path}",
-      headers = self.__headers(),
-      timeout = self.timeout,
-      json = data
-    )
-    return self.__validate_response(response)
-  
+    return self.__request("POST", path, json=data)
+
   def put(self, path: str, data: dict={}):
     """Put data to a Duplo resource.
-    
+
     Args:
       path: The path to the resource.
       data: The data to post.
     Returns:
       The response as a JSON object.
     """
-    response = requests.put(
-      url = f"{self.host}/{path}",
-      headers = self.__headers(),
-      timeout = self.timeout,
-      json = data
-    )
-    return self.__validate_response(response)
-  
+    return self.__request("PUT", path, json=data)
+
   def delete(self, path: str):
     """Delete a Duplo resource.
-    
+
     Args:
       path: The path to the resource.
     Returns:
       The response as a JSON object.
     """
-    response = requests.delete(
-      url = f"{self.host}/{path}",
-      headers = self.__headers(),
-      timeout = self.timeout
-    )
-    return self.__validate_response(response)
+    return self.__request("DELETE", path)
   
   def jsonpatch(self, data, patches):
     """Json Patch
