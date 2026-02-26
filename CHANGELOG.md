@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `duplocloud-sdk` added as a core dependency
 ### Fixed
 
+- Updated GitHub workflow action versions (artifact actions, Docker Hub description, auto-assign) and migrated Slack notify step to `slack-github-action@v2`.
 - Fixed `--wait` failing permanently when a transient network error (DNS failure, TCP timeout) occurs during polling. Introduced `DuploConnectionError` as a dedicated subclass of `DuploError` for network-level failures; the `wait` loop now retries on `DuploConnectionError` instead of propagating it. Server-side HTTP errors still surface immediately.
 - Fixed `batch_definition update_image` docstring showing incorrect `--image <image>` flag syntax — the `image` argument is positional, so the correct usage is `duploctl batch_definition update_image <name> <image>`
 
