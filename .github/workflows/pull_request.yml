@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Auto Assign 
-      uses: kentaro-m/auto-assign-action@v2.0.0
+      uses: kentaro-m/auto-assign-action@v2.0.1
       with:
         configuration-path: .github/assign.yml
     - name: Make sure Changleog is updated
