@@ -269,6 +269,12 @@ WAIT = Arg("wait", "-w",
            type=bool,
            action='store_true')
 
+VALIDATE = Arg("validate", "--validate",
+               help='Validate body inputs against the SDK model schema.',
+               type=bool,
+               action='store_true',
+               env='DUPLO_VALIDATE')
+
 WAIT_TIMEOUT = Arg("wait_timeout", "--wait-timeout", "--timeout",
                help = 'Wait timeout for the operation to complete',
                type = int)

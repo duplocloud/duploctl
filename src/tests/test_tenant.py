@@ -2,7 +2,9 @@ import random
 import pytest
 import time
 
+from duplocloud.client import DuploClient
 from duplocloud.errors import DuploError
+from tests.conftest import get_test_data
 
 class TestTenant:
 
@@ -112,3 +114,24 @@ class TestTenant:
     except DuploError as e:
       pytest.fail(f"Failed to get DNS config: {e}")
     assert isinstance(dns, dict)
+
+
+@pytest.mark.unit
+def test_tenant_create_model_annotation():
+  """create command on DuploTenant is annotated with the AddTenantRequest model"""
+  from duplocloud.commander import get_command_schema
+  from duplo_resource.tenant import DuploTenant
+  cmd = get_command_schema(DuploTenant, "create")
+  assert cmd["model"] == "AddTenantRequest"
+
+
+@pytest.mark.unit
+def test_validate_tenant_yaml():
+  """validate_model accepts tenant.yaml test data against AddTenantRequest"""
+  duplo = DuploClient(host="https://example.duplocloud.net")
+  model_cls = duplo.load_model("AddTenantRequest")
+  data = get_test_data("tenant")
+  result = duplo.validate_model(model_cls, data)
+  assert isinstance(result, dict)
+  assert result["AccountName"] == data["AccountName"]
+  assert result["PlanID"] == data["PlanID"]

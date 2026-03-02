@@ -122,8 +122,8 @@ class DuploTenant(DuploResourceV2):
       return [t for t in self.list() if t[key] == ref][0]
     except IndexError:
       raise DuploError(f"Tenant '{ref}' not found", 404)
-
-  @Command()
+  
+  @Command(model="AddTenantRequest")
   def create(self,
              body: args.BODY) -> dict:
     """Create Tenant.
