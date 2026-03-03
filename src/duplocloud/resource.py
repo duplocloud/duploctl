@@ -23,9 +23,9 @@ class DuploResource():
     self._prefixed = prefixed
     self.api_version = api_version
   
-  def __call__(self, cmd: str, *args):
+  def __call__(self, cmd: str, *args, **kwargs):
     c = self.command(cmd)
-    return c(*args)
+    return c(*args, **kwargs)
 
   # TODO: something is off and the logs will duplicate if we do this. Plese figure out how to actually create a logger for each resource.
   # @property

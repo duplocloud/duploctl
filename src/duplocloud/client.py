@@ -295,13 +295,14 @@ Available Resources:
   {", ".join(available_resources())}
 """.strip()
   
-  def __call__(self, resource: str=None, *args):
+  def __call__(self, resource: str=None, *args, query: str=None, **kwargs):
     """Run a service command.
-    
+
     Args:
       resource: The name of the resource.
-      command: The command to run.
       args: The arguments to the command.
+      query: Optional JMESPath query override for this invocation.
+      kwargs: Additional keyword arguments passed to the command.
     Returns:
       The result of the command.
     """
@@ -311,17 +312,17 @@ Available Resources:
     else:
       r = self.load(resource)
       try:
-        d = r(*args)
+        d = r(*args, **kwargs)
       except TypeError as te:
         self.logger.debug(te)
         if (r.__doc__):
           raise DuploError(r.__doc__, 400)
-        else: 
+        else:
           traceback.print_exc()
           raise DuploError(f"No docstring found, error calling command {resource} : Traceback printed", 400)
     if d is None:
       return None
-    d = self.filter(d)
+    d = self.filter(d, query=query)
     return self.format(d)
   
   def logger_for(self, name: str=None) -> logging.Logger:
@@ -427,21 +428,24 @@ Available Resources:
     except jsonpatch.JsonPatchConflict as e:
       raise DuploError(f"JsonPatch conflict:\n {e}", 500)
 
-  def filter(self, data: dict):
+  def filter(self, data, query: str=None):
     """Query data
 
     Uses the jmespath library to query data.
-    Set the query to use on the property. 
-    
+    An explicit query override can be passed per invocation,
+    otherwise falls back to the global self.query property.
+
     Args:
       data: The data to query.
+      query: Optional JMESPath query override.
     Returns:
       The queried data.
     """
-    if not self.query:
+    q = query or self.query
+    if not q:
       return data
     try:
-      return jmespath.search(self.query, data)
+      return jmespath.search(q, data)
     except jmespath.exceptions.ParseError as e:
       raise DuploError("Invalid JMESPath query - parsing failed", 500) from e
     except jmespath.exceptions.JMESPathTypeError as e:
@@ -513,16 +517,19 @@ Available Resources:
     """
     return load_format(name)
   
-  def format(self, data: dict, output: str = None) -> str:
+  def format(self, data, output: str=None):
     """Format data.
-    
+
     Args:
       data: The data to format.
-      output: The output format to use. Defaults to self.output if None.
+      output: The output format to use. Defaults to self.output.
     Returns:
-      The data as a string.
+      The formatted data as a string, or the raw data when output is None.
     """
-    fmt = self.load_formatter(output or self.output)
+    o = output or self.output
+    if o is None:
+      return data
+    fmt = self.load_formatter(o)
     return fmt(data)
   
   def use_context(self, name: str = None) -> None:
