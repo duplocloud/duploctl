@@ -298,9 +298,11 @@ Available Resources:
   def __call__(self, resource: str=None, *args, query: str=None, **kwargs):
     """Run a service command.
 
+    Choose a resource name and pass it's params in. Each resource has a unique set of arguments and therefore there is no need to try and define anything beyond a resource name and an optional query. Everything else is processed by the resource itself in it's own call method. Not all resources have commands and only execute their call method. 
+
     Args:
       resource: The name of the resource.
-      args: The arguments to the command.
+      args: The arguments to the resource.
       query: Optional JMESPath query override for this invocation.
       kwargs: Additional keyword arguments passed to the command.
     Returns:
