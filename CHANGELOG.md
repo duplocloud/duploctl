@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+- added ability to pass in kwargs when calling the client as function
+
 ### Added
 
 - **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
