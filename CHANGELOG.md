@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- added ability to pass in kwargs when calling the client as function
 - **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
   - `DuploClient.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name
   - `DuploClient.validate_model(model, data)` validates and serializes a body dict, raising `DuploInvalidError` (422) on failure
   - `DuploResource.command()` gates model loading and validation behind the `validate` flag — no overhead when disabled
   - `@Command(model="...")` decorator parameter stores the associated model name in the command schema
   - `duplocloud-sdk` added as a core dependency
+
 ### Fixed
 
 - Updated GitHub workflow action versions (artifact actions, Docker Hub description, auto-assign) and migrated Slack notify step to `slack-github-action@v2`.

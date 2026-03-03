@@ -167,3 +167,97 @@ def test_validate_flag_can_be_set():
   """validate=True can be set on DuploClient"""
   c = DuploClient(host="https://example.duplocloud.net", validate=True)
   assert c.validate is True
+
+# ---------------------------------------------------------------------------
+# __call__ dispatch tests — verifies kwargs threading, query override,
+# and format passthrough.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def duplo_with_mock_resource(mocker):
+  """A DuploClient whose load() returns a mock resource that echoes back
+  a known list of dicts, so we can test the full __call__ → filter → format
+  chain without any HTTP calls."""
+  c = DuploClient(host="https://example.duplocloud.net")
+  mock_resource = mocker.MagicMock()
+  mock_resource.__doc__ = "mock resource"
+  mock_resource.return_value = [
+    {"Name": "alpha", "Status": "running"},
+    {"Name": "beta", "Status": "stopped"},
+  ]
+  mocker.patch.object(c, "load", return_value=mock_resource)
+  return c
+
+@pytest.mark.unit
+def test_call_without_query(duplo_with_mock_resource):
+  """duplo(resource, command) returns formatted json string of full data"""
+  result = duplo_with_mock_resource("tenant", "list")
+  assert isinstance(result, str)
+  assert "alpha" in result
+  assert "beta" in result
+
+@pytest.mark.unit
+def test_call_with_query_override(duplo_with_mock_resource):
+  """duplo(resource, command, query=...) filters with the per-call query"""
+  result = duplo_with_mock_resource("tenant", "list", query="[?Name=='alpha'].Name")
+  assert isinstance(result, str)
+  assert "alpha" in result
+  assert "beta" not in result
+
+@pytest.mark.unit
+def test_call_query_override_does_not_affect_global(duplo_with_mock_resource):
+  """Per-call query does not mutate the global self.query"""
+  c = duplo_with_mock_resource
+  assert c.query is None
+  c("tenant", "list", query="[0].Name")
+  assert c.query is None
+
+@pytest.mark.unit
+def test_call_global_query_still_works(duplo_with_mock_resource):
+  """When self.query is set and no per-call query, the global is used"""
+  c = duplo_with_mock_resource
+  c.query = "[?Name=='beta']"
+  result = c("tenant", "list")
+  assert "beta" in result
+  assert "alpha" not in result
+  c.query = None
+
+@pytest.mark.unit
+def test_call_query_override_beats_global(duplo_with_mock_resource):
+  """Per-call query takes precedence over the global self.query"""
+  c = duplo_with_mock_resource
+  c.query = "[?Name=='beta']"
+  result = c("tenant", "list", query="[?Name=='alpha']")
+  assert "alpha" in result
+  assert "beta" not in result
+  c.query = None
+
+@pytest.mark.unit
+def test_call_passes_kwargs_to_resource(duplo_with_mock_resource, mocker):
+  """kwargs like body= flow through to the resource __call__"""
+  c = duplo_with_mock_resource
+  mock_resource = c.load("tenant")
+  body = {"Name": "new-tenant"}
+  c("tenant", "create", body=body)
+  mock_resource.assert_called_with("create", body=body)
+
+@pytest.mark.unit
+def test_call_format_none_returns_raw_data(mocker):
+  """When output is None, format() returns the raw data object"""
+  c = DuploClient(host="https://example.duplocloud.net")
+  c.output = None
+  mock_resource = mocker.MagicMock()
+  mock_resource.__doc__ = "mock resource"
+  mock_resource.return_value = [{"Name": "alpha"}]
+  mocker.patch.object(c, "load", return_value=mock_resource)
+  result = c("tenant", "list")
+  assert isinstance(result, list)
+  assert result == [{"Name": "alpha"}]
+
+@pytest.mark.unit
+def test_call_none_result_returns_none(duplo_with_mock_resource):
+  """When the command returns None, __call__ returns None"""
+  c = duplo_with_mock_resource
+  c.load("tenant").return_value = None
+  result = c("tenant", "list")
+  assert result is None
