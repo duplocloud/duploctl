@@ -1,5 +1,5 @@
 from . import args
-from .client import DuploClient
+from .controller import DuploClient
 from .errors import DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
 from .commander import get_parser, extract_args, get_command_schema, Command
 import math
@@ -113,7 +113,7 @@ class DuploResourceV2(DuploResource):
     Returns:
       list: A list of {{kind}}.
     """
-    response = self.duplo.get(self.endpoint(self.paths["list"]))
+    response = self.client.get(self.endpoint(self.paths["list"]))
     return response.json()
   @Command()
   def find(self, 
@@ -184,11 +184,11 @@ class DuploResourceV3(DuploResource):
     Returns:
       list: A list of {{kind}}.
     """
-    response = self.duplo.get(self.endpoint())
+    response = self.client.get(self.endpoint())
     return response.json()
-  
+
   @Command()
-  def find(self, 
+  def find(self,
            name: args.NAME) -> dict:
     """Find {{kind}} resources by name.
 
@@ -196,22 +196,22 @@ class DuploResourceV3(DuploResource):
       ```sh
       duploctl {{kind | lower}} find <name>
       ```
-    
+
     Args:
       name: The name of the {{kind}} resource to find.
 
-    Returns: 
+    Returns:
       resource: The {{kind}} object.
-      
+
     Raises:
       DuploError: If the {{kind}} could not be found.
     """
     n = self.prefixed_name(name) if self._prefixed else name
-    response = self.duplo.get(self.endpoint(n))
+    response = self.client.get(self.endpoint(n))
     return response.json()
-  
+
   @Command()
-  def delete(self, 
+  def delete(self,
              name: args.NAME) -> dict:
     """Delete a {{kind}} resource by name.
 
@@ -219,24 +219,24 @@ class DuploResourceV3(DuploResource):
       ```sh
       duploctl {{kind | lower}} delete <name>
       ```
-    
+
     Args:
       name: The name of the {{kind}} resource to delete.
 
-    Returns: 
+    Returns:
       message: A success message.
 
     Raises:
-      DuploError: If the {{kind}} resource could not be found or deleted. 
+      DuploError: If the {{kind}} resource could not be found or deleted.
     """
     n = self.prefixed_name(name) if self._prefixed else name
-    self.duplo.delete(self.endpoint(n))
+    self.client.delete(self.endpoint(n))
     return {
       "message": f"{self.slug}/{name} deleted"
     }
-  
+
   @Command()
-  def create(self, 
+  def create(self,
              body: args.BODY,
              wait_check: callable=None) -> dict:
     """Create a {{kind}} resource.
@@ -256,20 +256,20 @@ class DuploResourceV3(DuploResource):
       --8<-- "src/tests/data/{{kind|lower}}.yaml"
       \"\"\" | duploctl {{kind | lower}} create -f -
       ```
-    
+
     Args:
       body: The resource to create.
       wait: Wait for the resource to be created.
       wait_check: A callable function to check if the resource
 
-    Returns: 
+    Returns:
       message: Success message.
 
     Raises:
       DuploError: If the resource could not be created.
     """
     name = self.name_from_body(body)
-    response = self.duplo.post(self.endpoint(), body)
+    response = self.client.post(self.endpoint(), body)
     if self.duplo.wait:
       def _default_wait_check():
         try:
@@ -304,7 +304,7 @@ class DuploResourceV3(DuploResource):
       body = self.duplo.jsonpatch(body, patches)
     name = name if name else self.name_from_body(body)
     n = self.prefixed_name(name) if self._prefixed else name
-    response = self.duplo.put(self.endpoint(n), body)
+    response = self.client.put(self.endpoint(n), body)
     return response.json()
   
   @Command()

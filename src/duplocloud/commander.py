@@ -8,11 +8,14 @@ from typing import Callable, List, Type
 
 ENTRYPOINT="duplocloud.net"
 FORMATS=f"formats.{ENTRYPOINT}"
+CLIENTS=f"clients.{ENTRYPOINT}"
 VERSION=version('duplocloud-client')
 ep = entry_points(group=ENTRYPOINT)
 fep = entry_points(group=FORMATS)
+cep = entry_points(group=CLIENTS)
 schema = {}
 resources = {}
+clients = {}
 
 def _inject_tenant_scope(cls):
   """Inject tenant-scoped functionality into a resource class.
@@ -101,24 +104,67 @@ def _inject_tenant_scope(cls):
   
   return cls
 
-def Resource(name: str, scope: str = "portal"):
+def Client(name: str):
+  """Client decorator
+
+  Registers a class as a client extension point.
+
+  Args:
+    name: The name of the client.
+
+  Returns:
+    decorator: The decorator function.
+  """
+  def decorator(cls):
+    clients[name] = {
+      "class": cls.__qualname__,
+    }
+    setattr(cls, "kind", name)
+    return cls
+  return decorator
+
+def _inject_client(cls):
+  """Inject client into a resource class.
+
+  Wraps __init__ to set self.client from the resource's _client_name
+  after the original init runs.
+
+  Args:
+    cls: The class to inject client into.
+
+  Returns:
+    cls: The modified class.
+  """
+  if 'client' in cls.__dict__:
+    return cls
+  original_init = cls.__init__
+
+  def new_init(self, duplo, *args, **kwargs):
+    original_init(self, duplo, *args, **kwargs)
+    self.client = duplo.load_client(cls._client_name)
+
+  setattr(cls, '__init__', new_init)
+  return cls
+
+def Resource(name: str, scope: str = "portal", client: str = "duplo"):
   """Resource decorator
-  
+
   Registers a class as a resource and optionally injects scope-specific functionality.
-  
+
   Args:
     name: The name of the resource.
     scope: The scope of the resource. Valid values are "portal" or "tenant". Defaults to "portal".
-    
+    client: The client to inject. Defaults to "duplo".
+
   Returns:
     decorator: The decorator function.
-    
+
   Raises:
     ValueError: If an invalid scope is provided.
   """
   if scope not in ("portal", "tenant"):
     raise ValueError(f"Invalid scope '{scope}'. Must be 'portal' or 'tenant'.")
-  
+
   def decorator(cls):
     resources[name] = {
       "class": cls.__qualname__,
@@ -127,11 +173,16 @@ def Resource(name: str, scope: str = "portal"):
     }
     setattr(cls, "kind", name)
     setattr(cls, "scope", scope)
-    
+    setattr(cls, "_client_name", client)
+
     # Inject tenant functionality if tenant-scoped
     if scope == "tenant":
       cls = _inject_tenant_scope(cls)
-    
+
+    # Inject client after tenant scope (skip if client=None)
+    if client is not None:
+      cls = _inject_client(cls)
+
     return cls
   return decorator
 
@@ -231,6 +282,34 @@ def get_parser(args: List[Arg]) -> argparse.ArgumentParser:
   for arg in args:
     parser.add_argument(*arg.flags, default=arg.default, **arg.attributes)
   return parser
+
+def load_client(name: str):
+  """Load Client
+
+  Load a Client class from the entry points.
+
+  Args:
+    name: The name of the client.
+  Returns:
+    The class of the client.
+  """
+  try:
+    return cep[name].load()
+  except KeyError:
+    avail = available_clients()
+    raise DuploError(f"""
+Client named {name} not found.
+Available clients are:
+  {", ".join(avail)}
+""", 404)
+
+def available_clients() -> List[str]:
+  """Available Clients
+
+  Returns:
+    A list of available client names.
+  """
+  return list(cep.names)
 
 def load_resource(name: str):
   """Load Service

@@ -10,6 +10,7 @@ from .conftest import get_test_data
 def ingress(mocker):
     """Create a DuploIngress with a mocked client for unit tests."""
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     mock_client.tenant = "mytenant"
     mock_client.wait = False
     resource = DuploIngress(mock_client)

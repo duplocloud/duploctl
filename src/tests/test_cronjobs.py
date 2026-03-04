@@ -1,5 +1,5 @@
 import pytest
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.errors import DuploError
 from .conftest import get_test_data
 

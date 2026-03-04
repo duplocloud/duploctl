@@ -4,7 +4,7 @@ import sys
 import pytest
 
 from duplocloud.errors import DuploError, DuploInvalidError
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from tests.conftest import get_test_data
 
 # current working directory as variable
@@ -39,7 +39,7 @@ contexts:
 
   duplo = DuploClient()
   with pytest.raises(DuploError) as e:
-    duplo.token
+    duplo.load_client("duplo").token
     print(e)
 
 @pytest.mark.unit
@@ -50,10 +50,11 @@ def test_cache_dir():
   assert c.cache_dir == cache_dir
   random_data = {"foo": "bar"}
   cf = f"{cache_dir}/test.json"
-  c.set_cached_item("test", random_data)
+  cache = c.load("cache")
+  cache.set("test", random_data)
   assert os.path.exists(cf), f"Cache file {cf} not found"
   # now check if we can get the data back
-  assert c.get_cached_item("test") == random_data, "Cached data does not match"
+  assert cache.get("test") == random_data, "Cached data does not match"
   # delete the cache file
   os.remove(cf)
   os.rmdir(cache_dir)

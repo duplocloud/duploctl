@@ -2,7 +2,7 @@ import random
 import pytest
 import time
 
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.errors import DuploError
 from tests.conftest import get_test_data
 

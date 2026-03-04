@@ -3,7 +3,7 @@ import pytest
 import random
 import yaml
 import pathlib
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 
 def pytest_addoption(parser):
   infra = os.getenv("DUPLO_INFRA", None)
@@ -27,7 +27,7 @@ def e2e(pytestconfig) -> bool:
 @pytest.fixture(scope='session', autouse=True)
 def duplo(infra_name: str, e2e: bool) -> DuploClient:
   d, _ = DuploClient.from_env()
-  d.disable_get_cache()
+  d.load_client("duplo").disable_get_cache()
   if e2e:
     d.tenant = infra_name
   return d

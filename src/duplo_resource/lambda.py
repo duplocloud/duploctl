@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
@@ -30,7 +30,7 @@ class DuploLambda(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     tenant_name = self.tenant["AccountName"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
+    response = self.client.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
     if (data := response.json()):
       return data
     else:
@@ -82,7 +82,7 @@ class DuploLambda(DuploResourceV2):
       name = self.name_from_body(body)
       self.find(name)
     tenant_id = self.tenant["TenantId"]
-    self.duplo.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", body)
+    self.client.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", body)
     if self.duplo.wait:
       self.wait(wait_check, 400)
     return {
@@ -106,7 +106,7 @@ class DuploLambda(DuploResourceV2):
       message: A success message.
     """
     tenant_id = self.tenant["TenantId"]
-    self.duplo.post(f"subscriptions/{tenant_id}/DeleteLambdaFunction/{name}")
+    self.client.post(f"subscriptions/{tenant_id}/DeleteLambdaFunction/{name}")
     return {
       "message": f"Lambda {name} deleted"
     }
@@ -134,7 +134,7 @@ class DuploLambda(DuploResourceV2):
       "FunctionName": name,
       "ImageUri": image
     }
-    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    response = self.client.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
     return response.json()
 
   @Command()
@@ -160,7 +160,7 @@ class DuploLambda(DuploResourceV2):
       "S3Bucket": bucket,
       "S3Key": key
     }
-    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    response = self.client.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
     return response.json()
 
   def name_from_body(self, body):
@@ -208,7 +208,7 @@ class DuploLambda(DuploResourceV2):
       "Environment": {"Variables": merged_env}
     }
 
-    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunctionConfiguration", payload)
+    response = self.client.post(f"subscriptions/{tenant_id}/UpdateLambdaFunctionConfiguration", payload)
     if response.ok:
       return {"message": f"Successfully updated environment variables for Lambda '{name}'"}
     else:

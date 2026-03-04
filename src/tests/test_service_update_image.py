@@ -33,6 +33,7 @@ invalid_kwargs = [
 @pytest.mark.parametrize('invalid_kwargs', invalid_kwargs)
 def test_invalid_args_raise_errors(invalid_kwargs, mocker):
   mock_client = mocker.MagicMock()
+  mock_client.load_client.return_value = mock_client
 
   # DuploError is generic. It doesn't specifically identify bad input. We have to match the error message or we
   # can get false positives if the method raises a DuploError later about something else.
@@ -80,6 +81,7 @@ def test_no_matching_container_raises_error(service_definition, kwargs, mocker):
     mocker.MagicMock(return_value=service_definition)
   )
   mock_client = mocker.MagicMock()
+  mock_client.load_client.return_value = mock_client
 
   # DuploError is generic. It doesn't specifically identify bad input. We have to match the error message or we
   # can get false positives if the method raises a DuploError later about something else.
@@ -425,6 +427,7 @@ def test_post_data(service_definition, kwargs, post_data, mocker):
   )
   post_data = post_data
   mock_client = mocker.MagicMock()
+  mock_client.load_client.return_value = mock_client
   mock_client.wait = False
   DuploService(mock_client).update_image(**kwargs)
   mock_client.post.assert_called_once_with(ANY, post_data)

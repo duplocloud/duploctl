@@ -2,7 +2,7 @@ import math
 import pytest
 import random
 
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.errors import DuploError, DuploFailedResource
 
 class TestInfra:

@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError
 from duplocloud.commander import Resource, Command
@@ -57,7 +57,7 @@ class DuploIngress(DuploResourceV3):
       DuploError: If the Ingress could not be created due to invalid configuration or API errors.
     """
     name = self.name_from_body(body)
-    response = self.duplo.post(self.endpoint(), body)
+    response = self.client.post(self.endpoint(), body)
     return {
       "message": f"Successfully Created an Ingress '{name}'",
       "data": response.json()

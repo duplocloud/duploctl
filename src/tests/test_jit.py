@@ -1,7 +1,7 @@
 import configparser
 import os
 import pytest
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.errors import DuploError
 
 class TestJIT:

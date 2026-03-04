@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV2
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -51,7 +51,7 @@ class DuploPod(DuploResourceV2):
       "DockerId": pod["Containers"][0]["DockerId"],
       "Tail": 50
     }
-    response = self.duplo.post(self.endpoint("findContainerLogs"), data)
+    response = self.client.post(self.endpoint("findContainerLogs"), data)
     o = response.json()
     lines = o["Data"].split("\n")
     if lines[-1] == "":

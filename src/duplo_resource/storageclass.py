@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Resource
 

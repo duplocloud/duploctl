@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.errors import DuploFailedResource, DuploStillWaiting
 from duplocloud.resource import DuploResourceV2
 from duplocloud.commander import Command, Resource
@@ -14,20 +14,20 @@ class DuploInfrastructure(DuploResourceV2):
   def eks_config(self,
                  planId: args.PLAN = None):
     """Retrieve eks session credentials for current user."""
-    res = self.duplo.get(f"v3/admin/plans/{planId}/k8sClusterConfig")
+    res = self.client.get(f"v3/admin/plans/{planId}/k8sClusterConfig")
     return res.json()
   
   @Command()
   def list(self):
     """Retrieve a list of all infrastructures in the Duplo system."""
-    response = self.duplo.get("adminproxy/GetInfrastructureConfigs/true")
+    response = self.client.get("adminproxy/GetInfrastructureConfigs/true")
     return response.json()
   
   @Command()
   def find(self, 
            name: args.NAME):
     """Find an infrastructure by name."""
-    response = self.duplo.get(f"adminproxy/GetInfrastructureConfig/{name}")
+    response = self.client.get(f"adminproxy/GetInfrastructureConfig/{name}")
     return response.json()
   
   @Command()
@@ -48,7 +48,7 @@ class DuploInfrastructure(DuploResourceV2):
         if "Failed" in s:
           raise DuploFailedResource(f"Infrastructure '{name} - {s}'")
         raise DuploStillWaiting(f"Infrastructure '{name}' is waiting for status Complete")
-    self.duplo.post("adminproxy/CreateInfrastructureConfig", body)
+    self.client.post("adminproxy/CreateInfrastructureConfig", body)
     if self.duplo.wait:
       self.wait(wait_check, 1800, 20)
     return {
@@ -59,7 +59,7 @@ class DuploInfrastructure(DuploResourceV2):
   def delete(self,
              name: args.NAME):
     """Delete an infrastructure."""
-    self.duplo.post(f"adminproxy/DeleteInfrastructureConfig/{name}", None)
+    self.client.post(f"adminproxy/DeleteInfrastructureConfig/{name}", None)
     return {
       "message": f"Infrastructure '{name}' deleted"
     }
@@ -68,8 +68,8 @@ class DuploInfrastructure(DuploResourceV2):
   def faults(self, 
              name: args.NAME):
     """Retrieve a list of all infrastructure faults in the Duplo system."""
-    response = self.duplo.get("adminproxy/GetAllFaults")
+    response = self.client.get("adminproxy/GetAllFaults")
     faults = response.json()
-    response = self.duplo.get("admin/GetAllFaults")
+    response = self.client.get("admin/GetAllFaults")
     faults += response.json()
     return faults

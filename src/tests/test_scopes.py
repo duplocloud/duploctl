@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock
 from duplocloud.commander import resources, Resource, Command, load_resource
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV2, DuploResourceV3
 
 @pytest.mark.unit
@@ -111,6 +111,9 @@ def test_tenant_mixin_properties_work():
     def __init__(self):
       self.tenant = "test-tenant"
       self.tenantid = "test-id"
+
+    def load_client(self, name="duplo"):
+      return self
     
     def load(self, name):
       class MockTenantService:

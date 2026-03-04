@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
@@ -71,7 +71,7 @@ class DuploHosts(DuploResourceV2):
     # let's get started
     if body.get("ImageId", None) is None:
       body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
-    res = self.duplo.post(self.endpoint("CreateNativeHost"), body)
+    res = self.client.post(self.endpoint("CreateNativeHost"), body)
     if self.duplo.wait:
       self.wait(wait_check)
     return {
@@ -110,7 +110,7 @@ class DuploHosts(DuploResourceV2):
     """
     host = self.find(name)
     inst_id = host["InstanceId"]
-    res = self.duplo.post(self.endpoint(f"TerminateNativeHost/{inst_id}"), host)
+    res = self.client.post(self.endpoint(f"TerminateNativeHost/{inst_id}"), host)
     def wait_check():
       h = None 
       try:
@@ -160,7 +160,7 @@ class DuploHosts(DuploResourceV2):
     """
     host = self.find(name)
     inst_id = host["InstanceId"]
-    res = self.duplo.post(self.endpoint(f"stopNativeHost/{inst_id}"), host)
+    res = self.client.post(self.endpoint(f"stopNativeHost/{inst_id}"), host)
     def wait_check():
       h = self.find(name)
       if h["Status"] == "running":
@@ -207,7 +207,7 @@ class DuploHosts(DuploResourceV2):
     """
     host = self.find(name)
     inst_id = host["InstanceId"]
-    res = self.duplo.post(self.endpoint(f"startNativeHost/{inst_id}"), host)
+    res = self.client.post(self.endpoint(f"startNativeHost/{inst_id}"), host)
     def wait_check():
       h = self.find(name)
       if h["Status"] == "stopped":
@@ -247,7 +247,7 @@ class DuploHosts(DuploResourceV2):
     """
     host = self.find(name)
     inst_id = host["InstanceId"]
-    res = self.duplo.post(self.endpoint(f"RebootNativeHost/{inst_id}"), host)
+    res = self.client.post(self.endpoint(f"RebootNativeHost/{inst_id}"), host)
     return {
       "message": f"Successfully rebooted host '{name}'",
       "data": res.json()

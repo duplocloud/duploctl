@@ -1,5 +1,5 @@
 import requests
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
@@ -82,7 +82,7 @@ class DuploArgoWorkflow(DuploResource):
       str: The resource name prefix (e.g., 'duploservices', 'msi')
     """
     if self._system_info is None:
-      response = self.duplo.get("v3/features/system")
+      response = self.client.get("v3/features/system")
       self._system_info = response.json()
     return self._system_info.get("ResourceNamePrefix", "duploservices")
 
@@ -101,7 +101,7 @@ class DuploArgoWorkflow(DuploResource):
     if self._argo_auth is None:
       self._ensure_argo_enabled()
       path = f"v3/auth/argo-wf/{self.tenant_id}/admin"
-      response = self.duplo.post(path)
+      response = self.client.post(path)
       self._argo_auth = response.json()
     return self._argo_auth
 
@@ -127,7 +127,7 @@ class DuploArgoWorkflow(DuploResource):
     headers = {
       'Content-Type': 'application/json',
       'Authorization': f'Bearer {argo_token}',
-      'duplotoken': self.duplo.token
+      'duplotoken': self.client.token
     }
 
     response = requests.request(

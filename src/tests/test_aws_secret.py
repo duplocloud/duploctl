@@ -25,6 +25,7 @@ def execute_test(func, *args, **kwargs):
 def aws_secret(mocker):
     """Create a DuploAwsSecret with a mocked client for unit tests."""
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     mock_client.tenant = "mytenant"
     mock_client.wait = False
     secret = DuploAwsSecret(mock_client)

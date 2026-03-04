@@ -1,6 +1,6 @@
 from datetime import timedelta
 import datetime
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
@@ -34,7 +34,7 @@ class DuploTenant(DuploResourceV2):
     Returns:
       tenants (list): A list of tenants.
     """
-    response = self.duplo.get("adminproxy/GetTenantNames")
+    response = self.client.get("adminproxy/GetTenantNames")
     return response.json()
   
   @Command()
@@ -54,7 +54,7 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-    response = self.duplo.get("admin/GetAllTenantAuthInfo")
+    response = self.client.get("admin/GetAllTenantAuthInfo")
     tenant_users = []
     for tenant in response.json():
         if tenant["TenantId"] == tenant_id:
@@ -66,7 +66,7 @@ class DuploTenant(DuploResourceV2):
                 })
 
     # Admins have access to all tenants. Check for them and add them
-    users = self.duplo.get("admin/GetAllUserRoles")
+    users = self.client.get("admin/GetAllUserRoles")
     for user in users.json():
         if "Administrator" in user['Roles']:
             # If the user is already in the list for the tenant, mark them as admins. This shouldn't be possible.
@@ -157,7 +157,7 @@ class DuploTenant(DuploResourceV2):
       message: The message that the tenant was created
     """
     name = body["AccountName"]
-    self.duplo.post("admin/AddTenant", body)
+    self.client.post("admin/AddTenant", body)
     def wait_check():
       self.find(name)
     if self.duplo.wait:
@@ -186,7 +186,7 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-    self.duplo.post(f"admin/DeleteTenant/{tenant_id}", None)
+    self.client.post(f"admin/DeleteTenant/{tenant_id}", None)
     return {
       "message": f"Tenant '{name}' deleted"
     }
@@ -238,7 +238,7 @@ class DuploTenant(DuploResourceV2):
       # Format the future time in the desired string format
       schedule = future_time.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-    res = self.duplo.post("adminproxy/UpdateTenantCleanupTimers", {
+    res = self.client.post("adminproxy/UpdateTenantCleanupTimers", {
       "TenantId": tenant_id,
       "PauseTime": schedule
     })
@@ -273,7 +273,7 @@ class DuploTenant(DuploResourceV2):
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     # add or update the tenant in the list of enabled tenants
-    response = self.duplo.get("admin/GetLoggingEnabledTenants")
+    response = self.client.get("admin/GetLoggingEnabledTenants")
     log_tenants = response.json()
     for t in log_tenants:
       if t["TenantId"] == tenant_id:
@@ -283,7 +283,7 @@ class DuploTenant(DuploResourceV2):
       log_tenants.append({"TenantId": tenant_id, "Enabled": enable})
     print(log_tenants)
     # update the entire list
-    res = self.duplo.post("admin/UpdateLoggingEnabledTenants", log_tenants)
+    res = self.client.post("admin/UpdateLoggingEnabledTenants", log_tenants)
     if res.status_code == 200:
       return {
         "message": f"Tenant '{name}' logging {enable}"
@@ -311,7 +311,7 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-    response = self.duplo.get(f"v3/billing/subscriptions/{tenant_id}/aws/billing")
+    response = self.client.get(f"v3/billing/subscriptions/{tenant_id}/aws/billing")
     return response.json()
   
   @Command()
@@ -358,18 +358,18 @@ class DuploTenant(DuploResourceV2):
         creates.append(s)
     # create, update, and delete the settings
     for s in creates:
-      response = self.duplo.post(endpoint, s)
+      response = self.client.post(endpoint, s)
       change = response.json()
       change["Operation"] = "create"
       changes.append(change)
     for s in updates:
-      response = self.duplo.put(f"{endpoint}/{s['Key']}", s)
+      response = self.client.put(f"{endpoint}/{s['Key']}", s)
       change = response.json()
       change["Operation"] = "update"
       changes.append(change)
     for k in deletevar:
       if k in curr_keys:
-        self.duplo.delete(f"{endpoint}/{k}")
+        self.client.delete(f"{endpoint}/{k}")
         change = {"Key": k, "Operation": "delete"}
         changes.append(change)
     return {
@@ -397,7 +397,7 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-    response = self.duplo.get(f"v3/subscriptions/{tenant_id}/nativeHostImages")
+    response = self.client.get(f"v3/subscriptions/{tenant_id}/nativeHostImages")
     return response.json()
 
   @Command()
@@ -422,7 +422,7 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name, id)
     tenant_id = tenant["TenantId"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetFaultsByTenant")
+    response = self.client.get(f"subscriptions/{tenant_id}/GetFaultsByTenant")
     return response.json()
   
   @Command()
@@ -445,7 +445,7 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetAwsRegionId")
+    response = self.client.get(f"subscriptions/{tenant_id}/GetAwsRegionId")
     return {
       "region": response.json()
     }
@@ -594,7 +594,7 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-    response = self.duplo.get(f"v3/subscriptions/{tenant_id}/aws/dnsConfig")
+    response = self.client.get(f"v3/subscriptions/{tenant_id}/aws/dnsConfig")
     return response.json()
 
   @Command()
@@ -614,7 +614,7 @@ class DuploTenant(DuploResourceV2):
       message: A message indicating the user was added to the tenant.
     """
     tenant_id = self.find(self.duplo.tenant)["TenantId"]
-    res = self.duplo.post("admin/UpdateUserAccess", {
+    res = self.client.post("admin/UpdateUserAccess", {
       "Policy": { "IsReadOnly": None },
       "Username": name,
       "TenantId": tenant_id
@@ -642,7 +642,7 @@ class DuploTenant(DuploResourceV2):
       message: A message indicating the user was removed from the tenant.
     """
     tenant_id = self.find(self.duplo.tenant)["TenantId"]
-    res = self.duplo.post("admin/UpdateUserAccess", {
+    res = self.client.post("admin/UpdateUserAccess", {
       "Policy": {},
       "Username": name,
       "TenantId": tenant_id,

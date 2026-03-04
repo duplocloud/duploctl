@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploStillWaiting
 from duplocloud.commander import Command, Resource
@@ -31,7 +31,7 @@ class DuploEcsService(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     url = f"subscriptions/{tenant_id}/GetEcsServices"
-    response = self.duplo.get(url)
+    response = self.client.get(url)
     return response.json()
   
   def list_detailed_services(self) -> list:
@@ -44,7 +44,7 @@ class DuploEcsService(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     url = f"v3/subscriptions/{tenant_id}/aws/ecs/service"
-    response = self.duplo.get(url)
+    response = self.client.get(url)
     return response.json()
 
   @Command()
@@ -65,7 +65,7 @@ class DuploEcsService(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/service/taskDefFamily/{name}"
-    response = self.duplo.get(path)
+    response = self.client.get(path)
     return response.json()
 
   @Command()
@@ -81,7 +81,7 @@ class DuploEcsService(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     path = f"subscriptions/{tenant_id}/DeleteEcsService/{name}"
-    response = self.duplo.post(path, {})
+    response = self.client.post(path, {})
     return response.json()
 
   @Command()
@@ -101,7 +101,7 @@ class DuploEcsService(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/taskDefFamily"
-    response = self.duplo.get(path)
+    response = self.client.get(path)
     return response.json()
 
   @Command()
@@ -140,7 +140,7 @@ class DuploEcsService(DuploResourceV2):
       DuploError: If the ECS task definition could not be found.
     """
     path = self.endpoint("FindEcsTaskDefinition")
-    response = self.duplo.post(path, {"Arn": arn})
+    response = self.client.post(path, {"Arn": arn})
     return response.json()
 
   @Command()
@@ -160,7 +160,7 @@ class DuploEcsService(DuploResourceV2):
     name = self.prefixed_name(name)
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/ecs/taskDefFamily/{name}"
-    response = self.duplo.get(path)
+    response = self.client.get(path)
     return response.json()
 
   @Command()
@@ -178,7 +178,7 @@ class DuploEcsService(DuploResourceV2):
       DuploError: If the ECS service could not be updated.
     """
     path = self.endpoint("UpdateEcsService")
-    self.duplo.post(path, body)
+    self.client.post(path, body)
     return {"message": "ECS Service updated"}
 
   @Command()
@@ -200,7 +200,7 @@ class DuploEcsService(DuploResourceV2):
     """
     path = self.endpoint("UpdateEcsTaskDefinition")
     b = self.__ecs_task_def_body(body)
-    response = self.duplo.post(path, b)
+    response = self.client.post(path, b)
     return {"arn": response.json()}
 
   @Command()
@@ -342,7 +342,7 @@ class DuploEcsService(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     path = f"v3/subscriptions/{tenant_id}/aws/ecsTasks/{name}"
-    res = self.duplo.get(path)
+    res = self.client.get(path)
     return res.json()
 
   @Command()
@@ -380,7 +380,7 @@ class DuploEcsService(DuploResourceV2):
       "TaskDefinition": td["TaskDefinitionArn"],
       "Count": replicas if replicas else 1
     }
-    res = self.duplo.post(path, body)
+    res = self.client.post(path, body)
     if self.duplo.wait:
       self.wait(lambda: self._wait_on_task(name))
     return res.json()

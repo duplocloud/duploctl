@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `@Command(model="...")` decorator parameter stores the associated model name in the command schema
   - `duplocloud-sdk` added as a core dependency
 
+#### New Client Extension Points
+
+This release introducses a brand new entrypoiint called @Clients for the project. @Clients are like @Resources in how they are registrered in the pyproject.toml. This enables the project to isolate the client and authentication functionality and opens the door to using new clients like argo and openapi. 
+
+Biggest change here is now instead of `self.duplo.get` you do `self.client.get` for making an http call. 
+
 ### Fixed
 
 - Updated GitHub workflow action versions (artifact actions, Docker Hub description, auto-assign) and migrated Slack notify step to `slack-github-action@v2`.

@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
@@ -31,7 +31,7 @@ class DuploAsg(DuploResourceV2):
       list: A list of all ASGs with their configurations.
     """
     tenant_id = self.tenant["TenantId"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetTenantAsgProfiles")
+    response = self.client.get(f"subscriptions/{tenant_id}/GetTenantAsgProfiles")
     return response.json()
 
   @Command()
@@ -99,7 +99,7 @@ class DuploAsg(DuploResourceV2):
     name = self.name_from_body(body)
     if body.get("ImageId", None) is None:
       body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
-    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    res = self.client.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     def wait_check():
       return self.find(name)
     if self.duplo.wait:
@@ -132,7 +132,7 @@ class DuploAsg(DuploResourceV2):
       DuploError: If the ASG could not be updated due to invalid configuration or API errors.
     """
     tenant_id = self.tenant["TenantId"]
-    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    res = self.client.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     return {
       "message": f"Successfully updated asg '{body['FriendlyName']}'",
       "data": res.json()
@@ -165,7 +165,7 @@ class DuploAsg(DuploResourceV2):
       "FriendlyName": name,
       "State": "delete"
     }
-    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    res = self.client.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     return {
       "message": f"Successfully deleted asg '{name}'",
       "data": res.json()
@@ -263,5 +263,5 @@ class DuploAsg(DuploResourceV2):
         "Value": allocationtags,
         "State": "create"
     }
-    self.duplo.post(f"subscriptions/{tenant_id}/UpdateCustomData", payload)
+    self.client.post(f"subscriptions/{tenant_id}/UpdateCustomData", payload)
     return {"message": f"Successfully updated allocation tag for asg '{name}'"}

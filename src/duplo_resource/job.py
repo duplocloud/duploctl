@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient  # Importing necessary modules
+from duplocloud.controller import DuploClient  # Importing necessary modules
 from duplocloud.errors import DuploFailedResource, DuploStillWaiting
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource

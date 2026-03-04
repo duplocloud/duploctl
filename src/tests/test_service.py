@@ -7,6 +7,7 @@ from duplocloud.errors import DuploError
 @pytest.mark.unit
 def test_create_service(mocker):
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     service = DuploService(mock_client)
     body = {"Name": "test-service", "Image": "nginx:latest"}
     # Mock the find method to return service details
@@ -26,6 +27,7 @@ def test_create_service(mocker):
 @pytest.mark.unit
 def test_delete_service(mocker):
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     service = DuploService(mock_client)
     service.delete("test-service")
     mock_client.post.assert_called_once_with(ANY, {"Name": "test-service", "State": "delete"})
@@ -33,6 +35,7 @@ def test_delete_service(mocker):
 @pytest.mark.unit
 def test_restart_service(mocker):
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     service = DuploService(mock_client)
     # Mock the find method to return service details
     mock_service_details = {
@@ -50,6 +53,7 @@ def test_restart_service(mocker):
 @pytest.mark.unit
 def test_stop_service(mocker):
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     service = DuploService(mock_client)
     # Mock the find method to return service details
     mock_service_details = {
@@ -67,6 +71,7 @@ def test_stop_service(mocker):
 @pytest.mark.unit
 def test_start_service(mocker):
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     service = DuploService(mock_client)
     # Mock the find method to return service details
     mock_service_details = {
@@ -85,6 +90,7 @@ def test_start_service(mocker):
 @pytest.mark.unit
 def test_list_pods(mocker):
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     service = DuploService(mock_client)
 
     target_service = "DuploServiceArgument"

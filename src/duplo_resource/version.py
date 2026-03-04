@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploClient
 from duplocloud.commander import Resource
 from importlib.metadata import version
 
@@ -36,7 +36,7 @@ class DuploVersion():
     }
     for (name, path) in self.paths.items():
       try:
-        res = self.duplo.get(path).json()
+        res = self.client.get(path).json()
       except Exception as e:
         self.duplo.logger.error(f"Failed to get version for {path}: {e}")
         res = {"error": str(e)}
