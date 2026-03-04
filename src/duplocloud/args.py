@@ -105,6 +105,11 @@ NOCACHE = Arg("no-cache","--nocache",
               type=bool,
               action='store_true')
 
+AUTH_COOLDOWN = Arg("auth-cooldown", "--auth-cooldown",
+              help='Enable auth cooldown to prevent duplicate browser login prompts (e.g. "true" for 60m default, or "30m", "2h" for custom).',
+              env='DUPLO_AUTH_COOLDOWN',
+              default=None)
+
 BROWSER = Arg("web-browser","--browser",
               help='The desired web browser to use for interactive login',
               env='DUPLO_BROWSER',

@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - added ability to pass in kwargs when calling the client as function
+- **Authentication cooldown** via `DUPLO_AUTH_COOLDOWN` — prevents duplicate browser login prompts when multiple processes request tokens concurrently. Thanks to [@scholzie](https://github.com/scholzie) for the original contribution in [duplocloud/duplo-jit#52](https://github.com/duplocloud/duplo-jit/pull/52).
+- **Cache resource** with `duploctl cache clear` command to remove cached credentials and cooldown files
 - **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
   - `DuploClient.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name
   - `DuploClient.validate_model(model, data)` validates and serializes a body dict, raising `DuploInvalidError` (422) on failure
