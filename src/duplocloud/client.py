@@ -16,6 +16,7 @@ from .commander import load_resource,load_format
 from .errors import DuploError, DuploExpiredCache, DuploInvalidError, DuploConnectionError
 from .server import TokenServer
 from . import args
+from .authcooldown import is_auth_cooldown_enabled, is_tty, check_cooldown_before_listen, recover_relay_bind_failure, acquire_or_update_cooldown, clear_auth_cooldown, clear_all_caches, get_host_cache_key, CooldownResult
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
 from typing import TypeVar
 import duplocloud_sdk
@@ -62,7 +63,8 @@ class DuploClient():
                loglevel: args.LOGLEVEL="WARN",
                wait: args.WAIT=False,
                wait_timeout: args.WAIT_TIMEOUT=None,
-               validate: args.VALIDATE=False):
+               validate: args.VALIDATE=False,
+               auth_cooldown: args.AUTH_COOLDOWN=None):
     """DuploClient Constructor
     
     Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each of the arguments are annotated types that are used by argparse to create the command line arguments.
@@ -84,6 +86,7 @@ class DuploClient():
       query: The query to use.
       output: The output format for the client.
       loglevel: The log level for the client.
+      auth_cooldown: The auth cooldown setting.
 
     Returns:
       duplo (DuploClient): An instance of a DuploClient.
@@ -123,6 +126,7 @@ class DuploClient():
     self.wait = wait
     self.wait_timeout = wait_timeout
     self.validate = validate
+    self.auth_cooldown = auth_cooldown
 
   @staticmethod
   def from_env():
@@ -640,16 +644,68 @@ Available Resources:
     
     Perform an interactive login to the specified host. Opens a temporary web browser to the login page and starts a local server to receive the token. When the user authorizes the request in the browser, the token is received and the server is shutdown.
 
+    If auth cooldown is enabled (via --auth-cooldown flag or DUPLO_AUTH_COOLDOWN env var)
+    and the caller is not in a TTY, the cooldown mechanism prevents duplicate browser
+    tabs within a configurable window. TTY callers always bypass the cooldown.
+
     Returns:
       The token as a string.
     """
+    cooldown_duration, cooldown_enabled = is_auth_cooldown_enabled(self.auth_cooldown)
+    use_cooldown = cooldown_enabled and not is_tty()
+
+    open_browser = True
+    listen_port = 0
+    timeout = 180  # default 3 minute timeout
+
+    if use_cooldown:
+      listen_port, open_browser, timeout, early = check_cooldown_before_listen(
+          self.cache_dir, self.host, self.isadmin, 0, cooldown_duration,
+          get_cached_token=self._try_cached_token)
+      if early is not None:
+        return self._handle_cooldown_result(early)
+    elif cooldown_enabled:
+      self.logger.info("auth cooldown: TTY detected, bypassing cooldown for %s",
+                       get_host_cache_key(self.host))
+
     isadmin = "true" if self.isadmin else "false"
     path = "app/user/verify-token"
-    with TokenServer(self.host) as server:
+    try:
+      server = TokenServer(self.host, timeout=timeout, port=listen_port)
+    except OSError:
+      if listen_port != 0 and use_cooldown:
+        return self._handle_cooldown_result(recover_relay_bind_failure(
+            self.cache_dir, self.host, self.isadmin, 0, listen_port, cooldown_duration,
+            get_cached_token=self._try_cached_token))
+      raise
+
+    with server:
       try:
-        page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}&redirect=true"
-        server.open_callback(page, self.browser)
-        return server.serve_token()
+        if use_cooldown:
+          cd_result = acquire_or_update_cooldown(
+              self.cache_dir, self.host, self.isadmin, 0, server.server_port,
+              open_browser, cooldown_duration,
+              get_cached_token=self._try_cached_token)
+          if cd_result is not None:
+            return self._handle_cooldown_result(cd_result)
+
+        if open_browser:
+          page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}&redirect=true"
+          server.open_callback(page, self.browser)
+        else:
+          self.logger.info("auth cooldown: relay — listening on port %d for existing browser tab",
+                           server.server_port)
+
+        token = server.serve_token()
+
+        if use_cooldown:
+          clear_auth_cooldown(self.cache_dir, self.host, self.isadmin)
+
+        return token
+      except DuploError:
+        if use_cooldown:
+          clear_auth_cooldown(self.cache_dir, self.host, self.isadmin)
+        raise
       except KeyboardInterrupt:
         server.shutdown()
 
@@ -664,7 +720,7 @@ Available Resources:
     Returns:
       The cache key as a string.
     """
-    h = self.host.split("://")[1].replace("/", "")
+    h = get_host_cache_key(self.host)
     parts = [h]
     if self.isadmin:
       parts.append("admin")
@@ -742,6 +798,40 @@ Available Resources:
     Disable by setting the __ttl_cache to None.
     """
     self.__ttl_cache = None
+
+  def clear_cache(self) -> int:
+    """Clear Cache
+    
+    Remove all cached credentials and auth cooldown files from the cache directory.
+
+    Returns:
+      count: The number of files removed.
+    """
+    return clear_all_caches(self.cache_dir)
+
+  def _handle_cooldown_result(self, result: CooldownResult):
+    """Handle a CooldownResult by raising, returning, or retrying."""
+    if result.error:
+      raise DuploError(result.error, 403)
+    if result.token:
+      return result.token
+    if result.retry:
+      return self.request_token()
+    raise DuploError(f"unexpected cooldown result: {result}", 500)
+
+  def _try_cached_token(self) -> str | None:
+    """Try Cached Token
+    
+    Attempt to read a cached token without raising on expiration.
+
+    Returns:
+      The token string, or None if unavailable or expired.
+    """
+    k = self.cache_key_for("duplo-creds")
+    try:
+      return self.cached_token(k)
+    except (DuploExpiredCache, DuploError, OSError, KeyError):
+      return None
 
   def __token_cache(self, token, otp=False) -> dict:
     return {
