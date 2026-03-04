@@ -529,7 +529,7 @@ Available Resources:
       if self.browser:
         cmd.append("--browser")
         cmd.append(self.browser)
-    else:
+    elif self._token:
       cmd.append("--token")
       cmd.append(self._token)
     return cmd
