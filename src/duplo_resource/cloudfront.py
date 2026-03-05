@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
@@ -14,7 +14,7 @@ class DuploCloudFront(DuploResourceV3):
   See more details at: https://docs.duplocloud.com/docs/overview/aws-services/cloudfront
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "aws/cloudFrontDistribution")
 
   def wait_check(self, distribution_id):
@@ -44,7 +44,7 @@ class DuploCloudFront(DuploResourceV3):
     Returns:
       dict: The service object.
     """
-    response = self.duplo.get(self.endpoint(name=distribution_id))
+    response = self.client.get(self.endpoint(name=distribution_id))
     response.raise_for_status()
     return response.json()
 
@@ -76,7 +76,7 @@ class DuploCloudFront(DuploResourceV3):
     """
     data = None
     try:
-      response = self.duplo.post(self.endpoint(), body)
+      response = self.client.post(self.endpoint(), body)
       response.raise_for_status()
       data = response.json()
       distribution_id = data.get("Id") or data.get("Distribution", {}).get("Id")
@@ -115,7 +115,7 @@ class DuploCloudFront(DuploResourceV3):
       DuploFailedResource: If the update process fails.
     """
     try:
-      response = self.duplo.put(self.endpoint(), body)
+      response = self.client.put(self.endpoint(), body)
       response.raise_for_status()
       data = response.json()
       distribution_id = data.get("Id") or data.get("Distribution", {}).get("Id")
@@ -150,7 +150,7 @@ class DuploCloudFront(DuploResourceV3):
       DuploFailedResource: If the disable process fails.
     """
     body = {"Id":distribution_id,"DistributionConfig":{"Disabled":"true"}}
-    response = self.duplo.put(self.endpoint(), body)
+    response = self.client.put(self.endpoint(), body)
     if self.duplo.wait:
       self.wait(lambda: self.wait_check(distribution_id) is not None, 1200)
     return response.json()
@@ -179,7 +179,7 @@ class DuploCloudFront(DuploResourceV3):
       DuploFailedResource: If the enable process fails.
     """
     body = {"Id":distribution_id,"DistributionConfig":{"Enabled":"true"}}
-    response = self.duplo.put(self.endpoint(), body)
+    response = self.client.put(self.endpoint(), body)
     if self.duplo.wait:
       self.wait(lambda: self.wait_check(distribution_id) is not None, 1200)
     return response.json()
@@ -206,7 +206,7 @@ class DuploCloudFront(DuploResourceV3):
     Raises:
       DuploError: If the distribution could not be deleted or is not in a deletable state.
     """
-    response = self.duplo.delete(self.endpoint(distribution_id))
+    response = self.client.delete(self.endpoint(distribution_id))
     response.raise_for_status()
     return {"message": f"CloudFront distribution {distribution_id} deleted"}
 

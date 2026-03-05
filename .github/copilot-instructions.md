@@ -27,7 +27,7 @@ infrastructure = "duplo_resource.infrastructure:DuploInfrastructure"
 
 Each resource class must:
 1. Be decorated with `@Resource(name, scope="portal"|"tenant")`
-2. Accept `DuploClient` in `__init__`
+2. Accept `DuploCtl` in `__init__`
 3. Define commands using `@Command()` decorator
 4. Be registered in `pyproject.toml` entry points
 
@@ -139,7 +139,7 @@ When `@Resource(scope="tenant")` is used, the decorator **dynamically injects** 
   - Portal-scoped `endpoint()` methods (overridden by tenant injection)
 
 - **`src/duplocloud/client.py`**:
-  - `DuploClient` class - main client interface
+  - `DuploCtl` class - main client interface
   - Configuration management (`from_env()`, `from_creds()`)
   - HTTP methods with caching (`get()`, `post()`, `put()`, `delete()`)
   - Resource loading via `load(name)` method
@@ -211,12 +211,12 @@ When `@Resource(scope="tenant")` is used, the decorator **dynamically injects** 
 For resources that don't follow CRUD patterns:
 
 ```python
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.commander import Resource, Command
 
 @Resource("mytool")  # No base class needed!
 class DuploMyTool:
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
         self.duplo = duplo
     
     @Command()
@@ -337,7 +337,7 @@ import requests
 import yaml
 
 # Local imports
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -461,8 +461,8 @@ duploctl jit update_aws_config myportal
 duploctl jit web
 
 # Python Usage
-from duplocloud.client import DuploClient
-duplo, args = DuploClient.from_env()
+from duplocloud.controller import DuploCtl
+duplo, args = DuploCtl.from_env()
 services = duplo.load("service")
 s = services.find("myservice")
 ```

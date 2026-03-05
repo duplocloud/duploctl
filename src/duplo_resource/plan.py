@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
@@ -7,7 +7,7 @@ import duplocloud.args as args
 @Resource("plan")
 class DuploPlan(DuploResource):
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
   
   @Command()
@@ -22,7 +22,7 @@ class DuploPlan(DuploResource):
     Returns:
       list: List of Plans
     """
-    response = self.duplo.get("adminproxy/GetPlans")
+    response = self.client.get("adminproxy/GetPlans")
     return response.json()
   
   @Command()

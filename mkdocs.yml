@@ -46,6 +46,7 @@ nav:
 - Installation: Installation.md
 # resources are injected here
 - Module:
+  - Controller: Controller.md
   - Client: Client.md
   - Commander: Commander.md
   - ArgType: ArgType.md

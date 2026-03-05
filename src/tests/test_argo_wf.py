@@ -6,6 +6,7 @@ from duplo_resource.argo_wf import DuploArgoWorkflow
 def _setup_argo_resource(mocker):
     """Helper to create ArgoWorkflow resource with mocked client."""
     mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
     mock_client.host = "https://test.duplocloud.net"
     mock_client.token = "test-token"
     mock_client.timeout = 60

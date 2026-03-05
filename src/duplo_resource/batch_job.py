@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
@@ -14,7 +14,7 @@ class DuploBatchJob(DuploResourceV3):
   https://docs.duplocloud.com/docs/overview/aws-services/batch
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, 
                      slug="aws/batchJobs",
                      prefixed=True)
@@ -41,7 +41,7 @@ class DuploBatchJob(DuploResourceV3):
       list: A list of Batch Job Definitions.
     """
     def get_job_list(qn):
-      response = self.duplo.get(self.endpoint(qn))
+      response = self.client.get(self.endpoint(qn))
       return response.json()
     if not queue and not all:
       raise DuploError("You must specify a queue name with --queue <queue_name> or use --all to list jobs in all queues.")

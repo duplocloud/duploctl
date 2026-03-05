@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Resource
 
@@ -12,7 +12,7 @@ class DuploBatchSchedulingPolicy(DuploResourceV3):
   https://docs.duplocloud.com/docs/overview/aws-services/batch
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, 
                      slug="aws/batchSchedulingPolicy",
                      prefixed=True)

@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
@@ -14,7 +14,7 @@ class DuploBatchCompute(DuploResourceV3):
   https://docs.duplocloud.com/docs/overview/aws-services/batch
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, 
                      slug="aws/batchComputeEnvironment", 
                      prefixed=True)
@@ -106,7 +106,7 @@ class DuploBatchCompute(DuploResourceV3):
     """
     n = self.prefixed_name(name)
     endpoint = f"{self.endpoint()}Disable/{n}"
-    self.duplo.delete(endpoint)
+    self.client.delete(endpoint)
     return {
       "message": f"Batch Compute Environment '{name}' disabled"
     }

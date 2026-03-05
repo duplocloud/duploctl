@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient  # Importing necessary modules
+from duplocloud.controller import DuploCtl  # Importing necessary modules
 from duplocloud.errors import DuploFailedResource, DuploStillWaiting
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
@@ -12,7 +12,7 @@ class DuploJob(DuploResourceV3):
 
   See more details at: https://docs.duplocloud.com/docs/kubernetes-overview/jobs
   """
-  def __init__(self, duplo: DuploClient):  # Constructor method
+  def __init__(self, duplo: DuploCtl):  # Constructor method
     super().__init__(duplo, "k8s/job")  
     self.wait_timeout = 1000
     self.wait_poll = 3

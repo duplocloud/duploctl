@@ -28,7 +28,8 @@ include_pages = [
 ]
 
 ignored = [
-  "aws"
+  "aws",
+  "mcp"
 ]
 
 def copy_static():

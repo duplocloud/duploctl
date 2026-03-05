@@ -1,5 +1,5 @@
 from duplocloud import args
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
@@ -19,7 +19,7 @@ class DuploAwsSecret(DuploResourceV3):
   Manages [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) in the background. 
   """
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "aws/secret")
   
   def name_from_body(self, body):
@@ -51,12 +51,12 @@ class DuploAwsSecret(DuploResourceV3):
     # if the name has the prefix we good, otherwise add it
     response = None
     try:
-      response = self.duplo.get(self.endpoint(name))
+      response = self.client.get(self.endpoint(name))
     except DuploError as e:
       # if it wasn't found try with the full prefix
       prefixed = self.prefixed_name(name)
       if e.code in (400, 404) and prefixed != name:
-        response = self.duplo.get(self.endpoint(prefixed))
+        response = self.client.get(self.endpoint(prefixed))
       else:
         raise e
     if not show_sensitive:

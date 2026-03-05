@@ -80,10 +80,10 @@ duploctl jit update_kubeconfig myinfra
 
 ### Python Module
 
-Spawn your client from a Python script using the ```DuploClient.from_env()``` method and arguments. The second return value are the unparsed arguments from the command line. This example uses the client as a callable using command like syntax.
+Spawn your client from a Python script using the ```DuploCtl.from_env()``` method and arguments. The second return value are the unparsed arguments from the command line. This example uses the client as a callable using command like syntax.
 
 ```python
-duplo, args = DuploClient.from_env()
+duplo, args = DuploCtl.from_env()
 t = duplo("tenant", "find", "mytenant")
 print(t)
 ```
@@ -91,7 +91,7 @@ print(t)
 Spawn a client with a custom host and token from a Python script. This example loads a resource and runs a method manually.
 
 ```python
-duplo = DuploClient.from_creds(host="https://example.duplocloud.net", token="mytoken")
+duplo = DuploCtl.from_creds(host="https://example.duplocloud.net", token="mytoken")
 tenants = duplo.load("tenant")
 t = tenants.find("mytenant")
 print(t)

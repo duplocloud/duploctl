@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
@@ -9,7 +9,7 @@ import duplocloud.args as args
 class DuploAI(DuploResourceV3):
   """Resource for creating tickets in the DuploCloud AI HelpDesk."""
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "")  # No static endpoint; we build it dynamically
 
   @Command()
@@ -77,7 +77,7 @@ class DuploAI(DuploResourceV3):
     # Always include Origin field, defaulting to "duploctl" if not specified
     payload["Origin"] = helpdesk_origin if helpdesk_origin else "duploctl"
 
-    response = self.duplo.post(path, payload)
+    response = self.client.post(path, payload)
     data = response.json()
     ticket = data.get("ticket", {})
     ticket_name = ticket.get("name")
@@ -140,7 +140,7 @@ class DuploAI(DuploResourceV3):
       "platform_context": {}
     }
 
-    response = self.duplo.post(path, payload)
+    response = self.client.post(path, payload)
     result = response.json()
 
     return {

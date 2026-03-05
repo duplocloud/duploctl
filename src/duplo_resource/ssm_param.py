@@ -1,5 +1,5 @@
 from duplocloud import args
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
@@ -7,7 +7,7 @@ from duplocloud.commander import Command, Resource
 @Resource("ssm_param", scope="tenant")
 class DuploParam(DuploResourceV3):
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "aws/ssmParameter")
   
   def name_from_body(self, body):
@@ -86,7 +86,7 @@ class DuploParam(DuploResourceV3):
     Raises:
       DuploError: If the SSM Parameter could not be found.
     """
-    response = self.duplo.get(self.endpoint(name))
+    response = self.client.get(self.endpoint(name))
     if response.json()['Type']=="SecureString" and not show_sensitive:
       obfuscated_response=response.json()
       sensitive_len=len(response.json()["Value"])

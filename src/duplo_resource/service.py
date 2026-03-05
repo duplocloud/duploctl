@@ -1,5 +1,5 @@
 import time
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
@@ -27,7 +27,7 @@ class DuploService(DuploResourceV2):
     ```
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
     self.paths = {
       "list": "GetReplicationControllers"
@@ -113,7 +113,7 @@ class DuploService(DuploResourceV2):
     """
     try:
       endpoint = f"v3/subscriptions/{self.tenant_id}/replicationcontroller/{name}"
-      response = self.duplo.get(endpoint)
+      response = self.client.get(endpoint)
       self.duplo.logger.debug(f"Found service {name} using new endpoint.")
       return response.json()
     # catch the DuploError and let super take over if it's just a 404 which means the new endpoint doesn't exist
@@ -163,7 +163,7 @@ class DuploService(DuploResourceV2):
       body["AllocationTags"] = ttags
     body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
     body["AgentPlatform"] = body["Template"].get("AgentPlatform", 0)
-    self.duplo.post(self.endpoint("ReplicationControllerChangeAll"), body)
+    self.client.post(self.endpoint("ReplicationControllerChangeAll"), body)
     if self.duplo.wait:
       self._wait(old, body)
     return {
@@ -203,7 +203,7 @@ class DuploService(DuploResourceV2):
     docker_config = self.duplo.jsonpatch(docker_config, patches)
     body["Template"]["OtherDockerConfig"] = dumps(docker_config)
     body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
-    self.duplo.post(self.endpoint("ReplicationControllerChangeAll"), body)
+    self.client.post(self.endpoint("ReplicationControllerChangeAll"), body)
     return {
       "message": f"Successfully updated OtherDockerConfig for service '{name}'"
     }
@@ -236,7 +236,7 @@ class DuploService(DuploResourceV2):
     Returns:
       message: Success message.
     """
-    self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
+    self.client.post(self.endpoint("ReplicationControllerUpdate"), body)
     if self.duplo.wait:
       # TODO: This is lazy. The _wait method in this class should actually handle create.
       super().wait(lambda: self.find(body["Name"]))
@@ -266,7 +266,7 @@ class DuploService(DuploResourceV2):
       "Name": name,
       "State": "delete"
     }
-    self.duplo.post(self.endpoint("ReplicationControllerUpdate"), body)
+    self.client.post(self.endpoint("ReplicationControllerUpdate"), body)
     return {
       "message": f"Successfully deleted service '{name}'"
     }
@@ -300,7 +300,7 @@ class DuploService(DuploResourceV2):
       "Replicas": replica,
       "AllocationTags": service["Template"].get("AllocationTags", "")
     }
-    self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
+    self.client.post(self.endpoint("ReplicationControllerChange"), data)
     if self.duplo.wait:
       self._wait(service, data)
     return {"message": f"Successfully updated replicas for service '{name}'"}
@@ -379,7 +379,7 @@ class DuploService(DuploResourceV2):
         "AllocationTags": service["Template"].get("AllocationTags", "")
       }
 
-    self.duplo.post(self.endpoint("ReplicationControllerChange"), data)
+    self.client.post(self.endpoint("ReplicationControllerChange"), data)
 
     if self.duplo.wait:
       self.duplo.logger.debug("Wait enabled, beginning wait process")
@@ -482,7 +482,7 @@ class DuploService(DuploResourceV2):
       "OtherDockerConfig": dumps(currentDockerconfig),
       "allocationTags": service["Template"].get("AllocationTags", "")
     }
-    self.duplo.post(self.endpoint("ReplicationControllerChange"), payload)
+    self.client.post(self.endpoint("ReplicationControllerChange"), payload)
     if self.duplo.wait:
       service["Replicaset"] = self.current_replicaset(name)
       self._wait(service, payload)
@@ -547,7 +547,7 @@ class DuploService(DuploResourceV2):
       "OtherDockerConfig": dumps(currentDockerconfig),
       "allocationTags": service["Template"].get("AllocationTags", "")
     }
-    self.duplo.post(self.endpoint("ReplicationControllerChange"), payload)
+    self.client.post(self.endpoint("ReplicationControllerChange"), payload)
     if self.duplo.wait:
       service["Replicaset"] = self.current_replicaset(name)
       self._wait(service, payload)
@@ -588,7 +588,7 @@ class DuploService(DuploResourceV2):
           "updated": payload_item
         })
 
-    self.duplo.post(self.endpoint("ReplicationControllerBulkChangeAll"), payload)
+    self.client.post(self.endpoint("ReplicationControllerBulkChangeAll"), payload)
 
     if self.duplo.wait:
       for update_info in wait_list:
@@ -623,7 +623,7 @@ class DuploService(DuploResourceV2):
     Raises:
       DuploError: If the service could not be restarted.
     """
-    self.duplo.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
+    self.client.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
     if self.duplo.wait:
       service = self.find(name)
       self._wait(service, service)
@@ -834,7 +834,7 @@ class DuploService(DuploResourceV2):
         "ReplicationControllerName": name
     }
 
-    self.duplo.post(f"subscriptions/{tenant_id}/LBConfigurationUpdate", payload)
+    self.client.post(f"subscriptions/{tenant_id}/LBConfigurationUpdate", payload)
     return {"message": f"Successfully exposed service '{name}'"}
 
   @Command()
@@ -866,7 +866,7 @@ class DuploService(DuploResourceV2):
     api_endpoint = f"v3/subscriptions/{tenant_id}/containers/replicationController/{name}/rollback"
     if to_revision:
       api_endpoint += f"/{to_revision}"
-    self.duplo.put(api_endpoint)
+    self.client.put(api_endpoint)
     return {"message": f"Successfully rolled back service '{name}'"}
 
   def _wait(self, old: dict, updates: dict):
@@ -1021,7 +1021,7 @@ class DuploService(DuploResourceV2):
     """Helper function to process a service action (start/stop) and handle errors."""
     try:
       endpoint_action = "ReplicationController" + action.capitalize()
-      response = self.duplo.post(self.endpoint(f"{endpoint_action}/{service_name}"))
+      response = self.client.post(self.endpoint(f"{endpoint_action}/{service_name}"))
 
       if response.status_code == 200:
         results["success"].append(service_name)

@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploExpiredCache
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
@@ -29,8 +29,9 @@ class DuploJit(DuploResource):
     duploctl jit <action>
     ```
   """
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
+    self.cache = duplo.load("cache")
 
   @Command()
   def token(self) -> dict:
@@ -46,7 +47,7 @@ class DuploJit(DuploResource):
     Returns:
       token: The JWT token.
     """
-    return {"token": self.duplo.token}
+    return {"token": self.client.token}
 
   @Command()
   def gcp(self, nocache: bool = None) -> dict:
@@ -69,7 +70,7 @@ class DuploJit(DuploResource):
     Returns:
       token: The GCP JWT token.
     """
-    k = self.duplo.cache_key_for("gcp-creds")
+    k = self.cache.key_for("gcp-creds")
     nc = nocache if nocache is not None else self.duplo.nocache
     t = self.duplo.load("tenant")
     tenant = t.find()
@@ -77,16 +78,16 @@ class DuploJit(DuploResource):
     # try and get those creds
     try:
       if nc:
-        sts = self.duplo.get(path).json()
+        sts = self.client.get(path).json()
       else:
-        sts = self.duplo.get_cached_item(k)
-        if self.duplo.expired(sts.get("Expiration", None)):
+        sts = self.cache.get(k)
+        if self.cache.expired(sts.get("Expiration", None)):
           raise DuploExpiredCache(k)
     except DuploExpiredCache:
-      sts = self.duplo.get(path).json()
+      sts = self.client.get(path).json()
       if "Expiration" not in sts:
-        sts["Expiration"] = self.duplo.expiration()
-      self.duplo.set_cached_item(k, sts)
+        sts["Expiration"] = self.cache.expiration()
+      self.cache.set(k, sts)
     return sts
 
   @Command()
@@ -131,7 +132,7 @@ class DuploJit(DuploResource):
     """
     sts = None
     path = None
-    k = self.duplo.cache_key_for("aws-creds")
+    k = self.cache.key_for("aws-creds")
     nc = nocache if nocache is not None else self.duplo.nocache
 
     # check if admin or choose tenant
@@ -145,16 +146,16 @@ class DuploJit(DuploResource):
     # try and get those creds
     try:
       if nc:
-        sts = self.duplo.get(path).json()
+        sts = self.client.get(path).json()
       else:
-        sts = self.duplo.get_cached_item(k)
-        if self.duplo.expired(sts.get("Expiration", None)):
+        sts = self.cache.get(k)
+        if self.cache.expired(sts.get("Expiration", None)):
           raise DuploExpiredCache(k)
     except DuploExpiredCache:
-      sts = self.duplo.get(path).json()
+      sts = self.client.get(path).json()
       if "Expiration" not in sts:
-        sts["Expiration"] = self.duplo.expiration()
-      self.duplo.set_cached_item(k, sts)
+        sts["Expiration"] = self.cache.expiration()
+      self.cache.set(k, sts)
     sts["Version"] = 1
     return sts
 
@@ -254,21 +255,21 @@ class DuploJit(DuploResource):
     """
     # either plan or tenant in cache key
     pt = planId or self.duplo.tenant or self.duplo.tenantid
-    k = self.duplo.cache_key_for(f"plan,{pt},k8s-creds")
+    k = self.cache.key_for(f"plan,{pt},k8s-creds")
     creds = None
     try:
       if self.duplo.nocache:
         ctx = self.k8s_context(planId)
         creds = self.__k8s_exec_credential(ctx)
       else:
-        creds = self.duplo.get_cached_item(k)
+        creds = self.cache.get(k)
         exp = creds.get("status", {}).get("expirationTimestamp", None)
-        if self.duplo.expired(exp):
+        if self.cache.expired(exp):
           raise DuploExpiredCache(k)
     except DuploExpiredCache:
       ctx = self.k8s_context(planId)
       creds = self.__k8s_exec_credential(ctx)
-      self.duplo.set_cached_item(k, creds)
+      self.cache.set(k, creds)
     return creds
 
   @Command()
@@ -390,7 +391,7 @@ class DuploJit(DuploResource):
     path = (f"v3/admin/plans/{planId}/k8sConfig"
             if admin
             else f"/v3/subscriptions/{tenant_id}/k8s/jitAccess")
-    response = self.duplo.get(path)
+    response = self.client.get(path)
     return response.json()
 
   def __k8s_exec_credential(self, ctx):

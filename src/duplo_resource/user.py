@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
@@ -6,14 +6,14 @@ import duplocloud.args as args
 
 @Resource("user")
 class DuploUser(DuploResourceV2):
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
     self.tenent_svc = duplo.load('tenant')
 
   @Command("ls")
   def list(self):
     """Retrieve a list of all users in the Duplo system."""
-    response = self.duplo.get("admin/GetAllUserRoles")
+    response = self.client.get("admin/GetAllUserRoles")
     return response.json()
   
   @Command("get")
@@ -47,7 +47,7 @@ class DuploUser(DuploResourceV2):
     """
     if 'State' not in body:
       body['State'] = 'added'
-    response = self.duplo.post("admin/UpdateUserRole", body)
+    response = self.client.post("admin/UpdateUserRole", body)
     return response.json()
   
   @Command()
@@ -70,5 +70,5 @@ class DuploUser(DuploResourceV2):
       "Username": name,
       "State": "deleted"
     }
-    self.duplo.post("admin/UpdateUserRole", body)
+    self.client.post("admin/UpdateUserRole", body)
     return {"message": name+ " deleted successfully"}

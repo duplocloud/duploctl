@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
@@ -14,7 +14,7 @@ class DuploConfigMap(DuploResourceV3):
   https://docs.duplocloud.com/docs/kubernetes-overview/configs-and-secrets
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "k8s/configmap")
 
   @Command(model="V1ConfigMap")
@@ -186,7 +186,7 @@ class DuploConfigMap(DuploResourceV3):
       DuploError: ConfigMap not found.
     """
     try:
-      response = self.duplo.get(self.endpoint(name))
+      response = self.client.get(self.endpoint(name))
     except DuploError as e:
       raise DuploError(f"Failed to find ConfigMap '{name}': {str(e)}")
     return response.json()

@@ -30,7 +30,7 @@ When creating a new resource:
    - [ ] Add imports at top of file
    - [ ] Decorate with `@Resource(name, scope="portal"|"tenant")`
    - [ ] Extend appropriate base class if CRUD
-   - [ ] Implement `__init__` accepting `DuploClient`
+   - [ ] Implement `__init__` accepting `DuploCtl`
 
 3. **Implement Commands**
    - [ ] Decorate methods with `@Command()`
@@ -59,7 +59,7 @@ When creating a new resource:
 ### CRUD Resource (V2 API)
 
 ```python
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -72,7 +72,7 @@ class DuploMyResource(DuploResourceV2):
     resources within a tenant.
     """
     
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
         super().__init__(duplo)
     
     # V2 base class provides list(), find(), apply()
@@ -82,7 +82,7 @@ class DuploMyResource(DuploResourceV2):
 ### CRUD Resource (V3 API)
 
 ```python
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -91,7 +91,7 @@ import duplocloud.args as args
 class DuploMyResource(DuploResourceV3):
     """Manage MyResource resources using V3 API."""
     
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
         super().__init__(duplo, slug="myresources")
     
     # V3 base class provides list(), find(), create(), update(), delete(), apply()
@@ -101,14 +101,14 @@ class DuploMyResource(DuploResourceV3):
 ### Non-CRUD Resource
 
 ```python
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.commander import Command, Resource
 
 @Resource("mytool")
 class DuploMyTool:
     """Custom tool for specialized operations."""
     
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
         self.duplo = duplo
     
     @Command()

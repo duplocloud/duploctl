@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import ANY, MagicMock
 from duplo_resource.ecs_service import DuploEcsService
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploStillWaiting
 from tests.test_utils import execute_test, assert_response
 
