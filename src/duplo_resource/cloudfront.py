@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
@@ -14,7 +14,7 @@ class DuploCloudFront(DuploResourceV3):
   See more details at: https://docs.duplocloud.com/docs/overview/aws-services/cloudfront
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "aws/cloudFrontDistribution")
 
   def wait_check(self, distribution_id):

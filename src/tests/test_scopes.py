@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock
 from duplocloud.commander import resources, Resource, Command, load_resource
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2, DuploResourceV3
 
 @pytest.mark.unit
@@ -10,7 +10,7 @@ def test_portal_scoped_resource():
   
   @Resource("test_portal", "portal")
   class TestPortalResource:
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
       self.duplo = duplo
     
     @Command()
@@ -32,7 +32,7 @@ def test_tenant_scoped_resource():
   
   @Resource("test_tenant", "tenant")
   class TestTenantResource:
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
       self.duplo = duplo
     
     @Command()
@@ -59,7 +59,7 @@ def test_default_scope_is_portal():
   
   @Resource("test_default")
   class TestDefaultResource:
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
       self.duplo = duplo
     
     @Command()
@@ -99,7 +99,7 @@ def test_tenant_mixin_properties_work():
   
   @Resource("test_tenant_props", "tenant")
   class TestTenantPropsResource:
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
       self.duplo = duplo
     
     @Command()
@@ -137,7 +137,7 @@ def test_parent_class_with_scope():
   """Test that parent class reference is maintained correctly."""
   
   class BaseResource:
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
       self.duplo = duplo
     
     @Command()

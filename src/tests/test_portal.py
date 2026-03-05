@@ -1,9 +1,9 @@
 import pytest
 
 from duplocloud.errors import DuploError
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 
-duplo, _ = DuploClient.from_env()
+duplo, _ = DuploCtl.from_env()
 
 class Testportal:
 

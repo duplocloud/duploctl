@@ -1,12 +1,12 @@
 from . import args
-from .controller import DuploClient
+from .controller import DuploCtl
 from .errors import DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
 from .commander import get_parser, extract_args, get_command_schema, Command
 import math
 import time
 
 class DuploCommand():
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     self.duplo = duplo
   
   def __call__(self, *args):
@@ -14,7 +14,7 @@ class DuploCommand():
 
 class DuploResource():
 
-  def __init__(self, duplo: DuploClient, api_version: str="v1", slug: str=None, prefixed: bool=False):
+  def __init__(self, duplo: DuploCtl, api_version: str="v1", slug: str=None, prefixed: bool=False):
     self.duplo = duplo
     self.__logger = None
     self.slug = slug
@@ -53,7 +53,7 @@ class DuploResource():
   def wait(self, wait_check: callable, timeout: int=3600, poll: int=10):
     """Wait for Resource
     
-    Waits for a the given wait_check callable to complete successfully. If the global wait_timeout is set on the DuploClient, it will override the timeout parameter so that a user can always choose their own timeout for waiting operations. The timeout param for other functions is just a default value for that particular resource operation.
+    Waits for a the given wait_check callable to complete successfully. If the global wait_timeout is set on the DuploCtl, it will override the timeout parameter so that a user can always choose their own timeout for waiting operations. The timeout param for other functions is just a default value for that particular resource operation.
     
     Args:
       wait_check: A callable function to check if the resource is ready.
@@ -87,7 +87,7 @@ class DuploResource():
 
 class DuploResourceV2(DuploResource):
 
-  def __init__(self, duplo: DuploClient, slug: str = None, prefixed: bool = False):
+  def __init__(self, duplo: DuploCtl, slug: str = None, prefixed: bool = False):
     super().__init__(duplo, api_version="v2", slug=slug, prefixed=prefixed)
 
   def name_from_body(self, body):
@@ -153,7 +153,7 @@ class DuploResourceV2(DuploResource):
   
 
 class DuploResourceV3(DuploResource):
-  def __init__(self, duplo: DuploClient, slug: str, prefixed: bool = False):
+  def __init__(self, duplo: DuploCtl, slug: str, prefixed: bool = False):
     super().__init__(duplo, api_version="v3", slug=slug, prefixed=prefixed)
 
   def name_from_body(self, body):

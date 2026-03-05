@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - added ability to pass in kwargs when calling the client as function
 - **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
-  - `DuploClient.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name
-  - `DuploClient.validate_model(model, data)` validates and serializes a body dict, raising `DuploInvalidError` (422) on failure
+  - `DuploCtl.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name
+  - `DuploCtl.validate_model(model, data)` validates and serializes a body dict, raising `DuploInvalidError` (422) on failure
   - `DuploResource.command()` gates model loading and validation behind the `validate` flag — no overhead when disabled
   - `@Command(model="...")` decorator parameter stores the associated model name in the command schema
   - `duplocloud-sdk` added as a core dependency
@@ -206,7 +206,7 @@ Biggest change here is now instead of `self.duplo.get` you do `self.client.get` 
 
 - Added DuploStillWaiting class to reflect scenarios where a command waits too long for a resource operation to complete.
 - Added integration tests for k8 Secret resource.
-- Added wait flag as an argument to DuploClient.
+- Added wait flag as an argument to DuploCtl.
 
 ### Fixed
 

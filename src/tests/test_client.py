@@ -4,7 +4,7 @@ import sys
 import pytest
 
 from duplocloud.errors import DuploError, DuploInvalidError
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from tests.conftest import get_test_data
 
 # current working directory as variable
@@ -14,7 +14,7 @@ cache_dir = f"{cwd}/.tmp/cache"
 
 @pytest.mark.unit
 def test_new_config():
-  c = DuploClient(host=host)
+  c = DuploCtl(host=host)
   assert c.host == "https://example.duplocloud.net"
 
 @pytest.mark.unit
@@ -22,7 +22,7 @@ def test_at_least_host(mocker):
   """No Host Gets Error"""
 
   # Patch in a mock of the client's config file so this test doesn't depend on a specific local setup.
-  # Alternatively, we could set the config_file arg of DuploClient to a YAML in the tests/files directory. A mock
+  # Alternatively, we could set the config_file arg of DuploCtl to a YAML in the tests/files directory. A mock
   # exercises the constructor's default (and requires no changes to the test this was added to fix).
   duplo_config_file = '''
 ---
@@ -37,14 +37,14 @@ contexts:
 '''
   mocker.patch('builtins.open', mocker.mock_open(read_data=duplo_config_file))
 
-  duplo = DuploClient()
+  duplo = DuploCtl()
   with pytest.raises(DuploError) as e:
     duplo.load_client("duplo").token
     print(e)
 
 @pytest.mark.unit
 def test_cache_dir():
-  c = DuploClient(
+  c = DuploCtl(
     host=host,
     cache_dir=cache_dir)
   assert c.cache_dir == cache_dir
@@ -62,37 +62,37 @@ def test_cache_dir():
 @pytest.mark.unit
 def test_sanitize_host_with_http_scheme():
   """Test that hosts with http:// scheme are converted to https://"""
-  c = DuploClient(host="http://example.duplocloud.net")
+  c = DuploCtl(host="http://example.duplocloud.net")
   assert c.host == "https://example.duplocloud.net"
 
 @pytest.mark.unit
 def test_sanitize_host_with_https_scheme():
   """Test that hosts with https:// scheme remain https://"""
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   assert c.host == "https://example.duplocloud.net"
 
 @pytest.mark.unit
 def test_sanitize_host_without_scheme():
   """Test that hosts without scheme get https:// added"""
-  c = DuploClient(host="example.duplocloud.net")
+  c = DuploCtl(host="example.duplocloud.net")
   assert c.host == "https://example.duplocloud.net"
 
 @pytest.mark.unit
 def test_sanitize_host_with_path_and_query():
   """Test that paths and query parameters are removed"""
-  c = DuploClient(host="example.duplocloud.net/path?query=value")
+  c = DuploCtl(host="example.duplocloud.net/path?query=value")
   assert c.host == "https://example.duplocloud.net"
 
 @pytest.mark.unit
 def test_sanitize_host_with_trailing_slash():
   """Test that trailing slashes are handled correctly"""
-  c = DuploClient(host="example.duplocloud.net/")
+  c = DuploCtl(host="example.duplocloud.net/")
   assert c.host == "https://example.duplocloud.net"
 
 @pytest.mark.unit
 def test_load_model_returns_class():
   """load_model returns the Pydantic class for a known model name"""
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   model_cls = c.load_model("AddTenantRequest")
   assert model_cls is not None, "Expected AddTenantRequest model class, got None"
   assert hasattr(model_cls, "model_validate"), "Expected a Pydantic model with model_validate"
@@ -100,13 +100,13 @@ def test_load_model_returns_class():
 @pytest.mark.unit
 def test_load_model_unknown_returns_none():
   """load_model returns None for an unknown model name"""
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   assert c.load_model("ThisModelDoesNotExist12345") is None
 
 @pytest.mark.unit
 def test_load_model_none_name_returns_none():
   """load_model returns None when called with None"""
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   assert c.load_model(None) is None
 
 @pytest.mark.unit
@@ -118,7 +118,7 @@ def test_load_model_is_lazy():
   # Clear the cached attribute and the submodule so we can observe the first load
   sdk.__dict__.pop("AddTenantRequest", None)
   sys.modules.pop(module_path, None)
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   # The top-level duplocloud_sdk is imported (it's a required dep), but the
   # individual model submodule should not yet be loaded.
   assert module_path not in sys.modules, "Model submodule was pre-loaded before load_model was called"
@@ -130,7 +130,7 @@ def test_load_model_completes_quickly():
   """load_model should complete well under 3 seconds even on a cold import"""
   module_path = "duplocloud_sdk.models.add_tenant_request"
   sys.modules.pop(module_path, None)
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   start = time.monotonic()
   c.load_model("AddTenantRequest")
   elapsed = time.monotonic() - start
@@ -139,7 +139,7 @@ def test_load_model_completes_quickly():
 @pytest.mark.unit
 def test_validate_model_returns_serialized_dict():
   """validate_model returns a serialized dict using field aliases"""
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   model_cls = c.load_model("AddTenantRequest")
   data = get_test_data("tenant")
   result = c.validate_model(model_cls, data)
@@ -150,7 +150,7 @@ def test_validate_model_returns_serialized_dict():
 @pytest.mark.unit
 def test_validate_model_raises_on_invalid_data():
   """validate_model raises DuploInvalidError when data fails validation"""
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   model_cls = c.load_model("AddTenantRequest")
   # AccountName expects a string — pass an invalid type to trigger failure
   bad_data = {"AccountName": {"nested": "object"}, "PlanID": "default"}
@@ -159,14 +159,14 @@ def test_validate_model_raises_on_invalid_data():
 
 @pytest.mark.unit
 def test_validate_flag_defaults_to_false():
-  """validate defaults to False on DuploClient"""
-  c = DuploClient(host="https://example.duplocloud.net")
+  """validate defaults to False on DuploCtl"""
+  c = DuploCtl(host="https://example.duplocloud.net")
   assert c.validate is False
 
 @pytest.mark.unit
 def test_validate_flag_can_be_set():
-  """validate=True can be set on DuploClient"""
-  c = DuploClient(host="https://example.duplocloud.net", validate=True)
+  """validate=True can be set on DuploCtl"""
+  c = DuploCtl(host="https://example.duplocloud.net", validate=True)
   assert c.validate is True
 
 # ---------------------------------------------------------------------------
@@ -176,10 +176,10 @@ def test_validate_flag_can_be_set():
 
 @pytest.fixture
 def duplo_with_mock_resource(mocker):
-  """A DuploClient whose load() returns a mock resource that echoes back
+  """A DuploCtl whose load() returns a mock resource that echoes back
   a known list of dicts, so we can test the full __call__ → filter → format
   chain without any HTTP calls."""
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   mock_resource = mocker.MagicMock()
   mock_resource.__doc__ = "mock resource"
   mock_resource.return_value = [
@@ -245,7 +245,7 @@ def test_call_passes_kwargs_to_resource(duplo_with_mock_resource, mocker):
 @pytest.mark.unit
 def test_call_format_none_returns_raw_data(mocker):
   """When output is None, format() returns the raw data object"""
-  c = DuploClient(host="https://example.duplocloud.net")
+  c = DuploCtl(host="https://example.duplocloud.net")
   c.output = None
   mock_resource = mocker.MagicMock()
   mock_resource.__doc__ = "mock resource"

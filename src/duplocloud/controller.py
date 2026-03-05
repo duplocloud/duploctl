@@ -27,12 +27,12 @@ class DuploCtl():
 
   Example: Using injected client to load a service.
       ```python
-      from duplocloud.controller import DuploClient
+      from duplocloud.controller import DuploCtl
       from duplocloud.resource import DuploResource
       from duplocloud.errors import DuploError
 
       class DuploSomeService(DuploResource):
-        def __init__(self, duplo: DuploClient):
+        def __init__(self, duplo: DuploCtl):
           super().__init__(duplo)
           self.tenent_svc = duplo.service('tenant')
       ```
@@ -127,7 +127,7 @@ class DuploCtl():
 
     Usage: New Client From Environment
       ```python
-      duplo, args = DuploClient.from_env()
+      duplo, args = DuploCtl.from_env()
       ```
 
     Returns:

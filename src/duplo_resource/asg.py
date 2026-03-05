@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError
 from duplocloud.commander import Command, Resource
@@ -13,7 +13,7 @@ class DuploAsg(DuploResourceV2):
   See more details at: https://docs.duplocloud.com/docs/overview/use-cases/hosts-vms/auto-scaling/auto-scaling-groups
   """
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
   
   @Command()

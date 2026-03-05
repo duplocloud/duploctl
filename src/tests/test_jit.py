@@ -1,14 +1,14 @@
 import configparser
 import os
 import pytest
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 
 class TestJIT:
   
   @pytest.mark.integration
   @pytest.mark.order(10)
-  def test_admin_aws_jit(self, duplo: DuploClient):
+  def test_admin_aws_jit(self, duplo: DuploCtl):
     duplo.isadmin = True
     r = duplo.load("jit")
     try:
@@ -19,7 +19,7 @@ class TestJIT:
   
   @pytest.mark.integration
   @pytest.mark.order(10)
-  def test_user_aws_jit(self, duplo: DuploClient):
+  def test_user_aws_jit(self, duplo: DuploCtl):
     duplo.isadmin = False
     r = duplo.load("jit")
     try:
@@ -30,7 +30,7 @@ class TestJIT:
   
   @pytest.mark.integration
   @pytest.mark.order(10)
-  def test_user_k8s_context(self, duplo: DuploClient):
+  def test_user_k8s_context(self, duplo: DuploCtl):
     duplo.isadmin = False
     r = duplo.load("jit")
     try:
@@ -41,7 +41,7 @@ class TestJIT:
   
   @pytest.mark.integration
   @pytest.mark.order(10)
-  def test_admin_k8s_context(self, duplo: DuploClient):
+  def test_admin_k8s_context(self, duplo: DuploCtl):
     duplo.isadmin = True
     r = duplo.load("jit")
     try:
@@ -52,7 +52,7 @@ class TestJIT:
 
   @pytest.mark.integration
   @pytest.mark.order(10)
-  def test_update_aws_config_nonexistent_dir(self, duplo: DuploClient, tmp_path):
+  def test_update_aws_config_nonexistent_dir(self, duplo: DuploCtl, tmp_path):
     config_dir = tmp_path / "nonexistent" / "nested"
     config_file = config_dir / "config"
     os.environ["AWS_CONFIG_FILE"] = str(config_file)
@@ -71,7 +71,7 @@ class TestJIT:
 
   @pytest.mark.integration
   @pytest.mark.order(10)
-  def test_update_kubeconfig(self, duplo: DuploClient, tmp_path):
+  def test_update_kubeconfig(self, duplo: DuploCtl, tmp_path):
     kubeconfig_file = tmp_path / "config"
     os.environ["KUBECONFIG"] = str(kubeconfig_file)
     r = duplo.load("jit")
@@ -97,7 +97,7 @@ class TestJIT:
 
   @pytest.mark.integration
   @pytest.mark.order(10)
-  def test_update_kubeconfig_nonexistent_dir(self, duplo: DuploClient, tmp_path):
+  def test_update_kubeconfig_nonexistent_dir(self, duplo: DuploCtl, tmp_path):
     kube_dir = tmp_path / "nonexistent" / "nested" / ".kube"
     kubeconfig_file = kube_dir / "config"
     os.environ["KUBECONFIG"] = str(kubeconfig_file)
@@ -125,7 +125,7 @@ class TestJIT:
 
   @pytest.mark.integration
   @pytest.mark.order(10)
-  def test_update_aws_config(self, duplo: DuploClient, tmp_path):
+  def test_update_aws_config(self, duplo: DuploCtl, tmp_path):
     config_file = tmp_path / "config"
     os.environ["AWS_CONFIG_FILE"] = str(config_file)
     r = duplo.load("jit")

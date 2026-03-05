@@ -2,8 +2,8 @@
 HTTP request methods, and response validation after the client extension
 point refactor.
 
-The refactor split DuploClient into:
-- DuploCtl (IoC container, aliased as DuploClient) — no HTTP/auth methods
+The refactor split DuploCtl into:
+- DuploCtl (IoC container, aliased as DuploCtl) — no HTTP/auth methods
 - DuploAPI (duplocloud.client) — HTTP methods, token resolution, auth flow
 - DuploCache (duplo_resource.cache) — filesystem cache operations
 
@@ -18,7 +18,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock, PropertyMock, patch, call
 
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploExpiredCache, DuploConnectionError
 
 
@@ -55,12 +55,12 @@ def _past_expiration(hours=1):
 
 
 def _get_api(c):
-    """Get the DuploAPI instance from a DuploCtl/DuploClient."""
+    """Get the DuploAPI instance from a DuploCtl/DuploCtl."""
     return c.load_client("duplo")
 
 
 def _get_cache(c):
-    """Get the DuploCache instance from a DuploCtl/DuploClient."""
+    """Get the DuploCache instance from a DuploCtl/DuploCtl."""
     return c.load("cache")
 
 
@@ -74,41 +74,41 @@ class TestTokenProperty:
     """Tests for token resolution on the DuploAPI client."""
 
     def test_token_returns_provided_token(self):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         assert _get_api(c).token == TOKEN
 
     def test_token_strips_whitespace(self):
-        c = DuploClient(host=HOST, token="  tok  ")
+        c = DuploCtl(host=HOST, token="  tok  ")
         assert _get_api(c).token == "tok"
 
     def test_token_raises_when_no_host(self, mocker):
         config = "---\ncurrent-context: ctx\ncontexts:\n- name: ctx\n  tenant: t\n  token: t\n"
         mocker.patch("builtins.open", mocker.mock_open(read_data=config))
         mocker.patch("os.path.exists", return_value=True)
-        c = DuploClient()
+        c = DuploCtl()
         with pytest.raises(DuploError, match="Host"):
             _ = _get_api(c).token
 
     def test_token_raises_when_missing_and_not_interactive(self):
-        c = DuploClient(host=HOST)
+        c = DuploCtl(host=HOST)
         with pytest.raises(DuploError, match="Token"):
             _ = _get_api(c).token
 
     def test_token_calls_interactive_when_flag_set(self, mocker):
-        c = DuploClient(host=HOST, interactive=True)
+        c = DuploCtl(host=HOST, interactive=True)
         api = _get_api(c)
         mocker.patch.object(api, "interactive_token", return_value="itoken")
         assert api.token == "itoken"
 
     def test_token_ignores_provided_token_in_interactive_mode(self, mocker):
-        c = DuploClient(host=HOST, token="given", interactive=True)
+        c = DuploCtl(host=HOST, token="given", interactive=True)
         api = _get_api(c)
         mocker.patch.object(api, "interactive_token", return_value="interactive")
         # Constructor clears token when interactive=True
         assert api.token == "interactive"
 
     def test_token_is_lazy_not_called_until_accessed(self, mocker):
-        c = DuploClient(host=HOST, interactive=True)
+        c = DuploCtl(host=HOST, interactive=True)
         api = _get_api(c)
         mock_it = mocker.patch.object(api, "interactive_token", return_value="lazy")
         # Not accessed yet
@@ -128,7 +128,7 @@ class TestInteractiveTokenFlow:
     """Tests for DuploAPI.interactive_token()."""
 
     def test_returns_cached_when_valid(self, mocker):
-        c = DuploClient(host=HOST, interactive=True)
+        c = DuploCtl(host=HOST, interactive=True)
         api = _get_api(c)
         cache_data = {"DuploToken": "cached", "Expiration": _future_expiration()}
         mocker.patch.object(api.cache, "get", return_value=cache_data)
@@ -140,7 +140,7 @@ class TestInteractiveTokenFlow:
         mock_request.assert_not_called()
 
     def test_requests_fresh_when_cache_expired(self, mocker):
-        c = DuploClient(host=HOST, interactive=True)
+        c = DuploCtl(host=HOST, interactive=True)
         api = _get_api(c)
         cache_data = {"DuploToken": "old", "Expiration": _past_expiration()}
         mocker.patch.object(api.cache, "get", return_value=cache_data)
@@ -154,7 +154,7 @@ class TestInteractiveTokenFlow:
         mock_set.assert_called_once()
 
     def test_requests_fresh_when_no_cache_file(self, mocker):
-        c = DuploClient(host=HOST, interactive=True)
+        c = DuploCtl(host=HOST, interactive=True)
         api = _get_api(c)
         mocker.patch.object(
             api.cache, "get", side_effect=DuploExpiredCache("key")
@@ -168,7 +168,7 @@ class TestInteractiveTokenFlow:
         mock_set.assert_called_once()
 
     def test_skips_cache_when_nocache_flag(self, mocker):
-        c = DuploClient(host=HOST, interactive=True, nocache=True)
+        c = DuploCtl(host=HOST, interactive=True, nocache=True)
         api = _get_api(c)
         mock_get = mocker.patch.object(api.cache, "get")
         mock_set = mocker.patch.object(api.cache, "set")
@@ -180,7 +180,7 @@ class TestInteractiveTokenFlow:
         mock_set.assert_not_called()
 
     def test_caches_with_correct_structure(self, mocker):
-        c = DuploClient(host=HOST, interactive=True)
+        c = DuploCtl(host=HOST, interactive=True)
         api = _get_api(c)
         mocker.patch.object(
             api.cache, "get", side_effect=DuploExpiredCache("key")
@@ -218,7 +218,7 @@ class TestCachedToken:
     """Tests for DuploAPI.cached_token()."""
 
     def test_returns_token_when_not_expired(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         cache_data = {"DuploToken": "valid_tok", "Expiration": _future_expiration()}
         mocker.patch.object(api.cache, "get", return_value=cache_data)
@@ -226,7 +226,7 @@ class TestCachedToken:
         assert api.cached_token("key") == "valid_tok"
 
     def test_raises_when_expired(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         cache_data = {"DuploToken": "old_tok", "Expiration": _past_expiration()}
         mocker.patch.object(api.cache, "get", return_value=cache_data)
@@ -235,7 +235,7 @@ class TestCachedToken:
             api.cached_token("key")
 
     def test_raises_when_missing_expiration_key(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         cache_data = {"DuploToken": "tok"}  # No Expiration
         mocker.patch.object(api.cache, "get", return_value=cache_data)
@@ -243,7 +243,7 @@ class TestCachedToken:
             api.cached_token("key")
 
     def test_raises_when_missing_token_key(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         cache_data = {"Expiration": _future_expiration()}  # No DuploToken
         mocker.patch.object(api.cache, "get", return_value=cache_data)
@@ -251,7 +251,7 @@ class TestCachedToken:
             api.cached_token("key")
 
     def test_raises_when_cache_file_missing(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch.object(
             api.cache, "get", side_effect=DuploExpiredCache("key")
@@ -270,7 +270,7 @@ class TestRequestToken:
     """Tests for DuploAPI.request_token()."""
 
     def test_opens_browser_with_correct_url(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_server = MagicMock()
         mock_server.server_port = 12345
@@ -289,7 +289,7 @@ class TestRequestToken:
         assert "isAdmin=false" in page_arg
 
     def test_passes_admin_flag(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN, isadmin=True)
+        c = DuploCtl(host=HOST, token=TOKEN, isadmin=True)
         api = _get_api(c)
         mock_server = MagicMock()
         mock_server.server_port = 12345
@@ -304,7 +304,7 @@ class TestRequestToken:
         assert "isAdmin=true" in page_arg
 
     def test_passes_browser_param(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN, browser="firefox")
+        c = DuploCtl(host=HOST, token=TOKEN, browser="firefox")
         api = _get_api(c)
         mock_server = MagicMock()
         mock_server.server_port = 12345
@@ -319,7 +319,7 @@ class TestRequestToken:
         assert browser_arg == "firefox"
 
     def test_returns_server_token(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_server = MagicMock()
         mock_server.server_port = 12345
@@ -332,7 +332,7 @@ class TestRequestToken:
         assert result == "browsertoken"
 
     def test_handles_keyboard_interrupt(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_server = MagicMock()
         mock_server.server_port = 12345
@@ -355,41 +355,41 @@ class TestCacheUtilities:
     """Tests for DuploCache: key_for, expired, expiration, get, set."""
 
     def test_cache_key_for_basic(self):
-        c = DuploClient(host="https://portal.duplo.com", token=TOKEN)
+        c = DuploCtl(host="https://portal.duplo.com", token=TOKEN)
         cache = _get_cache(c)
         key = cache.key_for("duplo-creds")
         assert key == "portal.duplo.com,duplo-creds"
 
     def test_cache_key_for_with_admin(self):
-        c = DuploClient(host="https://portal.duplo.com", token=TOKEN, isadmin=True)
+        c = DuploCtl(host="https://portal.duplo.com", token=TOKEN, isadmin=True)
         cache = _get_cache(c)
         key = cache.key_for("duplo-creds")
         assert key == "portal.duplo.com,admin,duplo-creds"
 
     def test_cache_key_for_strips_scheme(self):
-        c = DuploClient(host="https://portal.duplo.com", token=TOKEN)
+        c = DuploCtl(host="https://portal.duplo.com", token=TOKEN)
         cache = _get_cache(c)
         key = cache.key_for("test")
         assert "https://" not in key
         assert "portal.duplo.com" in key
 
     def test_expired_with_none_returns_true(self):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         cache = _get_cache(c)
         assert cache.expired(None) is True
 
     def test_expired_with_future_returns_false(self):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         cache = _get_cache(c)
         assert cache.expired(_future_expiration()) is False
 
     def test_expired_with_past_returns_true(self):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         cache = _get_cache(c)
         assert cache.expired(_past_expiration()) is True
 
     def test_expiration_returns_future_iso8601(self):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         cache = _get_cache(c)
         exp_str = cache.expiration(1)
         exp_dt = datetime.fromisoformat(exp_str)
@@ -399,7 +399,7 @@ class TestCacheUtilities:
         assert 3595 < diff < 3605
 
     def test_expiration_custom_hours(self):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         cache = _get_cache(c)
         exp_str = cache.expiration(2)
         exp_dt = datetime.fromisoformat(exp_str)
@@ -409,7 +409,7 @@ class TestCacheUtilities:
 
     def test_get_reads_json_file(self, tmp_path):
         cache_dir = str(tmp_path)
-        c = DuploClient(host=HOST, token=TOKEN, cache_dir=cache_dir)
+        c = DuploCtl(host=HOST, token=TOKEN, cache_dir=cache_dir)
         cache = _get_cache(c)
         data = {"foo": "bar", "num": 42}
         # Write directly to filesystem
@@ -419,13 +419,13 @@ class TestCacheUtilities:
         assert result == data
 
     def test_get_raises_when_file_missing(self, tmp_path):
-        c = DuploClient(host=HOST, token=TOKEN, cache_dir=str(tmp_path))
+        c = DuploCtl(host=HOST, token=TOKEN, cache_dir=str(tmp_path))
         cache = _get_cache(c)
         with pytest.raises(DuploExpiredCache):
             cache.get("nonexistent")
 
     def test_get_raises_on_malformed_json(self, tmp_path):
-        c = DuploClient(host=HOST, token=TOKEN, cache_dir=str(tmp_path))
+        c = DuploCtl(host=HOST, token=TOKEN, cache_dir=str(tmp_path))
         cache = _get_cache(c)
         with open(tmp_path / "bad.json", "w") as f:
             f.write("not valid json {{{")
@@ -434,7 +434,7 @@ class TestCacheUtilities:
 
     def test_set_writes_json_file(self, tmp_path):
         cache_dir = str(tmp_path)
-        c = DuploClient(host=HOST, token=TOKEN, cache_dir=cache_dir)
+        c = DuploCtl(host=HOST, token=TOKEN, cache_dir=cache_dir)
         cache = _get_cache(c)
         data = {"key": "value"}
         cache.set("mykey", data)
@@ -444,7 +444,7 @@ class TestCacheUtilities:
     def test_set_creates_cache_dir(self, tmp_path):
         cache_dir = str(tmp_path / "new_cache_dir")
         assert not os.path.exists(cache_dir)
-        c = DuploClient(host=HOST, token=TOKEN, cache_dir=cache_dir)
+        c = DuploCtl(host=HOST, token=TOKEN, cache_dir=cache_dir)
         cache = _get_cache(c)
         cache.set("test", {"a": 1})
         assert os.path.exists(cache_dir)
@@ -461,7 +461,7 @@ class TestHTTPMethods:
     """Tests for DuploAPI.get/post/put/delete and _request."""
 
     def test_get_calls_request_with_get_method(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -474,7 +474,7 @@ class TestHTTPMethods:
         assert method == "GET"
 
     def test_get_constructs_correct_url(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -486,7 +486,7 @@ class TestHTTPMethods:
         assert url == f"{HOST}/api/v3/resource"
 
     def test_get_includes_auth_headers(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -499,7 +499,7 @@ class TestHTTPMethods:
         assert headers["Content-Type"] == "application/json"
 
     def test_get_includes_timeout(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -511,7 +511,7 @@ class TestHTTPMethods:
         assert timeout == 60
 
     def test_post_sends_json_data(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -523,7 +523,7 @@ class TestHTTPMethods:
         assert json_data == {"key": "val"}
 
     def test_put_sends_json_data(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -535,7 +535,7 @@ class TestHTTPMethods:
         assert json_data == {"update": True}
 
     def test_delete_calls_correct_method(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -547,7 +547,7 @@ class TestHTTPMethods:
         assert method == "DELETE"
 
     def test_get_caches_identical_requests(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -559,7 +559,7 @@ class TestHTTPMethods:
         assert mock_req.call_count == 1
 
     def test_get_cache_different_paths_not_cached(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_req = mocker.patch(
             "duplocloud.client.requests.request",
@@ -570,7 +570,7 @@ class TestHTTPMethods:
         assert mock_req.call_count == 2
 
     def test_request_raises_on_timeout(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch(
             "duplocloud.client.requests.request",
@@ -580,7 +580,7 @@ class TestHTTPMethods:
             api.get("path")
 
     def test_request_raises_on_connection_error(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch(
             "duplocloud.client.requests.request",
@@ -590,7 +590,7 @@ class TestHTTPMethods:
             api.post("path", {})
 
     def test_request_raises_on_request_exception(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch(
             "duplocloud.client.requests.request",
@@ -611,7 +611,7 @@ class TestResponseValidation:
     get/post since _validate_response is private."""
 
     def test_response_200_returns_response(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_resp = _make_response(200)
         mocker.patch("duplocloud.client.requests.request", return_value=mock_resp)
@@ -619,7 +619,7 @@ class TestResponseValidation:
         assert result == mock_resp
 
     def test_response_201_returns_response(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_resp = _make_response(201)
         mocker.patch("duplocloud.client.requests.request", return_value=mock_resp)
@@ -627,7 +627,7 @@ class TestResponseValidation:
         assert result == mock_resp
 
     def test_response_404_raises_not_found(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch(
             "duplocloud.client.requests.request",
@@ -638,7 +638,7 @@ class TestResponseValidation:
         assert exc_info.value.code == 404
 
     def test_response_401_raises_auth_error(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch(
             "duplocloud.client.requests.request",
@@ -649,7 +649,7 @@ class TestResponseValidation:
         assert exc_info.value.code == 401
 
     def test_response_403_raises_unauthorized(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch(
             "duplocloud.client.requests.request",
@@ -661,7 +661,7 @@ class TestResponseValidation:
         assert "Unauthorized" in str(exc_info.value.message)
 
     def test_response_400_raises_error(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch(
             "duplocloud.client.requests.request",
@@ -672,7 +672,7 @@ class TestResponseValidation:
         assert exc_info.value.code == 400
 
     def test_response_500_raises_error(self, mocker):
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mocker.patch(
             "duplocloud.client.requests.request",
@@ -699,25 +699,25 @@ class TestConstructorEdgeCases:
         )
         mocker.patch("builtins.open", mocker.mock_open(read_data=config))
         mocker.patch("os.path.exists", return_value=True)
-        c = DuploClient(host="https://explicit.com", token="explicit", ctx="myctx")
+        c = DuploCtl(host="https://explicit.com", token="explicit", ctx="myctx")
         # ctx overrides: host comes from context, not from explicit arg
         assert c.host == "https://ctx.host.com"
         assert _get_api(c).token == "ctxtoken"
 
     def test_interactive_flag_clears_token(self, mocker):
-        c = DuploClient(host=HOST, token="given", interactive=True)
+        c = DuploCtl(host=HOST, token="given", interactive=True)
         api = _get_api(c)
         mocker.patch.object(api, "interactive_token", return_value="interactive")
         # token arg was cleared by interactive flag
         assert api.token == "interactive"
 
     def test_tenant_id_clears_tenant_name(self):
-        c = DuploClient(host=HOST, token=TOKEN, tenant="myname", tenant_id="tid123")
+        c = DuploCtl(host=HOST, token=TOKEN, tenant="myname", tenant_id="tid123")
         assert c.tenant is None
         assert c.tenantid == "tid123"
 
     def test_from_creds_sets_all_fields(self):
-        c = DuploClient.from_creds("https://x.com", "tok", "ten")
+        c = DuploCtl.from_creds("https://x.com", "tok", "ten")
         assert c.host == "https://x.com"
         assert _get_api(c).token == "tok"
         assert c.tenant == "ten"
@@ -734,7 +734,7 @@ class TestFullAuthFlow:
 
     def test_full_flow_token_from_env(self, mocker):
         """Client with explicit host+token makes a GET with correct auth."""
-        c = DuploClient(host=HOST, token=TOKEN)
+        c = DuploCtl(host=HOST, token=TOKEN)
         api = _get_api(c)
         mock_resp = _make_response(200, json_data={"result": "ok"})
         mock_req = mocker.patch(
@@ -750,7 +750,7 @@ class TestFullAuthFlow:
 
     def test_full_flow_interactive_cached(self, mocker):
         """Interactive mode with valid cache: uses cached token, no browser."""
-        c = DuploClient(host=HOST, interactive=True)
+        c = DuploCtl(host=HOST, interactive=True)
         api = _get_api(c)
         cache_data = {"DuploToken": "cached_tok", "Expiration": _future_expiration()}
         mocker.patch.object(api.cache, "get", return_value=cache_data)
@@ -771,7 +771,7 @@ class TestFullAuthFlow:
 
     def test_full_flow_interactive_expired_cache(self, mocker):
         """Interactive mode with expired cache: opens browser, caches new token."""
-        c = DuploClient(host=HOST, interactive=True)
+        c = DuploCtl(host=HOST, interactive=True)
         api = _get_api(c)
         expired_cache = {"DuploToken": "old", "Expiration": _past_expiration()}
         mocker.patch.object(api.cache, "get", return_value=expired_cache)
@@ -804,7 +804,7 @@ class TestFullAuthFlow:
 
     def test_full_flow_interactive_nocache(self, mocker):
         """Interactive mode with nocache: opens browser, never reads/writes cache."""
-        c = DuploClient(host=HOST, interactive=True, nocache=True)
+        c = DuploCtl(host=HOST, interactive=True, nocache=True)
         api = _get_api(c)
         mock_get_cache = mocker.patch.object(api.cache, "get")
         mock_set_cache = mocker.patch.object(api.cache, "set")

@@ -1,5 +1,5 @@
 import pytest
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from .conftest import get_test_data
 
@@ -11,7 +11,7 @@ class TestCronjobs:
     name="update_cronjob_image",
     depends=["find_tenant_resource"],
     scope='session')
-  def test_update_image(self, duplo: DuploClient):
+  def test_update_image(self, duplo: DuploCtl):
     kind = "cronjob"
     r = duplo.load(kind)
     body = get_test_data(kind)
@@ -29,7 +29,7 @@ class TestCronjobs:
     name="update_cronjob_schedule",
     depends=["find_tenant_resource"],
     scope='session')
-  def test_update_schedule(self, duplo: DuploClient):
+  def test_update_schedule(self, duplo: DuploCtl):
     kind = "cronjob"
     r = duplo.load(kind)
     body = get_test_data(kind)
@@ -44,7 +44,7 @@ class TestCronjobs:
   @pytest.mark.integration
   @pytest.mark.order(7)
   @pytest.mark.dependency(name="is_any_host_allowed", depends=["find_tenant_resource"], scope='session')
-  def test_is_any_host_allowed_true(self, duplo: DuploClient):
+  def test_is_any_host_allowed_true(self, duplo: DuploCtl):
     kind = "cronjob"
     r = duplo.load(kind)
     body = get_test_data(kind)
@@ -65,7 +65,7 @@ class TestCronjobs:
   @pytest.mark.integration
   @pytest.mark.order(8)
   @pytest.mark.dependency(name="is_any_host_allowed", depends=["find_tenant_resource"], scope='session')
-  def test_is_any_host_allowed_false(self, duplo: DuploClient):
+  def test_is_any_host_allowed_false(self, duplo: DuploCtl):
     kind = "cronjob"
     r = duplo.load(kind)
     body = get_test_data(kind)

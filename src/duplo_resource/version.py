@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.commander import Resource
 from importlib.metadata import version
 
@@ -16,7 +16,7 @@ class DuploVersion():
   Returns:
     version (dict): The Duplo version.
   """
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     self.duplo = duplo
     self.paths = {
       "ui": "build-metadata.json", 

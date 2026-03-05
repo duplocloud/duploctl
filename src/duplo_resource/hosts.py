@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
 from duplocloud.commander import Command, Resource
@@ -16,7 +16,7 @@ class DuploHosts(DuploResourceV2):
   See more details at: https://docs.duplocloud.com/docs/welcome-to-duplocloud/application-focussed-interface/duplocloud-common-components/hosts
   """
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
     self.paths = {
       "list": "GetNativeHosts"

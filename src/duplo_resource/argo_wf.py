@@ -1,5 +1,5 @@
 import requests
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
@@ -19,7 +19,7 @@ class DuploArgoWorkflow(DuploResource):
     ```
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
     self._tenant = None
     self._tenant_id = None

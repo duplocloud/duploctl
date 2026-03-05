@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Resource
 
@@ -11,7 +11,7 @@ class DuploStorageClass(DuploResourceV3):
   See  
    - https://docs.duplocloud.com/docs/overview/aws-services/storage/adding-k8s-storage-class
   """
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "k8s/storageclass")
 
   def name_from_body(self, body):

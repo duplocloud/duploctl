@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -9,7 +9,7 @@ class DuploCronJob(DuploResourceV3):
   Duplo CronJob are scheduled jobs that run containers in a Kubernetes cluster.
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "k8s/cronJob")
 
   @Command()

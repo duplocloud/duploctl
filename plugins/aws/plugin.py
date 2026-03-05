@@ -1,7 +1,7 @@
 import glob
 import os
 import time
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Resource, Command
@@ -12,7 +12,7 @@ from multiprocessing.pool import ThreadPool
 @Resource("aws")
 class DuploAWS(DuploResource):
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
     self.__creds = None
     self.__region = None

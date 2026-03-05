@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploStillWaiting
 from duplocloud.commander import Command, Resource
@@ -12,7 +12,7 @@ class DuploEcsService(DuploResourceV2):
   
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
 
   @Command()

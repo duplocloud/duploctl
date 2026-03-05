@@ -2,7 +2,7 @@ import random
 import pytest
 import time
 
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from tests.conftest import get_test_data
 
@@ -128,7 +128,7 @@ def test_tenant_create_model_annotation():
 @pytest.mark.unit
 def test_validate_tenant_yaml():
   """validate_model accepts tenant.yaml test data against AddTenantRequest"""
-  duplo = DuploClient(host="https://example.duplocloud.net")
+  duplo = DuploCtl(host="https://example.duplocloud.net")
   model_cls = duplo.load_model("AddTenantRequest")
   data = get_test_data("tenant")
   result = duplo.validate_model(model_cls, data)

@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploExpiredCache
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
@@ -29,7 +29,7 @@ class DuploJit(DuploResource):
     duploctl jit <action>
     ```
   """
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
     self.cache = duplo.load("cache")
 

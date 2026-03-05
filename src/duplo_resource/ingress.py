@@ -1,4 +1,4 @@
-from duplocloud.controller import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.errors import DuploError
 from duplocloud.commander import Resource, Command
@@ -13,7 +13,7 @@ class DuploIngress(DuploResourceV3):
   See more details at: https://docs.duplocloud.com/docs/kubernetes-overview/ingress-loadbalancer
   """
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "k8s/ingress")
 
   def name_from_body(self, body):
