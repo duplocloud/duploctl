@@ -154,71 +154,26 @@ def model_schema_filter(model_name):
     return json.dumps(model_cls.model_json_schema(by_alias=True), indent=2)
   return None
 
-def _arg_name_map():
-  """Build a reverse lookup from Arg.__name__ to the Python variable name in args module."""
-  result = {}
-  for var_name in dir(args):
-    obj = getattr(args, var_name)
-    if isinstance(obj, Arg):
-      result[obj.__name__] = var_name
-  return result
-
-_args_ref_map = _arg_name_map()
-
-def command_args_filter(function_path, model=None):
-  """Extract CLI arg metadata from a command method.
-
-  Takes a dotted function path (e.g. 'duplocloud.resource.DuploResourceV3.create')
-  and returns a list of arg dicts for the template.
-  """
+def command_args_filter(function_path):
+  """Extract Arg objects from a command method for the template."""
   parts = function_path.rsplit('.', 2)
   if len(parts) < 3:
     return []
-  module_path = parts[0]
-  cls_name = parts[1]
-  method_name = parts[2]
   try:
-    mod = importlib.import_module(module_path)
-    cls = getattr(mod, cls_name, None)
-    if cls is None:
-      return []
-    fn = getattr(cls, method_name, None)
-    if fn is None:
-      return []
-    extracted = extract_args(fn)
+    mod = importlib.import_module(parts[0])
+    cls = getattr(mod, parts[1], None)
+    fn = getattr(cls, parts[2], None) if cls else None
+    return extract_args(fn) if fn else []
   except Exception:
     return []
-  result = []
-  for a in extracted:
-    action_raw = a.attributes.get("action")
-    if isinstance(action_raw, str):
-      action = action_raw
-    elif action_raw is not None:
-      action = getattr(action_raw, "__name__", str(action_raw))
-    else:
-      action = None
-    flags = list(dict.fromkeys(a.flags))
-    type_name = a.type_name
-    if model and a.__name__ == "file":
-      type_name = model
-    var_name = _args_ref_map.get(a.__name__)
-    args_anchor = f"duplocloud.args.{var_name}" if var_name else None
-    result.append({
-      "name": a.__name__,
-      "flags": flags,
-      "positional": a.positional,
-      "type_name": type_name,
-      "default": a.default,
-      "env": a.env,
-      "help": a.attributes.get("help", ""),
-      "required": a.attributes.get("required", False),
-      "action": action,
-      "choices": a.attributes.get("choices"),
-      "nargs": a.attributes.get("nargs"),
-      "metavar": a.attributes.get("metavar"),
-      "args_anchor": args_anchor,
-    })
-  return result
+
+def args_ref_filter(arg):
+  """Map an Arg to its Args.md anchor (e.g. duplocloud.args.HOST)."""
+  for var_name in dir(args):
+    obj = getattr(args, var_name)
+    if isinstance(obj, Arg) and obj.__name__ == arg.__name__:
+      return f"duplocloud.args.{var_name}"
+  return None
 
 def on_startup(**kwargs):
   global version
@@ -237,6 +192,7 @@ def on_startup(**kwargs):
   FILTERS['string_or_class_name'] = string_or_class_name_filter
   FILTERS['model_schema'] = model_schema_filter
   FILTERS['command_args'] = command_args_filter
+  FILTERS['args_ref'] = args_ref_filter
 
 def on_config(config):
   copy_static()
