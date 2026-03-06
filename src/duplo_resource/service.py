@@ -585,7 +585,7 @@ class DuploService(DuploResourceV2):
       if self.duplo.wait:
         wait_list.append({
           "old": service,
-          "updated": payload_item
+          "updates": payload_item
         })
 
     self.client.post(self.endpoint("ReplicationControllerBulkChangeAll"), payload)

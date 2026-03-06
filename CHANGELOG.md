@@ -20,12 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### New Client Extension Points
 
-This release introduces a brand new entry point called @Clients for the project. @Clients are like @Resources in how they are registered in the pyproject.toml. This enables the project to isolate the client and authentication functionality and opens the door to using new clients like argo and openapi. 
+This release introduces a brand new entry point called @Clients for the project. @Clients are like @Resources in how they are registered in the pyproject.toml. This enables the project to isolate the client and authentication functionality and opens the door to using new clients like argo and openapi.
 
-Biggest change here is now instead of `self.duplo.get` you do `self.client.get` for making an http call. 
+Biggest change here is now instead of `self.duplo.get` you do `self.client.get` for making an http call.
 
 ### Fixed
 
+- Fixed "updates" parameter on call to wait in bulk image updates.
 - Updated GitHub workflow action versions (artifact actions, Docker Hub description, auto-assign) and migrated Slack notify step to `slack-github-action@v2`.
 - Fixed `--wait` failing permanently when a transient network error (DNS failure, TCP timeout) occurs during polling. Introduced `DuploConnectionError` as a dedicated subclass of `DuploError` for network-level failures; the `wait` loop now retries on `DuploConnectionError` instead of propagating it. Server-side HTTP errors still surface immediately.
 - Fixed `batch_definition update_image` docstring showing incorrect `--image <image>` flag syntax — the `image` argument is positional, so the correct usage is `duploctl batch_definition update_image <name> <image>`
@@ -84,7 +85,7 @@ Biggest change here is now instead of `self.duplo.get` you do `self.client.get` 
 - added a wait timeout for the global wait operation.
 - updated wait logic to validate new image instead of not old image
 - added additional debug logging around wait functionality
-- added a wait timeout for the global wait operation. 
+- added a wait timeout for the global wait operation.
 - Argo workflow related imporvements
 
 ### Fixed
