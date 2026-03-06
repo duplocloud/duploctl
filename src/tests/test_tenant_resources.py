@@ -29,9 +29,10 @@ class TestTenantResources:
     start_time = time.time()
     print(f"Creating {kind} '{name}' in '{tenant}'")
     # For some reason you'll get a 409 a bunch of times until the tenant is actually ready.
+    r.duplo.wait = True
     while True:
       try:
-        r.create(data, wait=True)
+        r.create(data)
         print(f"{kind} '{name}' created in '{tenant}'")
         break
       except DuploError as e:

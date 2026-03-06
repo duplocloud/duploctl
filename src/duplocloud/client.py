@@ -4,6 +4,12 @@ from duplocloud.commander import Client
 from duplocloud.errors import DuploError, DuploExpiredCache, DuploConnectionError
 from duplocloud.server import TokenServer
 
+
+class _NullCache(dict):
+    """A cache that never stores anything, effectively disabling caching."""
+    def __setitem__(self, key, value):
+        pass  # never store
+
 @Client("duplo")
 class DuploAPI():
   """Duplo API Client
@@ -130,7 +136,7 @@ class DuploAPI():
 
   def disable_get_cache(self) -> None:
     """Disable the get cache for this client."""
-    self._ttl_cache = None
+    self._ttl_cache = _NullCache()
 
   def _headers(self) -> dict:
     t = self.token

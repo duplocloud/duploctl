@@ -46,12 +46,13 @@ class TestTenant:
         pytest.skip(f"Tenant '{name}' already exists")
     except DuploError as e:
       pass
+    duplo.wait = True
     try:
       t.create({
         "AccountName": name,
         "PlanID": infra_name,
         "TenantBlueprint": None
-      }, wait=True)
+      })
       print(f"Tenant '{name}' created")
     except DuploError as e:
       pytest.fail(f"Failed to create tenant: {e}")

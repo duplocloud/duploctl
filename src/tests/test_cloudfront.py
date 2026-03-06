@@ -23,7 +23,7 @@ def execute_test(func, *args, **kwargs):
 class TestCloudFront:
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_cloudfront", scope="class")
+    @pytest.mark.dependency(name="create_cloudfront", scope="session")
     @pytest.mark.order(5)
     def test_create_cloudfront(self, cloudfront_resource, request):
         """Test creating a CloudFront distribution and store ID at class level."""
@@ -36,7 +36,7 @@ class TestCloudFront:
         print(f"CloudFront Created! ID: {request.cls.cloudfront_id}")
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_cloudfront"], scope="class")
+    @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
     @pytest.mark.order(6)
     def test_update_cloudfront(self, cloudfront_resource, request):
         """Test updating a CloudFront distribution using stored CloudFront ID."""

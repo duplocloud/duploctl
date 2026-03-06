@@ -45,21 +45,22 @@ class TestInfra:
       pass
     name = infra_name
     print(f"Creating infra '{name}'")
+    duplo.wait = True
     try:
       r.create({
         "Name": name,
         "Accountid": "",
         "EnableK8Cluster": True,
         "AzCount": 2,
-        "Vnet": { 
-          "SubnetCidr": 22, 
+        "Vnet": {
+          "SubnetCidr": 22,
           "AddressPrefix": f"11.1{vnum}0.0.0/16"
         },
         "Cloud": 0,
         "OnPremConfig": None,
         "Region": "us-east-2",
         "CustomData": [],
-      }, wait=True)
+      })
     except DuploFailedResource as e:
       pytest.fail(f"Infrastructure is in a failed state: {e}")
     except DuploError as e:
