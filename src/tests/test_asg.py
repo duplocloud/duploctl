@@ -19,11 +19,13 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.aws
+@pytest.mark.k8s
 class TestAsg:
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_asg", scope="session")
-    @pytest.mark.order(1)
+    @pytest.mark.dependency(name="create_asg", depends=["create_tenant"], scope="session")
+    @pytest.mark.order(30)
     def test_create_asg(self, asg_resource):
         r, asg_name = asg_resource
         body = get_test_data("asg")
@@ -32,8 +34,8 @@ class TestAsg:
         time.sleep(60)
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(2)
+    @pytest.mark.dependency(name="find_asg", depends=["create_asg"], scope="session")
+    @pytest.mark.order(31)
     def test_find_asg(self, asg_resource):
         r, asg_name = asg_resource
         asg = execute_test(r.find, asg_name)
@@ -41,7 +43,7 @@ class TestAsg:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(3)
+    @pytest.mark.order(32)
     def test_update_asg(self, asg_resource):
         r, asg_name = asg_resource
         body = {"FriendlyName": asg_name, "MinSize": 2, "MaxSize": 3}
@@ -50,15 +52,15 @@ class TestAsg:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(4)
+    @pytest.mark.order(33)
     def test_list_asgs(self, asg_resource):
         r, _ = asg_resource
         asgs = execute_test(r.list)
         assert isinstance(asgs, list) and len(asgs) > 0
         
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(depends=["find_asg"], scope="session")
+    @pytest.mark.order(34)
     def test_update_allocation_tags(self, asg_resource):
         r, asg_name = asg_resource
         test_tags = "duploctl"
@@ -66,16 +68,16 @@ class TestAsg:
         assert "Successfully updated allocation tag for asg" in response["message"]
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(depends=["find_asg"], scope="session")
+    @pytest.mark.order(34)
     def test_scale_asg(self, asg_resource):
         r, asg_name = asg_resource
         response = execute_test(r.scale, asg_name, min=1, max=2)
         assert "Successfully updated asg" in response["message"]
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(depends=["find_asg"], scope="session")
+    @pytest.mark.order(34)
     def test_scale_asg_min_zero(self, asg_resource):
         """Test scaling ASG with minimum size of 0."""
         r, asg_name = asg_resource
@@ -83,8 +85,8 @@ class TestAsg:
         assert "Successfully updated asg" in response["message"]
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(depends=["find_asg"], scope="session")
+    @pytest.mark.order(34)
     def test_scale_asg_max_zero(self, asg_resource):
         """Test scaling ASG with maximum size of 0."""
         r, asg_name = asg_resource
@@ -92,8 +94,8 @@ class TestAsg:
         assert "Successfully updated asg" in response["message"]
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(depends=["find_asg"], scope="session")
+    @pytest.mark.order(34)
     def test_scale_asg_both_zero(self, asg_resource):
         """Test scaling ASG with both min and max size of 0."""
         r, asg_name = asg_resource
@@ -101,8 +103,8 @@ class TestAsg:
         assert "Successfully updated asg" in response["message"]
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(depends=["find_asg"], scope="session")
+    @pytest.mark.order(34)
     def test_scale_asg_no_params_error(self, asg_resource):
         """Test that scaling ASG with no parameters raises an error."""
         r, asg_name = asg_resource
@@ -110,8 +112,8 @@ class TestAsg:
             r.scale(asg_name)
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_asg"], scope="session")
-    @pytest.mark.order(6)
+    @pytest.mark.dependency(depends=["find_asg"], scope="session")
+    @pytest.mark.order(993)
     def test_delete_asg(self, asg_resource):
         r, _ = asg_resource
         response = execute_test(r.delete, "duploctl")

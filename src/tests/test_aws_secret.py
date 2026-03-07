@@ -393,11 +393,12 @@ def test_prefixed_name_unprefixed(aws_secret):
     assert aws_secret.prefixed_name("secret") != "secret"
 
 
+@pytest.mark.aws
 class TestAwsSecret:
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_secret", scope="session")
-    @pytest.mark.order(1)
+    @pytest.mark.dependency(name="create_aws_secret", depends=["find_tenant_resource"], scope="session")
+    @pytest.mark.order(100)
     def test_create_secret(self, aws_secret_resource):
         """Test creating an AWS secret."""
         r, secret_name = aws_secret_resource
@@ -406,8 +407,8 @@ class TestAwsSecret:
         time.sleep(10)
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_secret"], scope="session")
-    @pytest.mark.order(2)
+    @pytest.mark.dependency(depends=["create_aws_secret"], scope="session")
+    @pytest.mark.order(101)
     def test_find_secret(self, aws_secret_resource):
         """Test finding the created AWS secret."""
         r, secret_name = aws_secret_resource
@@ -416,8 +417,8 @@ class TestAwsSecret:
         assert secret["SecretString"] == '{"foo": "bar"}'
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_secret"], scope="session")
-    @pytest.mark.order(3)
+    @pytest.mark.dependency(depends=["create_aws_secret"], scope="session")
+    @pytest.mark.order(102)
     def test_update_secret(self, aws_secret_resource):
         """Test updating an AWS secret and verifying the update."""
         r, secret_name = aws_secret_resource
@@ -429,8 +430,8 @@ class TestAwsSecret:
         assert updated_secret["SecretString"] == new_value
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_secret"], scope="session")
-    @pytest.mark.order(4)
+    @pytest.mark.dependency(depends=["create_aws_secret"], scope="session")
+    @pytest.mark.order(993)
     def test_delete_secret(self, aws_secret_resource):
         """Test deleting an AWS secret."""
         r, secret_name = aws_secret_resource

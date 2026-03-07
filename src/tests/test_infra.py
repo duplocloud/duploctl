@@ -5,6 +5,9 @@ import random
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploFailedResource
 
+@pytest.mark.k8s
+@pytest.mark.aws
+@pytest.mark.ecs
 class TestInfra:
 
   # def setup_class(self):
@@ -12,6 +15,7 @@ class TestInfra:
   #   self.infra_name = f"duploctl{inc}"
 
   @pytest.mark.integration
+  @pytest.mark.order(2)
   def test_listing_infrastructures(self, duplo: DuploCtl):
     r = duplo.load("infrastructure")
     try:
@@ -20,6 +24,7 @@ class TestInfra:
       pytest.fail(f"Failed to list infrastructures: {e}")
 
   @pytest.mark.integration
+  @pytest.mark.order(2)
   def test_finding_infra(self, duplo: DuploCtl):
     r = duplo.load("tenant")
     try:
@@ -31,17 +36,16 @@ class TestInfra:
   @pytest.mark.integration
   @pytest.mark.dependency(name = "create_infra", scope='session')
   @pytest.mark.order(1)
-  def test_creating_infrastructures(self, duplo: DuploCtl, infra_name: str, e2e: bool):
+  def test_creating_infrastructures(self, duplo: DuploCtl, infra_name: str):
     r = duplo.load("infrastructure")
     vnum = math.ceil(random.randint(1, 9))
-    if e2e:
-      duplo.tenant = infra_name
-    # check if the infra already exists
+    # check if the infra already exists — pass without creating if it does
     try:
       i = r.find(infra_name)
       if i:
-        pytest.skip(f"Infrastructure '{infra_name}' already exists")
-    except DuploError as e:
+        print(f"Infrastructure '{infra_name}' already exists")
+        return
+    except DuploError:
       pass
     name = infra_name
     print(f"Creating infra '{name}'")
@@ -69,9 +73,10 @@ class TestInfra:
   @pytest.mark.integration
   @pytest.mark.dependency(depends=["create_infra"], scope='session')
   @pytest.mark.order(999)
-  def test_find_delete_infra(self, duplo: DuploCtl, infra_name: str):
+  def test_find_delete_infra(self, duplo: DuploCtl, infra_name: str, owns_infra: bool):
+    if not owns_infra:
+      pytest.skip(f"Infrastructure '{infra_name}' was pre-existing — not destroying")
     r = duplo.load("infrastructure")
-    # name = self.infra_name
     name = infra_name
     print(f"Deleting infra '{name}'")
     try:

@@ -18,22 +18,31 @@ def execute_test(func, *args, **kwargs):
     except (DuploError, DuploFailedResource, DuploStillWaiting) as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.k8s
 class TestJob:
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_job", scope="session")
-    @pytest.mark.order(1)
+    @pytest.mark.dependency(name="create_job", depends=["find_asg"], scope="session")
+    @pytest.mark.order(75)
     def test_create_job(self, job_resource):
         """Test creating a new job."""
         r, job_name = job_resource
         body = get_test_data("job")
+        # If the job already exists from a prior run, delete it first.
+        try:
+            existing = r.find(job_name)
+            if existing:
+                print(f"Job '{job_name}' already exists — deleting before recreate")
+                r.delete(job_name)
+        except DuploError:
+            pass
         response = execute_test(r.create, body=body)
         assert "ran successfully" in response["message"]
         time.sleep(30)  # Allow time for pods to be created
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_job"], scope="session")
-    @pytest.mark.order(2)
+    @pytest.mark.order(76)
     def test_find_job(self, job_resource):
         """Test finding a specific job."""
         r, job_name = job_resource
@@ -42,7 +51,7 @@ class TestJob:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_job"], scope="session")
-    @pytest.mark.order(3)
+    @pytest.mark.order(76)
     def test_list_jobs(self, job_resource):
         """Test listing all jobs."""
         r, _ = job_resource
@@ -51,7 +60,7 @@ class TestJob:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_job"], scope="session")
-    @pytest.mark.order(4)
+    @pytest.mark.order(76)
     def test_get_pods(self, job_resource):
         """Test getting pods for a job."""
         r, job_name = job_resource
@@ -63,7 +72,7 @@ class TestJob:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_job"], scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.order(993)
     def test_delete_job(self, job_resource):
         """Test deleting a job."""
         r, job_name = job_resource

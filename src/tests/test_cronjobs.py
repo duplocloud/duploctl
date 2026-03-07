@@ -3,10 +3,11 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from .conftest import get_test_data
 
+@pytest.mark.k8s
 class TestCronjobs:
 
   @pytest.mark.integration
-  @pytest.mark.order(7)
+  @pytest.mark.order(80)
   @pytest.mark.dependency(
     name="update_cronjob_image",
     depends=["find_tenant_resource"],
@@ -24,7 +25,7 @@ class TestCronjobs:
       pytest.fail(f"Failed to find tenant {name}: {e}")
 
   @pytest.mark.integration
-  @pytest.mark.order(7)
+  @pytest.mark.order(80)
   @pytest.mark.dependency(
     name="update_cronjob_schedule",
     depends=["find_tenant_resource"],
@@ -42,7 +43,7 @@ class TestCronjobs:
       pytest.fail(f"Failed to find tenant {name}: {e}")
 
   @pytest.mark.integration
-  @pytest.mark.order(7)
+  @pytest.mark.order(80)
   @pytest.mark.dependency(name="is_any_host_allowed", depends=["find_tenant_resource"], scope='session')
   def test_is_any_host_allowed_true(self, duplo: DuploCtl):
     kind = "cronjob"
@@ -63,7 +64,7 @@ class TestCronjobs:
       pytest.fail(f"Failed to find tenant {name}: {e}")
 
   @pytest.mark.integration
-  @pytest.mark.order(8)
+  @pytest.mark.order(81)
   @pytest.mark.dependency(name="is_any_host_allowed", depends=["find_tenant_resource"], scope='session')
   def test_is_any_host_allowed_false(self, duplo: DuploCtl):
     kind = "cronjob"

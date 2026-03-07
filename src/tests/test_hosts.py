@@ -1,6 +1,6 @@
 import pytest
 import time
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploStillWaiting
 from .conftest import get_test_data
 
 @pytest.fixture(scope="class")
@@ -19,11 +19,13 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.aws
+@pytest.mark.k8s
 class TestHosts:
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_host", scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(name="create_host", depends=["create_tenant"], scope="session")
+    @pytest.mark.order(20)
     def test_create_host(self, hosts_resource):
         body = get_test_data("hosts")
         response = execute_test(hosts_resource.create, body)
@@ -32,7 +34,7 @@ class TestHosts:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_host"], scope="session")
-    @pytest.mark.order(6)
+    @pytest.mark.order(21)
     def test_find_host(self, hosts_resource):
         host = execute_test(hosts_resource.find, self.host_name)
         assert host["FriendlyName"] == self.host_name
@@ -40,7 +42,7 @@ class TestHosts:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_host"], scope="session")
-    @pytest.mark.order(7)
+    @pytest.mark.order(22)
     def test_stop_host(self, hosts_resource):
         response = execute_test(hosts_resource.stop, self.host_name)
         assert "Successfully stopped host" in response["message"]
@@ -49,7 +51,7 @@ class TestHosts:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_host"], scope="session")
-    @pytest.mark.order(8)
+    @pytest.mark.order(23)
     def test_start_host(self, hosts_resource):
         response = execute_test(hosts_resource.start, self.host_name)
         assert "Successfully started host" in response["message"]
@@ -58,7 +60,7 @@ class TestHosts:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_host"], scope="session")
-    @pytest.mark.order(9)
+    @pytest.mark.order(24)
     def test_reboot_host(self, hosts_resource):
         response = execute_test(hosts_resource.reboot, self.host_name)
         assert "Successfully rebooted host" in response["message"]
@@ -70,5 +72,10 @@ class TestHosts:
     @pytest.mark.dependency(depends=["create_host"], scope="session")
     @pytest.mark.order(997)
     def test_delete_host(self, hosts_resource):
-        response = execute_test(hosts_resource.delete, self.host_name)
-        assert "Successfully deleted host" in response["message"]
+        try:
+            response = hosts_resource.delete(self.host_name)
+            assert "Successfully deleted host" in response["message"]
+        except DuploStillWaiting:
+            pass  # Delete was accepted; host is still shutting down
+        except DuploError as e:
+            pytest.fail(f"Test failed: {e}")

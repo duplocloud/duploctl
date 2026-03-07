@@ -177,11 +177,12 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.k8s
 class TestIngress:
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_ingress", scope="session")
-    @pytest.mark.order(6)
+    @pytest.mark.dependency(name="create_ingress", depends=["find_tenant_resource"], scope="session")
+    @pytest.mark.order(70)
     def test_create_ingress(self, ingress_resource, request):
         """Test creating an Ingress resource."""
         r = ingress_resource
@@ -192,7 +193,7 @@ class TestIngress:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_ingress"], scope="session")
-    @pytest.mark.order(7)
+    @pytest.mark.order(71)
     def test_update_ingress(self, ingress_resource):
         """Test updating an Ingress resource."""
         r = ingress_resource
@@ -202,7 +203,7 @@ class TestIngress:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_ingress"], scope="session")
-    @pytest.mark.order(8)
+    @pytest.mark.order(72)
     def test_list_ingress(self, ingress_resource):
         """Test listing an Ingress."""
         r = ingress_resource

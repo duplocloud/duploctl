@@ -1,4 +1,3 @@
-import random
 import pytest
 import time
 
@@ -6,9 +5,13 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from tests.conftest import get_test_data
 
+@pytest.mark.k8s
+@pytest.mark.aws
+@pytest.mark.ecs
 class TestTenant:
 
   @pytest.mark.integration
+  @pytest.mark.order(11)
   def test_listing_tenants(self, duplo):
     r = duplo.load("tenant")
     try:
@@ -19,6 +22,7 @@ class TestTenant:
     assert len(lot) > 0
 
   @pytest.mark.integration
+  @pytest.mark.order(11)
   def test_finding_tenants(self, duplo):
     r = duplo.load("tenant")
     try:
@@ -29,22 +33,18 @@ class TestTenant:
 
   @pytest.mark.integration
   @pytest.mark.dependency(name="create_tenant", scope='session')
-  @pytest.mark.order(2)
-  def test_creating_tenants(self, duplo, infra_name, e2e):
+  @pytest.mark.order(10)
+  def test_creating_tenants(self, duplo, infra_name, tenant_name):
     t = duplo.load("tenant")
-    name = duplo.tenant
-    if not name:
-      inc = random.randint(1, 100)
-      name = f"duploctl{inc}"
-      duplo.tenant = name
-    # check if the tenant already exists
+    name = tenant_name
+    # check if the tenant already exists — pass without creating if it does
     try:
       print(f"Processing tenant '{name}'")
       i = t("find", name)
-      print(f"Tenant '{name}' already exists")
       if i:
-        pytest.skip(f"Tenant '{name}' already exists")
-    except DuploError as e:
+        print(f"Tenant '{name}' already exists")
+        return
+    except DuploError:
       pass
     duplo.wait = True
     try:
@@ -61,10 +61,12 @@ class TestTenant:
   @pytest.mark.integration
   @pytest.mark.dependency(name="delete_tenant", depends=["create_tenant"], scope='session')
   @pytest.mark.order(998)
-  def test_find_delete_tenant(self, duplo):
+  def test_find_delete_tenant(self, duplo, tenant_name, owns_tenant: bool):
+    if not owns_tenant:
+      pytest.skip(f"Tenant '{tenant_name}' was pre-existing — not destroying")
     # now find it
     r = duplo.load("tenant")
-    name = duplo.tenant
+    name = tenant_name
     print(f"Delete tenant '{name}'")
     try:
       nt = r("find", name)
@@ -81,6 +83,7 @@ class TestTenant:
       pytest.fail(f"Failed to delete tenant: {e}")
 
   @pytest.mark.integration
+  @pytest.mark.order(12)
   def test_list_users(self, duplo):
     r = duplo.load("tenant")
     try:
@@ -90,6 +93,7 @@ class TestTenant:
     assert isinstance(users, list)
 
   @pytest.mark.integration
+  @pytest.mark.order(12)
   def test_billing(self, duplo):
     r = duplo.load("tenant")
     try:
@@ -99,6 +103,7 @@ class TestTenant:
     assert isinstance(billing, dict)
 
   @pytest.mark.integration
+  @pytest.mark.order(12)
   def test_region(self, duplo):
     r = duplo.load("tenant")
     try:
@@ -108,6 +113,7 @@ class TestTenant:
     assert "region" in region
 
   @pytest.mark.integration
+  @pytest.mark.order(12)
   def test_dns_config(self, duplo):
     r = duplo.load("tenant")
     try:

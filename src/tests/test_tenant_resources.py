@@ -3,36 +3,44 @@ from duplocloud.errors import DuploError
 import time
 
 resources = [
-  "hosts",
-  "asg",
-  "cronjob", 
-  "job",
-  "configmap",
-  "lambda",
-  "rds",
-  "rds::rds-read"
+  pytest.param("hosts", marks=pytest.mark.aws),
+  pytest.param("asg", marks=pytest.mark.aws),
+  pytest.param("cronjob", marks=pytest.mark.k8s),
+  pytest.param("configmap", marks=pytest.mark.k8s),
+  pytest.param("lambda", marks=pytest.mark.aws),
+  pytest.param("rds", marks=pytest.mark.aws),
+  pytest.param("rds::rds-read", marks=pytest.mark.aws),
 ]
 
 @pytest.mark.parametrize("test_data", resources, indirect=True)
 class TestTenantResources:
 
   @pytest.mark.integration
-  @pytest.mark.order(5)
+  @pytest.mark.order(40)
   @pytest.mark.dependency(
-    name="create_tenant_resource", 
+    name="create_tenant_resource",
+    depends=["create_tenant"],
     scope='session')
   def test_creating_resource(self, test_data, duplo):
     (kind, data) = test_data
     r = duplo.load(kind)
     tenant = r.tenant["AccountName"]
     name = r.name_from_body(data)
+    # If the resource already exists, pass without recreating it.
+    try:
+      o = r.find(name)
+      if o:
+        print(f"{kind} '{name}' already exists in '{tenant}'")
+        return
+    except DuploError:
+      pass
     start_time = time.time()
     print(f"Creating {kind} '{name}' in '{tenant}'")
     # For some reason you'll get a 409 a bunch of times until the tenant is actually ready.
     r.duplo.wait = True
     while True:
       try:
-        r.create(data)
+        r.create(body=data)
         print(f"{kind} '{name}' created in '{tenant}'")
         break
       except DuploError as e:
@@ -44,10 +52,9 @@ class TestTenantResources:
           time.sleep(5)
 
   @pytest.mark.integration
-  @pytest.mark.order(6)
+  @pytest.mark.order(41)
   @pytest.mark.dependency(
     name="find_tenant_resource", 
-    depends=["create_tenant_resource"], 
     scope='session')
   def test_find_resource(self, duplo, test_data):
     (kind, data) = test_data
@@ -61,7 +68,6 @@ class TestTenantResources:
       pytest.fail(f"Failed to find {kind} {name}: {e}")
   
   @pytest.mark.integration
-  @pytest.mark.k8s
   @pytest.mark.order(997)
   @pytest.mark.dependency(
     name="delete_tenant_resource", 

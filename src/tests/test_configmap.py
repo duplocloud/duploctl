@@ -16,12 +16,13 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.k8s
 @pytest.mark.usefixtures("configmap_resource")
 class TestConfigMap:
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_configmap", scope="class")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(name="create_configmap", depends=["find_tenant_resource"], scope="session")
+    @pytest.mark.order(50)
     def test_create_configmap(self, configmap_resource):
         """Test creating a ConfigMap with various methods."""
         body = get_test_data("configmap")
@@ -43,8 +44,8 @@ class TestConfigMap:
         assert "data" in dryrun_response
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_configmap"], scope="class")
-    @pytest.mark.order(6)
+    @pytest.mark.dependency(depends=["create_configmap"], scope="session")
+    @pytest.mark.order(51)
     def test_find_configmap(self, configmap_resource):
         """Test finding a ConfigMap."""
         # Test finding existing ConfigMap
@@ -54,8 +55,8 @@ class TestConfigMap:
         assert configmap["data"]["foo"] == "bar"
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_configmap"], scope="class")
-    @pytest.mark.order(7)
+    @pytest.mark.dependency(depends=["create_configmap"], scope="session")
+    @pytest.mark.order(52)
     def test_update_configmap(self, configmap_resource):
         """Test updating a ConfigMap using different methods."""
         # Test updating with new data
@@ -80,8 +81,8 @@ class TestConfigMap:
         assert "test" in dryrun_response["data"]
 
     @pytest.mark.integration
-    @pytest.mark.dependency(depends=["create_configmap"], scope="class")
-    @pytest.mark.order(8)
+    @pytest.mark.dependency(depends=["create_configmap"], scope="session")
+    @pytest.mark.order(993)
     def test_delete_configmap(self, configmap_resource):
         """Test deleting ConfigMaps and verifying deletion."""
         # Delete first ConfigMap

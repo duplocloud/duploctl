@@ -16,12 +16,13 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.k8s
 class TestSecret:
     """Integration tests for Kubernetes Secrets."""
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_secret", scope="session")
-    @pytest.mark.order(1)
+    @pytest.mark.dependency(name="create_secret", depends=["find_tenant_resource"], scope="session")
+    @pytest.mark.order(60)
     def test_create_secret(self, secret_resource):
         """Test creating a Kubernetes secret."""
         body = get_test_data("secret")
@@ -29,7 +30,7 @@ class TestSecret:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_secret"], scope="session")
-    @pytest.mark.order(2)
+    @pytest.mark.order(61)
     def test_find_secret(self, secret_resource):
         """Test finding the created Kubernetes secret."""
         secret = execute_test(secret_resource.find, self.secret_name)
@@ -42,7 +43,7 @@ class TestSecret:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_secret"], scope="session")
-    @pytest.mark.order(3)
+    @pytest.mark.order(62)
     def test_update_secret(self, secret_resource):
         """Test updating a Kubernetes secret."""
         new_data = {"api_key": "xyz789","username": "superadmin"}
@@ -65,7 +66,7 @@ class TestSecret:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_secret"], scope="session")
-    @pytest.mark.order(4)
+    @pytest.mark.order(993)
     def test_delete_secret(self, secret_resource):
         """Test deleting a Kubernetes secret."""
         response = execute_test(secret_resource.delete, self.secret_name)

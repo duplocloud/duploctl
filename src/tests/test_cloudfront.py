@@ -19,12 +19,13 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.aws
 @pytest.mark.usefixtures("cloudfront_resource")
 class TestCloudFront:
 
     @pytest.mark.integration
-    @pytest.mark.dependency(name="create_cloudfront", scope="session")
-    @pytest.mark.order(5)
+    @pytest.mark.dependency(name="create_cloudfront", depends=["find_tenant_resource"], scope="session")
+    @pytest.mark.order(90)
     def test_create_cloudfront(self, cloudfront_resource, request):
         """Test creating a CloudFront distribution and store ID at class level."""
         r = cloudfront_resource
@@ -37,7 +38,7 @@ class TestCloudFront:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
-    @pytest.mark.order(6)
+    @pytest.mark.order(91)
     def test_update_cloudfront(self, cloudfront_resource, request):
         """Test updating a CloudFront distribution using stored CloudFront ID."""
         r = cloudfront_resource
@@ -52,7 +53,7 @@ class TestCloudFront:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
-    @pytest.mark.order(7)
+    @pytest.mark.order(92)
     def test_list_cloudfront(self, cloudfront_resource):
         """Test listing CloudFront distributions."""
         r = cloudfront_resource
@@ -62,7 +63,7 @@ class TestCloudFront:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
-    @pytest.mark.order(8)
+    @pytest.mark.order(93)
     def test_disable_cloudfront(self, cloudfront_resource):
         """Test disabling a CloudFront distribution."""
         r = cloudfront_resource
@@ -73,7 +74,7 @@ class TestCloudFront:
 
     @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
-    @pytest.mark.order(9)
+    @pytest.mark.order(94)
     def test_enable_cloudfront(self, cloudfront_resource):
         """Test enabling a CloudFront distribution."""
         r = cloudfront_resource

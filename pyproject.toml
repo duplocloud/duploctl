@@ -83,7 +83,7 @@ LatestRelease = "https://github.com/duplocloud/duploctl/releases"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "src --verbose --cov=src --cov-report term-missing"
+addopts = "--verbose --cov=src --cov-report term-missing"
 testpaths = [
   "src/tests"
 ]
@@ -98,9 +98,9 @@ markers = [
   "gcp: mark a test as a gcp test",
   "azure: mark a test as an azure test",
 
-  "k8s: mark a test as a k8s test",
-  "ecs: mark a test as an ecs test",
-  "native: mark a test as a native test"
+  "k8s: mark a test as requiring a kubernetes (EKS/GKE/AKS) infrastructure",
+  "ecs: mark a test as requiring an ECS infrastructure (AWS only)",
+  "duplo: mark a test as requiring a duplo-native infrastructure (no k8s, no ecs)"
 ]
 
 [tool.coverage.run]
