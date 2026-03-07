@@ -1,7 +1,6 @@
 workflow:
   metadata:
     generateName: duploctl-test-wf-
-    namespace: my-tenant
   spec:
     entrypoint: hello
     templates:

@@ -1,17 +1,44 @@
-import requests
-from duplocloud.controller import DuploCtl
-from duplocloud.errors import DuploError
-from duplocloud.resource import DuploResource
+import json
 from duplocloud.commander import Command, Resource
+from duplocloud.controller import DuploCtl
+from duplocloud.resource import DuploResource
+from duplocloud.errors import DuploError
 import duplocloud.args as args
 
-@Resource("argo_wf")
-class DuploArgoWorkflow(DuploResource):
-  """Resource for creating and managing Argo Workflow resources in DuploCloud.
 
-  This resource provides commands to interact with Argo Workflows via the DuploCloud proxy.
-  It handles the two-step authentication: first obtaining an Argo token from Duplo, then
-  using that token to communicate with the Argo Workflow API.
+def _namespace(resource) -> str:
+  """K8s namespace derived from tenant prefix (strips trailing dash)."""
+  return resource.prefix.rstrip("-")
+
+
+_STATUS_VERBOSE_KEYS = frozenset(
+  {"nodes", "storedTemplates", "storedWorkflowTemplateSpec"}
+)
+
+
+def _ensure_namespace(body: dict, key: str, ns: str) -> None:
+  """Inject namespace into a resource body if not already set.
+
+  If the body metadata already contains a namespace the caller is
+  responsible for its correctness. When absent it is derived from the
+  tenant prefix so the Argo API URL path and body always agree.
+
+  Args:
+    body: The resource body dict (mutated in place).
+    key: Top-level key for the resource (e.g. "workflow", "template").
+    ns: The namespace to inject.
+  """
+  meta = body.setdefault(key, {}).setdefault("metadata", {})
+  if not meta.get("namespace"):
+    meta["namespace"] = ns
+
+
+@Resource("argo_wf", scope="tenant", client="argo_wf")
+class DuploArgoWorkflow(DuploResource):
+  """Manage Argo Workflows in DuploCloud.
+
+  Provides commands to list, get, submit, delete, apply, and retrieve
+  logs for Argo Workflows via the DuploCloud proxy.
 
   Usage: Basic CLI Use
     ```sh
@@ -21,232 +48,66 @@ class DuploArgoWorkflow(DuploResource):
 
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
-    self._tenant = None
-    self._tenant_id = None
-    self._argo_auth = None
-    self._system_info = None
-    self._infra_config = None
-    self.tenant_svc = duplo.load('tenant')
-    self.infra_svc = duplo.load('infrastructure')
 
-  @property
-  def tenant(self):
-    if not self._tenant:
-      self._tenant = self.tenant_svc.find()
-      self._tenant_id = self._tenant["TenantId"]
-    return self._tenant
-
-  @property
-  def tenant_id(self):
-    if not self._tenant_id:
-      if self.duplo.tenantid:
-        self._tenant_id = self.duplo.tenantid
-      else:
-        self._tenant_id = self.tenant["TenantId"]
-    return self._tenant_id
-
-  @property
-  def namespace(self):
-    prefix = self._get_resource_prefix()
-    return f"{prefix}-{self.tenant['AccountName']}"
-
-  def _ensure_argo_enabled(self):
-    """Check if Argo Workflows feature is enabled for the tenant's infrastructure.
-
-    Raises:
-      DuploError: If Argo Workflows is not enabled (DuploCiTenant not configured).
-    """
-    if self._infra_config is None:
-      plan_id = self.tenant.get("PlanID")
-      if not plan_id:
-        raise DuploError("Tenant has no associated infrastructure plan", 400)
-      self._infra_config = self.infra_svc.find(plan_id)
-
-    # DuploCiTenant is in CustomData array as {"Key": "DuploCiTenant", "Value": "..."}
-    custom_data = self._infra_config.get("CustomData", [])
-    ci_tenant = next(
-      (item.get("Value") for item in custom_data if item.get("Key") == "DuploCiTenant"),
-      None
-    )
-    if not ci_tenant:
-      raise DuploError(
-        "Argo Workflows is not enabled for this infrastructure. "
-        "Please contact administrator.",
-        400
-      )
-
-  def _get_resource_prefix(self) -> str:
-    """Get the resource name prefix from system info.
-
-    Returns:
-      str: The resource name prefix (e.g., 'duploservices', 'msi')
-    """
-    if self._system_info is None:
-      response = self.client.get("v3/features/system")
-      self._system_info = response.json()
-    return self._system_info.get("ResourceNamePrefix", "duploservices")
-
-  def _get_argo_auth(self) -> dict:
-    """Get Argo Workflow authentication token.
-
-    Makes a POST call to the Duplo API to obtain an Argo Workflow token and admin status.
-    The response includes a Kubernetes token for Argo API calls.
-
-    Returns:
-      dict: Authentication info containing Token, IsAdmin, TenantId, ExpiresAt
-
-    Raises:
-      DuploError: If Argo Workflows is not enabled for the infrastructure.
-    """
-    if self._argo_auth is None:
-      self._ensure_argo_enabled()
-      path = f"v3/auth/argo-wf/{self.tenant_id}/admin"
-      response = self.client.post(path)
-      self._argo_auth = response.json()
-    return self._argo_auth
-
-  def _argo_request(self, method: str, path: str, data: dict = None) -> dict:
-    """Make a request to the Argo Workflow API.
-
-    Uses the Argo token obtained from Duplo for authentication, and also
-    passes the Duplo token in the 'duplotoken' header.
-
-    Args:
-      method: HTTP method (GET, POST, PUT, DELETE)
-      path: API path (e.g., 'workflow-templates/namespace')
-      data: Optional request body for POST/PUT
-
-    Returns:
-      dict: JSON response from the Argo API
-    """
-    auth = self._get_argo_auth()
-    argo_tenant_id = auth["TenantId"]  # Tenant where workflow controller runs
-    argo_token = auth["Token"]
-
-    url = f"{self.duplo.host}/argo-wf/{argo_tenant_id}/api/v1/{path}?current_tenant_id={self.tenant_id}"
-    headers = {
-      'Content-Type': 'application/json',
-      'Authorization': f'Bearer {argo_token}',
-      'duplotoken': self.client.token
-    }
-
-    response = requests.request(
-      method=method,
-      url=url,
-      headers=headers,
-      json=data,
-      timeout=self.duplo.timeout
-    )
-
-    if response.status_code == 404:
-      raise DuploError("Argo resource not found", 404)
-    if response.status_code == 401:
-      raise DuploError("Unauthorized: Invalid or expired Argo token", 401)
-    if response.status_code == 403:
-      raise DuploError("Forbidden: Insufficient permissions for Argo operation", 403)
-    if not (200 <= response.status_code < 300):
-      raise DuploError(f"Argo API error: {response.text}", response.status_code)
-
-    return response.json()
-
-  @Command()
-  def auth(self) -> dict:
-    """Get Argo Authentication Info
-
-    Retrieve the Argo Workflow authentication token and admin status for the current tenant.
-
-    Usage: Basic CLI Use
-      ```bash
-      duploctl argo_wf auth
-      ```
-    Returns:
-      dict: Authentication info with Token, IsAdmin, TenantId, ExpiresAt
-    """
-    return self._get_argo_auth()
-
-  @Command()
-  def list_templates(self) -> list:
-    """List Workflow Templates
-
-    Retrieve a list of all workflow templates in the current tenant/namespace.
-
-    Usage: Basic CLI Use
-      ```bash
-      duploctl argo_wf list_templates
-      ```
-
-    Returns:
-      list: A list of workflow templates.
-    """
-    path = f"workflow-templates/{self.namespace}"
-    return self._argo_request("GET", path)
-
-  @Command()
-  def get_template(self, name: args.NAME) -> dict:
-    """Get Workflow Template
-
-    Retrieve a specific workflow template by name.
-
-    Usage: Basic CLI Use
-      ```bash
-      duploctl argo_wf get_template <name>
-      ```
-
-    Args:
-      name: The name of the workflow template.
-
-    Returns:
-      dict: The workflow template object.
-    """
-    path = f"workflow-templates/{self.namespace}/{name}"
-    return self._argo_request("GET", path)
-
-  @Command()
-  def list_workflows(self) -> list:
+  @Command("list_workflows")
+  def list(self) -> dict:
     """List Workflows
 
-    Retrieve a list of all workflows in the current tenant/namespace.
+    Retrieve all workflows in the current tenant namespace.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf list_workflows
+      duploctl argo_wf list
+      ```
+
+    Example: List workflow names only
+      ```bash
+      duploctl argo_wf list --query "items[*].metadata.name"
       ```
 
     Returns:
-      list: A list of workflows.
+      workflows: A dict containing the list of Argo workflows.
     """
-    path = f"workflows/{self.namespace}"
-    return self._argo_request("GET", path)
+    return self.client.get(
+      f"workflows/{_namespace(self)}", self.tenant_id
+    ).json()
 
-  @Command()
-  def get_workflow(self, name: args.NAME) -> dict:
+  @Command("get", "get_workflow")
+  def find(self, name: args.NAME) -> dict:
     """Get Workflow
 
-    Retrieve a specific workflow by name.
+    Find a specific workflow by name.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf get_workflow <name>
+      duploctl argo_wf find <name>
+      ```
+
+    Example: Get workflow phase
+      ```bash
+      duploctl argo_wf find my-workflow --query "status.phase"
       ```
 
     Args:
       name: The name of the workflow.
 
     Returns:
-      dict: The workflow object.
+      workflow: The full workflow object.
     """
-    path = f"workflows/{self.namespace}/{name}"
-    return self._argo_request("GET", path)
+    safe_name = self.client.sanitize_path_segment(name)
+    return self.client.get(
+      f"workflows/{_namespace(self)}/{safe_name}", self.tenant_id
+    ).json()
 
-  @Command()
-  def submit(self, body: args.BODY) -> dict:
-    """Submit Workflow
+  @Command("submit")
+  def create(self, body: args.BODY) -> dict:
+    """Create Workflow
 
-    Submit a new workflow from a workflow spec.
+    Submit a new Argo Workflow from a specification.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf submit -f workflow.yaml
+      duploctl argo_wf create -f workflow.yaml
       ```
       Contents of the `workflow.yaml` file
       ```yaml
@@ -257,40 +118,235 @@ class DuploArgoWorkflow(DuploResource):
       body: The workflow specification.
 
     Returns:
-      dict: The created workflow object.
+      workflow: The created workflow object.
     """
-    path = f"workflows/{self.namespace}"
-    return self._argo_request("POST", path, body)
+    ns = _namespace(self)
+    _ensure_namespace(body, "workflow", ns)
+    return self.client.post(
+      f"workflows/{ns}", self.tenant_id, body
+    ).json()
 
-  @Command()
-  def delete_workflow(self, name: args.NAME) -> dict:
+  @Command("delete_workflow")
+  def delete(self, name: args.NAME) -> dict:
     """Delete Workflow
 
     Delete a workflow by name.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf delete_workflow <name>
+      duploctl argo_wf delete <name>
       ```
 
     Args:
       name: The name of the workflow to delete.
 
     Returns:
-      dict: Deletion confirmation.
+      result: Deletion confirmation.
     """
-    path = f"workflows/{self.namespace}/{name}"
-    return self._argo_request("DELETE", path)
+    safe_name = self.client.sanitize_path_segment(name)
+    return self.client.delete(
+      f"workflows/{_namespace(self)}/{safe_name}", self.tenant_id
+    ).json()
 
   @Command()
-  def create_template(self, body: args.BODY) -> dict:
-    """Create Workflow Template
+  def apply(self, body: args.BODY) -> dict:
+    """Apply Workflow
 
-    Create a new workflow template.
+    Create a workflow if it does not exist. Raises an error if it already
+    exists since Argo Workflows are immutable once created. If
+    metadata.generateName is set, a new workflow is always created.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf create_template -f template.yaml
+      duploctl argo_wf apply -f workflow.yaml
+      ```
+      Contents of the `workflow.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/argo_workflow.yaml"
+      ```
+
+    Args:
+      body: The workflow specification.
+
+    Returns:
+      workflow: The created workflow object.
+
+    Raises:
+      DuploError: If the workflow already exists (immutable).
+    """
+    name = body.get("workflow", {}).get("metadata", {}).get("name")
+    if name:
+      try:
+        self.find(name)
+        raise DuploError(
+          f"Workflow '{name}' already exists. Argo Workflows are "
+          "immutable once created. Delete it first or use a new name.",
+          409,
+        )
+      except DuploError as e:
+        if e.code != 404:
+          raise
+    return self.create(body)
+
+  @Command()
+  def status(self, name: args.NAME) -> dict:
+    """Get Workflow Status
+
+    Retrieve the status of a workflow including phase, progress, and timing.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl argo_wf status <name>
+      ```
+
+    Example: Get just the phase
+      ```bash
+      duploctl argo_wf status <name> --query "phase"
+      ```
+
+    Args:
+      name: The name of the workflow.
+
+    Returns:
+      status: The workflow status object.
+    """
+    workflow = self.find(name)
+    return {
+      k: v
+      for k, v in workflow.get("status", {}).items()
+      if k not in _STATUS_VERBOSE_KEYS
+    }
+
+  @Command()
+  def logs(self, name: args.NAME, stream: args.STREAM = False) -> list:
+    """Get Workflow Logs
+
+    Retrieve log entries for all pods in a workflow. By default, returns
+    existing logs immediately (logOptions.follow=false). Pass --stream to
+    follow the log stream until the workflow completes.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl argo_wf logs <name>
+      ```
+
+    Example: Print only log content lines
+      ```bash
+      duploctl argo_wf logs <name> --query "[*].result.content"
+      ```
+
+    Example: Follow live logs
+      ```bash
+      duploctl argo_wf logs <name> --stream
+      ```
+
+    Args:
+      name: The name of the workflow.
+      stream: Follow the log stream until the workflow completes.
+
+    Returns:
+      logs: List of log entry objects from the workflow pods.
+    """
+    safe_name = self.client.sanitize_path_segment(name)
+    params = {"logOptions.container": "main"}
+    if not stream:
+      params["logOptions.follow"] = "false"
+    response = self.client.get(
+      f"workflows/{_namespace(self)}/{safe_name}/log",
+      self.tenant_id,
+      stream=True,
+      params=params,
+    )
+    entries = []
+    try:
+      for line in response.iter_lines(decode_unicode=True):
+        line = line.strip()
+        if not line:
+          continue
+        try:
+          entries.append(json.loads(line))
+        except json.JSONDecodeError:
+          entries.append({"content": line})
+    finally:
+      response.close()
+    return entries
+
+
+@Resource("argo_wf_template", scope="tenant", client="argo_wf")
+class DuploArgoWorkflowTemplate(DuploResource):
+  """Manage Argo Workflow Templates in DuploCloud.
+
+  Provides commands to list, get, create, update, delete, and apply
+  Argo Workflow Templates via the DuploCloud proxy.
+
+  Usage: Basic CLI Use
+    ```sh
+    duploctl argo_wf_template <action>
+    ```
+  """
+
+  def __init__(self, duplo: DuploCtl):
+    super().__init__(duplo)
+
+  @Command()
+  def list(self) -> dict:
+    """List Workflow Templates
+
+    Retrieve all workflow templates in the current tenant namespace.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl argo_wf_template list
+      ```
+
+    Example: List template names only
+      ```bash
+      duploctl argo_wf_template list --query "items[*].metadata.name"
+      ```
+
+    Returns:
+      templates: A dict containing the list of Argo workflow templates.
+    """
+    return self.client.get(
+      f"workflow-templates/{_namespace(self)}", self.tenant_id
+    ).json()
+
+  @Command()
+  def find(self, name: args.NAME) -> dict:
+    """Get Workflow Template
+
+    Find a specific workflow template by name.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl argo_wf_template find <name>
+      ```
+
+    Example: Get template entrypoint
+      ```bash
+      duploctl argo_wf_template find my-template --query "spec.entrypoint"
+      ```
+
+    Args:
+      name: The name of the workflow template.
+
+    Returns:
+      template: The full workflow template object.
+    """
+    safe_name = self.client.sanitize_path_segment(name)
+    return self.client.get(
+      f"workflow-templates/{_namespace(self)}/{safe_name}", self.tenant_id
+    ).json()
+
+  @Command()
+  def create(self, body: args.BODY) -> dict:
+    """Create Workflow Template
+
+    Create a new Argo Workflow Template.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl argo_wf_template create -f template.yaml
       ```
       Contents of the `template.yaml` file
       ```yaml
@@ -301,27 +357,107 @@ class DuploArgoWorkflow(DuploResource):
       body: The workflow template specification.
 
     Returns:
-      dict: The created workflow template object.
+      template: The created workflow template object.
     """
-    path = f"workflow-templates/{self.namespace}"
-    return self._argo_request("POST", path, body)
+    ns = _namespace(self)
+    _ensure_namespace(body, "template", ns)
+    return self.client.post(
+      f"workflow-templates/{ns}", self.tenant_id, body
+    ).json()
 
   @Command()
-  def delete_template(self, name: args.NAME) -> dict:
+  def update(self, body: args.BODY) -> dict:
+    """Update Workflow Template
+
+    Update an existing Argo Workflow Template. Fetches the current
+    resourceVersion and merges it into the body before submitting.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl argo_wf_template update -f template.yaml
+      ```
+      Contents of the `template.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/argo_wf_template.yaml"
+      ```
+
+    Args:
+      body: The workflow template specification with name in metadata.
+
+    Returns:
+      template: The updated workflow template object.
+
+    Raises:
+      DuploError: If the template name is missing from metadata.
+    """
+    ns = _namespace(self)
+    _ensure_namespace(body, "template", ns)
+    name = body.get("template", {}).get("metadata", {}).get("name")
+    if not name:
+      raise DuploError(
+        "Template name is required in metadata for update", 400
+      )
+    current = self.find(name)
+    resource_version = current.get("metadata", {}).get("resourceVersion")
+    if resource_version:
+      body["template"]["metadata"]["resourceVersion"] = resource_version
+    safe_name = self.client.sanitize_path_segment(name)
+    return self.client.put(
+      f"workflow-templates/{ns}/{safe_name}",
+      self.tenant_id,
+      body,
+    ).json()
+
+  @Command()
+  def delete(self, name: args.NAME) -> dict:
     """Delete Workflow Template
 
     Delete a workflow template by name.
 
     Usage: Basic CLI Use
       ```bash
-      duploctl argo_wf delete_template <name>
+      duploctl argo_wf_template delete <name>
       ```
 
     Args:
       name: The name of the workflow template to delete.
 
     Returns:
-      dict: Deletion confirmation.
+      result: Deletion confirmation.
     """
-    path = f"workflow-templates/{self.namespace}/{name}"
-    return self._argo_request("DELETE", path)
+    safe_name = self.client.sanitize_path_segment(name)
+    return self.client.delete(
+      f"workflow-templates/{_namespace(self)}/{safe_name}", self.tenant_id
+    ).json()
+
+  @Command()
+  def apply(self, body: args.BODY) -> dict:
+    """Apply Workflow Template
+
+    Create or update a workflow template. If the template exists it
+    will be updated; otherwise a new template is created.
+
+    Usage: Basic CLI Use
+      ```bash
+      duploctl argo_wf_template apply -f template.yaml
+      ```
+      Contents of the `template.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/argo_wf_template.yaml"
+      ```
+
+    Args:
+      body: The workflow template specification.
+
+    Returns:
+      template: The created or updated workflow template object.
+    """
+    name = body.get("template", {}).get("metadata", {}).get("name")
+    if name:
+      try:
+        self.find(name)
+        return self.update(body)
+      except DuploError as e:
+        if e.code != 404:
+          raise
+    return self.create(body)
