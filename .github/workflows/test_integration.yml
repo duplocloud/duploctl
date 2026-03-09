@@ -190,8 +190,7 @@ jobs:
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
-    - name: Build teardown args
-      id: teardown_args
+    - name: Run teardown
       env:
         INFRA: ${{ needs.lifecycle.outputs.infra }}
         TENANT: ${{ needs.lifecycle.outputs.tenant }}
@@ -207,10 +206,7 @@ jobs:
           -v
         )
         if [ "$OWNED" = "true" ]; then ARGS+=(--owned); fi
-        echo "args=${ARGS[*]}" >> $GITHUB_OUTPUT
-
-    - name: Run teardown
-      run: pytest ${{ steps.teardown_args.outputs.args }}
+        pytest "${ARGS[@]}"
 
     - name: Surface results
       if: always()
