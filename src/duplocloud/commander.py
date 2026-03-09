@@ -36,6 +36,7 @@ def _inject_tenant_scope(cls):
     original_init(self, duplo, *args, **kwargs)
     self._tenant = None
     self._tenant_id = None
+    self._prefix = None
     self.tenant_svc = duplo.load('tenant')
   
   setattr(cls, '__init__', new_init)
@@ -67,8 +68,18 @@ def _inject_tenant_scope(cls):
   # Add prefix property
   @property
   def prefix(self):
-    return f"duploservices-{self.tenant['AccountName']}-"
-  
+    if not self._prefix:
+      resource_prefix = "duploservices"
+      try:
+        info = self.duplo.load("system").info()
+        rp = info.get("ResourceNamePrefix")
+        if isinstance(rp, str) and rp:
+          resource_prefix = rp
+      except Exception:
+        pass
+      self._prefix = f"{resource_prefix}-{self.tenant['AccountName']}-"
+    return self._prefix
+
   setattr(cls, 'prefix', prefix)
   
   # Add prefixed_name method (skip if class defines its own)

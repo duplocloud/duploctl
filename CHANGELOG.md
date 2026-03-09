@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Argo Workflow support** via new `argo_wf` and `argo_wf_template` resources
+  - `argo_wf`: `list`, `find` (aliases: `get`, `get_workflow`), `create` (alias: `submit`), `delete` (alias: `delete_workflow`), `apply`, `logs` commands
+  - `argo_wf_template`: `list`, `find`, `create`, `update`, `delete`, `apply` commands
+  - `DuploArgoClient` client extension handles Argo JWT auth headers and proxied HTTP requests
+  - `jit argo_wf` command for standalone Argo JWT token acquisition with caching
+  - Dynamic tenant `prefix` property now reads `ResourceNamePrefix` from `system.info()` with fallback to `duploservices`
 - added ability to pass in kwargs when calling the client as function
 - **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
   - `DuploCtl.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name

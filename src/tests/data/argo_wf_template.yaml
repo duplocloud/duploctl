@@ -1,7 +1,6 @@
 template:
   metadata:
     name: duploctl-test-hello-world
-    namespace: my-tenant
   spec:
     entrypoint: hello
     templates:
