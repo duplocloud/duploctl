@@ -50,10 +50,7 @@ on:
       DUPLO_TOKEN:
         description: DuploCloud API token
         required: true
-      GH_APP_ID:
-        description: GitHub App ID for checkout
-        required: true
-      GH_APP_PRIVATE_KEY:
+      GH_APP_KEY:
         description: GitHub App private key for checkout
         required: true
 
@@ -79,8 +76,8 @@ jobs:
       with:
         install: ".[build,test,aws]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ secrets.GH_APP_ID }}
-        private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Resolve names
       id: names
@@ -146,8 +143,8 @@ jobs:
       with:
         install: ".[build,test,aws]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ secrets.GH_APP_ID }}
-        private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Run ${{ matrix.name }} tests
       env:
@@ -190,8 +187,8 @@ jobs:
       with:
         install: ".[build,test,aws]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ secrets.GH_APP_ID }}
-        private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Build teardown args
       id: teardown_args
