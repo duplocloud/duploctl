@@ -405,18 +405,31 @@ class DuploEcsService(DuploResourceV2):
     except IndexError:
       raise DuploError(f"Unable to find ECS service {name}")
 
+    deployments = service.get("AwsEcsService", {}).get("Deployments", [])
+
+    # Check if the target deployment has failed (e.g. ECS rolled back to a previous task definition).
+    # This must be checked before the PRIMARY deployment status because after a rollback,
+    # the PRIMARY deployment is the rollback itself, not the one we triggered.
+    if target_definition_arn is not None:
+      for deployment in deployments:
+        if deployment.get("TaskDefinition", None) == target_definition_arn:
+          dep_state = deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
+          if dep_state == "FAILED":
+            raise DuploError(f"ECS Service {name} deployment failed with reason {deployment.get('RolloutStateReason', 'Unknown')}")
+          break
+
     try:
-      primary_deployment = [deployment for deployment in service.get("AwsEcsService", {}).get("Deployments", []) if deployment.get("Status", None) == "PRIMARY"][0]
+      primary_deployment = [d for d in deployments if d.get("Status", None) == "PRIMARY"][0]
     except IndexError:
       raise DuploError(f"Failed to find primary deployment for ECS Service {name}")
 
     state = primary_deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
 
-    if state == "IN_PROGRESS" or (target_definition_arn is not None and primary_deployment.get("TaskDefinition", None) != target_definition_arn):
-      raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
-    
     if state == "FAILED":
       raise DuploError(f"ECS Service {name} deployment failed with reason {primary_deployment.get('RolloutStateReason', 'Unknown')}")
-    
+
+    if state == "IN_PROGRESS" or (target_definition_arn is not None and primary_deployment.get("TaskDefinition", None) != target_definition_arn):
+      raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
+
     # if ECS Service primary deployment is not IN_PROGRESS or FAILED, assume COMPLETED and exit
     return
