@@ -91,6 +91,45 @@ class DuploJit(DuploResource):
     return sts
 
   @Command()
+  def argo_wf(self, nocache: bool = None) -> dict:
+    """Argo Workflow JWT Token
+
+    Get a JWT token for Argo Workflows for the current tenant.
+    Used by the argo_wf and argo_wf_template resources internally
+    and available as a standalone command for scripting.
+
+    Usage:
+      ```sh
+      duploctl jit argo_wf
+      ```
+
+    Args:
+      nocache: Skip the cache and fetch a fresh token.
+
+    Returns:
+      token: Argo JWT with Token, TenantId, and ExpiresAt fields.
+    """
+    t = self.duplo.load("tenant")
+    tenant = t.find()
+    tenant_id = tenant["TenantId"]
+    k = self.cache.key_for(f"argo-creds,{tenant_id}")
+    nc = nocache if nocache is not None else self.duplo.nocache
+    path = f"v3/auth/argo-wf/{tenant_id}/admin"
+    try:
+      if nc:
+        auth_data = self.client.post(path).json()
+      else:
+        auth_data = self.cache.get(k)
+        if self.cache.expired(auth_data.get("ExpiresAt", None)):
+          raise DuploExpiredCache(k)
+    except DuploExpiredCache:
+      auth_data = self.client.post(path).json()
+      if "ExpiresAt" not in auth_data:
+        auth_data["ExpiresAt"] = self.cache.expiration()
+      self.cache.set(k, auth_data)
+    return auth_data
+
+  @Command()
   def aws(self, nocache: bool = None) -> dict:
     """AWS STS Session Credentials
 

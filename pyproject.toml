@@ -163,10 +163,12 @@ batch_definition = "duplo_resource.batch_definition:DuploBatchDefinition"
 batch_job = "duplo_resource.batch_job:DuploBatchJob"
 batch_scheduling_policy = "duplo_resource.batch_scheduling_policy:DuploBatchSchedulingPolicy"
 argo_wf = "duplo_resource.argo_wf:DuploArgoWorkflow"
+argo_wf_template = "duplo_resource.argo_wf:DuploArgoWorkflowTemplate"
 cache = "duplo_resource.cache:DuploCache"
 
 [project.entry-points."clients.duplocloud.net"]
 duplo = "duplocloud.client:DuploAPI"
+argo_wf = "duplo_resource.argo_client:DuploArgoClient"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"

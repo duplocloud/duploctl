@@ -261,6 +261,11 @@ WAIT = Arg("wait", "-w",
            type=bool,
            action='store_true')
 
+STREAM = Arg("stream", "--stream",
+             help='Stream the response (follow live output until complete)',
+             type=bool,
+             action='store_true')
+
 VALIDATE = Arg("validate", "--validate",
                help='Validate body inputs against the SDK model schema.',
                type=bool,
