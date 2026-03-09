@@ -46,8 +46,14 @@ _INFRA_DATA = {
 }
 
 
+def _is_unit_run(config) -> bool:
+  """Return True if this pytest session is running only unit tests."""
+  markexpr = config.getoption("markexpr", default="", skip=True) or ""
+  return "unit" in markexpr
+
+
 def pytest_configure(config):
-  """Validate tenant/infra consistency before any tests are collected.
+  """Validate marker combinations and tenant/infra consistency before collection.
 
   Resolves tenant with the same precedence as the tenant_name fixture:
     --tenant  >  DUPLO_TENANT env var  >  infra_name (same name as infra)
@@ -56,6 +62,15 @@ def pytest_configure(config):
   with a clear message telling the user to pass --tenant explicitly.
   """
   markexpr = config.getoption("markexpr", default="", skip=True) or ""
+  if "unit" in markexpr and "integration" in markexpr:
+    pytest.exit(
+      "ERROR: 'unit' and 'integration' are mutually exclusive markers. "
+      "Run them in separate pytest invocations.",
+      returncode=1,
+    )
+  # Skip all integration-specific validation for unit test runs.
+  if _is_unit_run(config):
+    return
   if "k8s" in markexpr and "ecs" in markexpr:
     pytest.exit(
       "ERROR: Cannot select both 'k8s' and 'ecs' — "
@@ -92,6 +107,8 @@ def pytest_configure(config):
 def infra_name(pytestconfig) -> str:
   """The infrastructure name for this test session.
 
+  Returns None for unit test runs — no infra resolution needed.
+
   Resolution order:
     1. --infra <name>  (explicit CLI arg or DUPLO_INFRA env var)
     2. If --tenant / DUPLO_TENANT is given but no --infra:
@@ -99,6 +116,9 @@ def infra_name(pytestconfig) -> str:
          b. Tenant does not exist  → use the tenant name as the infra name.
     3. Neither given  → generate a unique name (duploctl{1000-9999}).
   """
+  if _is_unit_run(pytestconfig):
+    return None
+
   explicit_infra = pytestconfig.getoption("infra")
   if explicit_infra:
     return explicit_infra
@@ -221,13 +241,17 @@ def owns_tenant(pytestconfig, tenant_name, owns_infra) -> bool:
 
 
 @pytest.fixture(scope='session', autouse=True)
-def duplo(tenant_name: str) -> DuploCtl:
+def duplo(pytestconfig, tenant_name: str):
   """The shared DuploCtl client for the test session.
+
+  Returns None for unit test runs — no live client needed.
 
   duplo.tenant is always set from the tenant_name fixture so all
   tenant-scoped resources resolve to the correct tenant without any
   test needing to set it manually.
   """
+  if _is_unit_run(pytestconfig):
+    return None
   d = _duplo_from_env()
   d.load_client("duplo").disable_get_cache()
   d.tenant = tenant_name
@@ -236,6 +260,9 @@ def duplo(tenant_name: str) -> DuploCtl:
 @pytest.fixture(scope="session", autouse=True)
 def session_info(pytestconfig, duplo, infra_name, tenant_name, infra_type, owns_infra, owns_tenant):
   """Print session targeting info at the start of every integration test run."""
+  if duplo is None:
+    yield
+    return
   owned_flag = " --owned" if pytestconfig.getoption("owned", default=False) else ""
   print(
     f"\n"
