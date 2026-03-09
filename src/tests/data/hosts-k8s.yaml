@@ -2,8 +2,8 @@ FriendlyName: duplohost
 Zone: 0
 IsEbsOptimized: false
 DesiredCapacity: 0
-MinSize: 
-MaxSize: 
+MinSize:
+MaxSize:
 MetaData:
 - Key: OsDiskSize
   Value: 30
@@ -12,8 +12,8 @@ MetaData:
 UseLaunchTemplate: true
 CanScaleFromZero: false
 IsUserDataCombined: true
-KeyPairType: 
-Capacity: t3.large
+KeyPairType:
+Capacity: t3.xlarge
 Base64UserData: ''
 TagsCsv: ''
 AgentPlatform: 7

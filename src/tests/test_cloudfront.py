@@ -19,11 +19,12 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.integration
 @pytest.mark.aws
+@pytest.mark.cloudfront
 @pytest.mark.usefixtures("cloudfront_resource")
 class TestCloudFront:
 
-    @pytest.mark.integration
     @pytest.mark.dependency(name="create_cloudfront", depends=["find_tenant_resource"], scope="session")
     @pytest.mark.order(90)
     def test_create_cloudfront(self, cloudfront_resource, request):
@@ -36,7 +37,6 @@ class TestCloudFront:
         request.cls.cloudfront_id = response["Id"]
         print(f"CloudFront Created! ID: {request.cls.cloudfront_id}")
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
     @pytest.mark.order(91)
     def test_update_cloudfront(self, cloudfront_resource, request):
@@ -51,7 +51,6 @@ class TestCloudFront:
         status_response = execute_test(r.get_status, distribution_id=response["Id"])
         assert status_response == "Deployed", "CloudFront distribution not deployed after update"
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
     @pytest.mark.order(92)
     def test_list_cloudfront(self, cloudfront_resource):
@@ -61,7 +60,6 @@ class TestCloudFront:
         assert isinstance(distributions, list), "CloudFront list response is not a list"
         assert len(distributions) > 0, "No CloudFront distributions found"
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
     @pytest.mark.order(93)
     def test_disable_cloudfront(self, cloudfront_resource):
@@ -72,7 +70,6 @@ class TestCloudFront:
         status_response = execute_test(r.get_status, distribution_id=self.cloudfront_id)
         assert status_response == "Deployed", "CloudFront distribution was not disabled"
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
     @pytest.mark.order(94)
     def test_enable_cloudfront(self, cloudfront_resource):
@@ -84,7 +81,6 @@ class TestCloudFront:
         assert status_response == "Deployed", "CloudFront distribution was not enabled"
         execute_test(r.disable, distribution_id=self.cloudfront_id)
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
     @pytest.mark.order(997)
     def test_delete_cloudfront(self, cloudfront_resource):

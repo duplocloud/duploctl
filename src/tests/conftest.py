@@ -29,6 +29,21 @@ def pytest_addoption(parser):
   parser.addoption(
     "--tenant", action="store", default=None,
     help="Use an existing tenant by name. Falls back to DUPLO_TENANT env var, then infra name.")
+  parser.addoption(
+    "--region", action="store", default=None,
+    help="AWS region override for infrastructure creation. Defaults to the region in the data file.")
+  parser.addoption(
+    "--owned", action="store_true", default=False,
+    help="Treat the infra and tenant as owned by this session regardless of whether they pre-existed. "
+         "Forces owns_infra and owns_tenant to True, enabling teardown. "
+         "Used by CI teardown jobs that run after parallel resource jobs finish.")
+
+
+_INFRA_DATA = {
+    "k8s":   "infrastructure-k8s",
+    "ecs":   "infrastructure-ecs",
+    "duplo": "infrastructure",
+}
 
 
 def pytest_configure(config):
@@ -40,6 +55,13 @@ def pytest_configure(config):
   If the resolved tenant already exists on a different infra, exit immediately
   with a clear message telling the user to pass --tenant explicitly.
   """
+  markexpr = config.getoption("markexpr", default="", skip=True) or ""
+  if "k8s" in markexpr and "ecs" in markexpr:
+    pytest.exit(
+      "ERROR: Cannot select both 'k8s' and 'ecs' — "
+      "they are mutually exclusive infra types. Choose one.",
+      returncode=1,
+    )
   infra = config.getoption("--infra", default=None, skip=True)
   # Resolve tenant: explicit arg > DUPLO_TENANT > infra (same name)
   tenant = (
@@ -120,6 +142,21 @@ def tenant_name(pytestconfig, infra_name) -> str:
   return infra_name
 
 @pytest.fixture(scope='session')
+def infra_type(pytestconfig) -> str:
+  """Infra type: 'k8s', 'ecs', or 'duplo' (default). Inferred from -m expression."""
+  markexpr = pytestconfig.getoption("markexpr", default="") or ""
+  if "k8s" in markexpr:
+    return "k8s"
+  if "ecs" in markexpr:
+    return "ecs"
+  return "duplo"
+
+@pytest.fixture(scope='session')
+def region(pytestconfig) -> str | None:
+  """AWS region override for infrastructure creation. None means use the data file's value."""
+  return pytestconfig.getoption("region") or None
+
+@pytest.fixture(scope='session')
 def owns_infra(pytestconfig, infra_name) -> bool:
   """True if this session is responsible for creating (and thus destroying) the infra.
 
@@ -128,8 +165,12 @@ def owns_infra(pytestconfig, infra_name) -> bool:
     - the infra name was resolved from an existing tenant's PlanID (tenant-hint path).
 
   In both cases the infrastructure belongs to someone else and must not be torn down.
+
+  --owned overrides all checks and forces True — used by CI teardown jobs.
   """
-  explicit_infra = pytestconfig.getoption("infra", skip=True)
+  if pytestconfig.getoption("owned", default=False):
+    return True
+  explicit_infra = pytestconfig.getoption("infra", default=None)
   if explicit_infra:
     try:
       _duplo_from_env().load("infrastructure").find(explicit_infra)
@@ -138,7 +179,7 @@ def owns_infra(pytestconfig, infra_name) -> bool:
       return True   # doesn't exist yet — we'll create it
 
   # No --infra flag: was the name resolved from an already-existing tenant?
-  tenant_hint = pytestconfig.getoption("tenant", skip=True) or os.getenv("DUPLO_TENANT")
+  tenant_hint = pytestconfig.getoption("tenant", default=None) or os.getenv("DUPLO_TENANT")
   if tenant_hint:
     try:
       existing = _duplo_from_env().load("tenant").find(tenant_hint)
@@ -160,11 +201,15 @@ def owns_tenant(pytestconfig, tenant_name, owns_infra) -> bool:
 
   Only returns True when the tenant name was derived/random and the tenant
   did not exist before this session started.
+
+  --owned overrides all checks and forces True — used by CI teardown jobs.
   """
+  if pytestconfig.getoption("owned", default=False):
+    return True
   if not owns_infra:
     return False  # never destroy a tenant in an infra we didn't create
 
-  explicit_tenant = pytestconfig.getoption("tenant", skip=True) or os.getenv("DUPLO_TENANT")
+  explicit_tenant = pytestconfig.getoption("tenant", default=None) or os.getenv("DUPLO_TENANT")
   if explicit_tenant:
     try:
       _duplo_from_env().load("tenant").find(tenant_name)
@@ -187,6 +232,20 @@ def duplo(tenant_name: str) -> DuploCtl:
   d.load_client("duplo").disable_get_cache()
   d.tenant = tenant_name
   return d
+
+@pytest.fixture(scope="session", autouse=True)
+def session_info(pytestconfig, duplo, infra_name, tenant_name, infra_type, owns_infra, owns_tenant):
+  """Print session targeting info at the start of every integration test run."""
+  owned_flag = " --owned" if pytestconfig.getoption("owned", default=False) else ""
+  print(
+    f"\n"
+    f"  host:        {duplo.host}\n"
+    f"  infra:       {infra_name}  (owns={owns_infra})\n"
+    f"  tenant:      {tenant_name}  (owns={owns_tenant})\n"
+    f"  infra_type:  {infra_type}{owned_flag}\n"
+  )
+  yield
+
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup(duplo):

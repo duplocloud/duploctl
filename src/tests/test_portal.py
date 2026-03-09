@@ -5,9 +5,9 @@ from duplocloud.errors import DuploError
 from duplocloud.controller import DuploCtl
 
 
+@pytest.mark.integration
 class Testportal:
 
-  @pytest.mark.integration
   def test_system_info(self, duplo):
     r = duplo.load("system")
     try:

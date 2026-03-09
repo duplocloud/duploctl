@@ -1,10 +1,12 @@
-import math
 import pytest
 import random
 
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploFailedResource
+from .conftest import get_test_data, _INFRA_DATA
 
+@pytest.mark.integration
+@pytest.mark.lifecycle
 @pytest.mark.k8s
 @pytest.mark.aws
 @pytest.mark.ecs
@@ -14,7 +16,6 @@ class TestInfra:
   #   inc = random.randint(1, 100)
   #   self.infra_name = f"duploctl{inc}"
 
-  @pytest.mark.integration
   @pytest.mark.order(2)
   def test_listing_infrastructures(self, duplo: DuploCtl):
     r = duplo.load("infrastructure")
@@ -23,7 +24,6 @@ class TestInfra:
     except DuploError as e:
       pytest.fail(f"Failed to list infrastructures: {e}")
 
-  @pytest.mark.integration
   @pytest.mark.order(2)
   def test_finding_infra(self, duplo: DuploCtl):
     r = duplo.load("tenant")
@@ -33,44 +33,40 @@ class TestInfra:
       pytest.fail(f"Failed to find default infra: {e}")
     assert t["AccountName"] == "default"
 
-  @pytest.mark.integration
   @pytest.mark.dependency(name = "create_infra", scope='session')
   @pytest.mark.order(1)
-  def test_creating_infrastructures(self, duplo: DuploCtl, infra_name: str):
+  def test_creating_infrastructures(self, duplo: DuploCtl, infra_name: str, infra_type: str, region: str):
     r = duplo.load("infrastructure")
-    vnum = math.ceil(random.randint(1, 9))
-    # check if the infra already exists — pass without creating if it does
     try:
-      i = r.find(infra_name)
-      if i:
+      existing = r.find(infra_name)
+      if existing:
+        if region and existing.get("Region") != region:
+          print(
+            f"WARNING: --region {region!r} ignored — "
+            f"infrastructure '{infra_name}' already exists in {existing.get('Region')!r}"
+          )
         print(f"Infrastructure '{infra_name}' already exists")
         return
     except DuploError:
       pass
-    name = infra_name
-    print(f"Creating infra '{name}'")
+    body = get_test_data(_INFRA_DATA[infra_type])
+    body["Name"] = infra_name
+    taken = {i.get("Vnet", {}).get("AddressPrefix", "") for i in r.list()}
+    for _ in range(50):
+      cidr = f"11.{random.randint(10, 250)}.0.0/16"
+      if cidr not in taken:
+        break
+    body["Vnet"]["AddressPrefix"] = cidr
+    if region:
+      body["Region"] = region
     duplo.wait = True
     try:
-      r.create({
-        "Name": name,
-        "Accountid": "",
-        "EnableK8Cluster": True,
-        "AzCount": 2,
-        "Vnet": {
-          "SubnetCidr": 22,
-          "AddressPrefix": f"11.1{vnum}0.0.0/16"
-        },
-        "Cloud": 0,
-        "OnPremConfig": None,
-        "Region": "us-east-2",
-        "CustomData": [],
-      })
+      r.create(body)
     except DuploFailedResource as e:
       pytest.fail(f"Infrastructure is in a failed state: {e}")
     except DuploError as e:
-      pytest.fail(f"Failed to create tenant: {e}")
+      pytest.fail(f"Failed to create infrastructure: {e}")
     
-  @pytest.mark.integration
   @pytest.mark.dependency(depends=["create_infra"], scope='session')
   @pytest.mark.order(999)
   def test_find_delete_infra(self, duplo: DuploCtl, infra_name: str, owns_infra: bool):

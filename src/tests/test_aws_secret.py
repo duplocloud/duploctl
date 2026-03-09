@@ -393,10 +393,11 @@ def test_prefixed_name_unprefixed(aws_secret):
     assert aws_secret.prefixed_name("secret") != "secret"
 
 
+@pytest.mark.integration
 @pytest.mark.aws
+@pytest.mark.awssecret
 class TestAwsSecret:
 
-    @pytest.mark.integration
     @pytest.mark.dependency(name="create_aws_secret", depends=["find_tenant_resource"], scope="session")
     @pytest.mark.order(100)
     def test_create_secret(self, aws_secret_resource):
@@ -406,7 +407,6 @@ class TestAwsSecret:
         execute_test(r.create, name=secret_name, body=body)
         time.sleep(10)
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_aws_secret"], scope="session")
     @pytest.mark.order(101)
     def test_find_secret(self, aws_secret_resource):
@@ -416,7 +416,6 @@ class TestAwsSecret:
         assert secret["Name"] == secret_name
         assert secret["SecretString"] == '{"foo": "bar"}'
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_aws_secret"], scope="session")
     @pytest.mark.order(102)
     def test_update_secret(self, aws_secret_resource):
@@ -429,7 +428,6 @@ class TestAwsSecret:
         assert "SecretString" in updated_secret, "SecretString key missing in response"
         assert updated_secret["SecretString"] == new_value
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_aws_secret"], scope="session")
     @pytest.mark.order(993)
     def test_delete_secret(self, aws_secret_resource):

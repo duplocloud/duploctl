@@ -1,113 +1,203 @@
 name: Integration Tests
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
     inputs:
       environment:
         required: true
-        description: 'The environment to run the tests in'
+        description: GHA environment with DUPLO_HOST and DUPLO_TOKEN
         type: environment
-      enabled:
-        required: false
-        description: 'Whether to run the tests'
-        type: boolean
-        default: true
+      suite:
+        required: true
+        description: Test suite to run
+        type: choice
+        options:
+        - k8s
+        - aws
+        - ecs
       infra:
         required: false
-        description: An infra to use. Empty creates one.
+        description: Pre-existing infra name. Empty creates citest-<run_id>.
         type: string
-      logs:
+      tenant:
         required: false
-        description: 'Whether to log the tests'
-        type: boolean
-        default: false
-  workflow_call: 
+        description: Pre-existing tenant name. Empty mirrors infra name.
+        type: string
+      python_version:
+        required: false
+        description: Python version
+        default: "3.13"
+        type: string
+  workflow_call:
     inputs:
       environment:
         required: true
-        description: 'The environment to run the tests in'
         type: string
-      enabled:
-        required: false
-        description: 'Whether to run the tests'
-        type: boolean
-        default: true
+      suite:
+        required: true
+        type: string
       infra:
         required: false
-        description: An infra to use. Empty creates one.
         type: string
-      logs:
+      tenant:
         required: false
-        description: 'Whether to log the tests'
-        type: boolean
-        default: false
+        type: string
+      python_version:
+        required: false
+        type: string
+        default: "3.13"
     secrets:
-      GH_APP_KEY:
-        description: GitHub App private key
+      DUPLO_TOKEN:
+        description: DuploCloud API token
         required: true
 
 jobs:
-  integration_tests:
-    name: Integration
+
+  lifecycle:
+    name: Lifecycle (${{ inputs.suite }})
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: ${{ inputs.environment }}
     env:
       DUPLO_HOST: ${{ vars.DUPLO_HOST }}
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
-      AWS_CONFIG_FILE: config/aws
-      AWS_DEFAULT_REGION: ${{ vars.AWS_REGION }}
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_PROFILE: test
+    outputs:
+      infra: ${{ steps.names.outputs.infra }}
+      tenant: ${{ steps.names.outputs.tenant }}
+      matrix: ${{ steps.suite.outputs.matrix }}
     steps:
-  
+
     - name: Setup
       uses: duplocloud/duploctl/.github/actions/setup@main
-      if: inputs.enabled
       with:
         install: ".[build,test,aws]"
-        app-id: ${{ vars.GH_APP_ID }}
-        private-key: ${{ secrets.GH_APP_KEY }}
+        python-version: ${{ inputs.python_version }}
 
-    - name: Setup Args
-      id: pytest_args
-      if: inputs.enabled
+    - name: Resolve names
+      id: names
       env:
         INFRA: ${{ inputs.infra }}
-        LOGS: ${{ inputs.logs }}
+        TENANT: ${{ inputs.tenant }}
       run: |
-        ARGS=(
-          "src"
-          "--junit-xml=test-results.xml"
-          "-m integration"
-        )
-        # if infra is set, add it to the args
-        if [ -n "$INFRA" ]; then
-          ARGS+=("--infra" "$INFRA")
-        fi
-        # if the logs are set, add it to the args
-        if [ "$LOGS" = "true" ]; then
-          ARGS+=("-s")
-        fi
-        echo "PYTEST_ARGS=${ARGS[*]}" >> $GITHUB_OUTPUT
-    
-    # run the tests
-    - name: Test with pytest
-      if: inputs.enabled
-      run: pytest ${{ steps.pytest_args.outputs.PYTEST_ARGS }}
+        if [ -z "$INFRA" ]; then INFRA="citest-${{ github.run_id }}"; fi
+        if [ -z "$TENANT" ]; then TENANT="$INFRA"; fi
+        echo "infra=$INFRA" >> $GITHUB_OUTPUT
+        echo "tenant=$TENANT" >> $GITHUB_OUTPUT
 
-    - name: Surface failing tests
-      if: always() && inputs.enabled 
+    - name: Load suite matrix
+      id: suite
+      shell: python
+      run: |
+        import yaml, json, os
+        data = yaml.safe_load(open('src/tests/suites/${{ inputs.suite }}.yaml'))
+        matrix = json.dumps(data['jobs'])
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f"matrix={matrix}\n")
+
+    - name: Run lifecycle tests
+      env:
+        INFRA: ${{ steps.names.outputs.infra }}
+        TENANT: ${{ steps.names.outputs.tenant }}
+      run: >
+        pytest src
+        -m "integration and lifecycle"
+        --infra "$INFRA"
+        --tenant "$TENANT"
+        --no-cov
+        --junit-xml=lifecycle-results.xml
+        -v
+
+    - name: Surface results
+      if: always()
       uses: pmeier/pytest-results-action@main
       with:
-        path: test-results.xml
+        path: lifecycle-results.xml
         summary: true
         display-options: fEX
         fail-on-empty: true
 
-    - name: Cleanup
-      if: always() && inputs.enabled 
-      run: |
-        mkdir -p config
-        duploctl jit update_aws_config test --admin
-        ./scripts/aws_cleanup.sh
+  resources:
+    name: ${{ matrix.name }} (${{ inputs.suite }})
+    needs: lifecycle
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      DUPLO_HOST: ${{ vars.DUPLO_HOST }}
+      DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.lifecycle.outputs.matrix) }}
+    steps:
+
+    - name: Setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        install: ".[build,test,aws]"
+        python-version: ${{ inputs.python_version }}
+
+    - name: Run ${{ matrix.name }} tests
+      env:
+        INFRA: ${{ needs.lifecycle.outputs.infra }}
+        TENANT: ${{ needs.lifecycle.outputs.tenant }}
+        MARKERS: ${{ matrix.markers }}
+        NAME: ${{ matrix.name }}
+      run: >
+        pytest src
+        -m "$MARKERS"
+        --infra "$INFRA"
+        --tenant "$TENANT"
+        --no-cov
+        --junit-xml="${NAME}-results.xml"
+        -v
+
+    - name: Surface results
+      if: always()
+      uses: pmeier/pytest-results-action@main
+      with:
+        path: ${{ matrix.name }}-results.xml
+        summary: true
+        display-options: fEX
+        fail-on-empty: true
+
+  teardown:
+    name: Teardown (${{ inputs.suite }})
+    needs: [lifecycle, resources]
+    if: always()
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      DUPLO_HOST: ${{ vars.DUPLO_HOST }}
+      DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
+    steps:
+
+    - name: Setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        install: ".[build,test,aws]"
+        python-version: ${{ inputs.python_version }}
+
+    - name: Run teardown
+      env:
+        INFRA: ${{ needs.lifecycle.outputs.infra }}
+        TENANT: ${{ needs.lifecycle.outputs.tenant }}
+      run: >
+        pytest src
+        -m "integration and lifecycle"
+        --infra "$INFRA"
+        --tenant "$TENANT"
+        --owned
+        --no-cov
+        --junit-xml=teardown-results.xml
+        -v
+
+    - name: Surface results
+      if: always()
+      uses: pmeier/pytest-results-action@main
+      with:
+        path: teardown-results.xml
+        summary: true
+        display-options: fEX
+        fail-on-empty: true

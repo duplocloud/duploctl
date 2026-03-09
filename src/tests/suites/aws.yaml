@@ -1,0 +1,6 @@
+# hosts + RDS are slow (~60 min); run in parallel with the remaining aws resources
+jobs:
+- name: hosts-rds
+  markers: "integration and aws and (hosts or rds)"
+- name: other
+  markers: "integration and aws and not (hosts or rds)"

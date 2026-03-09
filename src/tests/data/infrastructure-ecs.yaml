@@ -1,5 +1,5 @@
 EnableK8Cluster: false
-EnableECSCluster: false
+EnableECSCluster: true
 AzCount: 2
 Vnet:
   SubnetCidr: 22

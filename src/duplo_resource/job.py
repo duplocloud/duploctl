@@ -84,7 +84,7 @@ class DuploJob(DuploResourceV3):
         a = active
         s = succeeded
         f = failed
-        self.duplo.logger.warn(f"Job {name}: active({active}/{completions}), succeeded({succeeded}/{completions}), failed({failed}/{limit})")
+        self.duplo.logger.warning(f"Job {name}: active({active}/{completions}), succeeded({succeeded}/{completions}), failed({failed}/{limit})")
       # make sure we can get pods and logs first
       pods_exist = (active > 0 or succeeded > 0 or failed > 0)
       pods = self.pods(name)

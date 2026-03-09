@@ -1,0 +1,6 @@
+Name: duploctl-svc
+Replicas: 1
+IsTargetGroupOnly: false
+HealthCheckGracePeriodSeconds: 0
+OldTaskDefinitionBufferSize: 3
+CapacityProviderStrategy: []

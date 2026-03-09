@@ -16,34 +16,43 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.integration
 @pytest.mark.k8s
+@pytest.mark.configmap
 @pytest.mark.usefixtures("configmap_resource")
 class TestConfigMap:
 
-    @pytest.mark.integration
     @pytest.mark.dependency(name="create_configmap", depends=["find_tenant_resource"], scope="session")
     @pytest.mark.order(50)
     def test_create_configmap(self, configmap_resource):
         """Test creating a ConfigMap with various methods."""
         body = get_test_data("configmap")
+        # Delete first so we can recreate cleanly (may exist from TestTenantResources order 40).
+        try:
+            configmap_resource.delete(name=self.configmap_name)
+        except DuploError:
+            pass
         response = execute_test(configmap_resource.create, name=self.configmap_name, body=body)
         assert response["metadata"]["name"] == self.configmap_name
         assert response["data"] == body["data"]
-        # Test creating with complete body
-        body = {
+        # Test creating with complete body (delete first in case it exists from a prior run).
+        body2 = {
             "metadata": {"name": f"{self.configmap_name}-2"},
             "data": {"config1": "test1", "config2": "test2"}
         }
-        response = execute_test(configmap_resource.create, body=body)
+        try:
+            configmap_resource.delete(name=f"{self.configmap_name}-2")
+        except DuploError:
+            pass
+        response = execute_test(configmap_resource.create, body=body2)
         assert response["metadata"]["name"] == f"{self.configmap_name}-2"
-        assert response["data"] == body["data"]
+        assert response["data"] == body2["data"]
         # Test dryrun option
         dryrun_response = execute_test(configmap_resource.create, name=f"{self.configmap_name}-3", 
                                      data={"test": "value"}, dryrun=True)
         assert dryrun_response["metadata"]["name"] == f"{self.configmap_name}-3"
         assert "data" in dryrun_response
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_configmap"], scope="session")
     @pytest.mark.order(51)
     def test_find_configmap(self, configmap_resource):
@@ -54,7 +63,6 @@ class TestConfigMap:
         assert "data" in configmap
         assert configmap["data"]["foo"] == "bar"
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_configmap"], scope="session")
     @pytest.mark.order(52)
     def test_update_configmap(self, configmap_resource):
@@ -80,7 +88,6 @@ class TestConfigMap:
                                      data={"test": "value"}, dryrun=True)
         assert "test" in dryrun_response["data"]
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_configmap"], scope="session")
     @pytest.mark.order(993)
     def test_delete_configmap(self, configmap_resource):

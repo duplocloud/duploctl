@@ -16,11 +16,11 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.integration
 @pytest.mark.usefixtures("helpdesk_resource")
 class TestDuploAI:
     """Integration tests for the AI Helpdesk ticketing system."""
 
-    @pytest.mark.integration
     @pytest.mark.dependency(name="create_ticket", depends=["find_tenant_resource"], scope="session")
     @pytest.mark.order(120)
     def test_create_ticket(self, helpdesk_resource):
@@ -45,7 +45,6 @@ class TestDuploAI:
         # Save ticket ID for next test
         self.__class__.ticket_id = response["ticketname"]
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_ticket"], scope="session")
     @pytest.mark.order(121)
     def test_create_ticket_with_origin(self, helpdesk_resource):
@@ -67,7 +66,6 @@ class TestDuploAI:
         assert response["chat_url"].endswith(response["ticketname"])
         assert "ai_response" in response
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_ticket"], scope="session")
     @pytest.mark.order(121)
     def test_create_ticket_with_default_origin(self, helpdesk_resource):
@@ -88,7 +86,6 @@ class TestDuploAI:
         assert response["chat_url"].endswith(response["ticketname"])
         assert "ai_response" in response
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_ticket"], scope="session")
     @pytest.mark.order(122)
     def test_send_message(self, helpdesk_resource):
