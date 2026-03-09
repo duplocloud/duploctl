@@ -27,7 +27,14 @@ def _ensure_namespace(body: dict, key: str, ns: str) -> None:
     body: The resource body dict (mutated in place).
     key: Top-level key for the resource (e.g. "workflow", "template").
     ns: The namespace to inject.
+
+  Raises:
+    DuploError: If body is not a dict (e.g. omitted -f/--cli-input).
   """
+  if not isinstance(body, dict):
+    raise DuploError(
+      "Body is required; pass -f/--cli-input with a YAML/JSON object", 400
+    )
   meta = body.setdefault(key, {}).setdefault("metadata", {})
   if not meta.get("namespace"):
     meta["namespace"] = ns
@@ -144,9 +151,10 @@ class DuploArgoWorkflow(DuploResource):
       result: Deletion confirmation.
     """
     safe_name = self.client.sanitize_path_segment(name)
-    return self.client.delete(
+    response = self.client.delete(
       f"workflows/{_namespace(self)}/{safe_name}", self.tenant_id
-    ).json()
+    )
+    return response.json() if response.content else {}
 
   @Command()
   def apply(self, body: args.BODY) -> dict:
@@ -426,9 +434,10 @@ class DuploArgoWorkflowTemplate(DuploResource):
       result: Deletion confirmation.
     """
     safe_name = self.client.sanitize_path_segment(name)
-    return self.client.delete(
+    response = self.client.delete(
       f"workflow-templates/{_namespace(self)}/{safe_name}", self.tenant_id
-    ).json()
+    )
+    return response.json() if response.content else {}
 
   @Command()
   def apply(self, body: args.BODY) -> dict:

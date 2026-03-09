@@ -198,3 +198,23 @@ def test_alias_list_workflows_resolves_to_list():
 @pytest.mark.unit
 def test_alias_delete_workflow_resolves_to_delete():
     assert get_command_schema(DuploArgoWorkflow, "delete_workflow")["method"] == "delete"
+
+
+@pytest.mark.unit
+def test_delete_empty_body(mocker):
+    argo, client = _setup(mocker)
+    mock_response = mocker.MagicMock()
+    mock_response.content = b""
+    client.delete.return_value = mock_response
+    result = argo.delete("wf1")
+    assert result == {}
+    client.delete.assert_called_once()
+
+
+@pytest.mark.unit
+def test_create_missing_body(mocker):
+    from duplocloud.errors import DuploError
+    argo, client = _setup(mocker)
+    with pytest.raises(DuploError) as exc:
+        argo.create(None)
+    assert exc.value.code == 400

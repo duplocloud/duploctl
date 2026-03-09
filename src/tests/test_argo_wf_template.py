@@ -156,3 +156,22 @@ def test_apply_updates_when_exists(mocker):
     )
     assert result["metadata"]["name"] == "tpl1"
     client.put.assert_called_once()
+
+
+@pytest.mark.unit
+def test_delete_empty_body(mocker):
+    tpl, client = _setup(mocker)
+    mock_response = mocker.MagicMock()
+    mock_response.content = b""
+    client.delete.return_value = mock_response
+    result = tpl.delete("tpl1")
+    assert result == {}
+    client.delete.assert_called_once()
+
+
+@pytest.mark.unit
+def test_create_missing_body(mocker):
+    tpl, client = _setup(mocker)
+    with pytest.raises(DuploError) as exc:
+        tpl.create(None)
+    assert exc.value.code == 400
