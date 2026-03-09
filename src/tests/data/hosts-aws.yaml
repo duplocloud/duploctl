@@ -6,7 +6,7 @@ MinSize:
 MaxSize:
 MetaData:
 - Key: OsDiskSize
-  Value: 30
+  Value: 40
 - Key: MetadataServiceOption
   Value: enabled_v2_only
 UseLaunchTemplate: true
