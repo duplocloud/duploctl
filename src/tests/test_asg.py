@@ -20,7 +20,6 @@ def execute_test(func, *args, **kwargs):
         pytest.fail(f"Test failed: {e}")
 
 @pytest.mark.integration
-@pytest.mark.aws
 @pytest.mark.k8s
 @pytest.mark.asg
 class TestAsg:
