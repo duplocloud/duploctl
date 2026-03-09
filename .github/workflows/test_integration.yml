@@ -50,6 +50,12 @@ on:
       DUPLO_TOKEN:
         description: DuploCloud API token
         required: true
+      GH_APP_ID:
+        description: GitHub App ID for checkout
+        required: true
+      GH_APP_PRIVATE_KEY:
+        description: GitHub App private key for checkout
+        required: true
 
 jobs:
 
@@ -65,6 +71,7 @@ jobs:
       infra: ${{ steps.names.outputs.infra }}
       tenant: ${{ steps.names.outputs.tenant }}
       matrix: ${{ steps.suite.outputs.matrix }}
+      owned: ${{ steps.names.outputs.owned }}
     steps:
 
     - name: Setup
@@ -72,6 +79,8 @@ jobs:
       with:
         install: ".[build,test,aws]"
         python-version: ${{ inputs.python_version }}
+        app-id: ${{ secrets.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
 
     - name: Resolve names
       id: names
@@ -79,10 +88,11 @@ jobs:
         INFRA: ${{ inputs.infra }}
         TENANT: ${{ inputs.tenant }}
       run: |
-        if [ -z "$INFRA" ]; then INFRA="citest-${{ github.run_id }}"; fi
+        if [ -z "$INFRA" ]; then INFRA="citest-${{ github.run_id }}"; OWNED=true; else OWNED=false; fi
         if [ -z "$TENANT" ]; then TENANT="$INFRA"; fi
         echo "infra=$INFRA" >> $GITHUB_OUTPUT
         echo "tenant=$TENANT" >> $GITHUB_OUTPUT
+        echo "owned=$OWNED" >> $GITHUB_OUTPUT
 
     - name: Load suite matrix
       id: suite
@@ -136,6 +146,8 @@ jobs:
       with:
         install: ".[build,test,aws]"
         python-version: ${{ inputs.python_version }}
+        app-id: ${{ secrets.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
 
     - name: Run ${{ matrix.name }} tests
       env:
@@ -178,20 +190,30 @@ jobs:
       with:
         install: ".[build,test,aws]"
         python-version: ${{ inputs.python_version }}
+        app-id: ${{ secrets.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
 
-    - name: Run teardown
+    - name: Build teardown args
+      id: teardown_args
       env:
         INFRA: ${{ needs.lifecycle.outputs.infra }}
         TENANT: ${{ needs.lifecycle.outputs.tenant }}
-      run: >
-        pytest src
-        -m "integration and lifecycle"
-        --infra "$INFRA"
-        --tenant "$TENANT"
-        --owned
-        --no-cov
-        --junit-xml=teardown-results.xml
-        -v
+        OWNED: ${{ needs.lifecycle.outputs.owned }}
+      run: |
+        ARGS=(
+          src
+          -m "integration and lifecycle"
+          --infra "$INFRA"
+          --tenant "$TENANT"
+          --no-cov
+          --junit-xml=teardown-results.xml
+          -v
+        )
+        if [ "$OWNED" = "true" ]; then ARGS+=(--owned); fi
+        echo "args=${ARGS[*]}" >> $GITHUB_OUTPUT
+
+    - name: Run teardown
+      run: pytest ${{ steps.teardown_args.outputs.args }}
 
     - name: Surface results
       if: always()
