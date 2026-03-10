@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ECS `apply` and `list`/`find` support** — added `apply` command for create-or-update of ECS services, and `paths` definition enabling inherited `list` and `find` commands
 - **Argo Workflow support** via new `argo_wf` and `argo_wf_template` resources
   - `argo_wf`: `list`, `find` (aliases: `get`, `get_workflow`), `create` (alias: `submit`), `delete` (alias: `delete_workflow`), `apply`, `logs` commands
   - `argo_wf_template`: `list`, `find`, `create`, `update`, `delete`, `apply` commands
