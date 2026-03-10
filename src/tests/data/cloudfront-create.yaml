@@ -1,19 +1,19 @@
-UseOAIIdentity: true
+UseOAIIdentity: false
 DistributionConfig:
-  DefaultRootObject: "index.html"
+  DefaultRootObject: index.html
   Aliases:
     Items: []
     Quantity: 0
   ViewerCertificate:
     MinimumProtocolVersion:
-      Value: "TLSv1.2_2021"
+      Value: TLSv1.2_2021
     ACMCertificateArn: ""
     SSLSupportMethod:
-      Value: "sni-only"
+      Value: sni-only
   Origins:
     Items:
-      - DomainName: ""
-        Id: ""
+    - DomainName: www.example.com
+      Id: example-origin
     Quantity: 1
   CacheBehaviors:
     Items: []
@@ -25,12 +25,12 @@ DistributionConfig:
     Enabled: false
   DefaultCacheBehavior:
     ViewerProtocolPolicy:
-      Value: "redirect-to-https"
+      Value: redirect-to-https
     LambdaFunctionAssociations:
       Items: []
       Quantity: 0
     Compress: true
-    TargetOriginId: ""
+    TargetOriginId: example-origin
     CachePolicyId: ""
-  Comment: "duplo-cloudfront"
+  Comment: duplo-cloudfront
 CorsAllowedHostNames: []

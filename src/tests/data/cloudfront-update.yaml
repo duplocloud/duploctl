@@ -1,6 +1,5 @@
-UseOAIIdentity: true
-ProcessS3OriginPolicy: true
-Id: 
+UseOAIIdentity: false
+Id:
 DistributionConfig:
   Aliases:
     Items: []
@@ -35,7 +34,7 @@ DistributionConfig:
       Items: []
       Quantity: 0
     SmoothStreaming: false
-    TargetOriginId: 
+    TargetOriginId: example-origin
     TrustedKeyGroups:
       Enabled: false
       Items: []
@@ -66,14 +65,12 @@ DistributionConfig:
         CustomHeaders:
           Items: []
           Quantity: 0
-        DomainName: ""
-        Id: ""
+        DomainName: www.example.com
+        Id: example-origin
         OriginAccessControlId: ""
         OriginPath: ""
         OriginShield:
           Enabled: false
-        S3OriginConfig:
-          OriginAccessIdentity: ""
     Quantity: 1
   PriceClass:
     Value: PriceClass_All
