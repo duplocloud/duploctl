@@ -63,7 +63,7 @@ jobs:
 
   lifecycle:
     name: Lifecycle (${{ inputs.suite }})
-    if: inputs.enabled
+    if: inputs.enabled != false
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
@@ -180,7 +180,7 @@ jobs:
   teardown:
     name: Teardown (${{ inputs.suite }})
     needs: [lifecycle, resources]
-    if: inputs.enabled && always()
+    if: inputs.enabled != false && always()
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
