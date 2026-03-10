@@ -25,7 +25,7 @@ def execute_test(func, *args, **kwargs):
 @pytest.mark.usefixtures("cloudfront_resource")
 class TestCloudFront:
 
-    @pytest.mark.dependency(name="create_cloudfront", depends=["find_tenant_resource"], scope="session")
+    @pytest.mark.dependency(name="create_cloudfront", depends=["create_tenant"], scope="session")
     @pytest.mark.order(90)
     def test_create_cloudfront(self, cloudfront_resource, request):
         """Test creating a CloudFront distribution and store ID at class level."""

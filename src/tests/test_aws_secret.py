@@ -398,7 +398,7 @@ def test_prefixed_name_unprefixed(aws_secret):
 @pytest.mark.awssecret
 class TestAwsSecret:
 
-    @pytest.mark.dependency(name="create_aws_secret", depends=["find_tenant_resource"], scope="session")
+    @pytest.mark.dependency(name="create_aws_secret", depends=["create_tenant"], scope="session")
     @pytest.mark.order(100)
     def test_create_secret(self, aws_secret_resource):
         """Test creating an AWS secret."""
