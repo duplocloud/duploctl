@@ -1,4 +1,6 @@
-UseOAIIdentity: false
+# Origin DomainName, Id, and TargetOriginId are replaced at test runtime
+# with the actual S3 bucket domain created by TestS3.
+UseOAIIdentity: true
 DistributionConfig:
   DefaultRootObject: index.html
   Aliases:
@@ -12,8 +14,10 @@ DistributionConfig:
       Value: sni-only
   Origins:
     Items:
-    - DomainName: www.example.com
-      Id: example-origin
+    - DomainName: placeholder.s3.amazonaws.com
+      Id: placeholder.s3.amazonaws.com
+      S3OriginConfig:
+        OriginAccessIdentity: ""
     Quantity: 1
   CacheBehaviors:
     Items: []
@@ -30,7 +34,7 @@ DistributionConfig:
       Items: []
       Quantity: 0
     Compress: true
-    TargetOriginId: example-origin
+    TargetOriginId: placeholder.s3.amazonaws.com
     CachePolicyId: ""
   Comment: duplo-cloudfront
 CorsAllowedHostNames: []

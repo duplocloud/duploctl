@@ -112,6 +112,7 @@ markers = [
   "cronjob: mark a test as a cronjob resource test",
   "lambda_: mark a test as a lambda resource test",
   "rds: mark a test as an rds resource test",
+  "s3: mark a test as an s3 resource test",
   "cloudfront: mark a test as a cloudfront resource test",
   "awssecret: mark a test as an aws secret resource test",
   "jit: mark a test as a jit resource test"

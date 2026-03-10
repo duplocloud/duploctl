@@ -1,4 +1,6 @@
-UseOAIIdentity: false
+# Origin DomainName, Id, and TargetOriginId are replaced at test runtime
+# with the actual S3 bucket domain created by TestS3.
+UseOAIIdentity: true
 Id:
 DistributionConfig:
   Aliases:
@@ -34,7 +36,7 @@ DistributionConfig:
       Items: []
       Quantity: 0
     SmoothStreaming: false
-    TargetOriginId: example-origin
+    TargetOriginId: placeholder.s3.amazonaws.com
     TrustedKeyGroups:
       Enabled: false
       Items: []
@@ -65,12 +67,14 @@ DistributionConfig:
         CustomHeaders:
           Items: []
           Quantity: 0
-        DomainName: www.example.com
-        Id: example-origin
+        DomainName: placeholder.s3.amazonaws.com
+        Id: placeholder.s3.amazonaws.com
         OriginAccessControlId: ""
         OriginPath: ""
         OriginShield:
           Enabled: false
+        S3OriginConfig:
+          OriginAccessIdentity: ""
     Quantity: 1
   PriceClass:
     Value: PriceClass_All
