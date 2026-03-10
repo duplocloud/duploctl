@@ -3,13 +3,29 @@ from duplocloud.errors import DuploError
 from .conftest import get_test_data
 
 
-@pytest.fixture(scope="class")
-def s3_resource(duplo, request):
-    """Fixture to load the S3 resource and store the full bucket name."""
-    resource = duplo.load("s3")
+def _resolve_bucket_name(resource) -> str:
+    """Find the actual bucket name for the test bucket by listing.
+
+    DuploCloud appends the AWS account ID to the bucket name, so we look
+    for the bucket that starts with the expected prefix.
+    """
     tenant = resource.tenant["AccountName"]
     short_name = get_test_data("s3")["Name"]
-    request.cls.bucket_name = f"duploservices-{tenant}-{short_name}"
+    prefix = f"duploservices-{tenant}-{short_name}"
+    buckets = resource.list()
+    matches = [b["Name"] for b in buckets if b["Name"].startswith(prefix)]
+    return matches[0] if matches else None
+
+
+@pytest.fixture(scope="class")
+def s3_resource(duplo, request):
+    """Fixture to load the S3 resource.
+
+    Attempts to resolve the actual bucket name (with account ID suffix) by
+    listing. Falls back to None if the bucket has not been created yet.
+    """
+    resource = duplo.load("s3")
+    request.cls.bucket_name = _resolve_bucket_name(resource)
     return resource
 
 
@@ -32,21 +48,19 @@ class TestS3:
     def test_create_s3(self, s3_resource):
         """Create an S3 bucket from the test data file."""
         r = s3_resource
-        try:
-            existing = r.find(self.bucket_name)
-            if existing:
-                print(f"S3 bucket '{self.bucket_name}' already exists")
-                return
-        except DuploError:
-            pass
+        if self.bucket_name:
+            print(f"S3 bucket '{self.bucket_name}' already exists")
+            return
         body = get_test_data("s3")
         response = execute_test(r.create, body=body)
         assert response is not None
+        type(self).bucket_name = _resolve_bucket_name(r)
+        assert type(self).bucket_name, "Bucket name could not be resolved after create"
 
     @pytest.mark.dependency(name="find_s3", depends=["create_s3"], scope="session")
     @pytest.mark.order(51)
     def test_find_s3(self, s3_resource):
-        """Find the created S3 bucket by its full prefixed name."""
+        """Find the created S3 bucket by its full name."""
         r = s3_resource
         bucket = execute_test(r.find, self.bucket_name)
         assert bucket["Name"] == self.bucket_name

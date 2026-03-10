@@ -7,11 +7,7 @@ DistributionConfig:
     Items: []
     Quantity: 0
   ViewerCertificate:
-    MinimumProtocolVersion:
-      Value: TLSv1.2_2021
-    ACMCertificateArn: ""
-    SSLSupportMethod:
-      Value: sni-only
+    CloudFrontDefaultCertificate: true
   Origins:
     Items:
     - DomainName: placeholder.s3.amazonaws.com
@@ -35,6 +31,7 @@ DistributionConfig:
       Quantity: 0
     Compress: true
     TargetOriginId: placeholder.s3.amazonaws.com
-    CachePolicyId: ""
+    # CachingOptimized managed policy — works for S3 origins without requiring ForwardedValues/MinTTL
+    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
   Comment: duplo-cloudfront
 CorsAllowedHostNames: []

@@ -44,7 +44,7 @@ class DuploCloudFront(DuploResourceV3):
     Returns:
       dict: The service object.
     """
-    response = self.client.get(self.endpoint(name=distribution_id))
+    response = self.client.get(self.endpoint(distribution_id))
     response.raise_for_status()
     return response.json()
 

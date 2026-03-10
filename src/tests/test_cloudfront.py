@@ -2,6 +2,25 @@ import pytest
 import time
 from duplocloud.errors import DuploError
 from .conftest import get_test_data
+from .test_s3 import _resolve_bucket_name
+
+_CF_COMMENT = "duplo-cloudfront"
+# Module-level state persists across fixture resets between non-contiguous tests
+_STATE = {"cloudfront_id": None}
+
+
+def _resolve_cloudfront_id(resource, origin_domain) -> str:
+    """Find an existing CloudFront distribution by its S3 origin domain."""
+    if not origin_domain:
+        return None
+    dists = resource.list()
+    for d in dists:
+        origins = d.get("Origins", {}).get("Items", [])
+        for o in origins:
+            if o.get("DomainName") == origin_domain:
+                return d.get("Id")
+    return None
+
 
 @pytest.fixture(scope="class")
 def cloudfront_resource(duplo, request):
@@ -9,14 +28,20 @@ def cloudfront_resource(duplo, request):
 
     The S3 bucket created by TestS3 is used as the CloudFront origin so that
     the OAI / bucket-backend setup is exercised rather than a stub domain.
+    The bucket name is resolved at fixture time by listing, since DuploCloud
+    appends the AWS account ID to the bucket name.
     """
     resource = duplo.load("cloudfront")
     resource.duplo.wait = True
-    tenant = resource.tenant["AccountName"]
-    short_name = get_test_data("s3")["Name"]
-    bucket_name = f"duploservices-{tenant}-{short_name}"
-    request.cls.cloudfront_id = None
-    request.cls.origin_domain = f"{bucket_name}.s3.amazonaws.com"
+    s3 = duplo.load("s3")
+    bucket_name = _resolve_bucket_name(s3)
+    origin_domain = f"{bucket_name}.s3.amazonaws.com" if bucket_name else None
+    existing_id = _resolve_cloudfront_id(resource, origin_domain)
+    # Prefer previously-stored ID (survives fixture reset); fall back to list lookup
+    if not existing_id and _STATE["cloudfront_id"]:
+        existing_id = _STATE["cloudfront_id"]
+    request.cls.origin_domain = origin_domain
+    request.cls.cloudfront_id = existing_id
     return resource
 
 def execute_test(func, *args, **kwargs):
@@ -37,6 +62,11 @@ class TestCloudFront:
     def test_create_cloudfront(self, cloudfront_resource, request):
         """Test creating a CloudFront distribution and store ID at class level."""
         r = cloudfront_resource
+        assert self.origin_domain, "S3 origin domain not resolved — ensure TestS3 ran first"
+        if self.cloudfront_id:
+            _STATE["cloudfront_id"] = self.cloudfront_id
+            print(f"CloudFront distribution '{self.cloudfront_id}' already exists")
+            return
         body = get_test_data("cloudfront-create")
         origin = body["DistributionConfig"]["Origins"]["Items"][0]
         origin["DomainName"] = self.origin_domain
@@ -49,6 +79,7 @@ class TestCloudFront:
         status_response = execute_test(r.get_status, distribution_id=response["Id"])
         assert status_response == "Deployed", "CloudFront distribution not deployed"
         request.cls.cloudfront_id = response["Id"]
+        _STATE["cloudfront_id"] = response["Id"]
         print(f"CloudFront Created! ID: {request.cls.cloudfront_id}")
 
     @pytest.mark.dependency(depends=["create_cloudfront"], scope="session")
@@ -61,9 +92,9 @@ class TestCloudFront:
         cloudfront = execute_test(r.find, distribution_id=self.cloudfront_id)
         update_body["Id"] = self.cloudfront_id
         update_body["UseOAIIdentity"] = True
-        update_body["DistributionConfig"]["CallerReference"] = (
-            cloudfront["Distribution"]["DistributionConfig"]["CallerReference"]
-        )
+        cfg = cloudfront["Distribution"]["DistributionConfig"]
+        update_body["DistributionConfig"]["CallerReference"] = cfg["CallerReference"]
+        update_body["DistributionConfig"]["Comment"] = cfg["Comment"]
         origin = update_body["DistributionConfig"]["Origins"]["Items"][0]
         origin["DomainName"] = self.origin_domain
         origin["Id"] = self.origin_domain
@@ -109,6 +140,9 @@ class TestCloudFront:
     def test_delete_cloudfront(self, cloudfront_resource):
         """Test deleting a CloudFront distribution."""
         r = cloudfront_resource
-        assert self.cloudfront_id is not None, "CloudFront ID not found!"
-        response = execute_test(r.delete, distribution_id=self.cloudfront_id)
-        assert response.get("message") == f"CloudFront distribution {self.cloudfront_id} deleted"
+        # Re-resolve the ID in case the class-scoped fixture was reset
+        # between non-contiguous tests (orders 94 and 997).
+        dist_id = self.cloudfront_id or _STATE["cloudfront_id"] or _resolve_cloudfront_id(r, self.origin_domain)
+        assert dist_id is not None, "CloudFront ID not found!"
+        response = execute_test(r.delete, distribution_id=dist_id)
+        assert response.get("message") == f"CloudFront distribution {dist_id} deleted"
