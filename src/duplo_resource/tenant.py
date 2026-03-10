@@ -345,7 +345,7 @@ class DuploTenant(DuploResourceV2):
     curr_settings = tenant.get("Metadata", [])
     curr_keys = [s["Key"] for s in curr_settings]
     # flatten k/v pair while dedupe and remove deleted keys
-    new_settings = {s[0]: s[1] for s in setvar if s[0] not in deletevar}
+    new_settings = {s[0]: s[1] for s in (setvar or []) if s[0] not in (deletevar or [])}
     # only update if the value is different and create if the key is not present
     for k, v in new_settings.items():
       s = {"Key": k, "Value": v}

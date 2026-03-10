@@ -164,11 +164,9 @@ def test_update_name_body_mismatch_raises(ingress, ingress_body):
 # --- Integration tests ---
 
 @pytest.fixture(scope="class")
-def ingress_resource(duplo, request):
+def ingress_resource(duplo):
     """Fixture to load an Ingress resource."""
-    resource = duplo.load("ingress")
-    request.cls.ingress_name = None
-    return resource
+    return duplo.load("ingress")
 
 def execute_test(func, *args, **kwargs):
     """Helper function to execute a test and handle errors."""
@@ -177,32 +175,40 @@ def execute_test(func, *args, **kwargs):
     except DuploError as e:
         pytest.fail(f"Test failed: {e}")
 
+@pytest.mark.integration
+@pytest.mark.k8s
+@pytest.mark.ingress
 class TestIngress:
 
-    @pytest.mark.integration
-    @pytest.mark.dependency(name="create_ingress", scope="session")
-    @pytest.mark.order(6)
-    def test_create_ingress(self, ingress_resource, request):
+    @pytest.mark.dependency(name="create_ingress", depends=["find_tenant_resource"], scope="session")
+    @pytest.mark.order(70)
+    def test_create_ingress(self, ingress_resource):
         """Test creating an Ingress resource."""
         r = ingress_resource
         body = get_test_data("ingress")
+        ingress_name = body['name']
+        try:
+            existing = r.find(ingress_name)
+            if existing:
+                print(f"Ingress '{ingress_name}' already exists")
+                return
+        except DuploError:
+            pass
         response = execute_test(r.create, body=body)
-        assert response.get("message") and f"Successfully Created an Ingress '{body['name']}'" in response["message"], "Ingress creation failed"
-        request.cls.ingress_name = body['name']
+        assert response.get("message") and f"Successfully Created an Ingress '{ingress_name}'" in response["message"], "Ingress creation failed"
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_ingress"], scope="session")
-    @pytest.mark.order(7)
+    @pytest.mark.order(71)
     def test_update_ingress(self, ingress_resource):
         """Test updating an Ingress resource."""
         r = ingress_resource
         update_body = get_test_data("ingress")
-        response = execute_test(r.update, name=self.ingress_name, body=update_body)
-        assert response.get("message") and f"Successfully Updated an Ingress '{update_body['name']}'" in response["message"], "Ingress updation failed"
+        ingress_name = update_body['name']
+        response = execute_test(r.update, name=ingress_name, body=update_body)
+        assert response.get("message") and f"Successfully Updated an Ingress '{ingress_name}'" in response["message"], "Ingress updation failed"
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_ingress"], scope="session")
-    @pytest.mark.order(8)
+    @pytest.mark.order(72)
     def test_list_ingress(self, ingress_resource):
         """Test listing an Ingress."""
         r = ingress_resource
@@ -210,12 +216,11 @@ class TestIngress:
         assert isinstance(ingresses, list), "Ingress list response is not a list"
         assert len(ingresses) > 0, "No Ingress found"
 
-    @pytest.mark.integration
     @pytest.mark.dependency(depends=["create_ingress"], scope="session")
     @pytest.mark.order(997)
     def test_delete_ingress(self, ingress_resource):
         """Test deleting an Ingress."""
         r = ingress_resource
-        assert self.ingress_name is not None, "Ingress name not found!"
-        response = execute_test(r.delete, name=self.ingress_name)
-        assert response.get("message") == f"k8s/ingress/{self.ingress_name} deleted"
+        ingress_name = get_test_data("ingress")['name']
+        response = execute_test(r.delete, name=ingress_name)
+        assert response.get("message") == f"k8s/ingress/{ingress_name} deleted"

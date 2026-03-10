@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ECS `apply` and `list`/`find` support** — added `apply` command for create-or-update of ECS services, and `paths` definition enabling inherited `list` and `find` commands
+- **Argo Workflow support** via new `argo_wf` and `argo_wf_template` resources
+  - `argo_wf`: `list`, `find` (aliases: `get`, `get_workflow`), `create` (alias: `submit`), `delete` (alias: `delete_workflow`), `apply`, `logs` commands
+  - `argo_wf_template`: `list`, `find`, `create`, `update`, `delete`, `apply` commands
+  - `DuploArgoClient` client extension handles Argo JWT auth headers and proxied HTTP requests
+  - `jit argo_wf` command for standalone Argo JWT token acquisition with caching
+  - Dynamic tenant `prefix` property now reads `ResourceNamePrefix` from `system.info()` with fallback to `duploservices`
 - added ability to pass in kwargs when calling the client as function
 - better docs for args and commands
 - **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
@@ -17,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DuploResource.command()` gates model loading and validation behind the `validate` flag — no overhead when disabled
   - `@Command(model="...")` decorator parameter stores the associated model name in the command schema
   - `duplocloud-sdk` added as a core dependency
+- greatly updated the integration tests and how they run in the pipelines
 
 #### New Client Extension Points
 
@@ -26,10 +34,12 @@ Biggest change here is now instead of `self.duplo.get` you do `self.client.get` 
 
 ### Fixed
 
+- Fixed ECS `_wait_on_service` not detecting deployment rollbacks. When ECS rolls back a failed deployment, the PRIMARY deployment becomes the rollback (old task definition), causing the wait loop to poll until timeout instead of failing immediately. Now scans all deployments for the target ARN's rollout state and checks `FAILED` before `IN_PROGRESS`.
 - Fixed "updates" parameter on call to wait in bulk image updates.
 - Updated GitHub workflow action versions (artifact actions, Docker Hub description, auto-assign) and migrated Slack notify step to `slack-github-action@v2`.
 - Fixed `--wait` failing permanently when a transient network error (DNS failure, TCP timeout) occurs during polling. Introduced `DuploConnectionError` as a dedicated subclass of `DuploError` for network-level failures; the `wait` loop now retries on `DuploConnectionError` instead of propagating it. Server-side HTTP errors still surface immediately.
 - Fixed `batch_definition update_image` docstring showing incorrect `--image <image>` flag syntax — the `image` argument is positional, so the correct usage is `duploctl batch_definition update_image <name> <image>`
+- fixed waiting for the ecs and ec2 host services 
 
 ## [0.4.1] - 2026-02-19
 

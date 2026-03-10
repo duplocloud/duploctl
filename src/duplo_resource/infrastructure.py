@@ -78,6 +78,28 @@ class DuploInfrastructure(DuploResourceV2):
     """
     response = self.client.get(f"adminproxy/GetInfrastructureConfig/{name}")
     return response.json()
+  
+  _INFRA_FAULT_TENANTS = {"System.VPC", "System.AwsInfrastructure"}
+
+  def _faults_for(self, name: str) -> list:
+    """Return faults relevant to the named infrastructure.
+
+    Includes faults where Resource.Name matches the infra name directly,
+    plus generic system-level faults from infrastructure-related modules
+    (System.VPC, System.AwsInfrastructure) that have no specific resource name.
+    """
+    try:
+      all_faults = self.faults(name)
+    except Exception:
+      return []
+    return [
+      f for f in all_faults
+      if f.get("Resource", {}).get("Name") == name
+      or (
+        f.get("TenantId") in self._INFRA_FAULT_TENANTS
+        and f.get("Resource", {}).get("Name") == "Generic"
+      )
+    ]
 
   @Command()
   def create(self,
@@ -117,12 +139,18 @@ class DuploInfrastructure(DuploResourceV2):
       i = self.find(name)
       s = i.get("ProvisioningStatus", "submitted")
       if status != s:
-        self.duplo.logger.warn(f"Infrastructure '{name}' - {s}")
+        self.duplo.logger.warning(f"Infrastructure '{name}' - {s}")
         status = s
       if s != "Complete":
         # stop waiting if the status contains failed
         if "Failed" in s:
-          raise DuploFailedResource(f"Infrastructure '{name} - {s}'")
+          fault_descs = [
+            f.get("Description", "")
+            for f in self._faults_for(name)
+            if f.get("Description")
+          ]
+          detail = (" | Faults: " + "; ".join(fault_descs)) if fault_descs else ""
+          raise DuploFailedResource(f"Infrastructure '{name}' - {s}{detail}")
         raise DuploStillWaiting(f"Infrastructure '{name}' is waiting for status Complete")
     self.client.post("adminproxy/CreateInfrastructureConfig", body)
     if self.duplo.wait:

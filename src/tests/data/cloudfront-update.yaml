@@ -1,6 +1,7 @@
+# Origin DomainName, Id, and TargetOriginId are replaced at test runtime
+# with the actual S3 bucket domain created by TestS3.
 UseOAIIdentity: true
-ProcessS3OriginPolicy: true
-Id: 
+Id:
 DistributionConfig:
   Aliases:
     Items: []
@@ -18,14 +19,14 @@ DistributionConfig:
     AllowedMethods:
       CachedMethods:
         Items:
-          - HEAD
-          - GET
-        Quantity: 2
-      Items:
         - HEAD
         - GET
+        Quantity: 2
+      Items:
+      - HEAD
+      - GET
       Quantity: 2
-    CachePolicyId: ""
+    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
     Compress: true
     FieldLevelEncryptionId: ""
     FunctionAssociations:
@@ -35,7 +36,7 @@ DistributionConfig:
       Items: []
       Quantity: 0
     SmoothStreaming: false
-    TargetOriginId: 
+    TargetOriginId: placeholder.s3.amazonaws.com
     TrustedKeyGroups:
       Enabled: false
       Items: []
@@ -61,19 +62,19 @@ DistributionConfig:
     Quantity: 0
   Origins:
     Items:
-      - ConnectionAttempts: 3
-        ConnectionTimeout: 10
-        CustomHeaders:
-          Items: []
-          Quantity: 0
-        DomainName: ""
-        Id: ""
-        OriginAccessControlId: ""
-        OriginPath: ""
-        OriginShield:
-          Enabled: false
-        S3OriginConfig:
-          OriginAccessIdentity: ""
+    - ConnectionAttempts: 3
+      ConnectionTimeout: 10
+      CustomHeaders:
+        Items: []
+        Quantity: 0
+      DomainName: placeholder.s3.amazonaws.com
+      Id: placeholder.s3.amazonaws.com
+      OriginAccessControlId: ""
+      OriginPath: ""
+      OriginShield:
+        Enabled: false
+      S3OriginConfig:
+        OriginAccessIdentity: ""
     Quantity: 1
   PriceClass:
     Value: PriceClass_All
@@ -85,13 +86,7 @@ DistributionConfig:
         Value: none
   Staging: false
   ViewerCertificate:
-    ACMCertificateArn: ""
-    Certificate: ""
-    CertificateSource:
-      Value: acm
-    CloudFrontDefaultCertificate: false
+    CloudFrontDefaultCertificate: true
     MinimumProtocolVersion:
-      Value: TLSv1.2_2021
-    SSLSupportMethod:
-      Value: sni-only
+      Value: TLSv1
   WebACLId: ""

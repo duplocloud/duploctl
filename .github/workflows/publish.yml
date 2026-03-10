@@ -17,15 +17,17 @@ on:
         required: false
         default: false
         type: boolean
-      run_e2e:  
+      run_e2e:
         description: Run end to end tests
         required: false
         default: false
         type: boolean
-      infra:
-        description: An infra to use. Empty creates one.
+      e2e_environment:
+        description: GHA environment for integration tests (e.g. qa-aws)
         required: false
-        type: string
+        default: qa-aws
+        type: environment
+
 jobs:
 
   quality:
@@ -38,24 +40,43 @@ jobs:
     uses: ./.github/workflows/test_unit.yml
     secrets: inherit
 
-  integration_test:
-    name: Test
+  integration_aws:
+    name: Integration Tests
     uses: ./.github/workflows/test_integration.yml
     secrets: inherit
     with:
-      environment: qa-aws
-      enabled: ${{ inputs.run_e2e }}
-      logs: true
-      infra: ${{ inputs.infra }}
+      environment: ${{ inputs.e2e_environment }}
+      enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
+      suite: aws
+
+  integration_k8s:
+    name: Integration Tests
+    uses: ./.github/workflows/test_integration.yml
+    secrets: inherit
+    with:
+      environment: ${{ inputs.e2e_environment }}
+      enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
+      suite: k8s
+
+  integration_ecs:
+    name: Integration Tests
+    uses: ./.github/workflows/test_integration.yml
+    secrets: inherit
+    with:
+      environment: ${{ inputs.e2e_environment }}
+      enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
+      suite: ecs
 
   version:
     name: Version
     uses: ./.github/workflows/version.yml
     secrets: inherit
-    needs: 
+    needs:
     - quality
     - unit_test
-    - integration_test
+    - integration_aws
+    - integration_k8s
+    - integration_ecs
     with:
       action: ${{ inputs.action }}
       push: ${{ inputs.push }}

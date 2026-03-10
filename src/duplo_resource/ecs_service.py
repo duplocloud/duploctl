@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploStillWaiting
+from duplocloud.errors import DuploError, DuploStillWaiting, DuploFailedResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -14,7 +14,37 @@ class DuploEcsService(DuploResourceV2):
 
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
+    self.paths = {                                                                                            
+      "list": "GetEcsServices"                                                                                
+    }
 
+  @Command()
+  def apply(self,
+            body: args.BODY,
+            wait: args.WAIT = False) -> dict:
+    """Apply an ECS Service.
+
+    Create or update an ECS service.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs apply -f 'ecs_service.yaml'
+      ```
+
+    Args:
+      body: The ECS service definition.
+      wait: Wait for the service to be ready.
+
+    Returns:
+      message: A success message.
+    """
+    self.update_service(body)
+    name = body.get("Name", "")
+    if wait:
+      self.wait(lambda: self._wait_on_service(name))
+    return {"message": f"ECS Service '{name}' applied"}
+  
+  
   @Command()
   def list_services(self) -> list:
     """List ECS Services
@@ -81,8 +111,8 @@ class DuploEcsService(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     path = f"subscriptions/{tenant_id}/DeleteEcsService/{name}"
-    response = self.client.post(path, {})
-    return response.json()
+    self.client.post(path, {})
+    return {"message": f"ECS Service '{name}' deleted"}
 
   @Command()
   def list_task_def_family(self) -> dict:
@@ -164,15 +194,33 @@ class DuploEcsService(DuploResourceV2):
     return response.json()
 
   @Command()
+  def create_service(self,
+                     body: args.BODY) -> dict:
+    """Create an ECS service.
+
+    Args:
+      body: The ECS service definition object.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploError: If the ECS service could not be created.
+    """
+    path = self.endpoint("CreateEcsService")
+    self.client.post(path, body)
+    return {"message": "ECS Service created"}
+
+  @Command()
   def update_service(self,
              body: args.BODY) -> dict:
     """Update an ECS service.
 
     Args:
-      body (dict): The updated ECS service object.
+      body: The updated ECS service object.
 
     Returns:
-      message: A success message. 
+      message: A success message.
 
     Raises:
       DuploError: If the ECS service could not be updated.
@@ -397,26 +445,39 @@ class DuploEcsService(DuploResourceV2):
   # with target_definition_arn as its task definition
   def _wait_on_service(self, name: str, target_definition_arn: str = None) -> None:
     if name is None:
-      raise DuploError(f"Attempted to wait on invalid ECS service name \"{name}\"")
+      raise DuploFailedResource(f"Attempted to wait on invalid ECS service name \"{name}\"")
 
     try:
       services = self.list_detailed_services()
       service = [found for found in services if found.get("EcsServiceName", None) == name].pop()
     except IndexError:
-      raise DuploError(f"Unable to find ECS service {name}")
+      raise DuploFailedResource(f"Unable to find ECS service {name}")
+
+    deployments = service.get("AwsEcsService", {}).get("Deployments", [])
+
+    # Check if the target deployment has failed (e.g. ECS rolled back to a previous task definition).
+    # This must be checked before the PRIMARY deployment status because after a rollback,
+    # the PRIMARY deployment is the rollback itself, not the one we triggered.
+    if target_definition_arn is not None:
+      for deployment in deployments:
+        if deployment.get("TaskDefinition", None) == target_definition_arn:
+          dep_state = deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
+          if dep_state == "FAILED":
+            raise DuploFailedResource(f"ECS Service {name} deployment failed with reason {deployment.get('RolloutStateReason', 'Unknown')}")
+          break
 
     try:
-      primary_deployment = [deployment for deployment in service.get("AwsEcsService", {}).get("Deployments", []) if deployment.get("Status", None) == "PRIMARY"][0]
+      primary_deployment = [d for d in deployments if d.get("Status", None) == "PRIMARY"][0]
     except IndexError:
-      raise DuploError(f"Failed to find primary deployment for ECS Service {name}")
+      raise DuploFailedResource(f"Failed to find primary deployment for ECS Service {name}")
 
     state = primary_deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
 
+    if state == "FAILED":
+      raise DuploFailedResource(f"ECS Service {name} deployment failed with reason {primary_deployment.get('RolloutStateReason', 'Unknown')}")
+
     if state == "IN_PROGRESS" or (target_definition_arn is not None and primary_deployment.get("TaskDefinition", None) != target_definition_arn):
       raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
-    
-    if state == "FAILED":
-      raise DuploError(f"ECS Service {name} deployment failed with reason {primary_deployment.get('RolloutStateReason', 'Unknown')}")
-    
+
     # if ECS Service primary deployment is not IN_PROGRESS or FAILED, assume COMPLETED and exit
     return

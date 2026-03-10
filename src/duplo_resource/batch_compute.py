@@ -51,7 +51,7 @@ class DuploBatchCompute(DuploResourceV3):
       status = status_field.get("Value", "CREATING") if isinstance(status_field, dict) else status_field
       if s != status:
         s = status
-        self.duplo.logger.warn(f"Batch Compute Environment {name} is {status}")
+        self.duplo.logger.warning(f"Batch Compute Environment {name} is {status}")
       if status == "INVALID":
         raise DuploFailedResource(name)
       if status != "VALID":

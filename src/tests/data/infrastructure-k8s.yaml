@@ -1,7 +1,10 @@
-EnableK8Cluster: false
+EnableK8Cluster: true
 EnableECSCluster: false
 AzCount: 2
 Vnet:
   SubnetCidr: 22
 Cloud: 0
 Region: us-east-2
+CustomData:
+- Key: K8sVersion
+  Value: '1.32'

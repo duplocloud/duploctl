@@ -1,0 +1,12 @@
+# hosts, RDS, and s3+cloudfront are slow; run in parallel with other aws resources
+# Each job includes "or lifecycle" to collect TestInfra/TestTenant, which register
+# the create_infra/create_tenant dependency names that resource tests depend on.
+jobs:
+- name: hosts
+  markers: "(integration and aws) and (hosts or lifecycle)"
+- name: rds
+  markers: "(integration and aws) and (rds or lifecycle)"
+- name: s3-cloudfront
+  markers: "(integration and aws) and (s3 or cloudfront or lifecycle)"
+- name: other-aws
+  markers: "(integration and aws) and (not (hosts or rds or s3 or cloudfront) or lifecycle)"

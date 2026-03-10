@@ -1,113 +1,253 @@
 name: Integration Tests
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
     inputs:
       environment:
         required: true
-        description: 'The environment to run the tests in'
+        description: GHA environment with DUPLO_HOST and DUPLO_TOKEN
         type: environment
-      enabled:
-        required: false
-        description: 'Whether to run the tests'
-        type: boolean
-        default: true
+      suite:
+        required: true
+        description: Test suite to run
+        type: choice
+        options:
+        - k8s
+        - aws
+        - ecs
       infra:
         required: false
-        description: An infra to use. Empty creates one.
+        description: Pre-existing infra name. Empty lets conftest generate a random name.
         type: string
-      logs:
+      tenant:
         required: false
-        description: 'Whether to log the tests'
-        type: boolean
-        default: false
-  workflow_call: 
+        description: Pre-existing tenant name. Empty mirrors infra name.
+        type: string
+      python_version:
+        required: false
+        description: Python version
+        default: "3.13"
+        type: choice
+        options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "3.13"
+  workflow_call:
     inputs:
       environment:
         required: true
-        description: 'The environment to run the tests in'
         type: string
       enabled:
+        description: Run the integration tests. "false" skips all jobs and immediately returns success.
         required: false
-        description: 'Whether to run the tests'
-        type: boolean
-        default: true
+        type: string
+        default: "false"
+      suite:
+        required: true
+        type: string
       infra:
         required: false
-        description: An infra to use. Empty creates one.
         type: string
-      logs:
+      tenant:
         required: false
-        description: 'Whether to log the tests'
-        type: boolean
-        default: false
+        type: string
+      python_version:
+        required: false
+        type: string
+        default: "3.13"
     secrets:
+      DUPLO_TOKEN:
+        description: DuploCloud API token
+        required: true
       GH_APP_KEY:
-        description: GitHub App private key
+        description: GitHub App private key for checkout
         required: true
 
 jobs:
-  integration_tests:
-    name: Integration
+
+  lifecycle:
+    name: Lifecycle (${{ inputs.suite }})
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: ${{ inputs.environment }}
     env:
       DUPLO_HOST: ${{ vars.DUPLO_HOST }}
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
-      AWS_CONFIG_FILE: config/aws
-      AWS_DEFAULT_REGION: ${{ vars.AWS_REGION }}
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_PROFILE: test
+    outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
+      infra: ${{ steps.names.outputs.infra }}
+      tenant: ${{ steps.names.outputs.tenant }}
+      matrix: ${{ steps.suite.outputs.matrix }}
+      owned: ${{ steps.owned.outputs.owned }}
     steps:
-  
+
+    - name: Check enabled
+      id: gate
+      env:
+        ENABLED: ${{ inputs.enabled }}
+      run: |
+        if [ "$ENABLED" = "false" ]; then
+          echo "Integration tests disabled — exiting early"
+          echo "enabled=false" >> $GITHUB_OUTPUT
+        else
+          echo "enabled=true" >> $GITHUB_OUTPUT
+        fi
+
     - name: Setup
+      if: steps.gate.outputs.enabled == 'true'
       uses: duplocloud/duploctl/.github/actions/setup@main
-      if: inputs.enabled
       with:
         install: ".[build,test,aws]"
+        python-version: ${{ inputs.python_version }}
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
-    - name: Setup Args
-      id: pytest_args
-      if: inputs.enabled
+    - name: Set owned flag
+      if: steps.gate.outputs.enabled == 'true'
+      id: owned
       env:
         INFRA: ${{ inputs.infra }}
-        LOGS: ${{ inputs.logs }}
+        TENANT: ${{ inputs.tenant }}
       run: |
-        ARGS=(
-          "src"
-          "--junit-xml=test-results.xml"
-          "-m integration"
-        )
-        # if infra is set, add it to the args
-        if [ -n "$INFRA" ]; then
-          ARGS+=("--infra" "$INFRA")
-        fi
-        # if the logs are set, add it to the args
-        if [ "$LOGS" = "true" ]; then
-          ARGS+=("-s")
-        fi
-        echo "PYTEST_ARGS=${ARGS[*]}" >> $GITHUB_OUTPUT
-    
-    # run the tests
-    - name: Test with pytest
-      if: inputs.enabled
-      run: pytest ${{ steps.pytest_args.outputs.PYTEST_ARGS }}
+        if [ -z "$INFRA" ] && [ -z "$TENANT" ]; then OWNED=true; else OWNED=false; fi
+        echo "owned=$OWNED" >> $GITHUB_OUTPUT
 
-    - name: Surface failing tests
-      if: always() && inputs.enabled 
+    - name: Load suite matrix
+      if: steps.gate.outputs.enabled == 'true'
+      id: suite
+      shell: python
+      run: |
+        import yaml, json, os
+        data = yaml.safe_load(open('src/tests/suites/${{ inputs.suite }}.yaml'))
+        matrix = json.dumps(data['jobs'])
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f"matrix={matrix}\n")
+
+    - name: Run lifecycle tests
+      if: steps.gate.outputs.enabled == 'true'
+      env:
+        INFRA: ${{ inputs.infra }}
+        TENANT: ${{ inputs.tenant }}
+      run: |
+        ARGS=(src -m "integration and lifecycle" --no-cov --junit-xml=lifecycle-results.xml -v -s --names-file=.names --no-teardown)
+        if [ -n "$INFRA" ]; then ARGS+=(--infra "$INFRA"); fi
+        if [ -n "$TENANT" ]; then ARGS+=(--tenant "$TENANT"); fi
+        pytest "${ARGS[@]}"
+
+    - name: Export resolved names
+      if: steps.gate.outputs.enabled == 'true' && always()
+      id: names
+      run: |
+        if [ -f .names ]; then
+          while IFS='=' read -r key value; do
+            echo "${key}=${value}" >> $GITHUB_OUTPUT
+          done < .names
+        fi
+
+    - name: Surface results
+      if: steps.gate.outputs.enabled == 'true' && always()
       uses: pmeier/pytest-results-action@main
       with:
-        path: test-results.xml
+        path: lifecycle-results.xml
         summary: true
         display-options: fEX
         fail-on-empty: true
 
-    - name: Cleanup
-      if: always() && inputs.enabled 
+  resources:
+    name: ${{ matrix.name }} (${{ inputs.suite }})
+    needs: lifecycle
+    if: needs.lifecycle.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      DUPLO_HOST: ${{ vars.DUPLO_HOST }}
+      DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.lifecycle.outputs.matrix) }}
+    steps:
+
+    - name: Setup
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        install: ".[build,test,aws]"
+        python-version: ${{ inputs.python_version }}
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+
+    - name: Run ${{ matrix.name }} tests
+      env:
+        INFRA: ${{ needs.lifecycle.outputs.infra }}
+        TENANT: ${{ needs.lifecycle.outputs.tenant }}
+        MARKERS: ${{ matrix.markers }}
+        NAME: ${{ matrix.name }}
       run: |
-        mkdir -p config
-        duploctl jit update_aws_config test --admin
-        ./scripts/aws_cleanup.sh
+        ARGS=(src -m "$MARKERS" --no-cov --junit-xml="${NAME}-results.xml" -v -s)
+        if [ -n "$INFRA" ]; then ARGS+=(--infra "$INFRA"); fi
+        if [ -n "$TENANT" ]; then ARGS+=(--tenant "$TENANT"); fi
+        pytest "${ARGS[@]}"
+
+    - name: Surface results
+      if: always()
+      uses: pmeier/pytest-results-action@main
+      with:
+        path: ${{ matrix.name }}-results.xml
+        summary: true
+        display-options: fEX
+        fail-on-empty: true
+
+  teardown:
+    name: Teardown (${{ inputs.suite }})
+    needs: [lifecycle, resources]
+    if: always()
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      DUPLO_HOST: ${{ vars.DUPLO_HOST }}
+      DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
+    steps:
+
+    - name: Check enabled
+      id: gate
+      env:
+        ENABLED: ${{ needs.lifecycle.outputs.enabled }}
+      run: |
+        if [ "$ENABLED" != "true" ]; then
+          echo "Integration tests disabled — skipping teardown"
+        fi
+        echo "enabled=$ENABLED" >> $GITHUB_OUTPUT
+
+    - name: Setup
+      if: steps.gate.outputs.enabled == 'true'
+      uses: duplocloud/duploctl/.github/actions/setup@main
+      with:
+        install: ".[build,test,aws]"
+        python-version: ${{ inputs.python_version }}
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+
+    - name: Run teardown
+      if: steps.gate.outputs.enabled == 'true'
+      env:
+        INFRA: ${{ needs.lifecycle.outputs.infra }}
+        TENANT: ${{ needs.lifecycle.outputs.tenant }}
+        OWNED: ${{ needs.lifecycle.outputs.owned }}
+      run: |
+        ARGS=(src -m "integration and lifecycle" --no-cov --junit-xml=teardown-results.xml -v -s)
+        if [ -n "$INFRA" ]; then ARGS+=(--infra "$INFRA"); fi
+        if [ -n "$TENANT" ]; then ARGS+=(--tenant "$TENANT"); fi
+        if [ "$OWNED" = "true" ]; then ARGS+=(--owned); fi
+        pytest "${ARGS[@]}"
+
+    - name: Surface results
+      if: steps.gate.outputs.enabled == 'true' && always()
+      uses: pmeier/pytest-results-action@main
+      with:
+        path: teardown-results.xml
+        summary: true
+        display-options: fEX
+        fail-on-empty: true
