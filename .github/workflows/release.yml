@@ -50,6 +50,7 @@ jobs:
         if [ -z "$GIT_TAG" ]; then
           GIT_TAG=${GITHUB_REF#refs/*/}
         fi
+        GIT_TAG="${GIT_TAG//\//-}"
         VERSION=$(echo $GIT_TAG | cut -d'v' -f2)
         NAME="duploctl-${VERSION}"
         PACKAGE_NAME="duplocloud_client-${VERSION}"
