@@ -37,6 +37,10 @@ def pytest_addoption(parser):
     help="Treat the infra and tenant as owned by this session regardless of whether they pre-existed. "
          "Forces owns_infra and owns_tenant to True, enabling teardown. "
          "Used by CI teardown jobs that run after parallel resource jobs finish.")
+  parser.addoption(
+    "--names-file", action="store", default=None,
+    help="Path to write the resolved infra and tenant names (KEY=value format). "
+         "Used by CI to pass names from lifecycle job to resource/teardown jobs.")
 
 
 _INFRA_DATA = {
@@ -77,13 +81,13 @@ def pytest_configure(config):
       "they are mutually exclusive infra types. Choose one.",
       returncode=1,
     )
-  infra = config.getoption("--infra", default=None, skip=True)
+  infra = config.getoption("--infra", default=None, skip=True) or None
   # Resolve tenant: explicit arg > DUPLO_TENANT > infra (same name)
   tenant = (
     config.getoption("--tenant", default=None, skip=True)
     or os.getenv("DUPLO_TENANT")
     or infra
-  )
+  ) or None
   # Only check when both are known and differ — identical names are always safe.
   if not infra or not tenant or infra == tenant:
     return
@@ -119,12 +123,12 @@ def infra_name(pytestconfig) -> str:
   if _is_unit_run(pytestconfig):
     return None
 
-  explicit_infra = pytestconfig.getoption("infra")
+  explicit_infra = pytestconfig.getoption("infra") or None
   if explicit_infra:
     return explicit_infra
 
   # No --infra given. A tenant hint can tell us which infra to use.
-  tenant_hint = pytestconfig.getoption("tenant") or os.getenv("DUPLO_TENANT")
+  tenant_hint = pytestconfig.getoption("tenant") or os.getenv("DUPLO_TENANT") or None
   if tenant_hint:
     try:
       d = _duplo_from_env()
@@ -153,7 +157,7 @@ def tenant_name(pytestconfig, infra_name) -> str:
   pytest_configure will catch the mismatch and tell you to pass --tenant
   explicitly to override it.
   """
-  explicit_tenant = pytestconfig.getoption("tenant")
+  explicit_tenant = pytestconfig.getoption("tenant") or None
   if explicit_tenant:
     return explicit_tenant
   env_tenant = os.getenv("DUPLO_TENANT")
@@ -190,7 +194,7 @@ def owns_infra(pytestconfig, infra_name) -> bool:
   """
   if pytestconfig.getoption("owned", default=False):
     return True
-  explicit_infra = pytestconfig.getoption("infra", default=None)
+  explicit_infra = pytestconfig.getoption("infra", default=None) or None
   if explicit_infra:
     try:
       _duplo_from_env().load("infrastructure").find(explicit_infra)
@@ -199,7 +203,7 @@ def owns_infra(pytestconfig, infra_name) -> bool:
       return True   # doesn't exist yet — we'll create it
 
   # No --infra flag: was the name resolved from an already-existing tenant?
-  tenant_hint = pytestconfig.getoption("tenant", default=None) or os.getenv("DUPLO_TENANT")
+  tenant_hint = pytestconfig.getoption("tenant", default=None) or os.getenv("DUPLO_TENANT") or None
   if tenant_hint:
     try:
       existing = _duplo_from_env().load("tenant").find(tenant_hint)
@@ -229,7 +233,7 @@ def owns_tenant(pytestconfig, tenant_name, owns_infra) -> bool:
   if not owns_infra:
     return False  # never destroy a tenant in an infra we didn't create
 
-  explicit_tenant = pytestconfig.getoption("tenant", default=None) or os.getenv("DUPLO_TENANT")
+  explicit_tenant = pytestconfig.getoption("tenant", default=None) or os.getenv("DUPLO_TENANT") or None
   if explicit_tenant:
     try:
       _duplo_from_env().load("tenant").find(tenant_name)
@@ -271,6 +275,11 @@ def session_info(pytestconfig, duplo, infra_name, tenant_name, infra_type, owns_
     f"  tenant:      {tenant_name}  (owns={owns_tenant})\n"
     f"  infra_type:  {infra_type}{owned_flag}\n"
   )
+  names_file = pytestconfig.getoption("names_file", default=None)
+  if names_file:
+    with open(names_file, "w") as f:
+      f.write(f"infra={infra_name}\n")
+      f.write(f"tenant={tenant_name}\n")
   yield
 
 
