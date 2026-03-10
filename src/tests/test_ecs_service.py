@@ -372,8 +372,9 @@ def test_wait_on_service(mocker):
     with pytest.raises(DuploError, match=r"Unable to find ECS service"):
         service._wait_on_service("target-service", updated_task_definition_revision)
 
-    # catches wait for cases when target service is malformed
-    with pytest.raises(DuploError, match=r"Failed to find primary deployment for ECS Service"):
+    # no PRIMARY deployment yet (empty Deployments list, e.g. freshly created service) —
+    # transient state, should keep waiting rather than hard-fail
+    with pytest.raises(DuploStillWaiting, match=r"Waiting for primary deployment"):
         service._wait_on_service("target-service", updated_task_definition_revision)
 
     # succeeds even if deployment is stale if no target task definition revision is defined
