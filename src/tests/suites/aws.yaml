@@ -1,8 +1,10 @@
 # hosts and RDS are slow (~60 min each); run in parallel with other aws resources
+# Each job includes "or lifecycle" to collect TestInfra/TestTenant, which register
+# the create_infra/create_tenant dependency names that resource tests depend on.
 jobs:
 - name: hosts
-  markers: "integration and aws and hosts"
+  markers: "(integration and aws) and (hosts or lifecycle)"
 - name: rds
-  markers: "integration and aws and rds"
+  markers: "(integration and aws) and (rds or lifecycle)"
 - name: other-aws
-  markers: "integration and aws and not (hosts or rds)"
+  markers: "(integration and aws) and (not (hosts or rds) or lifecycle)"

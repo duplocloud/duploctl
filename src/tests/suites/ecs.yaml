@@ -1,3 +1,3 @@
 jobs:
 - name: ecs
-  markers: "integration and ecs"
+  markers: "integration and (ecs or lifecycle)"
