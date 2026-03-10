@@ -1,7 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
-from duplocloud.errors import DuploError
 import duplocloud.args as args
 
 
