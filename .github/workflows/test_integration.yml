@@ -68,7 +68,6 @@ jobs:
 
   lifecycle:
     name: Lifecycle (${{ inputs.suite }})
-    if: inputs.enabled != 'false'
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
@@ -76,13 +75,27 @@ jobs:
       DUPLO_HOST: ${{ vars.DUPLO_HOST }}
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
     outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
       infra: ${{ steps.names.outputs.infra }}
       tenant: ${{ steps.names.outputs.tenant }}
-      matrix: ${{ steps.suite.outputs.matrix }}
+      matrix: ${{ steps.suite.outputs.matrix || '[]' }}
       owned: ${{ steps.owned.outputs.owned }}
     steps:
 
+    - name: Check enabled
+      id: gate
+      env:
+        ENABLED: ${{ inputs.enabled }}
+      run: |
+        if [ "$ENABLED" = "false" ]; then
+          echo "Integration tests disabled — exiting early"
+          echo "enabled=false" >> $GITHUB_OUTPUT
+        else
+          echo "enabled=true" >> $GITHUB_OUTPUT
+        fi
+
     - name: Setup
+      if: steps.gate.outputs.enabled == 'true'
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         install: ".[build,test,aws]"
@@ -91,6 +104,7 @@ jobs:
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Set owned flag
+      if: steps.gate.outputs.enabled == 'true'
       id: owned
       env:
         INFRA: ${{ inputs.infra }}
@@ -100,6 +114,7 @@ jobs:
         echo "owned=$OWNED" >> $GITHUB_OUTPUT
 
     - name: Load suite matrix
+      if: steps.gate.outputs.enabled == 'true'
       id: suite
       shell: python
       run: |
@@ -110,6 +125,7 @@ jobs:
             f.write(f"matrix={matrix}\n")
 
     - name: Run lifecycle tests
+      if: steps.gate.outputs.enabled == 'true'
       env:
         INFRA: ${{ inputs.infra }}
         TENANT: ${{ inputs.tenant }}
@@ -120,8 +136,8 @@ jobs:
         pytest "${ARGS[@]}"
 
     - name: Export resolved names
+      if: steps.gate.outputs.enabled == 'true' && always()
       id: names
-      if: always()
       run: |
         if [ -f .names ]; then
           while IFS='=' read -r key value; do
@@ -130,7 +146,7 @@ jobs:
         fi
 
     - name: Surface results
-      if: always()
+      if: steps.gate.outputs.enabled == 'true' && always()
       uses: pmeier/pytest-results-action@main
       with:
         path: lifecycle-results.xml
@@ -185,7 +201,7 @@ jobs:
   teardown:
     name: Teardown (${{ inputs.suite }})
     needs: [lifecycle, resources]
-    if: inputs.enabled != 'false' && always()
+    if: always()
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
@@ -194,7 +210,18 @@ jobs:
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
     steps:
 
+    - name: Check enabled
+      id: gate
+      env:
+        ENABLED: ${{ needs.lifecycle.outputs.enabled }}
+      run: |
+        if [ "$ENABLED" != "true" ]; then
+          echo "Integration tests disabled — skipping teardown"
+        fi
+        echo "enabled=$ENABLED" >> $GITHUB_OUTPUT
+
     - name: Setup
+      if: steps.gate.outputs.enabled == 'true'
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         install: ".[build,test,aws]"
@@ -203,6 +230,7 @@ jobs:
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Run teardown
+      if: steps.gate.outputs.enabled == 'true'
       env:
         INFRA: ${{ needs.lifecycle.outputs.infra }}
         TENANT: ${{ needs.lifecycle.outputs.tenant }}
@@ -215,7 +243,7 @@ jobs:
         pytest "${ARGS[@]}"
 
     - name: Surface results
-      if: always()
+      if: steps.gate.outputs.enabled == 'true' && always()
       uses: pmeier/pytest-results-action@main
       with:
         path: teardown-results.xml
