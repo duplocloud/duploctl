@@ -78,7 +78,7 @@ jobs:
       enabled: ${{ steps.gate.outputs.enabled }}
       infra: ${{ steps.names.outputs.infra }}
       tenant: ${{ steps.names.outputs.tenant }}
-      matrix: ${{ steps.suite.outputs.matrix || '[]' }}
+      matrix: ${{ steps.suite.outputs.matrix }}
       owned: ${{ steps.owned.outputs.owned }}
     steps:
 
@@ -157,6 +157,7 @@ jobs:
   resources:
     name: ${{ matrix.name }} (${{ inputs.suite }})
     needs: lifecycle
+    if: needs.lifecycle.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
