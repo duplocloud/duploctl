@@ -46,7 +46,7 @@ jobs:
     secrets: inherit
     with:
       environment: ${{ inputs.e2e_environment }}
-      enabled: ${{ inputs.run_e2e }}
+      enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
       suite: aws
 
   integration_k8s:
@@ -55,7 +55,7 @@ jobs:
     secrets: inherit
     with:
       environment: ${{ inputs.e2e_environment }}
-      enabled: ${{ inputs.run_e2e }}
+      enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
       suite: k8s
 
   integration_ecs:
@@ -64,7 +64,7 @@ jobs:
     secrets: inherit
     with:
       environment: ${{ inputs.e2e_environment }}
-      enabled: ${{ inputs.run_e2e }}
+      enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
       suite: ecs
 
   version:

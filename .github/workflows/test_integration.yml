@@ -39,10 +39,10 @@ on:
         required: true
         type: string
       enabled:
-        description: Run the integration tests. False skips all jobs and immediately returns success.
+        description: Run the integration tests. "false" skips all jobs and immediately returns success.
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: "false"
       suite:
         required: true
         type: string
@@ -68,7 +68,7 @@ jobs:
 
   lifecycle:
     name: Lifecycle (${{ inputs.suite }})
-    if: inputs.enabled == '' || inputs.enabled == true
+    if: inputs.enabled != 'false'
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
@@ -185,7 +185,7 @@ jobs:
   teardown:
     name: Teardown (${{ inputs.suite }})
     needs: [lifecycle, resources]
-    if: (inputs.enabled == '' || inputs.enabled == true) && always()
+    if: inputs.enabled != 'false' && always()
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
