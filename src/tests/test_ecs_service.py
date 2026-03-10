@@ -334,6 +334,29 @@ def test_wait_on_service(mocker):
         },
     ]
 
+    # ECS rolled back: PRIMARY is now the old task definition (rollback), target deployment is FAILED and demoted
+    mock_deployment_rollback = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "COMPLETED" },
+                        "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
+                        "RolloutStateReason": "ECS deployment ecs-svc/1234567890123456789 completed."
+                    },
+                    {
+                        "Status": "ACTIVE",
+                        "RolloutState": { "Value": "FAILED" },
+                        "TaskDefinition": updated_task_definition_revision,
+                        "RolloutStateReason": "ECS deployment circuit breaker: tasks failed to start."
+                    }
+                ]
+            }
+        },
+    ]
+
     mocker.patch.object(service, "list_detailed_services", side_effect=[
         mock_missing_service,
         mock_malformed,
@@ -342,6 +365,7 @@ def test_wait_on_service(mocker):
         mock_deployment_incomplete,
         mock_deployment_failed,
         mock_deployment_succeeded,
+        mock_deployment_rollback,
     ])
 
     # catches wait for cases when target service is not found
@@ -369,3 +393,7 @@ def test_wait_on_service(mocker):
 
     # passes if service found with primary dpeloyment in complete state
     service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # detects rollback: target deployment failed and ECS rolled back to previous task definition
+    with pytest.raises(DuploError, match=r"deployment failed with reason"):
+        service._wait_on_service("target-service", updated_task_definition_revision)
