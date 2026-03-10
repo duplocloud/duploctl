@@ -111,8 +111,8 @@ class DuploEcsService(DuploResourceV2):
     """
     tenant_id = self.tenant["TenantId"]
     path = f"subscriptions/{tenant_id}/DeleteEcsService/{name}"
-    response = self.client.post(path, {})
-    return response.json()
+    self.client.post(path, {})
+    return {"message": f"ECS Service '{name}' deleted"}
 
   @Command()
   def list_task_def_family(self) -> dict:
@@ -194,15 +194,33 @@ class DuploEcsService(DuploResourceV2):
     return response.json()
 
   @Command()
+  def create_service(self,
+                     body: args.BODY) -> dict:
+    """Create an ECS service.
+
+    Args:
+      body: The ECS service definition object.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploError: If the ECS service could not be created.
+    """
+    path = self.endpoint("CreateEcsService")
+    self.client.post(path, body)
+    return {"message": "ECS Service created"}
+
+  @Command()
   def update_service(self,
              body: args.BODY) -> dict:
     """Update an ECS service.
 
     Args:
-      body (dict): The updated ECS service object.
+      body: The updated ECS service object.
 
     Returns:
-      message: A success message. 
+      message: A success message.
 
     Raises:
       DuploError: If the ECS service could not be updated.

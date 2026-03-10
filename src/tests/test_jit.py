@@ -4,10 +4,12 @@ import pytest
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 
+@pytest.mark.integration
+@pytest.mark.jit
 class TestJIT:
-  
-  @pytest.mark.integration
-  @pytest.mark.order(10)
+
+  @pytest.mark.order(110)
+  @pytest.mark.aws
   def test_admin_aws_jit(self, duplo: DuploCtl):
     duplo.isadmin = True
     r = duplo.load("jit")
@@ -16,9 +18,9 @@ class TestJIT:
       assert o.get("SecretAccessKey", None) is not None
     except DuploError as e:
       pytest.fail(f"Failed to get admin credentials: {e}")
-  
-  @pytest.mark.integration
-  @pytest.mark.order(10)
+
+  @pytest.mark.order(110)
+  @pytest.mark.aws
   def test_user_aws_jit(self, duplo: DuploCtl):
     duplo.isadmin = False
     r = duplo.load("jit")
@@ -27,9 +29,9 @@ class TestJIT:
       assert o.get("SecretAccessKey", None) is not None
     except DuploError as e:
       pytest.fail(f"Failed to get user credentials: {e}")
-  
-  @pytest.mark.integration
-  @pytest.mark.order(10)
+
+  @pytest.mark.order(110)
+  @pytest.mark.k8s
   def test_user_k8s_context(self, duplo: DuploCtl):
     duplo.isadmin = False
     r = duplo.load("jit")
@@ -38,9 +40,9 @@ class TestJIT:
       assert o.get("Token", None) is not None
     except DuploError as e:
       pytest.fail(f"Failed to get user k8s credentials: {e}")
-  
-  @pytest.mark.integration
-  @pytest.mark.order(10)
+
+  @pytest.mark.order(110)
+  @pytest.mark.k8s
   def test_admin_k8s_context(self, duplo: DuploCtl):
     duplo.isadmin = True
     r = duplo.load("jit")
@@ -50,8 +52,8 @@ class TestJIT:
     except DuploError as e:
       pytest.fail(f"Failed to get admin k8s credentials: {e}")
 
-  @pytest.mark.integration
-  @pytest.mark.order(10)
+  @pytest.mark.order(110)
+  @pytest.mark.aws
   def test_update_aws_config_nonexistent_dir(self, duplo: DuploCtl, tmp_path):
     config_dir = tmp_path / "nonexistent" / "nested"
     config_file = config_dir / "config"
@@ -69,8 +71,8 @@ class TestJIT:
     assert config.has_section(profile_section)
     os.environ.pop("AWS_CONFIG_FILE", None)
 
-  @pytest.mark.integration
-  @pytest.mark.order(10)
+  @pytest.mark.order(110)
+  @pytest.mark.k8s
   def test_update_kubeconfig(self, duplo: DuploCtl, tmp_path):
     kubeconfig_file = tmp_path / "config"
     os.environ["KUBECONFIG"] = str(kubeconfig_file)
@@ -95,8 +97,8 @@ class TestJIT:
     assert config["current-context"] == "test-plan"
     os.environ.pop("KUBECONFIG", None)
 
-  @pytest.mark.integration
-  @pytest.mark.order(10)
+  @pytest.mark.order(110)
+  @pytest.mark.k8s
   def test_update_kubeconfig_nonexistent_dir(self, duplo: DuploCtl, tmp_path):
     kube_dir = tmp_path / "nonexistent" / "nested" / ".kube"
     kubeconfig_file = kube_dir / "config"
@@ -123,8 +125,8 @@ class TestJIT:
     assert "contexts" in config
     os.environ.pop("KUBECONFIG", None)
 
-  @pytest.mark.integration
-  @pytest.mark.order(10)
+  @pytest.mark.order(110)
+  @pytest.mark.aws
   def test_update_aws_config(self, duplo: DuploCtl, tmp_path):
     config_file = tmp_path / "config"
     os.environ["AWS_CONFIG_FILE"] = str(config_file)

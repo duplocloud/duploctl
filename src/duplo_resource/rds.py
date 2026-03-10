@@ -1,5 +1,5 @@
 from duplocloud.controller import DuploCtl
-from duplocloud.errors import DuploStillWaiting
+from duplocloud.errors import DuploError, DuploStillWaiting
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -24,11 +24,14 @@ class DuploRDS(DuploResourceV3):
     s = None
     def wait_check():
       nonlocal s
-      i = self.find(name)
+      try:
+        i = self.find(name)
+      except DuploError:
+        raise DuploStillWaiting(f"DB instance '{name}' not yet visible")
       status = i.get("InstanceStatus", "submitted")
       if s != status:
         s = status
-        self.duplo.logger.warn(f"DB instance {name} is {status}")
+        self.duplo.logger.warning(f"DB instance {name} is {status}")
       if status != "available":
         raise DuploStillWaiting(f"DB instance '{name}' is waiting for status 'available'")
     return super().create(body, wait_check)
@@ -54,8 +57,8 @@ class DuploRDS(DuploResourceV3):
     """Stop a DB instance."""
     def wait_check():
       i = self.find(name)
-      if i["InstanceStatus"] in ["stopping","available"]:
-        raise DuploStillWaiting(f"DB instance {name} is still stopping")
+      if i["InstanceStatus"] != "stopped":
+        raise DuploStillWaiting(f"DB instance {name} is {i['InstanceStatus']}, waiting for 'stopped'")
     self.client.post(self.endpoint(name, "stop"))
     if self.duplo.wait:
       self.wait(wait_check, 1800, 10)
@@ -69,8 +72,8 @@ class DuploRDS(DuploResourceV3):
     """Start a DB instance."""
     def wait_check():
       i = self.find(name)
-      if i["InstanceStatus"] in ["starting"]:
-        raise DuploStillWaiting(f"DB instance {name} is still starting")
+      if i["InstanceStatus"] != "available":
+        raise DuploStillWaiting(f"DB instance {name} is {i['InstanceStatus']}, waiting for 'available'")
     self.client.post(self.endpoint(name, "start"))
     if self.duplo.wait:
       self.wait(wait_check, 1800, 10)
@@ -240,6 +243,13 @@ class DuploRDS(DuploResourceV3):
     return {
       "message": f"DB instance {name} retention period set to {days} days"
     }
+
+  @Command()
+  def engine_versions(self) -> dict:
+    """List supported RDS engine versions and instance types."""
+    path = f"v3/subscriptions/{self.tenant_id}/aws/rds/engineVersions"
+    response = self.client.post(path, {})
+    return response.json()
 
   def name_from_body(self, body):
     other_name = body.get("DBInstanceIdentifier", None)

@@ -38,11 +38,11 @@ def test_duplo_still_waiting():
     assert err.code == 408
     assert str(err) == "delayed-service"
 
-@pytest.mark.integration
+@pytest.mark.unit
 @pytest.mark.parametrize("exception_class,init_arg,expected_str,expected_code", [
     (DuploExpiredCache, "mykey", "Cache item {key} is expired", 404),
     (DuploFailedResource, "resource-A", "resource-A is in a failed state", 412),
-    (DuploStillWaiting, "resource-B", "resource-B is in a waiting state", 408),
+    (DuploStillWaiting, "resource-B", "resource-B", 408),
 ])
 def test_integration_duplo_exceptions(exception_class, init_arg, expected_str, expected_code):
     err = exception_class(init_arg)

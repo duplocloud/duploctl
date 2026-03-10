@@ -30,3 +30,6 @@ foo.*
 .qodo
 .env
 *.env
+
+# ai stuff
+.claude

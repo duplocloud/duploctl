@@ -457,7 +457,7 @@ class DuploService(DuploResourceV2):
           newEnv = new_env_vars(setvar, key_name="name", value_name="value") if setvar is not None else []
           d = {env['name']: env for env in currentEnv + newEnv}
         else:
-          self.duplo.logger.warn("Possible attempt to merge env vars with"
+          self.duplo.logger.warning("Possible attempt to merge env vars with"
                                  " inconsistent Name/Value key case."
                                  " Normalzing to capitalized"
                                  " \"Name\" and \"Value\"")

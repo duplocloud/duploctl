@@ -83,7 +83,7 @@ LatestRelease = "https://github.com/duplocloud/duploctl/releases"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "src --verbose --cov=src --cov-report term-missing"
+addopts = "--verbose --cov=src --cov-report term-missing"
 testpaths = [
   "src/tests"
 ]
@@ -98,9 +98,24 @@ markers = [
   "gcp: mark a test as a gcp test",
   "azure: mark a test as an azure test",
 
-  "k8s: mark a test as a k8s test",
-  "ecs: mark a test as an ecs test",
-  "native: mark a test as a native test"
+  "k8s: mark a test as requiring a kubernetes (EKS/GKE/AKS) infrastructure",
+  "ecs: mark a test as requiring an ECS infrastructure (AWS only)",
+  "duplo: mark a test as requiring a duplo-native infrastructure (no k8s, no ecs)",
+  "lifecycle: mark a test as an infra/tenant lifecycle test (always required for dep registration)",
+
+  "hosts: mark a test as a hosts resource test",
+  "asg: mark a test as an asg resource test",
+  "configmap: mark a test as a configmap resource test",
+  "secret: mark a test as a secret resource test",
+  "ingress: mark a test as an ingress resource test",
+  "job: mark a test as a job resource test",
+  "cronjob: mark a test as a cronjob resource test",
+  "lambda_: mark a test as a lambda resource test",
+  "rds: mark a test as an rds resource test",
+  "s3: mark a test as an s3 resource test",
+  "cloudfront: mark a test as a cloudfront resource test",
+  "awssecret: mark a test as an aws secret resource test",
+  "jit: mark a test as a jit resource test"
 ]
 
 [tool.coverage.run]
