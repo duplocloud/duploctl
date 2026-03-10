@@ -14,7 +14,37 @@ class DuploEcsService(DuploResourceV2):
 
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
+    self.paths = {                                                                                            
+      "list": "GetEcsServices"                                                                                
+    }
 
+  @Command()
+  def apply(self,
+            body: args.BODY,
+            wait: args.WAIT = False) -> dict:
+    """Apply an ECS Service.
+
+    Create or update an ECS service.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs apply -f 'ecs_service.yaml'
+      ```
+
+    Args:
+      body: The ECS service definition.
+      wait: Wait for the service to be ready.
+
+    Returns:
+      message: A success message.
+    """
+    self.update_service(body)
+    name = body.get("Name", "")
+    if wait:
+      self.wait(lambda: self._wait_on_service(name))
+    return {"message": f"ECS Service '{name}' applied"}
+  
+  
   @Command()
   def list_services(self) -> list:
     """List ECS Services
