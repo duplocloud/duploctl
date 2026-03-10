@@ -83,8 +83,9 @@ jobs:
       id: owned
       env:
         INFRA: ${{ inputs.infra }}
+        TENANT: ${{ inputs.tenant }}
       run: |
-        if [ -z "$INFRA" ]; then OWNED=true; else OWNED=false; fi
+        if [ -z "$INFRA" ] && [ -z "$TENANT" ]; then OWNED=true; else OWNED=false; fi
         echo "owned=$OWNED" >> $GITHUB_OUTPUT
 
     - name: Load suite matrix
@@ -102,7 +103,7 @@ jobs:
         INFRA: ${{ inputs.infra }}
         TENANT: ${{ inputs.tenant }}
       run: |
-        ARGS=(src -m "integration and lifecycle" --no-cov --junit-xml=lifecycle-results.xml -v --names-file=.names)
+        ARGS=(src -m "integration and lifecycle" --no-cov --junit-xml=lifecycle-results.xml -v --names-file=.names --no-teardown)
         if [ -n "$INFRA" ]; then ARGS+=(--infra "$INFRA"); fi
         if [ -n "$TENANT" ]; then ARGS+=(--tenant "$TENANT"); fi
         pytest "${ARGS[@]}"

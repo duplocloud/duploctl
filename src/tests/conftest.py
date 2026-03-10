@@ -41,6 +41,10 @@ def pytest_addoption(parser):
     "--names-file", action="store", default=None,
     help="Path to write the resolved infra and tenant names (KEY=value format). "
          "Used by CI to pass names from lifecycle job to resource/teardown jobs.")
+  parser.addoption(
+    "--no-teardown", action="store_true", default=False,
+    help="Skip infra/tenant deletion tests. "
+         "Used by lifecycle and resource jobs so only the dedicated teardown job deletes.")
 
 
 _INFRA_DATA = {
@@ -191,7 +195,10 @@ def owns_infra(pytestconfig, infra_name) -> bool:
   In both cases the infrastructure belongs to someone else and must not be torn down.
 
   --owned overrides all checks and forces True — used by CI teardown jobs.
+  --no-teardown forces False — used by lifecycle and resource jobs.
   """
+  if pytestconfig.getoption("no_teardown", default=False):
+    return False
   if pytestconfig.getoption("owned", default=False):
     return True
   explicit_infra = pytestconfig.getoption("infra", default=None) or None
@@ -227,7 +234,10 @@ def owns_tenant(pytestconfig, tenant_name, owns_infra) -> bool:
   did not exist before this session started.
 
   --owned overrides all checks and forces True — used by CI teardown jobs.
+  --no-teardown forces False — used by lifecycle and resource jobs.
   """
+  if pytestconfig.getoption("no_teardown", default=False):
+    return False
   if pytestconfig.getoption("owned", default=False):
     return True
   if not owns_infra:
@@ -267,7 +277,10 @@ def session_info(pytestconfig, duplo, infra_name, tenant_name, infra_type, owns_
   if duplo is None:
     yield
     return
-  owned_flag = " --owned" if pytestconfig.getoption("owned", default=False) else ""
+  no_teardown = pytestconfig.getoption("no_teardown", default=False)
+  owned_flag = " --no-teardown" if no_teardown else (
+    " --owned" if pytestconfig.getoption("owned", default=False) else ""
+  )
   print(
     f"\n"
     f"  host:        {duplo.host}\n"

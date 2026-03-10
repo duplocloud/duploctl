@@ -65,11 +65,7 @@ class TestInfra:
     except DuploFailedResource as e:
       pytest.fail(f"Infrastructure is in a failed state: {e}")
     except DuploError as e:
-      if e.code == 400:
-        # 400 means the infra already exists (idempotent — treat as success)
-        print(f"Infrastructure '{infra_name}' already exists (create returned 400)")
-      else:
-        pytest.fail(f"Failed to create infrastructure: {e}")
+      pytest.fail(f"Failed to create infrastructure: {e}")
     
   @pytest.mark.dependency(depends=["create_infra"], scope='session')
   @pytest.mark.order(999)
