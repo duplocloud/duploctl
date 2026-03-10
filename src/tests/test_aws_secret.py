@@ -1,6 +1,5 @@
 import pytest
 import time
-import boto3
 from unittest.mock import MagicMock
 from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResourceV3
@@ -9,6 +8,7 @@ from duplo_resource.aws_secret import DuploAwsSecret
 
 def _restore_secret_if_pending(duplo, secret_name: str) -> bool:
     """Restore a secret that is pending deletion, returning True if restored."""
+    import boto3  # noqa: PLC0415 — optional dep, only needed during integration
     jit_creds = duplo.load("jit").aws()
     sm = boto3.client(
         "secretsmanager",
