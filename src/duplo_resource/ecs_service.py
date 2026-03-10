@@ -426,7 +426,7 @@ class DuploEcsService(DuploResourceV2):
     try:
       primary_deployment = [deployment for deployment in service.get("AwsEcsService", {}).get("Deployments", []) if deployment.get("Status", None) == "PRIMARY"][0]
     except IndexError:
-      raise DuploError(f"Failed to find primary deployment for ECS Service {name}")
+      raise DuploStillWaiting(f"Waiting for primary deployment for ECS Service {name}")
 
     state = primary_deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
 
