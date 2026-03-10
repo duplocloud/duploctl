@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `jit argo_wf` command for standalone Argo JWT token acquisition with caching
   - Dynamic tenant `prefix` property now reads `ResourceNamePrefix` from `system.info()` with fallback to `duploservices`
 - added ability to pass in kwargs when calling the client as function
+- better docs for args and commands
 - **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
   - `DuploCtl.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name
   - `DuploCtl.validate_model(model, data)` validates and serializes a body dict, raising `DuploInvalidError` (422) on failure

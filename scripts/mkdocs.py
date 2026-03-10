@@ -3,10 +3,15 @@ import sys
 import shutil
 import logging
 import re
+import json
+import inspect
+import importlib
 from jinja2 import Template
 from jinja2.filters import FILTERS
-from duplocloud.commander import ep
+from duplocloud.commander import ep, commands_for, extract_args
+from duplocloud.argtype import Arg
 import duplocloud.args as args
+import duplocloud_sdk
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(HERE))
 from project import Project, REPO_URL
@@ -35,21 +40,84 @@ ignored = [
 def copy_static():
   shutil.copytree('./wiki', doc_dir, dirs_exist_ok=True)
 
+def _own_public_methods(cls):
+  """Return names of public methods defined in the source of cls.
+
+  Filters out runtime-injected methods (e.g. from _inject_tenant_scope)
+  that exist in cls.__dict__ but whose source file doesn't match the
+  class's own module.
+  """
+  try:
+    cls_file = inspect.getfile(cls)
+  except (TypeError, OSError):
+    cls_file = None
+  results = []
+  for name, val in cls.__dict__.items():
+    if name.startswith('_') or not callable(val):
+      continue
+    try:
+      val_file = inspect.getfile(val)
+    except (TypeError, OSError):
+      continue
+    if cls_file and val_file != cls_file:
+      continue
+    results.append(name)
+  return results
+
+def _method_ref(cls, method_name):
+  """Return the fully-qualified mkdocstrings ref for a method.
+
+  For methods defined directly on cls, returns module.ClassName.method.
+  For inherited methods, walks the MRO to find the defining class and
+  returns that class's module.ClassName.method instead.
+  """
+  fn = getattr(cls, method_name, None)
+  if fn is None:
+    return None
+  defining_cls_name = fn.__qualname__.split('.')[0]
+  for klass in cls.__mro__:
+    if klass.__name__ == defining_cls_name:
+      return f"{klass.__module__}.{klass.__qualname__}.{method_name}"
+  return f"{cls.__module__}.{cls.__qualname__}.{method_name}"
+
 def gen_resource_page(endpoint: str):
-  cls = endpoint.value.split(':')[-1]
-  kind = re.sub(r'^Duplo', '', cls)
-  # these two refs are just so slightly different
+  cls_name = endpoint.value.split(':')[-1]
+  kind = re.sub(r'^Duplo', '', cls_name)
   ref = endpoint.value.replace(':', '.')
+  resource_name = endpoint.name
   page = f"{kind}.md"
   resource_nav.append({kind: page})
   fp = f"{doc_dir}/{page}"
+
+  cls = endpoint.load()
+  try:
+    cmd_map = commands_for(resource_name)
+  except Exception:
+    cmd_map = {}
+
+  own = _own_public_methods(cls)
+  command_methods = sorted(cmd_map.keys())
+  regular_methods = sorted(m for m in own if m not in cmd_map)
+
+  member_opts = "    options:\n      heading_level: 3\n      show_root_heading: true\n      show_root_full_path: false"
+  command_opts = member_opts + "\n      is_command: true"
+
   with open(fp, 'w') as f:
-    f.write(f"""---
-kind: {kind}
----
-::: {ref}
-""")
-    
+    f.write(f"---\nkind: {kind}\n---\n")
+    f.write(f"::: {ref}\n    options:\n      members: false\n      inherited_members: false\n\n")
+    if command_methods:
+      f.write("## Commands\n\n")
+      for m in command_methods:
+        mref = _method_ref(cls, m)
+        if mref:
+          model = cmd_map[m].get("model")
+          model_opt = f"\n      command_model: {model}" if model else ""
+          f.write(f"::: {mref}\n{command_opts}{model_opt}\n\n")
+    if regular_methods:
+      f.write("## Methods\n\n")
+      for m in regular_methods:
+        f.write(f"::: {ref}.{m}\n{member_opts}\n\n")
+
 def gen_include_page(include):
   parts = include.split('=')
   if len(parts) == 2:
@@ -79,6 +147,34 @@ def string_or_class_name_filter(input):
   else:
     return getattr(input, "__name__", str(input))
 
+def model_schema_filter(model_name):
+  """Load a pydantic model by name and return its JSON schema."""
+  model_cls = getattr(duplocloud_sdk, model_name, None)
+  if model_cls and hasattr(model_cls, "model_json_schema"):
+    return json.dumps(model_cls.model_json_schema(by_alias=True), indent=2)
+  return None
+
+def command_args_filter(function_path):
+  """Extract Arg objects from a command method for the template."""
+  parts = function_path.rsplit('.', 2)
+  if len(parts) < 3:
+    return []
+  try:
+    mod = importlib.import_module(parts[0])
+    cls = getattr(mod, parts[1], None)
+    fn = getattr(cls, parts[2], None) if cls else None
+    return extract_args(fn) if fn else []
+  except Exception:
+    return []
+
+def args_ref_filter(arg):
+  """Map an Arg to its Args.md anchor (e.g. duplocloud.args.HOST)."""
+  for var_name in dir(args):
+    obj = getattr(args, var_name)
+    if isinstance(obj, Arg) and obj.__name__ == arg.__name__:
+      return f"duplocloud.args.{var_name}"
+  return None
+
 def on_startup(**kwargs):
   global version
   project = Project()
@@ -94,6 +190,9 @@ def on_startup(**kwargs):
   FILTERS['cli_arg'] = cli_arg_filter
   FILTERS['list_to_csv'] = list_to_csv_filter
   FILTERS['string_or_class_name'] = string_or_class_name_filter
+  FILTERS['model_schema'] = model_schema_filter
+  FILTERS['command_args'] = command_args_filter
+  FILTERS['args_ref'] = args_ref_filter
 
 def on_config(config):
   copy_static()
