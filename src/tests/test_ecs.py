@@ -76,7 +76,7 @@ class TestEcs:
         """List all families and find each by name."""
         families = execute_test(ecs_resource.list_task_def_family)
         assert isinstance(families, list)
-        names = [f.get("Name", f.get("Family", "")) for f in families]
+        names = [f.get("FamilyName", f.get("Name", f.get("Family", ""))) for f in families]
         # Both prefixed family names should be present
         svc = ecs_resource.prefixed_name(self.svc_family)
         task = ecs_resource.prefixed_name(self.task_family)
@@ -97,12 +97,19 @@ class TestEcs:
     @pytest.mark.order(33)
     def test_create_ecs_service(self, ecs_resource):
         """Create an ECS service backed by the service task definition."""
-        # Resolve the task def ARN first
+        prefixed = ecs_resource.prefixed_name(self.svc_family)
+        try:
+            existing = ecs_resource.find_service_family(prefixed)
+            if existing:
+                print(f"ECS service '{prefixed}' already exists")
+                return
+        except DuploError:
+            pass
         svc_def = execute_test(ecs_resource.find_def, self.svc_family)
         body = get_test_data("ecs-service")
         body["TaskDefinition"] = svc_def["TaskDefinitionArn"]
         body["Name"] = self.svc_family  # unprefixed — duploctl prefixes it
-        result = execute_test(ecs_resource.update_service, body)
+        result = execute_test(ecs_resource.create_service, body)
         assert result is not None
         print(f"ECS service create result: {result}")
 
