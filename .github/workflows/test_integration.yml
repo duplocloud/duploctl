@@ -68,7 +68,7 @@ jobs:
 
   lifecycle:
     name: Lifecycle (${{ inputs.suite }})
-    if: github.event_name == 'workflow_dispatch' || inputs.enabled
+    if: inputs.enabled == '' || inputs.enabled == true
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
@@ -185,7 +185,7 @@ jobs:
   teardown:
     name: Teardown (${{ inputs.suite }})
     needs: [lifecycle, resources]
-    if: (github.event_name == 'workflow_dispatch' || inputs.enabled) && always()
+    if: (inputs.enabled == '' || inputs.enabled == true) && always()
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.environment }}
