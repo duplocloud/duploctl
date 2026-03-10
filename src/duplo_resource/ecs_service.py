@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploStillWaiting
+from duplocloud.errors import DuploError, DuploStillWaiting, DuploFailedResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -397,13 +397,13 @@ class DuploEcsService(DuploResourceV2):
   # with target_definition_arn as its task definition
   def _wait_on_service(self, name: str, target_definition_arn: str = None) -> None:
     if name is None:
-      raise DuploError(f"Attempted to wait on invalid ECS service name \"{name}\"")
+      raise DuploFailedResource(f"Attempted to wait on invalid ECS service name \"{name}\"")
 
     try:
       services = self.list_detailed_services()
       service = [found for found in services if found.get("EcsServiceName", None) == name].pop()
     except IndexError:
-      raise DuploError(f"Unable to find ECS service {name}")
+      raise DuploFailedResource(f"Unable to find ECS service {name}")
 
     deployments = service.get("AwsEcsService", {}).get("Deployments", [])
 
@@ -415,18 +415,18 @@ class DuploEcsService(DuploResourceV2):
         if deployment.get("TaskDefinition", None) == target_definition_arn:
           dep_state = deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
           if dep_state == "FAILED":
-            raise DuploError(f"ECS Service {name} deployment failed with reason {deployment.get('RolloutStateReason', 'Unknown')}")
+            raise DuploFailedResource(f"ECS Service {name} deployment failed with reason {deployment.get('RolloutStateReason', 'Unknown')}")
           break
 
     try:
       primary_deployment = [d for d in deployments if d.get("Status", None) == "PRIMARY"][0]
     except IndexError:
-      raise DuploError(f"Failed to find primary deployment for ECS Service {name}")
+      raise DuploFailedResource(f"Failed to find primary deployment for ECS Service {name}")
 
     state = primary_deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
 
     if state == "FAILED":
-      raise DuploError(f"ECS Service {name} deployment failed with reason {primary_deployment.get('RolloutStateReason', 'Unknown')}")
+      raise DuploFailedResource(f"ECS Service {name} deployment failed with reason {primary_deployment.get('RolloutStateReason', 'Unknown')}")
 
     if state == "IN_PROGRESS" or (target_definition_arn is not None and primary_deployment.get("TaskDefinition", None) != target_definition_arn):
       raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
