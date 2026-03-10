@@ -54,7 +54,7 @@ jobs:
         NAME="duploctl-${VERSION}"
         PACKAGE_NAME="duplocloud_client-${VERSION}"
         RELEASE_URL="${REPO_URL}/releases/download/${GIT_TAG}"
-        echo "NOTES_ARTIFACT=notes-${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "NOTES_ARTIFACT=notes-${GIT_TAG//\//-}" >> $GITHUB_OUTPUT
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
