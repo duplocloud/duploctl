@@ -32,6 +32,7 @@ Biggest change here is now instead of `self.duplo.get` you do `self.client.get` 
 
 ### Fixed
 
+- Fixed ECS `_wait_on_service` not detecting deployment rollbacks. When ECS rolls back a failed deployment, the PRIMARY deployment becomes the rollback (old task definition), causing the wait loop to poll until timeout instead of failing immediately. Now scans all deployments for the target ARN's rollout state and checks `FAILED` before `IN_PROGRESS`.
 - Fixed "updates" parameter on call to wait in bulk image updates.
 - Updated GitHub workflow action versions (artifact actions, Docker Hub description, auto-assign) and migrated Slack notify step to `slack-github-action@v2`.
 - Fixed `--wait` failing permanently when a transient network error (DNS failure, TCP timeout) occurs during polling. Introduced `DuploConnectionError` as a dedicated subclass of `DuploError` for network-level failures; the `wait` loop now retries on `DuploConnectionError` instead of propagating it. Server-side HTTP errors still surface immediately.
