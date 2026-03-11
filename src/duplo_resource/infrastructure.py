@@ -101,7 +101,7 @@ class DuploInfrastructure(DuploResourceV2):
       )
     ]
 
-  @Command()
+  @Command(model="Infrastructure")
   def create(self,
              body: args.BODY):
     """Create Infrastructure

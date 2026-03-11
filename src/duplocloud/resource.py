@@ -45,7 +45,7 @@ class DuploResource():
       pargs = vars(parser.parse_args(args))
       pargs.update(kwargs)
       # if validation was enabled then the body will be validated
-      if model and "body" in pargs:
+      if model and "body" in pargs and pargs["body"] is not None:
         pargs["body"] = self.duplo.validate_model(model, pargs["body"])
       return command(**pargs)
     return wrapped

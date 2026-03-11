@@ -12,7 +12,7 @@ class DuploRDS(DuploResourceV3):
     super().__init__(duplo, "aws/rds/instance")
     self.wait_timeout = 1200
 
-  @Command()
+  @Command(model="AmazonRDSRequest")
   def create(self,
              body: args.BODY):
     """Create a DB instance.

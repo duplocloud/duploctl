@@ -75,7 +75,7 @@ class DuploHosts(DuploResourceV2):
     except DuploError:
       return self.create(body)
 
-  @Command()
+  @Command(model="NativeHostRequest")
   def create(self,
              body: args.BODY) -> dict:
     """Create a Host resource.

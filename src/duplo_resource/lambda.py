@@ -57,7 +57,7 @@ class DuploLambda(DuploResourceV2):
     except IndexError:
       raise DuploError(f"Lambda '{name}' not found", 404)
     
-  @Command()
+  @Command(model="AmazonLambdaRequest")
   def create(self, 
              body: args.BODY) -> dict:
     """Create a new tenant.
