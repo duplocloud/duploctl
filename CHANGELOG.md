@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+- bind models from generated openapi to resources to enable the validate and explain functionality
+
 ## [0.4.2] - 2026-03-11
 
 ### Added
