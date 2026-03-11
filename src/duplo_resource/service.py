@@ -121,7 +121,7 @@ class DuploService(DuploResourceV2):
       self.duplo.logger.debug(f"Service {name} not found using new endpoint, falling back to list.")
       return super().find(name)
 
-  @Command()
+  @Command(model="ReplicationController")
   def update(self,
              name: args.NAME,
              body: args.BODY = None,
@@ -208,7 +208,7 @@ class DuploService(DuploResourceV2):
       "message": f"Successfully updated OtherDockerConfig for service '{name}'"
     }
 
-  @Command()
+  @Command(model="ReplicationController")
   def create(self,
              body: args.BODY) -> dict:
     """Create a service.

@@ -26,7 +26,7 @@ class DuploSecret(DuploResourceV3):
             raise DuploError("SecretName is required in the secret body")
         return name
 
-    @Command()
+    @Command(model="DuploK8Secret")
     def create(self,
                name: args.NAME = None,
                body: args.BODY = None,
@@ -95,7 +95,7 @@ class DuploSecret(DuploResourceV3):
         else:
             return super().create(body)
 
-    @Command()
+    @Command(model="DuploK8Secret")
     def update(self,
                name: args.NAME,
                body: args.BODY = None,
