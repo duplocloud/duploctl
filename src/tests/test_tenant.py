@@ -38,13 +38,15 @@ class TestTenant:
     name = tenant_name
     # check if the tenant already exists — pass without creating if it does
     try:
-      print(f"Processing tenant '{name}'")
+      print(f"\n  host:    {duplo.host}")
+      print(f"  tenant:  {name}  (infra={infra_name})")
       i = t("find", name)
       if i:
-        print(f"Tenant '{name}' already exists")
+        print(f"  status:  pre-existing  (plan={i.get('PlanID')}, id={i.get('TenantId')})")
         return
     except DuploError:
       pass
+    print(f"  creating tenant '{name}' on infra '{infra_name}'")
     duplo.wait = True
     try:
       t.create({
@@ -52,7 +54,7 @@ class TestTenant:
         "PlanID": infra_name,
         "TenantBlueprint": None
       })
-      print(f"Tenant '{name}' created")
+      print(f"  result:  tenant '{name}' created")
     except DuploError as e:
       pytest.fail(f"Failed to create tenant: {e}")
     time.sleep(180)
