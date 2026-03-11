@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-03-11
+
 ### Added
 
 - **ECS `apply` and `list`/`find` support** — added `apply` command for create-or-update of ECS services, and `paths` definition enabling inherited `list` and `find` commands
