@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added 
+### Added
 
+- `tenant get_metadata` and `tenant set_metadata` commands for typed key-value metadata entries (`aws_console`, `url`, `text`)
 - Bind OpenAPI models to resource commands to enable body validation and schema explanation
 
 ## [0.4.2] - 2026-03-11
