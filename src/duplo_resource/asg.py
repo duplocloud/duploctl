@@ -60,7 +60,7 @@ class DuploAsg(DuploResourceV2):
     except IndexError:
       raise DuploError(f"ASG Profile '{name}' not found", 404)
     
-  @Command()
+  @Command(model="AsgProfile")
   def create(self,
              body: args.BODY) -> dict:
     """Create an ASG.
@@ -109,7 +109,7 @@ class DuploAsg(DuploResourceV2):
       "data": res.json()
     }
   
-  @Command()
+  @Command(model="AsgProfile")
   def update(self,
              body: args.BODY) -> dict:
     """Update an ASG.
