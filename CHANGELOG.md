@@ -40,6 +40,9 @@ Biggest change here is now instead of `self.duplo.get` you do `self.client.get` 
 - Fixed `--wait` failing permanently when a transient network error (DNS failure, TCP timeout) occurs during polling. Introduced `DuploConnectionError` as a dedicated subclass of `DuploError` for network-level failures; the `wait` loop now retries on `DuploConnectionError` instead of propagating it. Server-side HTTP errors still surface immediately.
 - Fixed `batch_definition update_image` docstring showing incorrect `--image <image>` flag syntax — the `image` argument is positional, so the correct usage is `duploctl batch_definition update_image <name> <image>`
 - fixed waiting for the ecs and ec2 host services 
+- Fixed ECS `_wait_on_service` raising `DuploFailedResource` when no PRIMARY deployment exists yet — changed to `DuploStillWaiting` so the poller keeps retrying until AWS registers the deployment on a freshly created service.
+- Fixed integration test `infra_type` always resolving to `duplo` when the lifecycle CI job runs with `-m "integration and lifecycle"` — suite YAMLs now declare `infra_type` and pass it explicitly via `--infra-type`.
+- Added detailed logging to infra and tenant creation tests showing host, type, data file, ECS/K8s flags, CIDR, and provisioning result.
 
 ## [0.4.1] - 2026-02-19
 
