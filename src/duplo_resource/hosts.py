@@ -22,7 +22,7 @@ class DuploHosts(DuploResourceV2):
       "list": "GetNativeHosts"
     }
   
-  @Command()
+  @Command(model="NativeHostRequest")
   def create(self,
              body: args.BODY) -> dict:
     """Create a Host resource.

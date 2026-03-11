@@ -68,7 +68,7 @@ class DuploAwsSecret(DuploResourceV3):
     else:
       return response.json()
   
-  @Command()
+  @Command(model="AwsSecret")
   def create(self, 
              name: args.NAME=None,
              body: args.BODY=None,
@@ -142,7 +142,7 @@ class DuploAwsSecret(DuploResourceV3):
     else:
       return super().create(body=body)
     
-  @Command()
+  @Command(model="AwsSecret")
   def update(self, 
              name: args.NAME=None,
              body: args.BODY=None,

@@ -18,7 +18,7 @@ class DuploJob(DuploResourceV3):
     self.wait_poll = 3
     self.__pod_svc = self.duplo.load("pod")
 
-  @Command()  
+  @Command(model="CreateJobRequest")  
   def create(self, 
              body: args.BODY):
     """Create a Kubernetes Job.

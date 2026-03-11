@@ -48,7 +48,7 @@ class DuploCloudFront(DuploResourceV3):
     response.raise_for_status()
     return response.json()
 
-  @Command()
+  @Command(model="AmazonCloudFrontRequest")
   def create(self, body: args.BODY):
     """Create a CloudFront distribution.
 
@@ -88,7 +88,7 @@ class DuploCloudFront(DuploResourceV3):
     except Exception as e:
       raise DuploError(f"Failed to create CloudFront distribution: {e}")
 
-  @Command()
+  @Command(model="AmazonCloudFrontRequest")
   def update(self, body: args.BODY):
     """Update a CloudFront distribution.
 

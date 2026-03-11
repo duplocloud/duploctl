@@ -18,7 +18,7 @@ class DuploEcsService(DuploResourceV2):
       "list": "GetEcsServices"                                                                                
     }
 
-  @Command()
+  @Command(model="AwsAmazonECSRequest")
   def apply(self,
             body: args.BODY,
             wait: args.WAIT = False) -> dict:
@@ -193,7 +193,7 @@ class DuploEcsService(DuploResourceV2):
     response = self.client.get(path)
     return response.json()
 
-  @Command()
+  @Command(model="AwsAmazonECSRequest")
   def create_service(self,
                      body: args.BODY) -> dict:
     """Create an ECS service.
@@ -211,7 +211,7 @@ class DuploEcsService(DuploResourceV2):
     self.client.post(path, body)
     return {"message": "ECS Service created"}
 
-  @Command()
+  @Command(model="AwsAmazonECSRequest")
   def update_service(self,
              body: args.BODY) -> dict:
     """Update an ECS service.
@@ -229,7 +229,7 @@ class DuploEcsService(DuploResourceV2):
     self.client.post(path, body)
     return {"message": "ECS Service updated"}
 
-  @Command()
+  @Command(model="AwsRegisterTaskDefinitionRequest")
   def update_taskdef(self,
                      body: args.BODY) -> dict:
     """Update an ECS task definition.
