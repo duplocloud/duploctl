@@ -129,27 +129,23 @@ class TestEcs:
     @pytest.mark.dependency(name="update_ecs_image", depends=["create_ecs_service"], scope="session")
     @pytest.mark.order(35)
     def test_update_image(self, ecs_resource):
-        """Update the service task definition to a new image.
+        """Update the service task definition to a new image and wait for deployment.
 
-        Wait is enabled. If the wait logic raises (another engineer is actively
-        working on ECS wait) the image update itself is still considered passing
-        as long as the new task def revision was created.
+        Wait is enabled. The wait loop must tolerate the window immediately after
+        CreateEcsService where AWS has not yet registered any deployment — that
+        state should raise DuploStillWaiting (keep polling), NOT DuploFailedResource
+        (hard stop). A hard-fail here means the wait logic is wrong.
         """
         ecs_resource.duplo.wait = True
         try:
             result = execute_test(ecs_resource.update_image, self.svc_family, image=_UPDATED_IMAGE)
             assert result is not None
+            # Confirm the running task definition actually reflects the new image.
+            svc_def = ecs_resource.find_def(self.svc_family)
+            assert svc_def["ContainerDefinitions"][0]["Image"] == _UPDATED_IMAGE, (
+                f"Task def image not updated: {svc_def['ContainerDefinitions'][0]['Image']}"
+            )
             print(f"update_image result: {result}")
-        except Exception as e:
-            # Wait-related failures are expected while the feature is in development.
-            # Verify the task def was at least updated before re-raising a hard fail.
-            try:
-                svc_def = ecs_resource.find_def(self.svc_family)
-                if svc_def["ContainerDefinitions"][0]["Image"] == _UPDATED_IMAGE:
-                    pytest.xfail(f"Image updated successfully but wait failed (in-progress feature): {e}")
-            except Exception:
-                pass
-            pytest.fail(f"update_image failed: {e}")
         finally:
             ecs_resource.duplo.wait = False
 

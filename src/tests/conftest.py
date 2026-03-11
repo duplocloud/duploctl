@@ -45,6 +45,12 @@ def pytest_addoption(parser):
     "--no-teardown", action="store_true", default=False,
     help="Skip infra/tenant deletion tests. "
          "Used by lifecycle and resource jobs so only the dedicated teardown job deletes.")
+  parser.addoption(
+    "--infra-type", action="store", default=None,
+    choices=["k8s", "ecs", "duplo"],
+    help="Infra type: 'k8s', 'ecs', or 'duplo'. "
+         "Determines the infrastructure data file used when creating a new infra. "
+         "Set by CI from the suite YAML; falls back to marker-expression inference.")
 
 
 _INFRA_DATA = {
@@ -171,7 +177,16 @@ def tenant_name(pytestconfig, infra_name) -> str:
 
 @pytest.fixture(scope='session')
 def infra_type(pytestconfig) -> str:
-  """Infra type: 'k8s', 'ecs', or 'duplo' (default). Inferred from -m expression."""
+  """Infra type: 'k8s', 'ecs', or 'duplo' (default).
+
+  Resolution order:
+    1. --infra-type <value>  (explicit CLI arg, set by CI from suite YAML)
+    2. -m expression         (contains 'k8s' or 'ecs', used for local runs)
+    3. 'duplo'               (default)
+  """
+  explicit = pytestconfig.getoption("infra_type", default=None) or None
+  if explicit:
+    return explicit
   markexpr = pytestconfig.getoption("markexpr", default="") or ""
   if "k8s" in markexpr:
     return "k8s"

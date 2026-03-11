@@ -20,7 +20,7 @@ class TestInfra:
   def test_listing_infrastructures(self, duplo: DuploCtl):
     r = duplo.load("infrastructure")
     try:
-      lot = r("list")
+      r("list")
     except DuploError as e:
       pytest.fail(f"Failed to list infrastructures: {e}")
 
@@ -37,6 +37,10 @@ class TestInfra:
   @pytest.mark.order(1)
   def test_creating_infrastructures(self, duplo: DuploCtl, infra_name: str, infra_type: str, region: str):
     r = duplo.load("infrastructure")
+    data_file = _INFRA_DATA[infra_type]
+    print(f"\n  host:       {duplo.host}")
+    print(f"  infra:      {infra_name}")
+    print(f"  infra_type: {infra_type}  (data: {data_file}.yaml)")
     try:
       existing = r.find(infra_name)
       if existing:
@@ -45,11 +49,17 @@ class TestInfra:
             f"WARNING: --region {region!r} ignored — "
             f"infrastructure '{infra_name}' already exists in {existing.get('Region')!r}"
           )
-        print(f"Infrastructure '{infra_name}' already exists")
+        print(
+          f"  status:     pre-existing  "
+          f"(region={existing.get('Region')}, "
+          f"ecs={existing.get('EnableECSCluster')}, "
+          f"k8s={existing.get('EnableK8Cluster')}, "
+          f"provisioning={existing.get('ProvisioningStatus')})"
+        )
         return
     except DuploError:
       pass
-    body = get_test_data(_INFRA_DATA[infra_type])
+    body = get_test_data(data_file)
     body["Name"] = infra_name
     taken = {i.get("Vnet", {}).get("AddressPrefix", "") for i in r.list()}
     for _ in range(50):
@@ -59,9 +69,14 @@ class TestInfra:
     body["Vnet"]["AddressPrefix"] = cidr
     if region:
       body["Region"] = region
+    print(
+      f"  creating:   region={body.get('Region')}, cidr={cidr}, "
+      f"ecs={body.get('EnableECSCluster')}, k8s={body.get('EnableK8Cluster')}"
+    )
     duplo.wait = True
     try:
       r.create(body)
+      print(f"  result:     infrastructure '{infra_name}' created and Complete")
     except DuploFailedResource as e:
       pytest.fail(f"Infrastructure is in a failed state: {e}")
     except DuploError as e:

@@ -469,7 +469,9 @@ class DuploEcsService(DuploResourceV2):
     try:
       primary_deployment = [d for d in deployments if d.get("Status", None) == "PRIMARY"][0]
     except IndexError:
-      raise DuploFailedResource(f"Failed to find primary deployment for ECS Service {name}")
+      # No PRIMARY deployment yet — AWS hasn't registered it. This is normal
+      # immediately after CreateEcsService; keep waiting rather than hard-failing.
+      raise DuploStillWaiting(f"Waiting for primary deployment to appear for ECS Service {name}")
 
     state = primary_deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
 
