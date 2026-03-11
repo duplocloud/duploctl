@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added 
 
-- bind models from generated openapi to resources to enable the validate and explain functionality
+- Bind OpenAPI models to resource commands to enable body validation and schema explanation
 
 ## [0.4.2] - 2026-03-11
 
