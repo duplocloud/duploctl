@@ -1,3 +1,4 @@
+infra_type: k8s
 jobs:
 - name: k8s
   markers: "integration and (k8s or lifecycle)"

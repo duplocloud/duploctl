@@ -79,6 +79,7 @@ jobs:
       infra: ${{ steps.names.outputs.infra }}
       tenant: ${{ steps.names.outputs.tenant }}
       matrix: ${{ steps.suite.outputs.matrix }}
+      infra_type: ${{ steps.suite.outputs.infra_type }}
       owned: ${{ steps.owned.outputs.owned }}
     steps:
 
@@ -121,18 +122,22 @@ jobs:
         import yaml, json, os
         data = yaml.safe_load(open('src/tests/suites/${{ inputs.suite }}.yaml'))
         matrix = json.dumps(data['jobs'])
+        infra_type = data.get('infra_type', 'duplo')
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             f.write(f"matrix={matrix}\n")
+            f.write(f"infra_type={infra_type}\n")
 
     - name: Run lifecycle tests
       if: steps.gate.outputs.enabled == 'true'
       env:
         INFRA: ${{ inputs.infra }}
         TENANT: ${{ inputs.tenant }}
+        INFRA_TYPE: ${{ steps.suite.outputs.infra_type }}
       run: |
         ARGS=(src -m "integration and lifecycle" --no-cov --junit-xml=lifecycle-results.xml -v -s --names-file=.names --no-teardown)
         if [ -n "$INFRA" ]; then ARGS+=(--infra "$INFRA"); fi
         if [ -n "$TENANT" ]; then ARGS+=(--tenant "$TENANT"); fi
+        if [ -n "$INFRA_TYPE" ]; then ARGS+=(--infra-type "$INFRA_TYPE"); fi
         pytest "${ARGS[@]}"
 
     - name: Export resolved names
