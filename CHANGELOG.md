@@ -13,7 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+<<<<<<< fix/storageclass-prefixed
+- Fixed `storageclass` commands (`find`, `update`, `create --wait`, `apply`) failing because names were not tenant-prefixed. Enabled `prefixed=True` on the resource.
+=======
 - Fixed `hosts find` and `hosts apply` — `name_from_body` crashed with `KeyError` on list response items missing `FriendlyName`. Added custom `find` and `apply` overrides for hosts resource.
+>>>>>>> main
 
 ## [0.4.2] - 2026-03-11
 

@@ -12,7 +12,7 @@ class DuploStorageClass(DuploResourceV3):
    - https://docs.duplocloud.com/docs/overview/aws-services/storage/adding-k8s-storage-class
   """
   def __init__(self, duplo: DuploCtl):
-    super().__init__(duplo, "k8s/storageclass")
+    super().__init__(duplo, "k8s/storageclass", prefixed=True)
 
   def name_from_body(self, body):
     return body["name"]
