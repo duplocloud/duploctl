@@ -448,8 +448,13 @@ Available Resources:
     Returns:
       The Pydantic model class, or None if not found.
     """
-    if not model_name or duplocloud_sdk is None:
+    if not model_name:
       return None
+    if duplocloud_sdk is None:
+      raise DuploError(
+        "--validate requires duplocloud-sdk: "
+        "pip install duploctl[sdk]", 1
+      )
     return getattr(duplocloud_sdk, model_name, None)
 
   def validate_model(self, model, data: dict) -> dict:
