@@ -1,6 +1,8 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import (
+  DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
+)
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -22,6 +24,62 @@ class DuploHosts(DuploResourceV2):
       "list": "GetNativeHosts"
     }
   
+  @Command()
+  def find(self,
+           name: args.NAME) -> dict:
+    """Find a Host by name.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl hosts find <name>
+      ```
+
+    Args:
+      name: The friendly name of the host to find.
+
+    Returns:
+      resource: The host object.
+
+    Raises:
+      DuploError: If the host could not be found.
+    """
+    prefix = f"duploservices-{self.tenant['AccountName']}-"
+    search = name if name.startswith(prefix) else f"{prefix}{name}"
+    try:
+      return [h for h in self.list()
+              if h.get("FriendlyName") and self.name_from_body(h) == search][0]
+    except IndexError:
+      raise DuploError(f"Host '{name}' not found", 404)
+
+  @Command()
+  def apply(self,
+            body: args.BODY) -> dict:
+    """Apply a Host.
+
+    Create a host if it does not already exist.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl hosts apply -f 'hosts.yaml'
+      ```
+
+    Args:
+      body: The host configuration.
+
+    Returns:
+      message: A success message or existing host.
+    """
+    name = body.get("FriendlyName", "")
+    try:
+      host = self.find(name)
+      return {"message": f"Host '{name}' already exists", "data": host}
+    except DuploConnectionError:
+      raise
+    except DuploError as e:
+      if e.code != 404:
+        raise
+      return self.create(body)
+
   @Command(model="NativeHostRequest")
   def create(self,
              body: args.BODY) -> dict:
@@ -254,8 +312,10 @@ class DuploHosts(DuploResourceV2):
     }
     
   def name_from_body(self, body):
+    name = body.get("FriendlyName")
+    if name is None:
+      return None
     prefix = f"duploservices-{self.tenant['AccountName']}"
-    name =  body["FriendlyName"]
     if not name.startswith(prefix):
       name = f"{prefix}-{name}"
     return name
