@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added 
 
+- Add `ecr` resource for managing AWS ECR repositories (list, find, create, update, delete, apply)
+- Add `cloud_resource` resource exposing the unified `GetCloudResources` endpoint with optional `--type` filter
 - Bind OpenAPI models to resource commands to enable body validation and schema explanation
 - more details to readme
 

@@ -115,7 +115,8 @@ markers = [
   "s3: mark a test as an s3 resource test",
   "cloudfront: mark a test as a cloudfront resource test",
   "awssecret: mark a test as an aws secret resource test",
-  "jit: mark a test as a jit resource test"
+  "jit: mark a test as a jit resource test",
+  "ecr: mark a test as an ecr resource test"
 ]
 
 [tool.coverage.run]
@@ -180,6 +181,8 @@ batch_scheduling_policy = "duplo_resource.batch_scheduling_policy:DuploBatchSche
 argo_wf = "duplo_resource.argo_wf:DuploArgoWorkflow"
 argo_wf_template = "duplo_resource.argo_wf:DuploArgoWorkflowTemplate"
 cache = "duplo_resource.cache:DuploCache"
+cloud_resource = "duplo_resource.cloud_resource:DuploCloudResource"
+ecr = "duplo_resource.ecr:DuploECR"
 
 [project.entry-points."clients.duplocloud.net"]
 duplo = "duplocloud.client:DuploAPI"
