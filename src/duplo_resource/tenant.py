@@ -499,8 +499,10 @@ class DuploTenant(DuploResourceV2):
       service = self.duplo.load(service_type)
       for item in service.list():
         service_name = service.name_from_body(item)
+        if service_name is None:
+          continue
         if service_name not in service_types[service_type]:
-          service.start(service_name, self.duplo.wait)
+          service.start(service_name)
     return {
       "message": "Successfully started all resources for tenant"
     }
@@ -554,8 +556,10 @@ class DuploTenant(DuploResourceV2):
       service = self.duplo.load(service_type)
       for item in service.list():
         service_name = service.name_from_body(item)
+        if service_name is None:
+          continue
         if service_name not in service_types[service_type]:
-          service.stop(service_name, self.duplo.wait)
+          service.stop(service_name)
     return {
       "message": "Successfully stopped all resources for tenant"
     }

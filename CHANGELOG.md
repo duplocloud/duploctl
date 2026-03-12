@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tenant get_metadata` and `tenant set_metadata` commands for typed key-value metadata entries (`aws_console`, `url`, `text`)
 - Bind OpenAPI models to resource commands to enable body validation and schema explanation
 
+### Fixed
+
+- Fixed `hosts find` and `hosts apply` — `name_from_body` crashed with `KeyError` on list response items missing `FriendlyName`. Added custom `find` and `apply` overrides for hosts resource.
+
 ## [0.4.2] - 2026-03-11
 
 ### Added
