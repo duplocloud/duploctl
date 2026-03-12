@@ -453,7 +453,7 @@ Available Resources:
     if duplocloud_sdk is None:
       raise DuploError(
         "--validate requires duplocloud-sdk: "
-        "pip install duploctl[sdk]", 1
+        "pip install duplocloud-sdk", 1
       )
     return getattr(duplocloud_sdk, model_name, None)
 
