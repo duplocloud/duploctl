@@ -9,7 +9,7 @@ class DuploBatchSchedulingPolicy(DuploResourceV3):
   Run batch jobs as a managed service on AWS infrastructure. 
 
   Read more docs here: 
-  https://docs.duplocloud.com/docs/overview/aws-services/batch
+  https://docs.duplocloud.com/docs/automation-platform/overview/aws-services/batch
   """
 
   def __init__(self, duplo: DuploCtl):
