@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `cloud_resource` resource exposing the unified `GetCloudResources` endpoint with optional `--type` filter
 - Bind OpenAPI models to resource commands to enable body validation and schema explanation
 - more details to readme
+- publish plugins to pypi
 
 ### Fixed
 
