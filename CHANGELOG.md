@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Updated broken links in batch documentation
 - `brew install duploctl --with-pip` fails due to `pydantic_core` sdist requiring Rust toolchain in Homebrew sandbox; made `duplocloud-sdk` an optional dependency
 - `brew install duploctl` binary crashes with `No module named 'duplocloud.client'`; added missing hidden imports and package metadata to PyInstaller spec
 - Fixed `storageclass` commands (`find`, `update`, `create --wait`, `apply`) failing because names were not tenant-prefixed. Enabled `prefixed=True` on the resource.
