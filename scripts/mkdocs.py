@@ -11,7 +11,10 @@ from jinja2.filters import FILTERS
 from duplocloud.commander import ep, commands_for, extract_args
 from duplocloud.argtype import Arg
 import duplocloud.args as args
-import duplocloud_sdk
+try:
+  import duplocloud_sdk
+except ImportError:
+  duplocloud_sdk = None
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(HERE))
 from project import Project, REPO_URL
@@ -149,6 +152,8 @@ def string_or_class_name_filter(input):
 
 def model_schema_filter(model_name):
   """Load a pydantic model by name and return its JSON schema."""
+  if duplocloud_sdk is None:
+    return None
   model_cls = getattr(duplocloud_sdk, model_name, None)
   if model_cls and hasattr(model_cls, "model_json_schema"):
     return json.dumps(model_cls.model_json_schema(by_alias=True), indent=2)

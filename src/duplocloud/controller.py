@@ -13,8 +13,12 @@ from .errors import DuploError, DuploInvalidError
 from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
 from typing import TypeVar
-import duplocloud_sdk
-from pydantic import ValidationError
+try:
+  import duplocloud_sdk
+  from pydantic import ValidationError
+except ImportError:
+  duplocloud_sdk = None
+  ValidationError = None
 
 T = TypeVar("T")
 
@@ -446,6 +450,11 @@ Available Resources:
     """
     if not model_name:
       return None
+    if duplocloud_sdk is None:
+      raise DuploError(
+        "--validate requires duplocloud-sdk: "
+        "pip install duplocloud-sdk", 1
+      )
     return getattr(duplocloud_sdk, model_name, None)
 
   def validate_model(self, model, data: dict) -> dict:
