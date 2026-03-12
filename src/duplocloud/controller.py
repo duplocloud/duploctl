@@ -13,8 +13,12 @@ from .errors import DuploError, DuploInvalidError
 from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
 from typing import TypeVar
-import duplocloud_sdk
-from pydantic import ValidationError
+try:
+  import duplocloud_sdk
+  from pydantic import ValidationError
+except ImportError:
+  duplocloud_sdk = None
+  ValidationError = None
 
 T = TypeVar("T")
 
@@ -444,7 +448,7 @@ Available Resources:
     Returns:
       The Pydantic model class, or None if not found.
     """
-    if not model_name:
+    if not model_name or duplocloud_sdk is None:
       return None
     return getattr(duplocloud_sdk, model_name, None)
 

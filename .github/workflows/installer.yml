@@ -82,7 +82,7 @@ jobs:
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         python-version: ${{ env.PY_VERSION }}
-        install: ".[build]"
+        install: ".[build,sdk]"
     
     - name: Pyinstaller
       id: installer
