@@ -1,6 +1,8 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import (
+  DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
+)
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -51,8 +53,7 @@ class DuploHosts(DuploResourceV2):
 
   @Command()
   def apply(self,
-            body: args.BODY,
-            wait: args.WAIT = False) -> dict:
+            body: args.BODY) -> dict:
     """Apply a Host.
 
     Create a host if it does not already exist.
@@ -72,7 +73,11 @@ class DuploHosts(DuploResourceV2):
     try:
       host = self.find(name)
       return {"message": f"Host '{name}' already exists", "data": host}
-    except DuploError:
+    except DuploConnectionError:
+      raise
+    except DuploError as e:
+      if e.code != 404:
+        raise
       return self.create(body)
 
   @Command(model="NativeHostRequest")
