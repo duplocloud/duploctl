@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -23,7 +23,7 @@ class DuploUser(DuploResourceV2):
     try:
       return [u for u in self.list() if u["Username"] == name][0]
     except IndexError:
-      raise DuploError(f"User '{name}' not found", 404)
+      raise DuploNotFound(name, "User")
   
   @Command()
   def create(self, 

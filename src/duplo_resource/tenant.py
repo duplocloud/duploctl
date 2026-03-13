@@ -2,7 +2,7 @@ from datetime import timedelta
 import datetime
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -121,7 +121,7 @@ class DuploTenant(DuploResourceV2):
     try:
       return [t for t in self.list() if t[key] == ref][0]
     except IndexError:
-      raise DuploError(f"Tenant '{ref}' not found", 404)
+      raise DuploNotFound(ref, "Tenant")
   
   @Command(model="AddTenantRequest")
   def create(self,
