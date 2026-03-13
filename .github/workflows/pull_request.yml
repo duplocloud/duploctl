@@ -46,7 +46,7 @@ jobs:
       with:
         ref: ${{ github.ref }}
         fetch-depth: 0
-        install: ".[build,docs]"
+        install: ".[build,docs,sdk]"
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         submodules: "true"
