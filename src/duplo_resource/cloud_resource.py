@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResource
-from duplocloud.errors import DuploError, DuploNotFound
+from duplocloud.errors import DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
