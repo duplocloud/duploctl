@@ -658,14 +658,15 @@ class DuploTenant(DuploResourceV2):
   @Command()
   def set_metadata(self,
                    name: args.NAME=None,
-                   metadata: args.METADATA=[],
-                   deletes: args.DELETES=[]) -> dict:
+                   metadata: args.METADATA=None,
+                   deletes: args.DELETES=None) -> dict:
     """Create and Delete Tenant Metadata
 
     Create new typed metadata entries and/or delete existing ones for a
     tenant.  Creating a key that already exists is a no-op (the key is
-    reported in ``changes.skipped`` rather than overwritten).  Use
-    ``--delete`` first if you need to replace a value.
+    reported in ``changes.skipped`` rather than overwritten).  To replace
+    a value, pass both ``--metadata`` and ``--delete`` for the same key —
+    creates are processed first, then deletes.
 
     Usage: Basic CLI Use
       ```sh
@@ -700,6 +701,7 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
+    tenant_name = tenant["AccountName"]
     current = self.client.get(
         f"admin/GetTenantConfigData/{tenant_id}"
     ).json() or []
@@ -730,7 +732,8 @@ class DuploTenant(DuploResourceV2):
     for key in (deletes or []):
       if key not in current_map:
         raise DuploError(
-            f"Metadata key '{key}' not found in tenant '{name}'", 404
+            f"Metadata key '{key}' not found in tenant '{tenant_name}'",
+            404,
         )
       entry = current_map[key]
       body = {
@@ -744,7 +747,7 @@ class DuploTenant(DuploResourceV2):
       deleted.append(key)
 
     return {
-        "message": f"Successfully updated metadata for tenant '{name}'",
+        "message": f"Successfully updated metadata for tenant '{tenant_name}'",
         "changes": {
             "created": created,
             "deleted": deleted,
