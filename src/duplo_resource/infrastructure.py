@@ -212,9 +212,22 @@ class DuploInfrastructure(DuploResourceV2):
       "no update will be performed."
     )
     if body:
+      def _value_differs(input_val, existing_val):
+        """Recursively compare input_val against existing_val.
+
+        For dict values, only the keys present in input_val are checked
+        so that extra read-only fields returned by the API (e.g. the
+        Subnets list inside Vnet) do not produce false positives.
+        """
+        if isinstance(input_val, dict) and isinstance(existing_val, dict):
+          return any(
+            _value_differs(sv, existing_val.get(sk))
+            for sk, sv in input_val.items()
+          )
+        return input_val != existing_val
       changed = [
         k for k, v in body.items()
-        if k in existing and existing[k] != v
+        if k in existing and _value_differs(v, existing[k])
       ]
       if changed:
         raise DuploError(
