@@ -630,7 +630,133 @@ class DuploTenant(DuploResourceV2):
       return f"User '{name}' added to tenant '{self.duplo.tenant}'"
     
   @Command()
-  def remove_user(self, 
+  def get_metadata(self,
+                   name: args.NAME=None) -> list:
+    """List Tenant Metadata
+
+    Retrieve all typed metadata entries for a tenant.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl tenant get_metadata <tenant-name>
+      duploctl tenant get_metadata -T myenv
+      ```
+
+    Args:
+      name: The name of the tenant.
+
+    Returns:
+      metadata: A list of metadata entry objects.
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    response = self.client.get(
+        f"admin/GetTenantConfigData/{tenant_id}"
+    )
+    return response.json()
+
+  @Command()
+  def set_metadata(self,
+                   name: args.NAME=None,
+                   metadata: args.METADATA=None,
+                   deletes: args.DELETES=None) -> dict:
+    """Create and Delete Tenant Metadata
+
+    Create new typed metadata entries and/or delete existing ones for a
+    tenant.  Creating a key that already exists is a no-op (the key is
+    reported in ``changes.skipped`` rather than overwritten).  To replace
+    a value, pass both ``--metadata`` and ``--delete`` for the same key —
+    creates are processed first, then deletes.
+
+    Usage: Basic CLI Use
+      ```sh
+      # create a text entry
+      duploctl tenant set_metadata -T myenv --metadata featureFlag text enabled
+
+      # create a URL entry
+      duploctl tenant set_metadata -T myenv \\
+        --metadata dashboard url https://internal.example.com
+
+      # delete an entry
+      duploctl tenant set_metadata -T myenv --delete featureFlag
+
+      # mixed create and delete in one call
+      duploctl tenant set_metadata -T myenv \\
+        --metadata newKey text newValue \\
+        --delete oldKey
+      ```
+
+    Args:
+      name: The name of the tenant.
+      metadata: Typed entries to create: --metadata <key> <type> <value>
+        (repeatable). Type must be ``aws_console``, ``url``, or ``text``.
+      deletes: Keys to delete: --delete <key> (repeatable).
+
+    Returns:
+      changes: Summary with ``created``, ``deleted``, and ``skipped`` lists.
+
+    Raises:
+      DuploError: If a key to delete does not exist, or if the API returns
+        an error during creation.
+    """
+    tenant = self.find(name)
+    tenant_id = tenant["TenantId"]
+    tenant_name = tenant["AccountName"]
+    current = self.client.get(
+        f"admin/GetTenantConfigData/{tenant_id}"
+    ).json() or []
+    current_map = {m["Key"]: m for m in current}
+
+    created = []
+    deleted = []
+    skipped = []
+
+    for key, mtype, value in (metadata or []):
+      if key in current_map:
+        skipped.append(key)
+        continue
+      body = {
+          "Key": key,
+          "Type": mtype,
+          "Value": value,
+          "ComponentId": tenant_id,
+      }
+      resp = self.client.post("admin/UpdateTenantConfigData", body)
+      if resp.status_code >= 400:
+        raise DuploError(
+            f"Failed to create metadata key '{key}': {resp.text}",
+            resp.status_code,
+        )
+      created.append(key)
+
+    for key in (deletes or []):
+      if key not in current_map:
+        raise DuploError(
+            f"Metadata key '{key}' not found in tenant '{tenant_name}'",
+            404,
+        )
+      entry = current_map[key]
+      body = {
+          "Key": key,
+          "Type": entry.get("Type", "text"),
+          "Value": entry.get("Value", ""),
+          "ComponentId": tenant_id,
+          "State": "delete",
+      }
+      self.client.post("admin/UpdateTenantConfigData", body)
+      deleted.append(key)
+
+    return {
+        "message": f"Successfully updated metadata for tenant '{tenant_name}'",
+        "changes": {
+            "created": created,
+            "deleted": deleted,
+            "skipped": skipped,
+        },
+    }
+
+  @Command()
+  def remove_user(self,
                  name: args.NAME) -> dict:
     """Remove a User from a Tenant
     
