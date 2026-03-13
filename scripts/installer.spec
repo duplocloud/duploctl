@@ -1,23 +1,29 @@
 #!/usr/bin/env pyinstaller
 # -*- mode: python ; coding: utf-8 -*-
 import os
+from PyInstaller.utils.hooks import copy_metadata
 
 # Add all the resources as hidden imports
 directory = 'src/duplo_resource'
 hi =[
   'duplocloud.formats',
-  'duplo_resource'
+  'duplocloud.client',
+  'duplo_resource',
+  'duplo_resource.argo_client',
 ]
 for filename in os.listdir(directory):
   if filename != '__init__.py' and not os.path.isdir(f"{directory}/{filename}"):
     m = filename.split('.')[0]
     hi.append(f'duplo_resource.{m}')
 
+# Bundle package metadata so importlib.metadata.entry_points() works
+md = copy_metadata('duplocloud-client')
+
 a = Analysis(
     ['../src/duplocloud/cli.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=md,
     hiddenimports=hi,
     hookspath=[],
     hooksconfig={},

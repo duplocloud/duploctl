@@ -99,7 +99,7 @@ jobs:
       if: steps.gate.outputs.enabled == 'true'
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
-        install: ".[build,test,aws]"
+        install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
@@ -178,7 +178,7 @@ jobs:
     - name: Setup
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
-        install: ".[build,test,aws]"
+        install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
@@ -230,7 +230,7 @@ jobs:
       if: steps.gate.outputs.enabled == 'true'
       uses: duplocloud/duploctl/.github/actions/setup@main
       with:
-        install: ".[build,test,aws]"
+        install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
