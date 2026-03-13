@@ -147,9 +147,9 @@ class DuploResourceV2(DuploResource):
     name = self.name_from_body(body)
     try:
       self.find(name)
-      return self.update(name, body, wait)
+      return self.update(name, body)
     except DuploError:
-      return self.create(body, wait)
+      return self.create(body)
   
 
 class DuploResourceV3(DuploResource):
