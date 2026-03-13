@@ -1,5 +1,5 @@
 from duplocloud.controller import DuploCtl
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploError, DuploFailedResource, DuploNotFound, DuploStillWaiting
 from duplocloud.resource import DuploResourceV2
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -80,7 +80,15 @@ class DuploInfrastructure(DuploResourceV2):
       DuploNotFound: If the infrastructure does not exist. Raised by the
         HTTP client layer when the API returns a 404 response.
     """
-    response = self.client.get(f"adminproxy/GetInfrastructureConfig/{name}")
+    # The DuploCloud API returns 500 (not 404) when an infrastructure does
+    # not exist. Catch it and re-raise as DuploNotFound so that apply()
+    # can correctly route to create() rather than treating it as a real error.
+    try:
+      response = self.client.get(f"adminproxy/GetInfrastructureConfig/{name}")
+    except DuploError as e:
+      if e.code == 500:
+        raise DuploNotFound(name, "Infrastructure")
+      raise
     return response.json()
   
   _INFRA_FAULT_TENANTS = {"System.VPC", "System.AwsInfrastructure"}
