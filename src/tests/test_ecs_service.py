@@ -277,7 +277,11 @@ def test_wait_on_service(mocker):
                     {
                         "Status": "PRIMARY",
                         "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
-                        "RolloutState": { "Value": "COMPLETE" }
+                        "RolloutState": { "Value": "COMPLETE" },
+                        "DesiredCount": 1,
+                        "RunningCount": 1,
+                        "PendingCount": 0,
+                        "FailedTasks": 0
                     }
                 ]
             }
@@ -293,7 +297,11 @@ def test_wait_on_service(mocker):
                     {
                         "Status": "PRIMARY",
                         "TaskDefinition": updated_task_definition_revision,
-                        "RolloutState": { "Value": "IN_PROGRESS" }
+                        "RolloutState": { "Value": "IN_PROGRESS" },
+                        "DesiredCount": 1,
+                        "RunningCount": 0,
+                        "PendingCount": 1,
+                        "FailedTasks": 0
                     }
                 ]
             }
@@ -335,7 +343,7 @@ def test_wait_on_service(mocker):
     ]
 
     # ECS rolled back: PRIMARY is now the old task definition (rollback), target deployment is FAILED and demoted
-    mock_deployment_rollback = [
+    mock_deployment_rollback_failed = [
         {
             "EcsServiceName": "target-service",
             "AwsEcsService": {
@@ -357,6 +365,79 @@ def test_wait_on_service(mocker):
         },
     ]
 
+    # ECS rolled back: target demoted from PRIMARY but RolloutState is not yet FAILED
+    mock_deployment_rollback_demoted = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "COMPLETED" },
+                        "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
+                        "RolloutStateReason": "ECS deployment ecs-svc/1234567890123456789 completed."
+                    },
+                    {
+                        "Status": "ACTIVE",
+                        "RolloutState": { "Value": "IN_PROGRESS" },
+                        "TaskDefinition": updated_task_definition_revision,
+                        "RolloutStateReason": "ECS deployment ecs-svc/9876543210987654321 in progress."
+                    }
+                ]
+            }
+        },
+    ]
+
+    # Deployment stalled: PRIMARY is target but tasks keep failing with none running
+    mock_deployment_stalled = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "IN_PROGRESS" },
+                        "TaskDefinition": updated_task_definition_revision,
+                        "RolloutStateReason": "ECS deployment ecs-svc/1003416065081254639 in progress.",
+                        "DesiredCount": 1,
+                        "RunningCount": 0,
+                        "PendingCount": 0,
+                        "FailedTasks": 3
+                    },
+                    {
+                        "Status": "ACTIVE",
+                        "RolloutState": { "Value": "COMPLETED" },
+                        "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
+                        "DesiredCount": 1,
+                        "RunningCount": 1,
+                        "PendingCount": 0,
+                        "FailedTasks": 0
+                    }
+                ]
+            }
+        },
+    ]
+
+    # Deployment stalled without target_definition_arn (apply flow)
+    mock_deployment_stalled_no_target = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "IN_PROGRESS" },
+                        "TaskDefinition": updated_task_definition_revision,
+                        "DesiredCount": 1,
+                        "RunningCount": 0,
+                        "PendingCount": 0,
+                        "FailedTasks": 2
+                    }
+                ]
+            }
+        },
+    ]
+
     mocker.patch.object(service, "list_detailed_services", side_effect=[
         mock_missing_service,
         mock_malformed,
@@ -365,7 +446,10 @@ def test_wait_on_service(mocker):
         mock_deployment_incomplete,
         mock_deployment_failed,
         mock_deployment_succeeded,
-        mock_deployment_rollback,
+        mock_deployment_rollback_failed,
+        mock_deployment_rollback_demoted,
+        mock_deployment_stalled,
+        mock_deployment_stalled_no_target,
     ])
 
     # catches wait for cases when target service is not found
@@ -392,9 +476,21 @@ def test_wait_on_service(mocker):
     with pytest.raises(DuploError, match=r"deployment failed with reason"):
         service._wait_on_service("target-service", updated_task_definition_revision)
 
-    # passes if service found with primary dpeloyment in complete state
+    # passes if service found with primary deployment in complete state
     service._wait_on_service("target-service", updated_task_definition_revision)
 
-    # detects rollback: target deployment failed and ECS rolled back to previous task definition
+    # detects rollback: target deployment FAILED via RolloutState
     with pytest.raises(DuploError, match=r"deployment failed with reason"):
         service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # detects rollback: target demoted from PRIMARY (even without FAILED RolloutState)
+    with pytest.raises(DuploError, match=r"deployment rolled back"):
+        service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # detects stalled deployment: tasks failing with none running (with target)
+    with pytest.raises(DuploError, match=r"deployment stalled"):
+        service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # detects stalled deployment via primary check (apply flow, no target)
+    with pytest.raises(DuploError, match=r"deployment stalled"):
+        service._wait_on_service("target-service")

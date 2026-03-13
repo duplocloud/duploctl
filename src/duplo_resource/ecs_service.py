@@ -441,6 +441,26 @@ class DuploEcsService(DuploResourceV2):
     if len(running_tasks) > 0:
       raise DuploStillWaiting(f"{name} still have unsettled tasks")
 
+  @staticmethod
+  def _deployment_stalled(deployment: dict) -> bool:
+    """Check if a deployment is stalled with failing tasks.
+
+    A deployment is stalled when no tasks are running or pending
+    yet at least one task has failed. This catches stuck deployments
+    even without the ECS deployment circuit breaker enabled.
+
+    Args:
+      deployment: An ECS deployment object.
+
+    Returns:
+      True if the deployment appears stalled.
+    """
+    desired = deployment.get("DesiredCount", 0)
+    running = deployment.get("RunningCount", 0)
+    pending = deployment.get("PendingCount", 0)
+    failed = deployment.get("FailedTasks", 0)
+    return desired > 0 and running == 0 and pending == 0 and failed > 0
+
   # only define target definition ARN we know for sure the target service WILL trigger a new deployment
   # with target_definition_arn as its task definition
   def _wait_on_service(self, name: str, target_definition_arn: str = None) -> None:
@@ -455,15 +475,20 @@ class DuploEcsService(DuploResourceV2):
 
     deployments = service.get("AwsEcsService", {}).get("Deployments", [])
 
-    # Check if the target deployment has failed (e.g. ECS rolled back to a previous task definition).
-    # This must be checked before the PRIMARY deployment status because after a rollback,
-    # the PRIMARY deployment is the rollback itself, not the one we triggered.
+    # Check the target deployment first. After a rollback the PRIMARY deployment is
+    # the rollback itself, so we must inspect the target before looking at PRIMARY.
     if target_definition_arn is not None:
       for deployment in deployments:
         if deployment.get("TaskDefinition", None) == target_definition_arn:
           dep_state = deployment.get("RolloutState", {}).get("Value", "IN_PROGRESS")
           if dep_state == "FAILED":
             raise DuploFailedResource(f"ECS Service {name} deployment failed with reason {deployment.get('RolloutStateReason', 'Unknown')}")
+          if deployment.get("Status", None) != "PRIMARY":
+            reason = deployment.get("RolloutStateReason", "deployment was demoted from PRIMARY (rollback)")
+            raise DuploFailedResource(f"ECS Service {name} deployment rolled back: {reason}")
+          if self._deployment_stalled(deployment):
+            failed = deployment.get("FailedTasks", 0)
+            raise DuploFailedResource(f"ECS Service {name} deployment stalled: {failed} tasks failed, 0 running")
           break
 
     try:
@@ -478,8 +503,14 @@ class DuploEcsService(DuploResourceV2):
     if state == "FAILED":
       raise DuploFailedResource(f"ECS Service {name} deployment failed with reason {primary_deployment.get('RolloutStateReason', 'Unknown')}")
 
-    if state == "IN_PROGRESS" or (target_definition_arn is not None and primary_deployment.get("TaskDefinition", None) != target_definition_arn):
+    if state == "IN_PROGRESS":
+      if self._deployment_stalled(primary_deployment):
+        failed = primary_deployment.get("FailedTasks", 0)
+        raise DuploFailedResource(f"ECS Service {name} deployment stalled: {failed} tasks failed, 0 running")
       raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
 
-    # if ECS Service primary deployment is not IN_PROGRESS or FAILED, assume COMPLETED and exit
+    # COMPLETED: verify task definition matches if a target was specified
+    if target_definition_arn is not None and primary_deployment.get("TaskDefinition", None) != target_definition_arn:
+      raise DuploStillWaiting(f"ECS Service {name} primary deployment is not yet complete")
+
     return
