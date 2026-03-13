@@ -49,7 +49,7 @@ class DuploCloudResource(DuploResource):
         Returns:
           list: Cloud resources, optionally filtered by type.
         """
-        response = self.duplo.client.get(
+        response = self.client.get(
             self.endpoint("GetCloudResources")
         )
         resources = response.json()
