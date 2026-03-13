@@ -414,3 +414,8 @@ BATCH_QUEUE = Arg("queue", "-BQ", "-bq", "--batch-queue",
 
 ALLOCATION_TAGS = Arg("allocationtags",
              help='Allocation tag used to specify custom allocation rules')
+
+RESOURCE_TYPE = Arg("resource_type", "--type",
+            help='Filter by cloud resource type number (e.g. 17 for ECR)',
+            type=int,
+            default=None)
