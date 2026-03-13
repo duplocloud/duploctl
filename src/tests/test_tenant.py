@@ -1,8 +1,12 @@
+import argparse
+
 import pytest
 import time
+from unittest.mock import MagicMock
 
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
+from duplocloud.argtype import MetadataAction, ALLOWED_METADATA_TYPES
 from tests.conftest import get_test_data
 
 @pytest.mark.integration
@@ -138,3 +142,241 @@ def test_validate_tenant_yaml():
   assert isinstance(result, dict)
   assert result["AccountName"] == data["AccountName"]
   assert result["PlanID"] == data["PlanID"]
+
+
+# ---------------------------------------------------------------------------
+# Helpers shared by metadata unit tests
+# ---------------------------------------------------------------------------
+
+_FAKE_TENANT = {"TenantId": "tid-abc", "AccountName": "mytenant"}
+
+_EXISTING_META = [
+    {"Key": "existingKey", "Type": "text", "Value": "existingVal"},
+]
+
+
+def _make_tenant_resource(mocker):
+  """Return a DuploTenant instance with the HTTP client fully mocked.
+
+  The ``@Resource`` decorator assigns ``self.client = duplo.load_client()``
+  in the wrapped ``__init__``.  We replace that instance attribute with a
+  plain ``MagicMock`` so tests can assert on ``.get`` / ``.post`` directly.
+  """
+  from duplo_resource.tenant import DuploTenant
+  duplo = MagicMock()
+  resource = DuploTenant(duplo)
+  mock_client = MagicMock()
+  resource.client = mock_client
+  resource._mock_client = mock_client
+  mocker.patch.object(resource, "find", return_value=_FAKE_TENANT)
+  return resource
+
+
+# ---------------------------------------------------------------------------
+# MetadataAction — argument parsing
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_metadata_action_rejects_invalid_type():
+  """MetadataAction raises ArgumentTypeError for an unrecognised type."""
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--metadata", action=MetadataAction)
+  with pytest.raises(argparse.ArgumentTypeError):
+    parser.parse_args(["--metadata", "key", "badtype", "value"])
+
+
+@pytest.mark.unit
+def test_metadata_action_accepts_all_allowed_types():
+  """MetadataAction accepts every type in ALLOWED_METADATA_TYPES."""
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--metadata", action=MetadataAction)
+  for mtype in ALLOWED_METADATA_TYPES:
+    ns = parser.parse_args(["--metadata", "k", mtype, "v"])
+    assert ns.metadata == [("k", mtype, "v")]
+
+
+@pytest.mark.unit
+def test_metadata_action_normalises_type_to_lowercase():
+  """MetadataAction lower-cases the type token before storing."""
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--metadata", action=MetadataAction)
+  ns = parser.parse_args(["--metadata", "k", "TEXT", "v"])
+  assert ns.metadata[0][1] == "text"
+
+
+@pytest.mark.unit
+def test_metadata_action_is_repeatable():
+  """Multiple --metadata flags accumulate as a list of tuples."""
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--metadata", action=MetadataAction)
+  ns = parser.parse_args([
+      "--metadata", "k1", "text", "v1",
+      "--metadata", "k2", "url", "https://example.com",
+  ])
+  assert len(ns.metadata) == 2
+  assert ns.metadata[0] == ("k1", "text", "v1")
+  assert ns.metadata[1] == ("k2", "url", "https://example.com")
+
+
+# ---------------------------------------------------------------------------
+# get_metadata
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_get_metadata_returns_list(mocker):
+  """get_metadata calls the correct endpoint and returns the JSON list."""
+  resource = _make_tenant_resource(mocker)
+  resp = MagicMock()
+  resp.json.return_value = _EXISTING_META
+  resource._mock_client.get.return_value = resp
+
+  result = resource.get_metadata("mytenant")
+
+  resource._mock_client.get.assert_called_once_with(
+      "admin/GetTenantConfigData/tid-abc"
+  )
+  assert result == _EXISTING_META
+
+
+@pytest.mark.unit
+def test_get_metadata_empty_returns_empty_list(mocker):
+  """get_metadata returns an empty list when the tenant has no metadata."""
+  resource = _make_tenant_resource(mocker)
+  resp = MagicMock()
+  resp.json.return_value = []
+  resource._mock_client.get.return_value = resp
+
+  result = resource.get_metadata("mytenant")
+
+  assert result == []
+
+
+# ---------------------------------------------------------------------------
+# set_metadata — create
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_set_metadata_creates_new_key(mocker):
+  """set_metadata POSTs a new entry when the key does not exist."""
+  resource = _make_tenant_resource(mocker)
+  get_resp = MagicMock()
+  get_resp.json.return_value = []
+  post_resp = MagicMock()
+  post_resp.status_code = 200
+  resource._mock_client.get.return_value = get_resp
+  resource._mock_client.post.return_value = post_resp
+
+  result = resource.set_metadata(
+      "mytenant", metadata=[("newKey", "text", "newVal")]
+  )
+
+  resource._mock_client.post.assert_called_once_with(
+      "admin/UpdateTenantConfigData",
+      {"Key": "newKey", "Type": "text", "Value": "newVal",
+       "ComponentId": "tid-abc"},
+  )
+  assert "newKey" in result["changes"]["created"]
+  assert result["changes"]["skipped"] == []
+  assert result["changes"]["deleted"] == []
+
+
+@pytest.mark.unit
+def test_set_metadata_skips_existing_key(mocker):
+  """set_metadata does not overwrite a key that already exists."""
+  resource = _make_tenant_resource(mocker)
+  get_resp = MagicMock()
+  get_resp.json.return_value = _EXISTING_META
+  resource._mock_client.get.return_value = get_resp
+
+  result = resource.set_metadata(
+      "mytenant", metadata=[("existingKey", "text", "newVal")]
+  )
+
+  resource._mock_client.post.assert_not_called()
+  assert "existingKey" in result["changes"]["skipped"]
+  assert result["changes"]["created"] == []
+
+
+@pytest.mark.unit
+def test_set_metadata_api_error_raises(mocker):
+  """set_metadata raises DuploError when the API returns a 4xx."""
+  resource = _make_tenant_resource(mocker)
+  get_resp = MagicMock()
+  get_resp.json.return_value = []
+  post_resp = MagicMock()
+  post_resp.status_code = 400
+  post_resp.text = "bad request"
+  resource._mock_client.get.return_value = get_resp
+  resource._mock_client.post.return_value = post_resp
+
+  with pytest.raises(DuploError):
+    resource.set_metadata("mytenant", metadata=[("k", "text", "v")])
+
+
+# ---------------------------------------------------------------------------
+# set_metadata — delete
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_set_metadata_deletes_existing_key(mocker):
+  """set_metadata POSTs a delete payload for a key that exists."""
+  resource = _make_tenant_resource(mocker)
+  get_resp = MagicMock()
+  get_resp.json.return_value = _EXISTING_META
+  post_resp = MagicMock()
+  post_resp.status_code = 200
+  resource._mock_client.get.return_value = get_resp
+  resource._mock_client.post.return_value = post_resp
+
+  result = resource.set_metadata("mytenant", deletes=["existingKey"])
+
+  resource._mock_client.post.assert_called_once_with(
+      "admin/UpdateTenantConfigData",
+      {
+          "Key": "existingKey",
+          "Type": "text",
+          "Value": "existingVal",
+          "ComponentId": "tid-abc",
+          "State": "delete",
+      },
+  )
+  assert "existingKey" in result["changes"]["deleted"]
+  assert result["changes"]["created"] == []
+
+
+@pytest.mark.unit
+def test_set_metadata_delete_missing_key_raises(mocker):
+  """set_metadata raises DuploError when deleting a key that does not exist."""
+  resource = _make_tenant_resource(mocker)
+  get_resp = MagicMock()
+  get_resp.json.return_value = []
+  resource._mock_client.get.return_value = get_resp
+
+  with pytest.raises(DuploError, match="not found"):
+    resource.set_metadata("mytenant", deletes=["missingKey"])
+
+
+# ---------------------------------------------------------------------------
+# set_metadata — mixed operations
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_set_metadata_mixed_create_and_delete(mocker):
+  """set_metadata handles create and delete in a single call."""
+  resource = _make_tenant_resource(mocker)
+  get_resp = MagicMock()
+  get_resp.json.return_value = _EXISTING_META
+  post_resp = MagicMock()
+  post_resp.status_code = 200
+  resource._mock_client.get.return_value = get_resp
+  resource._mock_client.post.return_value = post_resp
+
+  result = resource.set_metadata(
+      "mytenant",
+      metadata=[("brandNewKey", "url", "https://example.com")],
+      deletes=["existingKey"],
+  )
+
+  assert "brandNewKey" in result["changes"]["created"]
+  assert "existingKey" in result["changes"]["deleted"]
+  assert resource._mock_client.post.call_count == 2

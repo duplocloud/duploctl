@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `tenant get_metadata` and `tenant set_metadata` commands for typed key-value metadata entries (`aws_console`, `url`, `text`)
 - Add `ecr` resource for managing AWS ECR repositories (list, find, create, update, delete, apply)
 - Add `cloud_resource` resource exposing the unified `GetCloudResources` endpoint with optional `--type` filter
 - Bind OpenAPI models to resource commands to enable body validation and schema explanation

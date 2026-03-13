@@ -196,7 +196,7 @@ When `@Resource(scope="tenant")` is used, the decorator **dynamically injects** 
    def custom_action(self, name: args.NAME, value: args.VALUE) -> dict:
        """Perform a custom action."""
        # Tenant-scoped endpoint automatically available
-       response = self.duplo.post(self.endpoint(name, "action"), {"value": value})
+       response = self.client.post(self.endpoint(name, "action"), {"value": value})
        return response.json()
    ```
 

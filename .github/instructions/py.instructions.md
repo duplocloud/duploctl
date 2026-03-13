@@ -137,7 +137,7 @@ class DuploMyResource(DuploResourceV3):  # Only extend if CRUD is needed
         Raises:
           DuploError: If the resource is not found or action fails.
         """
-        response = self.duplo.post(self.endpoint(name, "action"), {"value": value})
+        response = self.client.post(self.endpoint(name, "action"), {"value": value})
         return response.json()
 ```
 
@@ -208,7 +208,7 @@ def tenant(self):
 @Command("ls")  # Alias: "ls" in addition to "list"
 def list(self) -> list:
     """Retrieve a list of resources."""
-    response = self.duplo.get(self.endpoint("list"))
+    response = self.client.get(self.endpoint("list"))
     return response.json()
 
 @Command()

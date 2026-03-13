@@ -153,6 +153,53 @@ class JsonPatchAction(argparse._AppendAction):
       patch = {"op": op, "from": key, "path": validate_key(value[1])}
     super().__call__(parser, namespace, patch, option_string)
 
+ALLOWED_METADATA_TYPES = {"aws_console", "url", "text"}
+
+
+class MetadataAction(argparse._AppendAction):
+  """Metadata Action
+
+  A custom argparse action for repeatable typed key-value metadata entries.
+  Each use of the flag consumes three tokens: key, type, and value.
+
+  The ``type`` token is validated against :data:`ALLOWED_METADATA_TYPES` and
+  normalised to lowercase before storing, so ``TEXT`` and ``text`` are
+  equivalent.
+
+  Example:
+    ```bash
+    --metadata featureFlag text enabled
+    --metadata dashboard url https://internal.example.com
+    --metadata console aws_console https://console.aws.amazon.com/...
+    ```
+
+  Each invocation appends a ``(key, type, value)`` tuple to the destination
+  list, making the flag repeatable.
+  """
+
+  def __init__(
+      self,
+      option_strings,
+      dest,
+      nargs=3,
+      metavar=("key", "type", "value"),
+      **kwargs
+  ):
+    super().__init__(
+        option_strings, dest, nargs=nargs, metavar=metavar, **kwargs
+    )
+
+  def __call__(self, parser, namespace, values, option_string=None):
+    key, mtype, value = values
+    mtype = mtype.lower()
+    if mtype not in ALLOWED_METADATA_TYPES:
+      raise argparse.ArgumentTypeError(
+          f"Invalid metadata type '{mtype}'. "
+          f"Allowed: {', '.join(sorted(ALLOWED_METADATA_TYPES))}"
+      )
+    super().__call__(parser, namespace, (key, mtype, value), option_string)
+
+
 class DataMapAction(argparse.Action):
   """Data Map Action
   
