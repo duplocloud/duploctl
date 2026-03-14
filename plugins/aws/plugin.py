@@ -6,42 +6,35 @@ from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Resource, Command
 import duplocloud.args as args
-import boto3
 from multiprocessing.pool import ThreadPool 
 
-@Resource("aws")
+@Resource("aws", client="aws")
 class DuploAWS(DuploResource):
-  
+
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
-    self.__creds = None
-    self.__region = None
     self.__tenant_svc = duplo.load("tenant")
 
-  # def __call__(self, *args):
-  #   return {
-  #     "message": "Hello from AWS plugin dude!"
-  #   }
-  
-  def client(self, 
-             name: str, 
-             region: str = None, 
-             refresh: bool = False):
-    if not self.__creds or refresh:
-      jit_svc = self.duplo.load("jit")
-      self.__creds = jit_svc.aws()
-      # if admin then we need the correct region from the tenant
-      if self.duplo.tenant and self.duplo.isadmin:
-        r = self.__tenant_svc.region()
-        self.__creds["Region"] = r["region"]
-    c = self.__creds
-    return boto3.client(
-        name,
-        aws_access_key_id=c.get('AccessKeyId'),
-        aws_secret_access_key=c.get('SecretAccessKey'),
-        aws_session_token=c.get('SessionToken'),
-        region_name=region or c.get('Region')
-    )
+  def load(
+      self,
+      name: str,
+      region: str = None,
+      refresh: bool = False,
+  ):
+    """Create a boto3 client authenticated via DuploCloud JIT.
+
+    Delegates to the injected DuploAWSClient so credential
+    management is centralised in the @Client("aws") extension.
+
+    Args:
+      name: boto3 service name (e.g. 's3', 'cloudfront').
+      region: Override the AWS region.
+      refresh: Force credential refresh.
+
+    Returns:
+      A configured boto3 client.
+    """
+    return self.client.load(name, region, refresh)
   
   @Command()
   def update_website(self, 
@@ -59,8 +52,8 @@ class DuploAWS(DuploResource):
       raise DuploError(f"Directory '{dir}' does not exist.", 404)
 
     # get the needed clients
-    s3 = self.client("s3")
-    cdf = self.client("cloudfront")
+    s3 = self.client.load("s3")
+    cdf = self.client.load("cloudfront")
 
     # scope into tenant
     tenant = self.__tenant_svc.find()
