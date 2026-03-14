@@ -276,24 +276,31 @@ def test_set_metadata_creates_new_key(mocker):
        "ComponentId": "tid-abc"},
   )
   assert "newKey" in result["changes"]["created"]
-  assert result["changes"]["skipped"] == []
+  assert result["changes"]["updated"] == []
   assert result["changes"]["deleted"] == []
 
 
 @pytest.mark.unit
-def test_set_metadata_skips_existing_key(mocker):
-  """set_metadata does not overwrite a key that already exists."""
+def test_set_metadata_updates_existing_key(mocker):
+  """set_metadata POSTs an update when the key already exists (upsert)."""
   resource = _make_tenant_resource(mocker)
   get_resp = MagicMock()
   get_resp.json.return_value = _EXISTING_META
+  post_resp = MagicMock()
+  post_resp.status_code = 200
   resource._mock_client.get.return_value = get_resp
+  resource._mock_client.post.return_value = post_resp
 
   result = resource.set_metadata(
       "mytenant", metadata=[("existingKey", "text", "newVal")]
   )
 
-  resource._mock_client.post.assert_not_called()
-  assert "existingKey" in result["changes"]["skipped"]
+  resource._mock_client.post.assert_called_once_with(
+      "admin/UpdateTenantConfigData",
+      {"Key": "existingKey", "Type": "text", "Value": "newVal",
+       "ComponentId": "tid-abc"},
+  )
+  assert "existingKey" in result["changes"]["updated"]
   assert result["changes"]["created"] == []
 
 
@@ -380,3 +387,58 @@ def test_set_metadata_mixed_create_and_delete(mocker):
   assert "brandNewKey" in result["changes"]["created"]
   assert "existingKey" in result["changes"]["deleted"]
   assert resource._mock_client.post.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# name_from_body
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_tenant_name_from_body_account_name():
+  """name_from_body reads AccountName (the real tenant field)."""
+  from duplo_resource.tenant import DuploTenant
+  duplo = MagicMock()
+  resource = DuploTenant(duplo)
+  assert resource.name_from_body({"AccountName": "myenv"}) == "myenv"
+
+
+# ---------------------------------------------------------------------------
+# delete --force
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+def test_tenant_delete_force_disables_delete_protection(mocker):
+  """delete(force=True) calls set_metadata to clear delete_protection first."""
+  resource = _make_tenant_resource(mocker)
+  # set_metadata itself is mocked so we only verify the call signature
+  mocker.patch.object(resource, "set_metadata", return_value={"changes": {}})
+  post_resp = MagicMock()
+  post_resp.status_code = 200
+  resource._mock_client.post.return_value = post_resp
+
+  resource.delete("mytenant", force=True)
+
+  resource.set_metadata.assert_called_once_with(
+      name="mytenant",
+      metadata=[("delete_protection", "text", "false")],
+  )
+  resource._mock_client.post.assert_called_once_with(
+      "admin/DeleteTenant/tid-abc", None
+  )
+
+
+@pytest.mark.unit
+def test_tenant_delete_no_force_skips_metadata(mocker):
+  """delete() without --force does not touch metadata."""
+  resource = _make_tenant_resource(mocker)
+  mocker.patch.object(resource, "set_metadata")
+  post_resp = MagicMock()
+  post_resp.status_code = 200
+  resource._mock_client.post.return_value = post_resp
+
+  resource.delete("mytenant")
+
+  resource.set_metadata.assert_not_called()
+  resource._mock_client.post.assert_called_once_with(
+      "admin/DeleteTenant/tid-abc", None
+  )

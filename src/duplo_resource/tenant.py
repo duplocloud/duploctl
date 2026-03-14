@@ -184,34 +184,34 @@ class DuploTenant(DuploResourceV2):
   
   @Command()
   def delete(self,
-             name: args.NAME=None) -> dict:
+             name: args.NAME=None,
+             force: args.FORCE=False) -> dict:
     """Delete Tenant
 
-    Delete a tenant by name.
+    Delete a tenant by name. If delete protection is enabled, the delete
+    will fail unless ``--force`` is passed, which disables delete protection
+    first via ``set_metadata``.
 
     Usage: Basic CLI Use
       ```sh
       duploctl tenant delete <name>
+      duploctl tenant delete <name> --force
       ```
-    
+
     Args:
       name: The name of the tenant to delete.
-    
+      force: Disable delete protection before deleting.
+
     Returns:
       message: The message that the tenant was deleted.
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
-    # Disable delete protection if enabled so the API can proceed.
-    metadata = tenant.get("Metadata") or []
-    for m in metadata:
-      if m.get("Key") == "delete_protection" and m.get("Value") == "true":
-        endpoint = f"v3/admin/tenant/{tenant_id}/metadata"
-        self.client.put(
-          f"{endpoint}/delete_protection",
-          {"Key": "delete_protection", "Value": "false"},
-        )
-        break
+    if force:
+      self.set_metadata(
+        name=name,
+        metadata=[("delete_protection", "text", "false")],
+      )
     self.client.post(f"admin/DeleteTenant/{tenant_id}", None)
     return {
       "message": f"Tenant '{name}' deleted"
@@ -688,11 +688,9 @@ class DuploTenant(DuploResourceV2):
                    deletes: args.DELETES=None) -> dict:
     """Create and Delete Tenant Metadata
 
-    Create new typed metadata entries and/or delete existing ones for a
-    tenant.  Creating a key that already exists is a no-op (the key is
-    reported in ``changes.skipped`` rather than overwritten).  To replace
-    a value, pass both ``--metadata`` and ``--delete`` for the same key —
-    creates are processed first, then deletes.
+    Create or update typed metadata entries and/or delete existing ones for
+    a tenant.  If a key already exists it is updated to the new value.
+    Deletes are processed after creates/updates.
 
     Usage: Basic CLI Use
       ```sh
@@ -719,11 +717,11 @@ class DuploTenant(DuploResourceV2):
       deletes: Keys to delete: --delete <key> (repeatable).
 
     Returns:
-      changes: Summary with ``created``, ``deleted``, and ``skipped`` lists.
+      changes: Summary with ``created``, ``updated``, and ``deleted`` lists.
 
     Raises:
       DuploError: If a key to delete does not exist, or if the API returns
-        an error during creation.
+        an error during create/update.
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
@@ -734,13 +732,10 @@ class DuploTenant(DuploResourceV2):
     current_map = {m["Key"]: m for m in current}
 
     created = []
+    updated = []
     deleted = []
-    skipped = []
 
     for key, mtype, value in (metadata or []):
-      if key in current_map:
-        skipped.append(key)
-        continue
       body = {
           "Key": key,
           "Type": mtype,
@@ -750,10 +745,13 @@ class DuploTenant(DuploResourceV2):
       resp = self.client.post("admin/UpdateTenantConfigData", body)
       if resp.status_code >= 400:
         raise DuploError(
-            f"Failed to create metadata key '{key}': {resp.text}",
+            f"Failed to set metadata key '{key}': {resp.text}",
             resp.status_code,
         )
-      created.append(key)
+      if key in current_map:
+        updated.append(key)
+      else:
+        created.append(key)
 
     for key in (deletes or []):
       if key not in current_map:
@@ -776,8 +774,8 @@ class DuploTenant(DuploResourceV2):
         "message": f"Successfully updated metadata for tenant '{tenant_name}'",
         "changes": {
             "created": created,
+            "updated": updated,
             "deleted": deleted,
-            "skipped": skipped,
         },
     }
 
