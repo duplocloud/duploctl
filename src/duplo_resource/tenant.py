@@ -202,6 +202,16 @@ class DuploTenant(DuploResourceV2):
     """
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
+    # Disable delete protection if enabled so the API can proceed.
+    metadata = tenant.get("Metadata") or []
+    for m in metadata:
+      if m.get("Key") == "delete_protection" and m.get("Value") == "true":
+        endpoint = f"v3/admin/tenant/{tenant_id}/metadata"
+        self.client.put(
+          f"{endpoint}/delete_protection",
+          {"Key": "delete_protection", "Value": "false"},
+        )
+        break
     self.client.post(f"admin/DeleteTenant/{tenant_id}", None)
     return {
       "message": f"Tenant '{name}' deleted"
