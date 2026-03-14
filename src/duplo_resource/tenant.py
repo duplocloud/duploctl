@@ -208,10 +208,7 @@ class DuploTenant(DuploResourceV2):
     tenant = self.find(name)
     tenant_id = tenant["TenantId"]
     if force:
-      self.set_metadata(
-        name=name,
-        metadata=[("delete_protection", "text", "false")],
-      )
+      self.config(name=name, deletevar=["delete_protection"])
     self.client.post(f"admin/DeleteTenant/{tenant_id}", None)
     return {
       "message": f"Tenant '{name}' deleted"

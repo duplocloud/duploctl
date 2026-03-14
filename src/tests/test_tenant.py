@@ -408,19 +408,18 @@ def test_tenant_name_from_body_account_name():
 
 @pytest.mark.unit
 def test_tenant_delete_force_disables_delete_protection(mocker):
-  """delete(force=True) calls set_metadata to clear delete_protection first."""
+  """delete(force=True) calls config(deletevar=[delete_protection]) first."""
   resource = _make_tenant_resource(mocker)
-  # set_metadata itself is mocked so we only verify the call signature
-  mocker.patch.object(resource, "set_metadata", return_value={"changes": {}})
+  mocker.patch.object(resource, "config", return_value={"changes": []})
   post_resp = MagicMock()
   post_resp.status_code = 200
   resource._mock_client.post.return_value = post_resp
 
   resource.delete("mytenant", force=True)
 
-  resource.set_metadata.assert_called_once_with(
+  resource.config.assert_called_once_with(
       name="mytenant",
-      metadata=[("delete_protection", "text", "false")],
+      deletevar=["delete_protection"],
   )
   resource._mock_client.post.assert_called_once_with(
       "admin/DeleteTenant/tid-abc", None
