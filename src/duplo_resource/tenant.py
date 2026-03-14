@@ -1,8 +1,9 @@
 from datetime import timedelta
 import datetime
+import time
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploNotFound
+from duplocloud.errors import DuploError, DuploNotFound, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -158,9 +159,21 @@ class DuploTenant(DuploResourceV2):
     """
     name = body["AccountName"]
     self.client.post("admin/AddTenant", body)
-    def wait_check():
-      self.find(name)
     if self.duplo.wait:
+      # The tenant API has no provisioning-status field to poll.
+      # Sleep 3 minutes to allow DuploCloud time to provision the
+      # tenant before attempting to find it.
+      TENANT_CREATE_SLEEP = 180
+      self.duplo.logger.info(
+        "Tenant '%s' created — sleeping %ss for provisioning",
+        name, TENANT_CREATE_SLEEP,
+      )
+      time.sleep(TENANT_CREATE_SLEEP)
+      def wait_check():
+        try:
+          self.find(name)
+        except DuploNotFound:
+          raise DuploStillWaiting(f"Tenant '{name}' not visible yet")
       self.wait(wait_check)
     return {
       "message": f"Tenant '{name}' created"
