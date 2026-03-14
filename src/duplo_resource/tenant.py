@@ -20,7 +20,10 @@ class DuploTenant(DuploResourceV2):
   """
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
-  
+
+  def name_from_body(self, body):
+    return body["AccountName"]
+
   @Command("ls")
   def list(self):
     """List Tenants
