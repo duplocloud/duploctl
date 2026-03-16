@@ -198,6 +198,32 @@ class DuploAwsSecret(DuploResourceV3):
     else:
       return super().update(name=name, body=body)
 
+  @Command(model="AwsSecret")
+  def apply(self,
+            body: args.BODY) -> dict:
+    """Apply an AWS Secrets Manager secret.
+
+    Create or update an AWS secret. If the secret exists it will be
+    updated, otherwise a new secret is created.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl aws_secret apply -f 'secret.yaml'
+      ```
+
+    Args:
+      body: The AWS secret definition.
+
+    Returns:
+      message: Success message.
+    """
+    name = self.name_from_body(body)
+    try:
+      self.find(name)
+      return self.update(name=name, body=body)
+    except DuploError:
+      return self.create(body=body)
+
   @Command()
   def delete(self,
              name: args.NAME) -> dict:
