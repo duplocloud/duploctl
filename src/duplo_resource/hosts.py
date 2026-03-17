@@ -1,7 +1,8 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import (
-  DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
+  DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError,
+  DuploNotFound
 )
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -49,7 +50,7 @@ class DuploHosts(DuploResourceV2):
       return [h for h in self.list()
               if h.get("FriendlyName") and self.name_from_body(h) == search][0]
     except IndexError:
-      raise DuploError(f"Host '{name}' not found", 404)
+      raise DuploNotFound(name, "Host")
 
   @Command()
   def apply(self,

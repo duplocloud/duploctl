@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -55,7 +55,7 @@ class DuploLambda(DuploResourceV2):
     try:
       return [s for s in self.list() if s["FunctionName"] == name][0]
     except IndexError:
-      raise DuploError(f"Lambda '{name}' not found", 404)
+      raise DuploNotFound(name, "Lambda")
     
   @Command(model="AmazonLambdaRequest")
   def create(self, 
