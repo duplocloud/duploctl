@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed ECS `_wait_on_service` not detecting stalled deployments without circuit breaker. When tasks repeatedly fail but ECS keeps the deployment `IN_PROGRESS`, the wait loop now checks `RunningCount`, `PendingCount`, and `FailedTasks` to detect the stall. Also detects rollbacks by deployment status demotion, not just `RolloutState`.
 - `brew install duploctl --with-pip` fails due to `pydantic_core` sdist requiring Rust toolchain in Homebrew sandbox; made `duplocloud-sdk` an optional dependency
 - `brew install duploctl` binary crashes with `No module named 'duplocloud.client'`; added missing hidden imports and package metadata to PyInstaller spec
 - Fixed `storageclass` commands (`find`, `update`, `create --wait`, `apply`) failing because names were not tenant-prefixed. Enabled `prefixed=True` on the resource.
