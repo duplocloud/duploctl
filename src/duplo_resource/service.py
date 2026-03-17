@@ -201,7 +201,8 @@ class DuploService(DuploResourceV2):
     if isinstance(docker_config, str):
       docker_config = loads(docker_config)
     # RFC 6902 add with /- requires the parent array to exist;
-    # pre-create missing keys so appending to a new array works.
+    # pre-create missing top-level keys so appending to a new array works.
+    # Only handles top-level parent keys; nested pointer traversal not supported.
     for patch in patches or []:
       if patch.get("op") == "add" and patch.get("path", "").endswith("/-"):
         parent = patch["path"].rsplit("/-", 1)[0].lstrip("/")
