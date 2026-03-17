@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `infrastructure update` — no-op that validates field immutability; raises if any body field differs from existing state
+- `DuploNotFound` error subclass (code 404) with optional `kind` label for clearer not-found messages
+- `apply()` now catches `DuploNotFound` instead of the broad `DuploError`, avoiding over-catching unrelated errors
 - `tenant get_metadata` and `tenant set_metadata` commands for typed key-value metadata entries (`aws_console`, `url`, `text`)
 - Add `ecr` resource for managing AWS ECR repositories (list, find, create, update, delete, apply)
 - Add `cloud_resource` resource exposing the unified `GetCloudResources` endpoint with optional `--type` filter
@@ -19,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `service update_otherdockerconfig --add` to auto-create missing parent arrays (e.g. `EnvFrom/-`) when the key does not yet exist in `OtherDockerConfig`
+- Fixed ECS `_wait_on_service` not detecting stalled deployments without circuit breaker. When tasks repeatedly fail but ECS keeps the deployment `IN_PROGRESS`, the wait loop now checks `RunningCount`, `PendingCount`, and `FailedTasks` to detect the stall. Also detects rollbacks by deployment status demotion, not just `RolloutState`.
 - `brew install duploctl --with-pip` fails due to `pydantic_core` sdist requiring Rust toolchain in Homebrew sandbox; made `duplocloud-sdk` an optional dependency
 - `brew install duploctl` binary crashes with `No module named 'duplocloud.client'`; added missing hidden imports and package metadata to PyInstaller spec
 - Fixed `storageclass` commands (`find`, `update`, `create --wait`, `apply`) failing because names were not tenant-prefixed. Enabled `prefixed=True` on the resource.
