@@ -200,6 +200,14 @@ class DuploService(DuploResourceV2):
     docker_config = body["Template"].get("OtherDockerConfig", "{}")
     if isinstance(docker_config, str):
       docker_config = loads(docker_config)
+    # RFC 6902 add with /- requires the parent array to exist;
+    # pre-create missing top-level keys so appending to a new array works.
+    # Only handles top-level parent keys; nested pointer traversal not supported.
+    for patch in patches or []:
+      if patch.get("op") == "add" and patch.get("path", "").endswith("/-"):
+        parent = patch["path"].rsplit("/-", 1)[0].lstrip("/")
+        if parent not in docker_config:
+          docker_config[parent] = []
     docker_config = self.duplo.jsonpatch(docker_config, patches)
     body["Template"]["OtherDockerConfig"] = dumps(docker_config)
     body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
