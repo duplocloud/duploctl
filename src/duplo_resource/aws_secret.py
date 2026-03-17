@@ -1,6 +1,6 @@
 from duplocloud import args
 from duplocloud.controller import DuploCtl
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import json
@@ -221,7 +221,7 @@ class DuploAwsSecret(DuploResourceV3):
     try:
       self.find(name)
       return self.update(name=name, body=body)
-    except DuploError:
+    except DuploNotFound:
       return self.create(body=body)
 
   @Command()
