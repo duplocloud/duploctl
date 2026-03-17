@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -80,7 +80,7 @@ class DuploBatchJob(DuploResourceV3):
     for job in jobs:
       if self.name_from_body(job) == n:
         return job
-    raise DuploError(f"Batch Job '{name}' not found in queue '{queue}'", 404)
+    raise DuploNotFound(name, "Batch Job")
 
   @Command()
   def create(self, 

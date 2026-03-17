@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -58,7 +58,7 @@ class DuploAsg(DuploResourceV2):
     try:
       return [s for s in self.list() if s["FriendlyName"] == name][0]
     except IndexError:
-      raise DuploError(f"ASG Profile '{name}' not found", 404)
+      raise DuploNotFound(name, "ASG Profile")
     
   @Command(model="AsgProfile")
   def create(self,

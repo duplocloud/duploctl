@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -66,7 +66,7 @@ class DuploBatchQueue(DuploResourceV3):
     for q in queues:
       if self.name_from_body(q) == n:
         return q
-    raise DuploError(f"Batch Job Queue '{name}' not found", 404)
+    raise DuploNotFound(name, "Batch Job Queue")
 
   @Command()
   def disable(self, 

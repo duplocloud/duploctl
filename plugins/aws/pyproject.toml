@@ -52,3 +52,6 @@ package-dir={'duploctl_aws' = '.'}
 
 [project.entry-points."duplocloud.net"]
 aws = "duploctl_aws.plugin:DuploAWS"
+
+[project.entry-points."clients.duplocloud.net"]
+aws = "duploctl_aws.client:DuploAWSClient"

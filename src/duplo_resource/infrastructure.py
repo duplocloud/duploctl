@@ -1,5 +1,5 @@
 from duplocloud.controller import DuploCtl
-from duplocloud.errors import DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploError, DuploFailedResource, DuploNotFound, DuploStillWaiting
 from duplocloud.resource import DuploResourceV2
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -75,8 +75,20 @@ class DuploInfrastructure(DuploResourceV2):
 
     Returns:
       infrastructure: The infrastructure object.
+
+    Raises:
+      DuploNotFound: If the infrastructure does not exist. Raised by the
+        HTTP client layer when the API returns a 404 response.
     """
-    response = self.client.get(f"adminproxy/GetInfrastructureConfig/{name}")
+    # The DuploCloud API returns 500 (not 404) when an infrastructure does
+    # not exist. Catch it and re-raise as DuploNotFound so that apply()
+    # can correctly route to create() rather than treating it as a real error.
+    try:
+      response = self.client.get(f"adminproxy/GetInfrastructureConfig/{name}")
+    except DuploError as e:
+      if e.code == 500:
+        raise DuploNotFound(name, "Infrastructure")
+      raise
     return response.json()
   
   _INFRA_FAULT_TENANTS = {"System.VPC", "System.AwsInfrastructure"}
@@ -157,6 +169,74 @@ class DuploInfrastructure(DuploResourceV2):
       self.wait(wait_check, 1800, 20)
     return {
       "message": f"Infrastructure '{body['Name']}' created"
+    }
+
+  @Command()
+  def update(self,
+             name: args.NAME,
+             body: args.BODY = None) -> dict:
+    """Update Infrastructure
+
+    Infrastructure fields are immutable after creation; this command
+    validates that the caller is not attempting to change any field and
+    returns a success message when the infrastructure already exists with
+    the expected configuration.
+
+    Usage: Basic CLI Use
+      ```sh
+      duploctl infrastructure update <name> --file infra.yaml
+      ```
+
+    Args:
+      name: The name of the infrastructure.
+      body: The infrastructure configuration body (used only for
+        immutability validation; no API update is performed).
+
+    Returns:
+      message: A success message indicating the infrastructure exists.
+
+    Raises:
+      DuploNotFound: If the infrastructure does not exist. This is raised
+        by ``find()`` via the HTTP client layer on a 404 response, and
+        intentionally allowed to bubble up so that ``apply()`` can catch
+        it and branch to ``create()`` instead.
+      DuploError: If any fields in the body differ from the existing
+        infrastructure (all fields are immutable).
+    """
+    # find() raises DuploNotFound automatically when the infra is absent,
+    # so no explicit try/catch is needed here — the error bubbles up to
+    # apply() which catches DuploNotFound to decide create vs update.
+    existing = self.find(name)
+    self.duplo.logger.warning(
+      f"Infrastructure '{name}' fields are immutable; "
+      "no update will be performed."
+    )
+    if body:
+      def _value_differs(input_val, existing_val):
+        """Recursively compare input_val against existing_val.
+
+        For dict values, only the keys present in input_val are checked
+        so that extra read-only fields returned by the API (e.g. the
+        Subnets list inside Vnet) do not produce false positives.
+        """
+        if isinstance(input_val, dict) and isinstance(existing_val, dict):
+          return any(
+            _value_differs(sv, existing_val.get(sk))
+            for sk, sv in input_val.items()
+          )
+        return input_val != existing_val
+      changed = [
+        k for k, v in body.items()
+        if k in existing and _value_differs(v, existing[k])
+      ]
+      if changed:
+        raise DuploError(
+          f"Infrastructure '{name}' fields are immutable and cannot be "
+          f"updated: {', '.join(changed)}",
+          422,
+        )
+    return {
+      "message": f"Infrastructure '{name}' already exists (no-op update)"
     }
 
   @Command()

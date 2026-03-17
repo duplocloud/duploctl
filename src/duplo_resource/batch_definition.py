@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -82,7 +82,7 @@ class DuploBatchDefinition(DuploResourceV3):
     }
     rids = sorted(revisions.keys())
     if len(rids) == 0:
-      raise DuploError(f"Batch Job Definition '{name}' not found", 404)
+      raise DuploNotFound(name, "Batch Job Definition")
 
     # if to_revision is negative or 0, we will walk back that many revisions
     if to_rid <= 0:
