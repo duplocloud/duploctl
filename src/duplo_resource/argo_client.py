@@ -19,9 +19,41 @@ class DuploArgoClient():
   def __init__(self, duplo: DuploCtl):
     self.duplo = duplo
     self.jit = duplo.load("jit")
+    self._argo_verified = False
+
+  def _ensure_argo_enabled(self):
+    """Check that Argo Workflows is enabled on the tenant infrastructure.
+
+    Looks for DuploCiTenant in the infrastructure CustomData. Only runs
+    once per client instance.
+
+    Raises:
+      DuploError: If Argo Workflows is not enabled.
+    """
+    if self._argo_verified:
+      return
+    tenant = self.duplo.load("tenant").find()
+    plan_id = tenant.get("PlanID")
+    if not plan_id:
+      raise DuploError("Tenant has no associated infrastructure plan", 400)
+    infra = self.duplo.load("infrastructure").find(plan_id)
+    custom_data = infra.get("CustomData", []) or []
+    ci_tenant = next(
+      (item.get("Value") for item in custom_data
+       if item.get("Key") == "DuploCiTenant"),
+      None,
+    )
+    if not ci_tenant:
+      raise DuploError(
+        "Argo Workflows is not enabled for this infrastructure. "
+        "Please contact your administrator.",
+        400,
+      )
+    self._argo_verified = True
 
   def _get_auth(self) -> dict:
     """Get Argo auth data (Token and TenantId) via jit."""
+    self._ensure_argo_enabled()
     return self.jit.argo_wf()
 
   def _headers(self, auth: dict) -> dict:
