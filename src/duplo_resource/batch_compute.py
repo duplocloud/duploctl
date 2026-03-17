@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -83,7 +83,7 @@ class DuploBatchCompute(DuploResourceV3):
     for env in envs:
       if self.name_from_body(env) == n:
         return env
-    raise DuploError(f"Batch Compute Environment '{name}' not found", 404)
+    raise DuploNotFound(name, "Batch Compute Environment")
   
   @Command()
   def disable(self, 
