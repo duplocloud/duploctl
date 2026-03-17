@@ -304,6 +304,11 @@ WAIT = Arg("wait", "-w",
            type=bool,
            action='store_true')
 
+FORCE = Arg("force", "--force",
+            help='Force the operation, bypassing safety guards such as delete protection',
+            type=bool,
+            action='store_true')
+
 STREAM = Arg("stream", "--stream",
              help='Stream the response (follow live output until complete)',
              type=bool,

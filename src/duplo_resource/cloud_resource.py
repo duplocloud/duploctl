@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResource
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -92,4 +92,4 @@ class DuploCloudResource(DuploResource):
                 if self.name_from_body(r) == name
             ][0]
         except IndexError:
-            raise DuploError(f"Cloud resource '{name}' not found", 404)
+            raise DuploNotFound(name, "Cloud resource")

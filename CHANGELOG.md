@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `infrastructure update` — no-op that validates field immutability; raises if any body field differs from existing state
+- `DuploNotFound` error subclass (code 404) with optional `kind` label for clearer not-found messages
+- `apply()` now catches `DuploNotFound` instead of the broad `DuploError`, avoiding over-catching unrelated errors
 - `tenant get_metadata` and `tenant set_metadata` commands for typed key-value metadata entries (`aws_console`, `url`, `text`)
 - Add `ecr` resource for managing AWS ECR repositories (list, find, create, update, delete, apply)
 - Add `cloud_resource` resource exposing the unified `GetCloudResources` endpoint with optional `--type` filter

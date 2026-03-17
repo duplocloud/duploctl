@@ -1,6 +1,6 @@
 from . import args
 from .controller import DuploCtl
-from .errors import DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
+from .errors import DuploError, DuploFailedResource, DuploNotFound, DuploStillWaiting, DuploConnectionError
 from .commander import get_parser, extract_args, get_command_schema, Command
 import math
 import time
@@ -137,7 +137,7 @@ class DuploResourceV2(DuploResource):
     try:
       return [s for s in self.list() if self.name_from_body(s) == name][0]
     except IndexError:
-      raise DuploError(f"{self.kind} '{name}' not found", 404)
+      raise DuploNotFound(name, self.kind)
       
   @Command()
   def apply(self,
@@ -148,7 +148,7 @@ class DuploResourceV2(DuploResource):
     try:
       self.find(name)
       return self.update(name, body)
-    except DuploError:
+    except DuploNotFound:
       return self.create(body)
   
 
@@ -336,7 +336,7 @@ class DuploResourceV3(DuploResource):
     try:
       self.find(name)
       return self.update(name=name, body=body, patches=patches)
-    except DuploError:
+    except DuploNotFound:
       return self.create(body)
 
 

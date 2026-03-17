@@ -1,7 +1,7 @@
 import requests
 from cachetools import cachedmethod, TTLCache
 from duplocloud.commander import Client
-from duplocloud.errors import DuploError, DuploExpiredCache, DuploConnectionError
+from duplocloud.errors import DuploError, DuploExpiredCache, DuploNotFound, DuploConnectionError
 from duplocloud.server import TokenServer
 
 
@@ -150,7 +150,7 @@ class DuploAPI():
       return response
 
     if response.status_code == 404:
-      raise DuploError(f"Resource not found: {response.text}", response.status_code)
+      raise DuploNotFound(response.text)
 
     if response.status_code == 401:
       raise DuploError(response.text, response.status_code)
