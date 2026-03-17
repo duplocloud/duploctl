@@ -334,6 +334,12 @@ class DuploService(DuploResourceV2):
       duploctl service update_image myapp myimage:latest --wait --loglevel INFO
       ```
 
+    Example: Update Multiple Container Types
+      Update the main container and sidecar images in one command.
+      ```sh
+      duploctl service update_image myapp myimage:latest --container-image sidecar sidecar:latest
+      ```
+
     Args:
       name: The name of the service to update.
       image: The new image to use for the service.
@@ -343,55 +349,72 @@ class DuploService(DuploResourceV2):
     Returns:
       message: Success message
     """
-    if [image, container_image, init_container_image].count(None) != 2:
+    if not any([image, container_image, init_container_image]):
       raise DuploError("Provide a service image, container images, or init container images.")
     self.duplo.logger.debug("UPDATE IMAGE")
     service = self.find(name)
-    data = {}
+    wait_data = {"Name": name}
+    container_images = []
     updated_containers = []
     not_found_containers = []
 
-    if not image:
+    if image:
+      container_images.append({
+        "ContainerName": name,
+        "ImageName": image
+      })
+      wait_data["Image"] = image
+
+    if container_image or init_container_image:
       other_docker_config = loads(service["Template"].get("OtherDockerConfig", "{}"))
       if container_image:
-        images = container_image
         containers = other_docker_config.get("additionalContainers", [])
-      elif init_container_image:
-        images = init_container_image
+        for key, value in container_image:
+          container_found = False
+          for c in containers:
+            if c["name"] == key:
+              c["image"] = value
+              updated_containers.append(key)
+              container_found = True
+              break
+          if container_found:
+            container_images.append({
+              "ContainerName": key,
+              "ImageName": value
+            })
+          else:
+            not_found_containers.append(key)
+
+      if init_container_image:
         containers = other_docker_config.get("initContainers", [])
+        for key, value in init_container_image:
+          container_found = False
+          for c in containers:
+            if c["name"] == key:
+              c["image"] = value
+              updated_containers.append(key)
+              container_found = True
+              break
+          if container_found:
+            container_images.append({
+              "ContainerName": key,
+              "ImageName": value
+            })
+          else:
+            not_found_containers.append(key)
 
-      for key, value in images:
-        container_found = False
-        for c in containers:
-          if c["name"] == key:
-            c["image"] = value
-            updated_containers.append(key)
-            container_found = True
-            break
-        if not container_found:
-          not_found_containers.append(key)
+      wait_data["OtherDockerConfig"] = dumps(other_docker_config)
 
-      if not updated_containers:
-        raise DuploError(f"No matching containers found in service '{name}'")
+    if not container_images:
+      raise DuploError(f"No matching containers found in service '{name}'")
 
-      data = {
-        "Name": name,
-        "OtherDockerConfig": dumps(other_docker_config),
-        "AllocationTags": service["Template"].get("AllocationTags", "")
-      }
-
-    else:
-      data = {
-        "Name": name,
-        "Image": image,
-        "AllocationTags": service["Template"].get("AllocationTags", "")
-      }
-
-    self.client.post(self.endpoint("ReplicationControllerChange"), data)
+    endpoint = f"v3/subscriptions/{self.tenant_id}/containers/" \
+               f"replicationController/{name}/containerimage"
+    self.client.put(endpoint, container_images)
 
     if self.duplo.wait:
       self.duplo.logger.debug("Wait enabled, beginning wait process")
-      self._wait(service, data)
+      self._wait(service, wait_data)
 
     response_message = "Successfully updated image for service."
     if updated_containers:

@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - more details to readme
 - publish plugins to pypi
 
+### Changed
+
+- `service update_image` now uses the V3 `containerimage` PUT endpoint instead of the V2 `ReplicationControllerChange` POST
+- `service update_image` now allows combining `--image`, `--container-image`, and `--init-container-image` in a single call
+
 ### Fixed
 
 - Restored Argo Workflows enablement check — argo commands now raise a clear error when Argo is not configured on the infrastructure instead of a cryptic server 500
