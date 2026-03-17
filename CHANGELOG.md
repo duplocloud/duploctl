@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Restored Argo Workflows enablement check — argo commands now raise a clear error when Argo is not configured on the infrastructure instead of a cryptic server 500
 - `brew install duploctl --with-pip` fails due to `pydantic_core` sdist requiring Rust toolchain in Homebrew sandbox; made `duplocloud-sdk` an optional dependency
 - `brew install duploctl` binary crashes with `No module named 'duplocloud.client'`; added missing hidden imports and package metadata to PyInstaller spec
 - Fixed `storageclass` commands (`find`, `update`, `create --wait`, `apply`) failing because names were not tenant-prefixed. Enabled `prefixed=True` on the resource.
