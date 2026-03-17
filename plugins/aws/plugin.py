@@ -1,5 +1,5 @@
-import glob
 import os
+from pathlib import Path
 import time
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
@@ -81,8 +81,8 @@ class DuploAWS(DuploResource):
     live_objs = s3.list_objects_v2(Bucket=bucket_name)
     live_files = [o["Key"] for o in live_objs.get("Contents", [])]
 
-    # get flat list of files in dir
-    tree = glob.glob('**/*', root_dir=dir,recursive=True, include_hidden=True)
+    # get flat list of files in dir (includes hidden files, Python 3.10 compatible)
+    tree = [str(p.relative_to(dir)) for p in Path(dir).rglob('*')]
     files = []
     # add a trailing slash to each directory because s3 folders have a slash :/
     for n, p in enumerate(tree):
