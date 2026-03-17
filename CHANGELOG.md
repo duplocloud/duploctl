@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Restored Argo Workflows enablement check — argo commands now raise a clear error when Argo is not configured on the infrastructure instead of a cryptic server 500
+- Fixed `aws_secret apply` failing when the secret already exists — the base V3 `apply` passed `patches=` which `aws_secret.update` does not accept
+- Fixed `service update_otherdockerconfig --add` to auto-create missing parent arrays (e.g. `EnvFrom/-`) when the key does not yet exist in `OtherDockerConfig`
 - Fixed ECS `_wait_on_service` not detecting stalled deployments without circuit breaker. When tasks repeatedly fail but ECS keeps the deployment `IN_PROGRESS`, the wait loop now checks `RunningCount`, `PendingCount`, and `FailedTasks` to detect the stall. Also detects rollbacks by deployment status demotion, not just `RolloutState`.
 - `brew install duploctl --with-pip` fails due to `pydantic_core` sdist requiring Rust toolchain in Homebrew sandbox; made `duplocloud-sdk` an optional dependency
 - `brew install duploctl` binary crashes with `No module named 'duplocloud.client'`; added missing hidden imports and package metadata to PyInstaller spec

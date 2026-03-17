@@ -1,6 +1,6 @@
 from duplocloud import args
 from duplocloud.controller import DuploCtl
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import json
@@ -197,6 +197,32 @@ class DuploAwsSecret(DuploResourceV3):
       return body
     else:
       return super().update(name=name, body=body)
+
+  @Command(model="AwsSecret")
+  def apply(self,
+            body: args.BODY) -> dict:
+    """Apply an AWS Secrets Manager secret.
+
+    Create or update an AWS secret. If the secret exists it will be
+    updated, otherwise a new secret is created.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl aws_secret apply -f 'secret.yaml'
+      ```
+
+    Args:
+      body: The AWS secret definition.
+
+    Returns:
+      message: Success message.
+    """
+    name = self.name_from_body(body)
+    try:
+      self.find(name)
+      return self.update(name=name, body=body)
+    except DuploNotFound:
+      return self.create(body=body)
 
   @Command()
   def delete(self,
