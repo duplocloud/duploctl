@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-03-18
+
 ### Added
 
 - `infrastructure update` — no-op that validates field immutability; raises if any body field differs from existing state
