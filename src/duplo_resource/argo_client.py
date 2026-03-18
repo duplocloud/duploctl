@@ -98,10 +98,15 @@ class DuploArgoClient():
     return self._validate_response(response)
 
   @cachedmethod(lambda self: self._ttl_cache)
+  def _get_cached(self, api_path: str, tenant_id: str):
+    return self._request("GET", api_path, tenant_id)
+
   def get(self, api_path: str, tenant_id: str, **kwargs):
     """GET request to the Argo proxy.
 
-    This request is cached for 10 seconds.
+    Simple GETs (no extra kwargs) are cached for 10 seconds. Requests
+    with streaming or query params bypass the cache to avoid
+    unhashable-key errors and stale streaming responses.
 
     Args:
       api_path: Argo API path relative to /api/v1/.
@@ -112,7 +117,9 @@ class DuploArgoClient():
     Returns:
       The HTTP response object.
     """
-    return self._request("GET", api_path, tenant_id, **kwargs)
+    if kwargs:
+      return self._request("GET", api_path, tenant_id, **kwargs)
+    return self._get_cached(api_path, tenant_id)
 
   def disable_get_cache(self) -> None:
     """Disable the GET cache for this client."""
