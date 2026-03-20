@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-03-18
+
 ### Added
 
 - `infrastructure update` — no-op that validates field immutability; raises if any body field differs from existing state
@@ -34,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `brew install duploctl` binary crashes with `No module named 'duplocloud.client'`; added missing hidden imports and package metadata to PyInstaller spec
 - Fixed `storageclass` commands (`find`, `update`, `create --wait`, `apply`) failing because names were not tenant-prefixed. Enabled `prefixed=True` on the resource.
 - Fixed `hosts find` and `hosts apply` — `name_from_body` crashed with `KeyError` on list response items missing `FriendlyName`. Added custom `find` and `apply` overrides for hosts resource.
+- should not use GET cache when waiting
 
 ## [0.4.2] - 2026-03-11
 

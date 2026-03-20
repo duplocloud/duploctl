@@ -145,7 +145,9 @@ def test_create_preserves_body_fields(mocker):
 @pytest.fixture(scope="class")
 def ecr_resource(duplo):
     """Fixture to load the ECR resource."""
-    return duplo.load("ecr")
+    resource = duplo.load("ecr")
+    resource.duplo.wait = True
+    return resource
 
 
 def execute_test(func, *args, **kwargs):
