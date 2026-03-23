@@ -159,6 +159,8 @@ class DuploAPI():
       raise DuploError(f"Unauthorized: {response.text}", response.status_code)
 
     if response.status_code == 400:
+      if "not found" in response.text.lower():
+        raise DuploNotFound(response.text)
       raise DuploError(response.text, response.status_code)
 
     raise DuploError(f"Duplo responded with ({response.status_code}): {response.text}", response.status_code)
