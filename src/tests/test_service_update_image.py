@@ -1,6 +1,3 @@
-import json
-from unittest.mock import ANY
-
 import pytest
 
 from duplo_resource.service import DuploService
@@ -13,19 +10,10 @@ invalid_kwargs = [
   },
   {
     'name': 'widget',
-    'image': 'nginx:latest',
-    'container_image': [('widget-sidecar', 'widget:v2')]
+    'image': None,
+    'container_image': None,
+    'init_container_image': None,
   },
-  {
-    'name': 'widget',
-    'image': 'nginx:latest',
-    'init_container_image': [('widget-init', 'widget:v2')],
-  },
-  {
-    'name': 'widget',
-    'container_image': [('widget-init', 'widget:v2')],
-    'init_container_image': [('widget-init', 'widget:v2')],
-  }
 ]
 
 
@@ -35,399 +23,133 @@ def test_invalid_args_raise_errors(invalid_kwargs, mocker):
   mock_client = mocker.MagicMock()
   mock_client.load_client.return_value = mock_client
 
-  # DuploError is generic. It doesn't specifically identify bad input. We have to match the error message or we
-  # can get false positives if the method raises a DuploError later about something else.
   with pytest.raises(DuploError, match='Provide a service image, container images, or init container images.'):
     DuploService(mock_client).update_image(**invalid_kwargs)
 
 
-no_matching_container_tests = [
-  (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
-      'name': 'widget',
-      'container_image': [('not-widget-sidecar', 'widget:v2')]
-    }
-  ),
-  (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
-      'name': 'widget',
-      'init_container_image': [('not-widget-init', 'widget:v2')]
-    }
-  )
-]
-
-
-@pytest.mark.unit
-@pytest.mark.parametrize('service_definition,kwargs', no_matching_container_tests)
-def test_no_matching_container_raises_error(service_definition, kwargs, mocker):
-  mocker.patch(
-    'duplo_resource.service.DuploService.find',
-    mocker.MagicMock(return_value=service_definition)
-  )
-  mock_client = mocker.MagicMock()
-  mock_client.load_client.return_value = mock_client
-
-  # DuploError is generic. It doesn't specifically identify bad input. We have to match the error message or we
-  # can get false positives if the method raises a DuploError later about something else.
-  with pytest.raises(DuploError, match=r'No matching containers found in service .*'):
-    DuploService(mock_client).update_image(**kwargs)
-
-
-
 post_data_tests = [
-  # Update one service.
+  # Update main image only.
   (
-    {'Template': {}},
     {
       'name': 'widget',
       'image': 'widget:v1'
     },
-    {
-      'Name': 'widget',
-      'Image': 'widget:v1',
-      'AllocationTags': '',
-    },
+    [
+      {'ContainerName': 'duplo-main-container', 'ImageName': 'widget:v1'},
+    ],
   ),
 
   # Update one additional container.
   (
     {
-      'Template': {'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
       'name': 'widget',
       'container_image': [('widget-sidecar', 'widget:v2')]
     },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'additionalContainers': [{
-        'name': 'widget-sidecar',
-        'image': 'widget:v2',
-      }]}),
-      'AllocationTags': '',
-    },
+    [
+      {'ContainerName': 'widget-sidecar', 'ImageName': 'widget:v2'},
+    ],
   ),
 
-  # Update first of two additional containers.
+  # Update two additional containers.
   (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar1',
-          'image': 'widget:v1',
-        },
-        {
-          'name': 'widget-sidecar2',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
-      'name': 'widget',
-      'container_image': [('widget-sidecar1', 'widget:v2')]
-    },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar1',
-          'image': 'widget:v2',
-        },
-        {
-          'name': 'widget-sidecar2',
-          'image': 'widget:v1',
-        }
-      ]}),
-      'AllocationTags': '',
-    }
-  ),
-
-  # Update second of two additional containers.
-  (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar1',
-          'image': 'widget:v1',
-        },
-        {
-          'name': 'widget-sidecar2',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
-      'name': 'widget',
-      'container_image': [('widget-sidecar2', 'widget:v2')]
-    },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar1',
-          'image': 'widget:v1',
-        },
-        {
-          'name': 'widget-sidecar2',
-          'image': 'widget:v2',
-        }
-      ]}),
-      'AllocationTags': '',
-    }
-  ),
-
-  # Update two of two additional containers.
-  (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar1',
-          'image': 'widget:v1',
-        },
-        {
-          'name': 'widget-sidecar2',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
     {
       'name': 'widget',
       'container_image': [('widget-sidecar1', 'widget:v2'), ('widget-sidecar2', 'widget:v2')]
     },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar1',
-          'image': 'widget:v2',
-        },
-        {
-          'name': 'widget-sidecar2',
-          'image': 'widget:v2',
-        }
-      ]}),
-      'AllocationTags': '',
-    }
-  ),
-
-  # Update two of one additional containers.
-  # Arguably, trying to update images for two additional containers in a service that only has one additional container
-  # should raise an error. This test was written to assert existing behavior to preserve backwards compatibility.
-  (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar2',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
-      'name': 'widget',
-      'container_image': [('widget-sidecar1', 'widget:v2'), ('widget-sidecar2', 'widget:v2')]
-    },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'additionalContainers': [
-        {
-          'name': 'widget-sidecar2',
-          'image': 'widget:v2',
-        }
-      ]}),
-      'AllocationTags': '',
-    }
+    [
+      {'ContainerName': 'widget-sidecar1', 'ImageName': 'widget:v2'},
+      {'ContainerName': 'widget-sidecar2', 'ImageName': 'widget:v2'},
+    ],
   ),
 
   # Update one init container.
   (
     {
-      'Template': {'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
       'name': 'widget',
       'init_container_image': [('widget-init', 'widget:v2')]
     },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'initContainers': [{
-        'name': 'widget-init',
-        'image': 'widget:v2',
-      }]}),
-      'AllocationTags': '',
-    },
+    [
+      {'ContainerName': 'widget-init', 'ImageName': 'widget:v2'},
+    ],
   ),
 
-  # Update first of two init containers.
+  # Update two init containers.
   (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init1',
-          'image': 'widget:v1',
-        },
-        {
-          'name': 'widget-init2',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
-      'name': 'widget',
-      'init_container_image': [('widget-init1', 'widget:v2')]
-    },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init1',
-          'image': 'widget:v2',
-        },
-        {
-          'name': 'widget-init2',
-          'image': 'widget:v1',
-        }
-      ]}),
-      'AllocationTags': '',
-    }
-  ),
-
-  # Update second of two init containers.
-  (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init1',
-          'image': 'widget:v1',
-        },
-        {
-          'name': 'widget-init2',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
-    {
-      'name': 'widget',
-      'init_container_image': [('widget-init2', 'widget:v2')]
-    },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init1',
-          'image': 'widget:v1',
-        },
-        {
-          'name': 'widget-init2',
-          'image': 'widget:v2',
-        }
-      ]}),
-      'AllocationTags': '',
-    }
-  ),
-
-  # Update two of two init containers.
-  (
-    {
-      'Template': {'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init1',
-          'image': 'widget:v1',
-        },
-        {
-          'name': 'widget-init2',
-          'image': 'widget:v1',
-        }
-      ]})}
-    },
     {
       'name': 'widget',
       'init_container_image': [('widget-init1', 'widget:v2'), ('widget-init2', 'widget:v2')]
     },
-    {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init1',
-          'image': 'widget:v2',
-        },
-        {
-          'name': 'widget-init2',
-          'image': 'widget:v2',
-        }
-      ]}),
-      'AllocationTags': '',
-    }
+    [
+      {'ContainerName': 'widget-init1', 'ImageName': 'widget:v2'},
+      {'ContainerName': 'widget-init2', 'ImageName': 'widget:v2'},
+    ],
   ),
 
-  # Update two of one init containers.
-  # Arguably, trying to update images for two init containers in a service that only has one init container should
-  # raise an error. When init containers were added, support for additional containers already existed and it allowed
-  # this case. Because images for additional containers and init containers work the same, support for init containers
-  # followed the pattern set for additional containers.
+  # Mixed: main image + additional container.
   (
     {
-      'Template': {'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init2',
-          'image': 'widget:v1',
-        }
-      ]})}
+      'name': 'widget',
+      'image': 'nginx:latest',
+      'container_image': [('widget-sidecar', 'widget:v2')]
     },
+    [
+      {'ContainerName': 'duplo-main-container', 'ImageName': 'nginx:latest'},
+      {'ContainerName': 'widget-sidecar', 'ImageName': 'widget:v2'},
+    ],
+  ),
+
+  # Mixed: main image + init container.
+  (
     {
       'name': 'widget',
-      'init_container_image': [('widget-init1', 'widget:v2'), ('widget-init2', 'widget:v2')]
+      'image': 'nginx:latest',
+      'init_container_image': [('widget-init', 'widget:v2')]
     },
+    [
+      {'ContainerName': 'duplo-main-container', 'ImageName': 'nginx:latest'},
+      {'ContainerName': 'widget-init', 'ImageName': 'widget:v2'},
+    ],
+  ),
+
+  # Mixed: additional container + init container.
+  (
     {
-      'Name': 'widget',
-      'OtherDockerConfig': json.dumps({'initContainers': [
-        {
-          'name': 'widget-init2',
-          'image': 'widget:v2',
-        }
-      ]}),
-      'AllocationTags': '',
-    }
-  )
+      'name': 'widget',
+      'container_image': [('widget-sidecar', 'widget:v2')],
+      'init_container_image': [('widget-init', 'widget:v2')]
+    },
+    [
+      {'ContainerName': 'widget-sidecar', 'ImageName': 'widget:v2'},
+      {'ContainerName': 'widget-init', 'ImageName': 'widget:v2'},
+    ],
+  ),
+
+  # Mixed: all three types.
+  (
+    {
+      'name': 'widget',
+      'image': 'nginx:latest',
+      'container_image': [('widget-sidecar', 'envoy:v1')],
+      'init_container_image': [('widget-init', 'busybox:1.36')]
+    },
+    [
+      {'ContainerName': 'duplo-main-container', 'ImageName': 'nginx:latest'},
+      {'ContainerName': 'widget-sidecar', 'ImageName': 'envoy:v1'},
+      {'ContainerName': 'widget-init', 'ImageName': 'busybox:1.36'},
+    ],
+  ),
 ]
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize('service_definition,kwargs,post_data', post_data_tests)
-def test_post_data(service_definition, kwargs, post_data, mocker):
-  service = service_definition
-  mocker.patch(
-    'duplo_resource.service.DuploService.find',
-    mocker.MagicMock(return_value=service)
-  )
-  post_data = post_data
+@pytest.mark.parametrize('kwargs,expected_payload', post_data_tests)
+def test_post_data(kwargs, expected_payload, mocker):
   mock_client = mocker.MagicMock()
   mock_client.load_client.return_value = mock_client
   mock_client.wait = False
-  DuploService(mock_client).update_image(**kwargs)
-  mock_client.post.assert_called_once_with(ANY, post_data)
+  svc = DuploService(mock_client)
+  svc._tenant_id = 'test-tenant-id'
+  svc.update_image(**kwargs)
+  name = kwargs['name']
+  expected_endpoint = f"v3/subscriptions/test-tenant-id/containers/replicationController/{name}/containerimage"
+  mock_client.put.assert_called_once_with(expected_endpoint, expected_payload)

@@ -343,63 +343,25 @@ class DuploService(DuploResourceV2):
     Returns:
       message: Success message
     """
-    if [image, container_image, init_container_image].count(None) != 2:
+    if not any([image, container_image, init_container_image]):
       raise DuploError("Provide a service image, container images, or init container images.")
     self.duplo.logger.debug("UPDATE IMAGE")
-    service = self.find(name)
-    data = {}
-    updated_containers = []
-    not_found_containers = []
-
-    if not image:
-      other_docker_config = loads(service["Template"].get("OtherDockerConfig", "{}"))
-      if container_image:
-        images = container_image
-        containers = other_docker_config.get("additionalContainers", [])
-      elif init_container_image:
-        images = init_container_image
-        containers = other_docker_config.get("initContainers", [])
-
-      for key, value in images:
-        container_found = False
-        for c in containers:
-          if c["name"] == key:
-            c["image"] = value
-            updated_containers.append(key)
-            container_found = True
-            break
-        if not container_found:
-          not_found_containers.append(key)
-
-      if not updated_containers:
-        raise DuploError(f"No matching containers found in service '{name}'")
-
-      data = {
-        "Name": name,
-        "OtherDockerConfig": dumps(other_docker_config),
-        "AllocationTags": service["Template"].get("AllocationTags", "")
-      }
-
-    else:
-      data = {
-        "Name": name,
-        "Image": image,
-        "AllocationTags": service["Template"].get("AllocationTags", "")
-      }
-
-    self.client.post(self.endpoint("ReplicationControllerChange"), data)
-
+    payload = []
+    if image:
+      payload.append({"ContainerName": "duplo-main-container", "ImageName": image})
+    for cname, cimage in (container_image or []):
+      payload.append({"ContainerName": cname, "ImageName": cimage})
+    for cname, cimage in (init_container_image or []):
+      payload.append({"ContainerName": cname, "ImageName": cimage})
+    endpoint = f"v3/subscriptions/{self.tenant_id}/containers/replicationController/{name}/containerimage"
+    old = None
+    if self.duplo.wait:
+      old = self.find(name)
+    self.client.put(endpoint, payload)
     if self.duplo.wait:
       self.duplo.logger.debug("Wait enabled, beginning wait process")
-      self._wait(service, data)
-
-    response_message = "Successfully updated image for service."
-    if updated_containers:
-      response_message += f" Updated containers: {', '.join(updated_containers)}."
-    if not_found_containers:
-      response_message += f" Could not find containers: {', '.join(not_found_containers)}."
-
-    return {"message": response_message}
+      self._wait(old, {"Name": name, "Image": image or ""})
+    return {"message": f"Successfully updated image for service '{name}'."}
 
   @Command()
   def update_env(self,

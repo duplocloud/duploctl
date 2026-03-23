@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `service update_image` now uses the V3 containerimage endpoint and supports updating main, sidecar, and init container images in a single call
+
 ## [0.4.3] - 2026-03-18
 
 ### Added
