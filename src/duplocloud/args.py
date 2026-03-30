@@ -391,6 +391,44 @@ HELPDESK_ORIGIN = Arg("helpdesk_origin", "--helpdesk-origin", "--origin",
                       required=False,
                       default=None)
 
+PROJECTID = Arg("project_id", "--project-id", "--project",
+                help="The AI Service Desk project ID",
+                required=True)
+
+PROJECTNAME = Arg("project_name", "--project-name",
+                  help="The AI Service Desk project name",
+                  required=False,
+                  default=None)
+
+AGENTID = Arg("agent_id", "--agent-id",
+              help="The AI agent ID to assign to the ticket",
+              required=True)
+
+TICKETTYPE = Arg("ticket_type", "--ticket-type",
+                 help="The ticket type: spec_creation or plan_execution",
+                 required=False,
+                 default="spec_creation",
+                 choices=["spec_creation", "plan_execution"])
+
+TICKETREF = Arg("ticket_ref", "--ticket-ref",
+                help="The ticket ID or name to look up",
+                required=True)
+
+APPROVE = Arg("approve", "--approve",
+              help="Approve the artifact after saving",
+              type=bool,
+              action='store_true')
+
+ROLE = Arg("role", "--role",
+           help="The message role: user or assistant",
+           required=False,
+           default="user",
+           choices=["user", "assistant"])
+
+ARTIFACT_CONTENT = Arg("artifact_content", "--artifact-content",
+                       help="The content to save (spec or plan markdown)",
+                       required=True)
+
 DAYS = Arg("days",
             help='The days to use',
             type=int)
