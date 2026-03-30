@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
+- Fixed `ssm_param apply` failing with "name and parameter value are required" by reordering `create` parameters to match the base class contract
 
 ## [0.4.3] - 2026-03-18
 
