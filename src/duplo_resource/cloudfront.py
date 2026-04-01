@@ -211,6 +211,29 @@ class DuploCloudFront(DuploResourceV3):
     return {"message": f"CloudFront distribution {distribution_id} deleted"}
 
   @Command()
+  def apply(self, body: args.BODY) -> dict:
+    """Apply a CloudFront distribution.
+
+    Create or update a CloudFront distribution. If the body contains
+    an ``Id`` field the distribution is updated, otherwise a new one
+    is created.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl cloudfront apply -f 'cloudfront.yaml'
+      ```
+
+    Args:
+      body: The distribution configuration.
+
+    Returns:
+      resource: The created or updated distribution.
+    """
+    if body.get("Id"):
+      return self.update(body)
+    return self.create(body)
+
+  @Command()
   def get_status(self, distribution_id: args.DISTRIBUTION_ID):
     """Get the current status of a CloudFront distribution.
 
