@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `batch_scheduling_policy update` returning 405 by PUTting to the collection endpoint instead of a named resource path
+- Fixed `batch_scheduling_policy` resource decorator name colliding with `batch_job`
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
 
 ## [0.4.3] - 2026-03-18
