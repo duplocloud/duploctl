@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
+- Fixed `s3 update` and `s3 find` failing when using short bucket names by resolving via list and using the lowercase `s3bucket` PUT endpoint with the full bucket name
 
 ## [0.4.3] - 2026-03-18
 

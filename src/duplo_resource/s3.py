@@ -1,5 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -16,21 +17,68 @@ class DuploS3(DuploResourceV3):
   def find(self, name: args.NAME) -> dict:
     """Find an S3 bucket by name.
 
+    Accepts either the short name (e.g. mybucket) or the full
+    AWS bucket name (e.g. duploservices-tenant-mybucket-123456).
+
     Usage: CLI Usage
       ```sh
       duploctl s3 find <name>
       ```
 
     Args:
-      name: The full bucket name (e.g. duploservices-tenant-mybucket).
+      name: The bucket name.
 
     Returns:
       bucket: The S3 bucket object.
 
     Raises:
-      DuploError: If the bucket could not be found.
+      DuploNotFound: If the bucket could not be found.
     """
-    response = self.client.get(self.endpoint(name))
+    prefix = self.prefixed_name(name)
+    for bucket in self.list():
+      full = bucket["Name"]
+      if full == name or full.startswith(prefix):
+        return bucket
+    raise DuploNotFound(name, "s3")
+
+  @Command()
+  def update(self,
+             name: args.NAME = None,
+             body: args.BODY = None,
+             patches: args.PATCHES = None) -> dict:
+    """Update an S3 bucket.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl s3 update -f 's3.yaml'
+      ```
+
+    Args:
+      name: The name of the bucket to update.
+      body: The updated bucket configuration.
+      patches: The patches to apply to the bucket.
+
+    Returns:
+      dict: The updated bucket details.
+
+    Raises:
+      DuploError: If the bucket could not be updated.
+    """
+    if not name and not body:
+      raise DuploError("Name is required when body is not provided")
+    name = name if name else self.name_from_body(body)
+    current = self.find(name)
+    full_name = self.name_from_body(current)
+    if body:
+      body["Name"] = full_name
+    else:
+      body = current
+    if patches:
+      body = self.duplo.jsonpatch(body, patches)
+    response = self.client.put(
+      self.endpoint(full_name).replace("aws/s3Bucket", "aws/s3bucket"),
+      body
+    )
     return response.json()
 
   @Command()
