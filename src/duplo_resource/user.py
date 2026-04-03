@@ -10,6 +10,9 @@ class DuploUser(DuploResourceV2):
     super().__init__(duplo)
     self.tenent_svc = duplo.load('tenant')
 
+  def name_from_body(self, body):
+    return body["Username"]
+
   @Command("ls")
   def list(self):
     """Retrieve a list of all users in the Duplo system."""
