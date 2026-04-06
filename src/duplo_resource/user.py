@@ -13,6 +13,39 @@ class DuploUser(DuploResourceV2):
   def name_from_body(self, body):
     return body["Username"]
 
+  @Command()
+  def apply(self,
+            body: args.BODY,
+            wait: args.WAIT = False) -> dict:
+    """Apply a user.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl user apply -f 'user.yaml'
+      ```
+      Contents of the `user.yaml` file
+      ```yaml
+      --8<-- "src/tests/data/user.yaml"
+      ```
+
+    Args:
+      body: The user body.
+      wait: Wait for the user to be applied.
+
+    Returns:
+      message: A success message.
+    """
+    name = self.name_from_body(body)
+    try:
+      self.find(name)
+      if 'State' not in body:
+        body['State'] = 'updated'
+    except DuploNotFound:
+      if 'State' not in body:
+        body['State'] = 'added'
+    response = self.client.post("admin/UpdateUserRole", body)
+    return response.json()
+
   @Command("ls")
   def list(self):
     """Retrieve a list of all users in the Duplo system."""
