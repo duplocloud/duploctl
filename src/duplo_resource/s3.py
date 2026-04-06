@@ -37,7 +37,7 @@ class DuploS3(DuploResourceV3):
     prefix = self.prefixed_name(name)
     for bucket in self.list():
       full = bucket["Name"]
-      if full == name or full.startswith(prefix):
+      if full == name or full.startswith(prefix + "-"):
         return bucket
     raise DuploNotFound(name, "s3")
 
