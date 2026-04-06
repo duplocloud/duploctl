@@ -162,13 +162,19 @@ class DuploService(DuploResourceV2):
     if patches:
       body = self.duplo.jsonpatch(body, patches)
     template = body.get("Template", body)
+    # When body is flat (no Template wrapper), use existing service
+    # state as fallback so we don't overwrite settings with defaults
+    if "Template" not in body:
+      existing = self.find(name).get("Template", {})
+    else:
+      existing = template
     if ((ttags := template.get("AllocationTags", None))
         and not body.get("AllocationTags", None)):
       body["AllocationTags"] = ttags
     if "OtherDockerConfig" not in body:
-      body["OtherDockerConfig"] = template.get("OtherDockerConfig") or "{}"
+      body["OtherDockerConfig"] = existing.get("OtherDockerConfig") or "{}"
     if "AgentPlatform" not in body:
-      body["AgentPlatform"] = template.get("AgentPlatform", 0)
+      body["AgentPlatform"] = existing.get("AgentPlatform", 0)
     self.client.post(self.endpoint("ReplicationControllerChangeAll"), body)
     if self.duplo.wait:
       self._wait(old, body)
