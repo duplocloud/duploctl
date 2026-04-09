@@ -76,7 +76,7 @@ class DuploS3(DuploResourceV3):
     if patches:
       body = self.duplo.jsonpatch(body, patches)
     response = self.client.put(
-      self.endpoint(full_name).replace("aws/s3Bucket", "aws/s3bucket"),
+      self.endpoint(full_name),
       body
     )
     return response.json()
