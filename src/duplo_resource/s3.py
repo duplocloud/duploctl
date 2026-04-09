@@ -99,5 +99,6 @@ class DuploS3(DuploResourceV3):
     Raises:
       DuploError: If the bucket could not be deleted.
     """
-    self.client.delete(self.endpoint(name).replace("aws/s3Bucket", "aws/s3bucket"))
-    return {"message": f"S3 bucket '{name}' deleted"}
+    full_name = self.name_from_body(self.find(name))
+    self.client.delete(self.endpoint(full_name))
+    return {"message": f"S3 bucket '{full_name}' deleted"}
