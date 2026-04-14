@@ -29,12 +29,8 @@ class DuploLambda(DuploResourceV2):
       list: A list of all lambdas in the current subscription.
     """
     tenant_id = self.tenant["TenantId"]
-    tenant_name = self.tenant["AccountName"]
     response = self.client.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
-    if (data := response.json()):
-      return data
-    else:
-      raise DuploError(f"No lambda functions found in tenant '{tenant_name}'", 404)
+    return response.json() or []
   
   @Command()
   def find(self, 
