@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
+- Fixed `rds retention_period`, `rds iam_auth`, and `rds final_snapshot` failing with JSON decode error by using the correct `ModifyRDSDBInstance` endpoint
 
 ## [0.4.3] - 2026-03-18
 
