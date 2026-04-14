@@ -181,7 +181,8 @@ class DuploRDS(DuploResourceV3):
       "EnableIAMDatabaseAuthentication": enable,
       "ApplyImmediately": immediate
     }
-    self.update(name=name, body=body)
+    tenant_id = self.tenant["TenantId"]
+    self.client.post(f"subscriptions/{tenant_id}/ModifyRDSDBInstance", body)
     return {
       "message": f"IAM authentication for DB instance {name} is {enable}"
     }
@@ -191,13 +192,14 @@ class DuploRDS(DuploResourceV3):
                      name: args.NAME,
                      enable: args.ENABLE,
                      immediate: args.IMMEDIATE=False):
-    """Toggle IAM authentication for a DB instance."""
+    """Toggle final snapshot for a DB instance."""
     body = {
       "DBInstanceIdentifier": name,
       "SkipFinalSnapshot": not enable,
       "ApplyImmediately": immediate
     }
-    self.update(name=name, body=body)
+    tenant_id = self.tenant["TenantId"]
+    self.client.post(f"subscriptions/{tenant_id}/ModifyRDSDBInstance", body)
     return {
       "message": f"Final Snapshot for DB instance {name} is {enable}"
     }
@@ -239,7 +241,8 @@ class DuploRDS(DuploResourceV3):
       "BackupRetentionPeriod": days,
       "ApplyImmediately": immediate
     }
-    self.update(name=name, body=body)
+    tenant_id = self.tenant["TenantId"]
+    self.client.post(f"subscriptions/{tenant_id}/ModifyRDSDBInstance", body)
     return {
       "message": f"DB instance {name} retention period set to {days} days"
     }
