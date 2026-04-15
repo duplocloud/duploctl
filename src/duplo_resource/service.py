@@ -944,7 +944,10 @@ class DuploService(DuploResourceV2):
     def wait_check():
       self.duplo.logger.debug(f"Running wait check for {name}")
       svc = self.find(name)
-      replicas = svc[replica_key]
+      replicas = svc.get(replica_key)
+      if replicas is None:
+        self.duplo.logger.warning(f"Replicas not retrieved, checked for {replica_key}\nin\n{svc}")
+        raise DuploStillWaiting(f"Service {name} waiting for replica status")
 
       # we are still waiting if the changed values do not appear when retrieving the service
       if (image_changed and self.image_from_body(svc) != new_img):
