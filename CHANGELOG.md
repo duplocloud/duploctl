@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Updated broken links in batch documentation
 - Fixed `batch_scheduling_policy update` returning 405 by PUTting to the collection endpoint instead of a named resource path
 - Fixed `batch_scheduling_policy` resource decorator name colliding with `batch_job`
 - Fixed `rds delete` showing internal AWS path (`aws/rds/instance/<name>`) instead of only the database name
