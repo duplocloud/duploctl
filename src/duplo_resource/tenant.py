@@ -390,7 +390,7 @@ class DuploTenant(DuploResourceV2):
       change = response.json()
       change["Operation"] = "update"
       changes.append(change)
-    for k in deletevar:
+    for k in (deletevar or []):
       if k in curr_keys:
         self.client.delete(f"{endpoint}/{k}")
         change = {"Key": k, "Operation": "delete"}
