@@ -14,7 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` and `apply` to use `Username` and set the correct `State` for create vs update
+- Fixed `rds delete` showing internal AWS path (`aws/rds/instance/<name>`) instead of only the database name
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
+- Fixed `service apply` creating instead of updating when V3 find endpoint returns 200 with null body for non-existent services
+- Fixed `service update` crashing with `KeyError: 'Template'` when given a flat YAML body without the Template wrapper
+- Fixed `service update_env` and `update_labels` crashing when `OtherDockerConfig` is empty
 - Fixed `tenant config` crashing with help text when `--deletevar` is not provided
 
 ## [0.4.3] - 2026-03-18
