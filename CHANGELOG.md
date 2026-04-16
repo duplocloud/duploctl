@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed `rds delete` showing internal AWS path (`aws/rds/instance/<name>`) instead of only the database name
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
+- Fixed `tenant config` crashing with help text when `--deletevar` is not provided
 
 ## [0.4.3] - 2026-03-18
 
