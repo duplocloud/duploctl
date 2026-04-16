@@ -1,6 +1,6 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploNotFound
+from duplocloud.errors import DuploNotFound, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -29,12 +29,8 @@ class DuploLambda(DuploResourceV2):
       list: A list of all lambdas in the current subscription.
     """
     tenant_id = self.tenant["TenantId"]
-    tenant_name = self.tenant["AccountName"]
     response = self.client.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
-    if (data := response.json()):
-      return data
-    else:
-      raise DuploError(f"No lambda functions found in tenant '{tenant_name}'", 404)
+    return response.json() or []
   
   @Command()
   def find(self, 
@@ -80,7 +76,10 @@ class DuploLambda(DuploResourceV2):
     """
     def wait_check():
       name = self.name_from_body(body)
-      self.find(name)
+      try:
+        self.find(name)
+      except DuploNotFound:
+        raise DuploStillWaiting(f"Waiting for Lambda '{name}' to become visible")
     tenant_id = self.tenant["TenantId"]
     self.client.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", body)
     if self.duplo.wait:
