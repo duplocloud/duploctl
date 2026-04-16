@@ -52,6 +52,30 @@ class DuploRDS(DuploResourceV3):
     return response.json()
   
   @Command()
+  def delete(self,
+             name: args.NAME) -> dict:
+    """Delete a DB instance by name.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl rds delete <name>
+      ```
+
+    Args:
+      name: The name of the DB instance to delete.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploError: If the DB instance could not be found or deleted.
+    """
+    self.client.delete(self.endpoint(name))
+    return {
+      "message": f"{name} deleted"
+    }
+
+  @Command()
   def stop(self,
            name: args.NAME):
     """Stop a DB instance."""
