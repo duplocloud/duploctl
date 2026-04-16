@@ -11,7 +11,7 @@ class DuploBatchDefinition(DuploResourceV3):
   Manage batch Job Definitions as a resource in Duplo.
 
   Read more docs here:
-  https://docs.duplocloud.com/docs/overview/aws-services/batch
+  https://docs.duplocloud.com/docs/automation-platform/overview/aws-services/batch
   """
 
   def __init__(self, duplo: DuploCtl):
