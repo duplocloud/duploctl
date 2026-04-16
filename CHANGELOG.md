@@ -13,8 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `rds delete` showing internal AWS path (`aws/rds/instance/<name>`) instead of only the database name
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
 - Fixed `s3 update` and `s3 find` failing when using short bucket names by resolving via list and using the lowercase `s3bucket` PUT endpoint with the full bucket name
+- Fixed `service apply` creating instead of updating when V3 find endpoint returns 200 with null body for non-existent services
+- Fixed `service update` crashing with `KeyError: 'Template'` when given a flat YAML body without the Template wrapper
+- Fixed `service update_env` and `update_labels` crashing when `OtherDockerConfig` is empty
+- Fixed `tenant config` crashing with help text when `--deletevar` is not provided
 
 ## [0.4.3] - 2026-03-18
 
