@@ -1,7 +1,7 @@
 import time
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploError, DuploFailedResource, DuploNotFound, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 from json import dumps, loads
 import duplocloud.args as args
@@ -114,8 +114,11 @@ class DuploService(DuploResourceV2):
     try:
       endpoint = f"v3/subscriptions/{self.tenant_id}/replicationcontroller/{name}"
       response = self.client.get(endpoint)
+      result = response.json()
+      if not result:
+        raise DuploNotFound(name, self.kind)
       self.duplo.logger.debug(f"Found service {name} using new endpoint.")
-      return response.json()
+      return result
     # catch the DuploError and let super take over if it's just a 404 which means the new endpoint doesn't exist
     except DuploError:
       self.duplo.logger.debug(f"Service {name} not found using new endpoint, falling back to list.")
@@ -158,11 +161,20 @@ class DuploService(DuploResourceV2):
       old["Replicaset"] = self.current_replicaset(name)
     if patches:
       body = self.duplo.jsonpatch(body, patches)
-    if ((ttags := body["Template"].get("AllocationTags", None))
+    template = body.get("Template", body)
+    # When body is flat (no Template wrapper), use existing service
+    # state as fallback so we don't overwrite settings with defaults
+    if "Template" not in body:
+      existing = self.find(name).get("Template", {})
+    else:
+      existing = template
+    if ((ttags := template.get("AllocationTags", None))
         and not body.get("AllocationTags", None)):
       body["AllocationTags"] = ttags
-    body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
-    body["AgentPlatform"] = body["Template"].get("AgentPlatform", 0)
+    if "OtherDockerConfig" not in body:
+      body["OtherDockerConfig"] = existing.get("OtherDockerConfig") or "{}"
+    if "AgentPlatform" not in body:
+      body["AgentPlatform"] = existing.get("AgentPlatform", 0)
     self.client.post(self.endpoint("ReplicationControllerChangeAll"), body)
     if self.duplo.wait:
       self._wait(old, body)
@@ -409,7 +421,8 @@ class DuploService(DuploResourceV2):
       return "mixed"
 
     service = self.find(name)
-    currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
+    raw_config = service["Template"].get("OtherDockerConfig") or "{}"
+    currentDockerconfig = loads(raw_config)
     currentEnv = currentDockerconfig.get("Env", [])
     # Check if user is attempting to merge against a null Env. If so, set currentEnv to empty.
     if currentEnv is None and strategy == "merge":
@@ -485,7 +498,8 @@ class DuploService(DuploResourceV2):
       message: A message about success.
     """
     service = self.find(name)
-    currentDockerconfig = loads(service["Template"]["OtherDockerConfig"])
+    raw_config = service["Template"].get("OtherDockerConfig") or "{}"
+    currentDockerconfig = loads(raw_config)
     currentLabels = currentDockerconfig.get("PodLabels", [])
     newLabels = []
     if setvar is not None:
