@@ -14,7 +14,7 @@ class DuploParam(DuploResourceV3):
     return body["Name"]
   
   @Command()
-  def create(self, 
+  def create(self,
              name: args.NAME=None,
              body: args.BODY=None,
              paramtype: args.SSM_PARAM_TYPE=None,
@@ -25,7 +25,7 @@ class DuploParam(DuploResourceV3):
       ```sh
       duploctl ssm_param create <name> -pval <value> -ptype <String|SecureString|StringList>
       ```
-    
+
     Args:
       name: The name of the SSM Parameter to create.
       -ptype/--parametertype: The type of parameter to create, must be String, SecureString, or StringList
@@ -39,9 +39,9 @@ class DuploParam(DuploResourceV3):
       }
       ```
 
-    Returns: 
+    Returns:
       resource: The SSM Parameter object.
-      
+
     Raises:
       DuploError: If the SSM Parameter already exists.
     """
