@@ -13,56 +13,23 @@ class DuploUser(DuploResourceV2):
   def name_from_body(self, body):
     return body["Username"]
 
-  @Command()
-  def apply(self,
-            body: args.BODY,
-            wait: args.WAIT = False) -> dict:
-    """Apply a user.
-
-    Usage: CLI Usage
-      ```sh
-      duploctl user apply -f 'user.yaml'
-      ```
-      Contents of the `user.yaml` file
-      ```yaml
-      --8<-- "src/tests/data/user.yaml"
-      ```
-
-    Args:
-      body: The user body.
-      wait: Wait for the user to be applied.
-
-    Returns:
-      message: A success message.
-    """
-    name = self.name_from_body(body)
-    try:
-      self.find(name)
-      if 'State' not in body:
-        body['State'] = 'updated'
-    except DuploNotFound:
-      if 'State' not in body:
-        body['State'] = 'added'
-    response = self.client.post("admin/UpdateUserRole", body)
-    return response.json()
-
   @Command("ls")
   def list(self):
     """Retrieve a list of all users in the Duplo system."""
     response = self.client.get("admin/GetAllUserRoles")
     return response.json()
-  
+
   @Command("get")
-  def find(self, 
+  def find(self,
            name: args.NAME):
     """Find a User by their username."""
     try:
       return [u for u in self.list() if u["Username"] == name][0]
     except IndexError:
       raise DuploNotFound(name, "User")
-  
+
   @Command()
-  def create(self, 
+  def create(self,
              body: args.BODY) -> dict:
     """Create a new user.
 
@@ -74,15 +41,39 @@ class DuploUser(DuploResourceV2):
       ```yaml
       --8<-- "src/tests/data/user.yaml"
       ```
-    
+
     Args:
-      body: The user body. 
+      body: The user body.
 
     Returns:
       message: A success message.
     """
     if 'State' not in body:
       body['State'] = 'added'
+    response = self.client.post("admin/UpdateUserRole", body)
+    return response.json()
+
+  @Command()
+  def update(self,
+             name: args.NAME = None,
+             body: args.BODY = None) -> dict:
+    """Update an existing user.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl user update -f 'user.yaml'
+      ```
+
+    Args:
+      name: The username (unused; kept for signature parity with the
+        base ``apply`` which calls ``update(name, body)`` positionally).
+      body: The user body.
+
+    Returns:
+      message: A success message.
+    """
+    if 'State' not in body:
+      body['State'] = 'updated'
     response = self.client.post("admin/UpdateUserRole", body)
     return response.json()
   
