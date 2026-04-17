@@ -1,6 +1,11 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import (
+  DuploError,
+  DuploFailedResource,
+  DuploNotFound,
+  DuploStillWaiting,
+)
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -17,6 +22,29 @@ class DuploCloudFront(DuploResourceV3):
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "aws/cloudFrontDistribution")
 
+  def name_from_body(self, body):
+    """Resolve the logical name of a CloudFront distribution.
+
+    CloudFront has no ``Name`` field; the ``Comment`` acts as the
+    human-assigned identifier both in AWS and in DuploCloud. Handles
+    the three shapes ``body`` can take:
+
+      * YAML input:     ``body["DistributionConfig"]["Comment"]``
+      * ``find`` result: ``body["Distribution"]["DistributionConfig"]["Comment"]``
+      * ``list`` item:   ``body["Comment"]`` (flat distribution summary)
+    """
+    config = body.get("DistributionConfig")
+    if config and config.get("Comment"):
+      return config["Comment"]
+    dist = body.get("Distribution")
+    if dist:
+      config = dist.get("DistributionConfig") or {}
+      if config.get("Comment"):
+        return config["Comment"]
+      if dist.get("Comment"):
+        return dist["Comment"]
+    return body.get("Comment")
+
   def wait_check(self, distribution_id):
     status_response = self.find(distribution_id)
     status = status_response.get("Distribution", {}).get("Status", "Unknown").lower()
@@ -29,24 +57,36 @@ class DuploCloudFront(DuploResourceV3):
 
   @Command()
   def find(self, distribution_id: args.DISTRIBUTION_ID):
-    """Find a CloudFront distribution.
+    """Find a CloudFront distribution by ID or Comment.
 
-    Find a CloudFront distribution by its distribution ID.
+    Accepts either an AWS distribution ID (e.g. ``E2QWRUHAPOMQZL``) or
+    the distribution's ``Comment`` (its logical name). The direct GET is
+    attempted first; on a not-found response the list is scanned for a
+    distribution whose ``Comment`` matches.
 
     Usage:
       ```sh
-      duploctl cloudfront find <distribution_id>
+      duploctl cloudfront find <distribution_id_or_comment>
       ```
 
     Args:
-      distribution_id: The CloudFront distribution ID.
+      distribution_id: The CloudFront distribution ID or Comment.
 
     Returns:
-      dict: The service object.
+      dict: The distribution object.
+
+    Raises:
+      DuploNotFound: If no distribution matches by ID or Comment.
     """
-    response = self.client.get(self.endpoint(distribution_id))
-    response.raise_for_status()
-    return response.json()
+    try:
+      response = self.client.get(self.endpoint(distribution_id))
+      return response.json()
+    except DuploNotFound:
+      pass
+    for dist in self.list():
+      if self.name_from_body(dist) == distribution_id:
+        return dist
+    raise DuploNotFound(distribution_id, "cloudfront")
 
   @Command(model="AmazonCloudFrontRequest")
   def create(self, body: args.BODY):
@@ -214,9 +254,11 @@ class DuploCloudFront(DuploResourceV3):
   def apply(self, body: args.BODY) -> dict:
     """Apply a CloudFront distribution.
 
-    Create or update a CloudFront distribution. If the body contains
-    an ``Id`` field the distribution is updated, otherwise a new one
-    is created.
+    Creates the distribution if none exists with the body's ``Comment``,
+    otherwise updates the existing one. The ``Comment`` is CloudFront's
+    logical name; re-applying the same YAML targets the same
+    distribution without requiring a server-assigned ``Id`` to be
+    hand-copied into source control.
 
     Usage: CLI Usage
       ```sh
@@ -228,10 +270,28 @@ class DuploCloudFront(DuploResourceV3):
 
     Returns:
       resource: The created or updated distribution.
+
+    Raises:
+      DuploError: If the body has no ``DistributionConfig.Comment`` to
+        identify the distribution with.
     """
-    if body.get("Id"):
-      return self.update(body)
-    return self.create(body)
+    name = self.name_from_body(body)
+    if not name:
+      raise DuploError(
+        "CloudFront apply requires DistributionConfig.Comment "
+        "to identify the distribution"
+      )
+    try:
+      existing = self.find(name)
+    except DuploNotFound:
+      return self.create(body)
+    existing_id = (
+      existing.get("Id")
+      or existing.get("Distribution", {}).get("Id")
+    )
+    if existing_id:
+      body["Id"] = existing_id
+    return self.update(body)
 
   @Command()
   def get_status(self, distribution_id: args.DISTRIBUTION_ID):
