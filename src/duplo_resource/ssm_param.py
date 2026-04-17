@@ -15,8 +15,8 @@ class DuploParam(DuploResourceV3):
   
   @Command()
   def create(self,
-             body: args.BODY=None,
              name: args.NAME=None,
+             body: args.BODY=None,
              paramtype: args.SSM_PARAM_TYPE=None,
              value: args.CONTENT=None,
              dryrun: args.DRYRUN=False) -> dict:
@@ -27,7 +27,10 @@ class DuploParam(DuploResourceV3):
       ```
 
     Args:
-      body: path to a raw json/yaml post body, e.g:
+      name: The name of the SSM Parameter to create.
+      -ptype/--parametertype: The type of parameter to create, must be String, SecureString, or StringList
+      -pval/--parametervalue: Arbitrary text to set in the parameter.  StringList expects comma separated values.
+      -body: path to a raw json/yaml post body, e.g:
       ```
       {
         "Type": "String",
@@ -35,9 +38,6 @@ class DuploParam(DuploResourceV3):
         "Name": "MyStringParameter"
       }
       ```
-      name: The name of the SSM Parameter to create.
-      -ptype/--parametertype: The type of parameter to create, must be String, SecureString, or StringList
-      -pval/--parametervalue: Arbitrary text to set in the parameter.  StringList expects comma separated values.
 
     Returns:
       resource: The SSM Parameter object.
