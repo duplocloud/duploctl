@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` and `apply` to use `Username` and set the correct `State` for create vs update
 - Updated broken links in batch documentation
 - Fixed `batch_scheduling_policy update` returning 405 by PUTting to the collection endpoint instead of a named resource path
 - Fixed `batch_scheduling_policy` resource decorator name colliding with `batch_job`
 - Fixed `rds delete` showing internal AWS path (`aws/rds/instance/<name>`) instead of only the database name
+- Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` to return `Username` and adding an `update` method; the inherited V2 `apply` now drives the find → update/create flow
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
 - Fixed `lambda apply` failing with "No lambda functions found" when creating the first lambda in a tenant
 - Fixed `service apply` creating instead of updating when V3 find endpoint returns 200 with null body for non-existent services
