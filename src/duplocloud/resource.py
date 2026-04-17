@@ -153,7 +153,7 @@ class DuploResourceV2(DuploResource):
       self.find(name)
       return self.update(name, body)
     except DuploNotFound:
-      return self.create(body)
+      return self.create(body=body)
   
 
 class DuploResourceV3(DuploResource):
@@ -341,6 +341,6 @@ class DuploResourceV3(DuploResource):
       self.find(name)
       return self.update(name=name, body=body, patches=patches)
     except DuploNotFound:
-      return self.create(body)
+      return self.create(body=body)
 
 

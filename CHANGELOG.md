@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `service update` crashing with `KeyError: 'Template'` when given a flat YAML body without the Template wrapper
 - Fixed `service update_env` and `update_labels` crashing when `OtherDockerConfig` is empty
 - Fixed `tenant config` crashing with help text when `--deletevar` is not provided
+- Fixed `apply` misrouting the body into the `name` parameter for subclasses whose `create` signature starts with `name` (e.g. `ssm_param`, `secret`, `aws_secret`, `configmap`); the V2 and V3 base `apply` now call `self.create(body=body)` by keyword
 
 ## [0.4.3] - 2026-03-18
 
