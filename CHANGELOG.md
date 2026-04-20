@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `service update_image` now uses the V3 containerimage endpoint and supports updating main, sidecar, and init container images in a single call
+- `rds` exposes a `modify` command wrapping the `ModifyRDSDBInstance` endpoint; `set_monitor_interval`, `iam_auth`, `final_snapshot`, and `retention_period` now delegate to it
 
 ### Fixed
 
