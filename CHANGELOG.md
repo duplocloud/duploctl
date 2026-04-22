@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed auto-generated CLI usage examples in the docs rendering the wrong command name for resources whose class name differs from the entry-point name. The base `DuploResourceV2`/`DuploResourceV3` docstrings now use `{{command}}` (the entry-point name) instead of `{{kind | lower}}` (derived from the class name). Affects `aws_secret` (was `awssecret`), `ssm_param` (was `param`), `pvc` (was `persistentvolumeclaim`), and `ecs` (was `ecsservice`).
 - Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` and `apply` to use `Username` and set the correct `State` for create vs update
 - Updated broken links in batch documentation
 - Fixed `batch_scheduling_policy update` returning 405 by PUTting to the collection endpoint instead of a named resource path
