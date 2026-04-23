@@ -81,8 +81,13 @@ class DuploEcsService(DuploResourceV2):
   def find_service_family(self,
                           name: args.NAME):
     """Find Service Family by Name
-    
+
     Find an ECS Services task definition family by name.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs find_service_family <name>
+      ```
 
     Args:
       name: The name of the ECS task definition to find.
@@ -101,7 +106,14 @@ class DuploEcsService(DuploResourceV2):
   @Command()
   def delete_service(self,
                      name: args.NAME) -> dict:
-    """Delete an ECS service.
+    """Delete an ECS Service.
+
+    Delete an ECS service by name.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs delete_service <name>
+      ```
 
     Args:
       name: The name of the ECS service to delete.
@@ -120,10 +132,9 @@ class DuploEcsService(DuploResourceV2):
 
     Retrieve a list of all ECS task definitions in a tenant.
 
-    Example:
-      CLI usage
+    Usage: CLI Usage
       ```sh
-      duploctl ecs list_definitions
+      duploctl ecs list_task_def_family
       ```
 
     Returns:
@@ -138,6 +149,11 @@ class DuploEcsService(DuploResourceV2):
   def find_def(self,
                name: args.NAME):
     """Find the latest version of an ECS task definition by family name.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs find_def <name>
+      ```
 
     Args:
       name: The family name of the ECS task definition to find.
@@ -160,6 +176,11 @@ class DuploEcsService(DuploResourceV2):
 
     Find a task definition by its AWS ARN.
 
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs find_def_by_arn <arn>
+      ```
+
     Args:
       arn: The ARN of the ECS task definition to find.
 
@@ -177,6 +198,11 @@ class DuploEcsService(DuploResourceV2):
   def find_task_def_family(self,
                            name: args.NAME):
     """Find a ECS task definition family by name.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs find_task_def_family <name>
+      ```
 
     Args:
       name: The name of the ECS task definition to find.
@@ -198,6 +224,11 @@ class DuploEcsService(DuploResourceV2):
                      body: args.BODY) -> dict:
     """Create an ECS service.
 
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs create_service -f 'ecs_service.yaml'
+      ```
+
     Args:
       body: The ECS service definition object.
 
@@ -215,6 +246,11 @@ class DuploEcsService(DuploResourceV2):
   def update_service(self,
              body: args.BODY) -> dict:
     """Update an ECS service.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs update_service -f 'ecs_service.yaml'
+      ```
 
     Args:
       body: The updated ECS service object.
@@ -236,6 +272,11 @@ class DuploEcsService(DuploResourceV2):
 
     Updates a task definition. This creates a new revision of the task definition and returns the new ARN.
     Note each definition is immutable so this is effectively a create operation for one item in a set and the latest one is the active one.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ecs update_taskdef -f 'ecs_td.yaml'
+      ```
 
     Args:
       body: The updated ECS task definition object.
