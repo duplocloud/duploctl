@@ -70,7 +70,7 @@ class DuploAsg(DuploResourceV2):
     
     Usage: CLI Usage
       ```sh
-      duploctl hosts create -f 'asg.yaml'
+      duploctl asg create -f 'asg.yaml'
       ```
       Contents of the `asg.yaml` file
       ```yaml
@@ -184,11 +184,11 @@ class DuploAsg(DuploResourceV2):
 
     Usage: CLI Usage
       ```sh
-      duploctl asg scale -n <name> [-m <min>] [-M <max>]
+      duploctl asg scale <name> [-m <min>] [-M <max>]
       ```
-    
+
     Args:
-      name: The  name of the ASG to scale.
+      name: The name of the ASG to scale (positional).
       min: The new minimum number of instances the ASG should maintain. Use -m flag to set.
       max: The new maximum number of instances the ASG can scale to. Use -M flag to set.
 
