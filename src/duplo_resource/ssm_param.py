@@ -148,7 +148,10 @@ class DuploParam(DuploResourceV3):
     if not name and not body:
       raise DuploError("Name is required when body is not provided")
     if body is None:
-      body = self.find(name)
+      # show_sensitive=True so a SecureString's real Value survives the
+      # round-trip — otherwise a patch/no-value update would PUT the
+      # obfuscated "****" back and destroy the secret.
+      body = self.find(name, show_sensitive=True)
       if value is not None:
         if strategy == 'merge' and body['Type'] == "StringList":
           current_value = body['Value'].split(',')

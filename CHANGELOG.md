@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed `ssm_param find`/`update`/`delete` returning "Resource not found" for hierarchical parameter names (e.g. `/customer/web/demo`) by double URL-encoding the name in the path segment to match what the portal UI sends (`/` → `%252F`)
 - Fixed `ssm_param apply` crashing with `TypeError: update() got an unexpected keyword argument 'body'` by extending `ssm_param update` to accept `body` and `patches`, aligning it with the V3 base `apply` flow
+- Fixed `ssm_param update` with `patches` (or no value) overwriting a SecureString's real value with the obfuscated `****` placeholder by fetching the current body with `show_sensitive=True`
 - Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` and `apply` to use `Username` and set the correct `State` for create vs update
 - Updated broken links in batch documentation
 - Fixed `batch_scheduling_policy update` returning 405 by PUTting to the collection endpoint instead of a named resource path

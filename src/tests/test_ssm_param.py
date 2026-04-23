@@ -128,6 +128,37 @@ def test_update_with_body_skips_fetch_and_puts_directly(mocker):
     assert put_body is supplied
 
 
+@pytest.mark.unit
+def test_update_securestring_with_patches_preserves_real_value(mocker):
+    """Patch-style update on a SecureString must PUT the real value, not the
+    obfuscated '****' that find() returns by default. Regression test for the
+    data-loss path flagged in PR #257 review."""
+    ssm = _make_ssm(mocker)
+    mock_client = _mock_client(
+        mocker,
+        ssm,
+        {
+            "Name": "mysecret",
+            "Type": "SecureString",
+            "Value": "realsecret",
+            "Description": "old",
+        },
+    )
+    ssm.duplo.jsonpatch.side_effect = (
+        lambda data, patches: {**data, "Description": patches[0]["value"]}
+    )
+
+    ssm.update(
+        name="mysecret",
+        patches=[{"op": "replace", "path": "/Description", "value": "new desc"}],
+    )
+
+    put_body = mock_client.put.call_args[0][1]
+    assert put_body["Value"] == "realsecret"
+    assert put_body["Description"] == "new desc"
+    assert "*" not in put_body["Value"]
+
+
 # --- apply (V3 base flow) ---
 
 @pytest.mark.unit
