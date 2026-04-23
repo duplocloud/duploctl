@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `asg create` docstring showing `duploctl hosts create` instead of `duploctl asg create`
+- Fixed `asg scale` docstring advertising a non-existent `-n <name>` flag; `name` is a positional argument
+- Fixed `ecs list_task_def_family` docstring referencing a non-existent `list_definitions` command
+- Added missing `Usage: CLI Usage` blocks to all remaining `ecs` commands without one (`create_service`, `update_service`, `update_taskdef`, `delete_service`, `find_def`, `find_def_by_arn`, `find_service_family`, `find_task_def_family`) so the generated docs show how to invoke them
+- Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` and `apply` to use `Username` and set the correct `State` for create vs update
 - Updated broken links in batch documentation
 - Fixed `batch_scheduling_policy update` returning 405 by PUTting to the collection endpoint instead of a named resource path
 - Fixed `batch_scheduling_policy` resource decorator name colliding with `batch_job`
