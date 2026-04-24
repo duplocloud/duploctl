@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `service update_image` now uses the V3 containerimage endpoint and supports updating main, sidecar, and init container images in a single call
+- `rds` exposes a `modify` command wrapping the `ModifyRDSDBInstance` endpoint; `set_monitor_interval`, `iam_auth`, `final_snapshot`, and `retention_period` now delegate to it
 
 ### Fixed
 
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `cloudfront apply` crashing with `KeyError: 'metadata'` by overriding `apply` to resolve the distribution by its `Comment` (CloudFront's logical name) via a find-then-update-or-create flow; `find` now takes separate `name` (Comment) and `id` parameters, mirroring `tenant.find()`
 - Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` to return `Username` and adding an `update` method; the inherited V2 `apply` now drives the find → update/create flow
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
+- Fixed `rds retention_period`, `rds iam_auth`, and `rds final_snapshot` failing with JSON decode error by using the correct `ModifyRDSDBInstance` endpoint
 - Fixed `s3 update` and `s3 find` failing when using short bucket names by trying the name as-is against the single-bucket GET endpoint and falling back to the constructed full name (`duploservices-<tenant>-<name>-<account_id>`) when not found
 - Fixed `lambda apply` failing with "No lambda functions found" when creating the first lambda in a tenant
 - Fixed `service apply` creating instead of updating when V3 find endpoint returns 200 with null body for non-existent services
