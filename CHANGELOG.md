@@ -13,11 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `asg create` docstring showing `duploctl hosts create` instead of `duploctl asg create`
+- Fixed `asg scale` docstring advertising a non-existent `-n <name>` flag; `name` is a positional argument
+- Fixed `ecs list_task_def_family` docstring referencing a non-existent `list_definitions` command
+- Added missing `Usage: CLI Usage` blocks to all remaining `ecs` commands without one (`create_service`, `update_service`, `update_taskdef`, `delete_service`, `find_def`, `find_def_by_arn`, `find_service_family`, `find_task_def_family`) so the generated docs show how to invoke them
 - Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` and `apply` to use `Username` and set the correct `State` for create vs update
 - Updated broken links in batch documentation
 - Fixed `batch_scheduling_policy update` returning 405 by PUTting to the collection endpoint instead of a named resource path
 - Fixed `batch_scheduling_policy` resource decorator name colliding with `batch_job`
 - Fixed `rds delete` showing internal AWS path (`aws/rds/instance/<name>`) instead of only the database name
+- Fixed `cloudfront apply` crashing with `KeyError: 'metadata'` by overriding `apply` to resolve the distribution by its `Comment` (CloudFront's logical name) via a find-then-update-or-create flow; `find` now takes separate `name` (Comment) and `id` parameters, mirroring `tenant.find()`
 - Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` to return `Username` and adding an `update` method; the inherited V2 `apply` now drives the find → update/create flow
 - Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
 - Fixed `s3 update` and `s3 find` failing when using short bucket names by trying the name as-is against the single-bucket GET endpoint and falling back to the constructed full name (`duploservices-<tenant>-<name>-<account_id>`) when not found
