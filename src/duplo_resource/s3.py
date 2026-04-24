@@ -18,7 +18,7 @@ class DuploS3(DuploResourceV3):
     """Resolve the AWS account ID from system info, cached on the instance."""
     if not self._aws_account_id:
       sys_info = self.duplo.load("system").info()
-      account_id = sys_info.get("DefaultAwsAccount")
+      account_id = sys_info.get("DefaultAwsAccount", None)
       if not account_id:
         raise DuploError(
           "Could not resolve AWS account ID from system info; "
@@ -118,7 +118,7 @@ class DuploS3(DuploResourceV3):
       ```
 
     Args:
-      name: The full bucket name (e.g. duploservices-tenant-mybucket).
+      name: The full bucket name (e.g. duploservices-tenant-mybucket-123456).
 
     Returns:
       message: A success message.
@@ -126,6 +126,7 @@ class DuploS3(DuploResourceV3):
     Raises:
       DuploError: If the bucket could not be deleted.
     """
-    full_name = self.name_from_body(self.find(name))
+    current = self.find(name)
+    full_name = self.name_from_body(current)
     self.client.delete(self.endpoint(full_name))
     return {"message": f"S3 bucket '{full_name}' deleted"}
