@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `ssm_param find`/`update`/`delete` returning "Resource not found" for hierarchical parameter names (e.g. `/customer/web/demo`) by double URL-encoding the name in the path segment to match what the portal UI sends (`/` → `%252F`)
+- Fixed `ssm_param apply` crashing with `TypeError: update() got an unexpected keyword argument 'body'` by extending `ssm_param update` to accept `body` and `patches`, aligning it with the V3 base `apply` flow
+- Fixed `ssm_param update` with `patches` (or no value) overwriting a SecureString's real value with the obfuscated `****` placeholder by fetching the current body with `show_sensitive=True`
 - Fixed `asg create` docstring showing `duploctl hosts create` instead of `duploctl asg create`
 - Fixed `asg scale` docstring advertising a non-existent `-n <name>` flag; `name` is a positional argument
 - Fixed `ecs list_task_def_family` docstring referencing a non-existent `list_definitions` command
