@@ -5,13 +5,12 @@ import os
 import yaml
 import jsonpatch
 import logging
-import traceback
 from urllib.parse import urlparse
 from pathlib import Path
 from .commander import load_resource, load_format, load_client
 from .errors import DuploError, DuploInvalidError
 from . import args
-from .commander import Command, get_parser, extract_args, available_resources, VERSION
+from .commander import Command, get_parser, extract_args, available_resources, format_resource_commands, VERSION
 from typing import TypeVar
 try:
   import duplocloud_sdk
@@ -310,11 +309,10 @@ Available Resources:
         d = r(*args, **kwargs)
       except TypeError as te:
         self.logger.debug(te)
-        if (r.__doc__):
-          raise DuploError(r.__doc__, 400)
-        else:
-          traceback.print_exc()
-          raise DuploError(f"No docstring found, error calling command {resource} : Traceback printed", 400)
+        doc = (r.__doc__ or "").rstrip()
+        commands = format_resource_commands(resource)
+        msg = f"{doc}\n\n{commands}" if doc else commands
+        raise DuploError(msg, 400)
     if d is None:
       return None
     d = self.filter(d, query=query)
