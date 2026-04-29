@@ -163,23 +163,50 @@ class DuploRDS(DuploResourceV3):
     }
   
   @Command()
+  def modify(self,
+             name: args.NAME,
+             body: args.BODY) -> dict:
+    """Modify a DB instance via the ModifyRDSDBInstance endpoint.
+
+    Sends an arbitrary request body to the AWS ModifyRDSDBInstance API
+    for the named DB instance. Used internally by higher-level commands
+    like iam_auth, final_snapshot, and retention_period.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl rds modify <name> -f payload.yaml
+      ```
+
+    Args:
+      name: The name of the DB instance to modify.
+      body: The ModifyRDSDBInstance request body.
+
+    Returns:
+      message: A success message.
+    """
+    body["DBInstanceIdentifier"] = name
+    self.client.post(
+      f"subscriptions/{self.tenant_id}/ModifyRDSDBInstance", body
+    )
+    return {
+      "message": f"DB instance {name} modified"
+    }
+
+  @Command()
   def set_monitor_interval(self,
                            name: args.NAME,
                            interval: args.INTERVAL,
                            immediate: args.IMMEDIATE=False):
     """Set the monitoring interval for a DB instance.
-    
+
     Args:
       name (str): The name of the DB instance to update.
       interval (str): The new monitoring interval to use for the DB instance.
     """
-    tenant_id = self.tenant["TenantId"]
-    body = {
-      "DBInstanceIdentifier": name,
-      "ApplyImmediately": immediate, 
-      "MonitoringInterval":interval
-    }
-    self.client.post(f"subscriptions/{tenant_id}/ModifyRDSDBInstance", body)
+    self.modify(name=name, body={
+      "ApplyImmediately": immediate,
+      "MonitoringInterval": interval
+    })
     return {
       "message": f"Monitoring interval for DB instance {name} set to {interval}"
     }
@@ -200,28 +227,24 @@ class DuploRDS(DuploResourceV3):
                enable: args.ENABLE,
                immediate: args.IMMEDIATE=False):
     """Toggle IAM authentication for a DB instance."""
-    body = {
-      "DBInstanceIdentifier": name,
+    self.modify(name=name, body={
       "EnableIAMDatabaseAuthentication": enable,
       "ApplyImmediately": immediate
-    }
-    self.update(name=name, body=body)
+    })
     return {
       "message": f"IAM authentication for DB instance {name} is {enable}"
     }
-  
+
   @Command()
   def final_snapshot(self,
                      name: args.NAME,
                      enable: args.ENABLE,
                      immediate: args.IMMEDIATE=False):
-    """Toggle IAM authentication for a DB instance."""
-    body = {
-      "DBInstanceIdentifier": name,
+    """Toggle final snapshot for a DB instance."""
+    self.modify(name=name, body={
       "SkipFinalSnapshot": not enable,
       "ApplyImmediately": immediate
-    }
-    self.update(name=name, body=body)
+    })
     return {
       "message": f"Final Snapshot for DB instance {name} is {enable}"
     }
@@ -258,12 +281,10 @@ class DuploRDS(DuploResourceV3):
                        days: args.DAYS,
                        immediate: args.IMMEDIATE=False):
     """Set the retention period for a DB instance."""
-    body = {
-      "DBInstanceIdentifier": name,
+    self.modify(name=name, body={
       "BackupRetentionPeriod": days,
       "ApplyImmediately": immediate
-    }
-    self.update(name=name, body=body)
+    })
     return {
       "message": f"DB instance {name} retention period set to {days} days"
     }
