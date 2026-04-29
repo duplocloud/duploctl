@@ -227,6 +227,7 @@ def Command(*aliases, model: str = None) -> Callable:
       "method": function.__name__,
       "aliases": list(aliases),
       "model": model,
+      "function": function,
     }
     return function
   return decorator
@@ -275,6 +276,15 @@ def get_command_schema(cls: Type, command: str) -> dict:
     if (v["class"] in clss) and (command == v["method"] or command in v.get("aliases", []))
   ), None)
   if not s:
+    resource_name = next(
+      (n for n, r in resources.items() if r["class"] in clss),
+      None,
+    )
+    if resource_name:
+      raise DuploError(
+        f"Command {command} not found.\n\n{format_resource_commands(resource_name)}",
+        404,
+      )
     raise DuploError(f"Command {command} not found.", 404)
   return s
 
@@ -369,6 +379,90 @@ def available_formats() -> List[str]:
     A list of available format names.
   """
   return list(fep.names)
+
+def resource_help_intercept(argv: List[str]) -> bool:
+  """Resource Help Intercept
+
+  If ``argv`` represents a ``<resource> --help`` invocation, print the
+  resource's command listing and return True. Otherwise return False.
+
+  Argparse's default --help action on the global parser otherwise swallows
+  --help before resource dispatch runs, hiding the resource's subcommands.
+  Only intercept when the lone positional is a registered resource — leaves
+  ``duploctl --help``, ``duploctl <resource> <command> --help``, and unknown
+  resources to the existing argparse path.
+
+  Args:
+    argv: The CLI arguments to inspect (typically ``sys.argv[1:]``).
+
+  Returns:
+    True if the request was handled (and help printed); False otherwise.
+  """
+  if "--help" not in argv and "-h" not in argv:
+    return False
+  positionals = [a for a in argv if not a.startswith("-")]
+  if len(positionals) != 1:
+    return False
+  resource = positionals[0]
+  if resource not in available_resources():
+    return False
+  cls = load_resource(resource)
+  doc = (cls.__doc__ or "").rstrip()
+  body = format_resource_commands(resource)
+  print(f"{doc}\n\n{body}" if doc else body)
+  return True
+
+def format_resource_commands(name: str) -> str:
+  """Format Resource Commands
+
+  Build a user-facing block listing every @Command method registered for a
+  resource, sorted by method name. Each line shows the method name, optional
+  aliases, and the first line of the method's docstring. Used by error paths
+  and resource-level --help to make subcommands discoverable.
+
+  Base-class docstrings use ``{{kind}}`` templates rendered at docs-build time;
+  this helper substitutes them with the resource's registered name so runtime
+  output stays readable.
+
+  Args:
+    name: The resource name (e.g. "ecs").
+
+  Returns:
+    A multi-line string starting with "Available commands for {name}:".
+
+  Raises:
+    DuploError: If the resource is not registered.
+  """
+  # Resource modules register their @Command schemas at import time; ensure
+  # the module has been loaded for entry-point-registered resources before
+  # asking commands_for for the listing. In-process registrations (e.g. test
+  # fixtures) are already in `resources` and skip this load.
+  if name not in resources:
+    load_resource(name)
+  cmds = commands_for(name)
+  entries = []
+  for method_name in sorted(cmds.keys()):
+    cmd = cmds[method_name]
+    label = method_name
+    if cmd.get("aliases"):
+      label = f"{method_name} (aliases: {', '.join(cmd['aliases'])})"
+    func = cmd.get("function")
+    summary = ""
+    if func is not None and func.__doc__:
+      for line in func.__doc__.splitlines():
+        s = line.strip()
+        if s:
+          summary = s.replace("{{kind | lower}}", name).replace("{{kind|lower}}", name).replace("{{kind}}", name)
+          break
+    entries.append((label, summary))
+  width = max((len(label) for label, _ in entries), default=0)
+  lines = [f"Available commands for {name}:"]
+  for label, summary in entries:
+    if summary:
+      lines.append(f"  {label.ljust(width)}  {summary}")
+    else:
+      lines.append(f"  {label}")
+  return "\n".join(lines)
 
 def commands_for(name: str) -> dict:
   """Commands For

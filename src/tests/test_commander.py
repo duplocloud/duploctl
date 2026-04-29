@@ -2,7 +2,7 @@ import pathlib
 import pytest 
 # import unittest
 import argparse
-from duplocloud.commander import schema, resources, Command, Resource, get_parser, get_command_schema, extract_args, available_resources, load_resource, commands_for
+from duplocloud.commander import schema, resources, Command, Resource, get_parser, get_command_schema, extract_args, available_resources, load_resource, commands_for, format_resource_commands
 from duplocloud.argtype import Arg, DataMapAction
 from duplocloud.errors import DuploError
 # from duplo_resource.service import DuploService
@@ -220,6 +220,36 @@ def test_commands_for():
   with pytest.raises(DuploError) as exc_info:
     commands_for("nonexistent")
   assert "Resource named nonexistent not found" in str(exc_info.value)
+
+@pytest.mark.unit
+def test_format_resource_commands_lists_methods_and_aliases():
+  out = format_resource_commands("teststandalone")
+  # Header references the resource name
+  assert out.startswith("Available commands for teststandalone:")
+  # Both registered methods appear
+  assert "list" in out
+  assert "delete" in out
+  # The list method has an alias and should advertise it
+  assert "aliases: ls" in out
+
+@pytest.mark.unit
+def test_format_resource_commands_includes_inherited():
+  out = format_resource_commands("testchild")
+  # Child + inherited parent commands all appear
+  for method in ("list", "find", "create", "update"):
+    assert method in out
+  # find is overridden by child and aliased "get"
+  assert "aliases: get" in out
+
+@pytest.mark.unit
+def test_get_command_schema_not_found_lists_commands():
+  with pytest.raises(DuploError) as exc_info:
+    get_command_schema(StandaloneTestResource, "bogus")
+  msg = str(exc_info.value)
+  assert "Command bogus not found." in msg
+  assert "Available commands for teststandalone:" in msg
+  assert "delete" in msg
+  assert "list" in msg
 
 @pytest.mark.unit
 def test_commands_for_no_parent():
