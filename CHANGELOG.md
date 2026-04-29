@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `ecs update_image --container-image` silently registering an unchanged task-definition revision (and triggering a service rollout) when the supplied container name did not exist; it now raises with the list of valid container names
 - Fixed `asg create` docstring showing `duploctl hosts create` instead of `duploctl asg create`
 - Fixed `asg scale` docstring advertising a non-existent `-n <name>` flag; `name` is a positional argument
 - Fixed `ecs list_task_def_family` docstring referencing a non-existent `list_definitions` command
