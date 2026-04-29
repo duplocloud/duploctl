@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed auto-generated CLI usage examples in the docs rendering the wrong command name for resources whose class name differs from the entry-point name. The base `DuploResourceV2`/`DuploResourceV3` docstrings now use `{{command}}` (the entry-point name) instead of `{{kind | lower}}` (derived from the class name). Affects `aws_secret` (was `awssecret`), `ssm_param` (was `param`), `pvc` (was `persistentvolumeclaim`), and `ecs` (was `ecsservice`).
 - Fixed `asg create` docstring showing `duploctl hosts create` instead of `duploctl asg create`
 - Fixed `asg scale` docstring advertising a non-existent `-n <name>` flag; `name` is a positional argument
 - Fixed `ecs list_task_def_family` docstring referencing a non-existent `list_definitions` command
