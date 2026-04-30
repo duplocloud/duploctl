@@ -111,7 +111,7 @@ class DuploResourceV2(DuploResource):
     
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} list
+      duploctl {{command}} list
       ```
 
     Returns:
@@ -126,7 +126,7 @@ class DuploResourceV2(DuploResource):
 
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} find <name>
+      duploctl {{command}} find <name>
       ```
     
     Args:
@@ -182,7 +182,7 @@ class DuploResourceV3(DuploResource):
 
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} list
+      duploctl {{command}} list
       ```
     
     Returns:
@@ -198,7 +198,7 @@ class DuploResourceV3(DuploResource):
 
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} find <name>
+      duploctl {{command}} find <name>
       ```
 
     Args:
@@ -221,7 +221,7 @@ class DuploResourceV3(DuploResource):
 
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} delete <name>
+      duploctl {{command}} delete <name>
       ```
 
     Args:
@@ -247,7 +247,7 @@ class DuploResourceV3(DuploResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl {{kind | lower}} create -f '{{kind | lower}}.yaml'
+      duploctl {{command}} create -f '{{kind | lower}}.yaml'
       ```
       Contents of the `{{kind|lower}}.yaml` file
       ```yaml
@@ -258,7 +258,7 @@ class DuploResourceV3(DuploResource):
       ```sh
       echo \"\"\"
       --8<-- "src/tests/data/{{kind|lower}}.yaml"
-      \"\"\" | duploctl {{kind | lower}} create -f -
+      \"\"\" | duploctl {{command}} create -f -
       ```
 
     Args:
@@ -321,7 +321,7 @@ class DuploResourceV3(DuploResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl {{kind | lower}} apply -f '{{kind | lower}}.yaml'
+      duploctl {{command}} apply -f '{{kind | lower}}.yaml'
       ```
       Contents of the `{{kind|lower}}.yaml` file
       ```yaml
