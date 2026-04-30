@@ -106,7 +106,7 @@ def gen_resource_page(endpoint: str):
   command_opts = member_opts + "\n      is_command: true"
 
   with open(fp, 'w') as f:
-    f.write(f"---\nkind: {kind}\n---\n")
+    f.write(f"---\nkind: {kind}\ncommand: {resource_name}\n---\n")
     f.write(f"::: {ref}\n    options:\n      members: false\n      inherited_members: false\n\n")
     if command_methods:
       f.write("## Commands\n\n")
