@@ -333,6 +333,14 @@ class DuploEcsService(DuploResourceV2):
     tdf = self.find_def(name)
     if container_image:
       container_updates = dict(container_image)
+      known_names = [c.get("Name") for c in tdf.get("ContainerDefinitions", []) if c.get("Name")]
+      unknown = [n for n in container_updates if n not in known_names]
+      if unknown:
+        raise DuploError(
+          f"Container name(s) not found in task definition '{name}': {unknown}. "
+          f"Available containers: {known_names}",
+          404,
+        )
       for container_def in tdf["ContainerDefinitions"]:
         if container_def["Name"] in container_updates:
           container_def["Image"] = container_updates[container_def["Name"]]
