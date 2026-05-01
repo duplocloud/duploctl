@@ -455,6 +455,8 @@ def format_resource_commands(name: str) -> str:
           summary = s.replace("{{kind | lower}}", name).replace("{{kind|lower}}", name).replace("{{kind}}", name)
           break
     entries.append((label, summary))
+  if not entries:
+    return f"No commands registered for {name}."
   width = max((len(label) for label, _ in entries), default=0)
   lines = [f"Available commands for {name}:"]
   for label, summary in entries:

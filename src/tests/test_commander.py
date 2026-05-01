@@ -67,10 +67,14 @@ class StandaloneTestResource():
   @Command("ls")
   def list(self):
     pass
-  
+
   @Command()
   def delete(self):
     pass
+
+@Resource("testempty")
+class EmptyTestResource():
+  pass
 
 @pytest.mark.unit
 def test_command_registration():
@@ -231,6 +235,11 @@ def test_format_resource_commands_lists_methods_and_aliases():
   assert "delete" in out
   # The list method has an alias and should advertise it
   assert "aliases: ls" in out
+
+@pytest.mark.unit
+def test_format_resource_commands_empty_resource():
+  out = format_resource_commands("testempty")
+  assert out == "No commands registered for testempty."
 
 @pytest.mark.unit
 def test_format_resource_commands_includes_inherited():
