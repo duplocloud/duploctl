@@ -365,12 +365,18 @@ TITLE = Arg("title", "--title",
             required=True)
 
 AGENTNAME = Arg("agent_name", "--agent_name", "--agent",
-                help= "AI Agent to be used to process the ticket",
-                required=True)
+                help= "AI Agent name to be used to process the ticket. Either --agent_id or --agent_name is required; --agent_id is preferred.",
+                required=False,
+                default=None)
 
-INSTANCEID = Arg("instance_id","--instance_id", "--instance",
-                help= "AI Agent Instance Id",
-                required=True)
+AGENTID = Arg("agent_id", "--agent_id", "--aid",
+              help= "AI Agent ID to be used to process the ticket. Skips the agent name lookup when provided.",
+              required=False,
+              default=None)
+
+WORKSPACENAME = Arg("workspace_name", "--workspace_name", "--workspace", "-W",
+                    help= "AI HelpDesk workspace name. Resolved to a workspace ID via the workspaces lookup.",
+                    required=True)
 
 APIVERSION = Arg("api_version", "--api-version",
                 help="API Version",

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `ai create_ticket` no longer accepts `--instance_id`. The command now takes either `--agent_id` (preferred, sent directly as `aiAgentId` with no lookup) or `--agent_name` (resolved against the AI HelpDesk agents API). If `--content` is provided the command also calls `send_message` and returns the agent reply as `ai_response`.
+- `ai create_ticket` and `ai send_message` now require `--workspace_name`. The name is resolved to a workspace ID via `GET /aiservicedesk/admin/data/workspaces?filters[name]=…` and that ID is used in the ticket URL, request payload, follow-up `sendmessage` call, and chat URL (replacing the prior — and backend-rejected — use of the Duplo TenantId UUID in the workspace path segment).
+- `ai create_ticket` and `ai send_message` now check the assigned agent's `metaData.STREAMING_ENABLED` flag and dispatch to `POST /sendMessageStreaming` (SSE) when it is `"true"`, falling back to `POST /sendMessage` otherwise. This avoids the backend's non-streaming agent-invocation deserializer choking on NDJSON responses for streaming agents. SSE `text_delta` events are concatenated into the returned `ai_response.content`.
 - `service update_image` now uses the V3 containerimage endpoint and supports updating main, sidecar, and init container images in a single call
 - `rds` exposes a `modify` command wrapping the `ModifyRDSDBInstance` endpoint; `set_monitor_interval`, `iam_auth`, `final_snapshot`, and `retention_period` now delegate to it
 
