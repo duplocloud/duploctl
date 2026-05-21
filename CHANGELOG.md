@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `ai` resource no longer inherits from `DuploResourceV3`. The base class added `list`/`find`/`create`/`update`/`delete`/`apply` commands that routed through an empty slug, producing broken URLs (`v3/subscriptions/{tid}//`) and misleading users via `duploctl ai --help`. The helpdesk API is non-CRUD; the only working commands are `create_ticket` and `send_message`, both of which build their paths dynamically. `self.client` and `self.tenant_id` are still available via the `@Resource(scope="tenant")` decorator's injection.
 - `service update_image` now uses the V3 containerimage endpoint and supports updating main, sidecar, and init container images in a single call
 - `rds` exposes a `modify` command wrapping the `ModifyRDSDBInstance` endpoint; `set_monitor_interval`, `iam_auth`, `final_snapshot`, and `retention_period` now delegate to it
 

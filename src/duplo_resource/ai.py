@@ -1,16 +1,22 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
-from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 
 @Resource("ai", scope="tenant")
-class DuploAI(DuploResourceV3):
-  """Resource for creating tickets in the DuploCloud AI HelpDesk."""
+class DuploAI:
+  """Resource for creating tickets in the DuploCloud AI HelpDesk.
+
+  This resource is non-CRUD: it does not subclass ``DuploResourceV3`` because
+  the helpdesk API does not expose list/find/create/update/delete/apply routes
+  that fit the V3 contract — the ticket endpoints are built dynamically per
+  command. ``self.client`` and ``self.tenant_id`` are still available via the
+  ``@Resource(scope="tenant")`` decorator's client and tenant-scope injection.
+  """
 
   def __init__(self, duplo: DuploCtl):
-    super().__init__(duplo, "")  # No static endpoint; we build it dynamically
+    self.duplo = duplo
 
   @Command()
   def create_ticket(self,
