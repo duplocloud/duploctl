@@ -47,6 +47,32 @@ def test_ai_exposes_only_real_commands():
     """
     assert set(commands_for("ai").keys()) == {"create_ticket", "send_message"}
 
+
+@pytest.mark.unit
+def test_ai_instance_is_callable():
+    """DuploAI instances must be callable for CLI dispatch.
+
+    DuploCtl.__call__ invokes a loaded resource as ``r(*args, **kwargs)`` to
+    route subcommands; without ``__call__`` on the class, ``duploctl ai
+    create_ticket`` and ``duploctl ai send_message`` raise TypeError before
+    any command method runs. The @Resource decorator does NOT inject
+    __call__ — it must come from extending ``DuploResource`` (v1 base).
+    """
+    class _FakeClient:
+        pass
+
+    class _FakeDuplo:
+        def load(self, _name):
+            return None
+
+        def load_client(self, _name):
+            return _FakeClient()
+
+    ai = DuploAI(_FakeDuplo())
+    assert callable(ai), (
+        "DuploAI instance must be callable — required for CLI subcommand dispatch"
+    )
+
 @pytest.mark.integration
 @pytest.mark.usefixtures("helpdesk_resource")
 class TestDuploAI:
