@@ -72,12 +72,15 @@ class DuploAPI():
       "NeedOTP": otp
     }
 
-  def _request(self, method: str, path: str, **kwargs):
+  def _request(self, method: str, path: str, extra_headers: dict = None, **kwargs):
+    headers = self._headers()
+    if extra_headers:
+      headers.update(extra_headers)
     try:
       response = requests.request(
         method,
         url=f"{self.duplo.host}/{path}",
-        headers=self._headers(),
+        headers=headers,
         timeout=self.duplo.timeout,
         **kwargs,
       )
@@ -112,6 +115,24 @@ class DuploAPI():
       The response as a JSON object.
     """
     return self._request("POST", path, json=data)
+
+  def stream_post(self, path: str, data: dict={}, extra_headers: dict=None):
+    """Post data and stream the response through the shared client.
+
+    Use for SSE / chunked responses. URL construction, auth headers, timeout,
+    exception translation, and status validation are identical to ``post()``;
+    the response is returned unbuffered so callers can iterate ``iter_lines()``
+    / ``iter_content()``. Use a ``with`` block so the connection closes cleanly.
+
+    Args:
+      path: The path to the resource.
+      data: The JSON body to send.
+      extra_headers: Headers to merge with the default auth headers
+        (e.g. ``{"Accept": "text/event-stream"}``).
+    Returns:
+      The streaming response object.
+    """
+    return self._request("POST", path, json=data, stream=True, extra_headers=extra_headers)
 
   def put(self, path: str, data: dict={}):
     """Put data to a Duplo resource.

@@ -237,6 +237,58 @@ def test_create_ticket_unknown_agent_raises(mocker):
 
 
 @pytest.mark.unit
+def test_create_ticket_ambiguous_agent_raises(mocker):
+    """Multiple agent matches → clear error telling user to disambiguate."""
+    ai = _make_ai(mocker)
+    multi = {"success": True, "data": {"items": [
+        {"id": "agent-1", "name": "cicd"},
+        {"id": "agent-2", "name": "cicd"},
+    ]}}
+    client = _make_client(mocker, ai,
+                          get_responses=[_WORKSPACE_LIST_RESPONSE, multi],
+                          post_responses=[])
+
+    with pytest.raises(DuploError, match="Multiple AI agents"):
+        ai.create_ticket(title="Test", workspace_name=_WORKSPACE_NAME, agent_name="cicd")
+
+    assert client.post.call_count == 0
+
+
+@pytest.mark.unit
+def test_resolve_workspace_id_url_encodes_name(mocker):
+    """Names with spaces/special chars are URL-encoded in the lookup query."""
+    ai = _make_ai(mocker)
+    api_response = {
+        "success": True,
+        "data": {"items": [{"id": _WORKSPACE_ID, "name": "my workspace"}]},
+    }
+    client = _make_client(mocker, ai,
+                          get_responses=[api_response],
+                          post_responses=[_TICKET_RESPONSE])
+
+    ai.create_ticket(title="Test", workspace_name="my workspace", agent_id=_AGENT_ID)
+
+    workspace_get_url = client.get.call_args_list[0][0][0]
+    assert "filters[name]=my+workspace" in workspace_get_url
+
+
+@pytest.mark.unit
+def test_resolve_workspace_id_raises_when_id_missing(mocker):
+    """A matched workspace record without an 'id' field surfaces a clear error."""
+    ai = _make_ai(mocker)
+    api_response = {
+        "success": True,
+        "data": {"items": [{"name": _WORKSPACE_NAME}]},  # no 'id'
+    }
+    _make_client(mocker, ai,
+                 get_responses=[api_response],
+                 post_responses=[])
+
+    with pytest.raises(DuploError, match="missing an 'id' field"):
+        ai.create_ticket(title="Test", workspace_name=_WORKSPACE_NAME, agent_id="x")
+
+
+@pytest.mark.unit
 def test_create_ticket_requires_agent_id_or_name(mocker):
     """Workspace given but no agent → DuploError, no POST attempted."""
     ai = _make_ai(mocker)
@@ -329,9 +381,18 @@ def test_send_message_standalone_non_streaming(mocker):
     assert result["ai_response"]["content"] == "ack"
 
 
+def _fake_sse_response(mocker, sse_lines):
+    """Build a context-managed mock streaming response yielding the given SSE lines."""
+    fake_stream = mocker.MagicMock()
+    fake_stream.iter_lines.return_value = iter(sse_lines)
+    fake_stream.__enter__ = mocker.MagicMock(return_value=fake_stream)
+    fake_stream.__exit__ = mocker.MagicMock(return_value=False)
+    return fake_stream
+
+
 @pytest.mark.unit
 def test_create_ticket_with_content_uses_streaming_when_flag_true(mocker):
-    """STREAMING_ENABLED='true' → POST /sendMessageStreaming via requests + SSE parse."""
+    """STREAMING_ENABLED='true' → POST routed via client.stream_post + SSE parse."""
     ai = _make_ai(mocker)
     client = _make_client(
         mocker, ai,
@@ -350,12 +411,7 @@ def test_create_ticket_with_content_uses_streaming_when_flag_true(mocker):
         'data: {"type":"done","stop_reason":"end_turn"}',
         '',
     ]
-    fake_stream = mocker.MagicMock()
-    fake_stream.status_code = 200
-    fake_stream.iter_lines.return_value = iter(sse_lines)
-    fake_stream.__enter__ = mocker.MagicMock(return_value=fake_stream)
-    fake_stream.__exit__ = mocker.MagicMock(return_value=False)
-    requests_post = mocker.patch("duplo_resource.ai.requests.post", return_value=fake_stream)
+    client.stream_post.return_value = _fake_sse_response(mocker, sse_lines)
 
     result = ai.create_ticket(
         title="Test ticket",
@@ -368,13 +424,13 @@ def test_create_ticket_with_content_uses_streaming_when_flag_true(mocker):
     assert client.post.call_count == 1
     assert client.post.call_args_list[0][0][0].endswith(f"/tickets/{_WORKSPACE_ID}")
 
-    requests_post.assert_called_once()
-    streaming_url = requests_post.call_args[0][0]
-    assert streaming_url.endswith(
-        f"/v1/aiservicedesk/tickets/{_WORKSPACE_ID}/DEVOPS-42/sendMessageStreaming")
-    headers = requests_post.call_args[1]["headers"]
-    assert headers["Accept"] == "text/event-stream"
-    assert headers["Authorization"] == "Bearer fake-token"
+    client.stream_post.assert_called_once()
+    streaming_path = client.stream_post.call_args[0][0]
+    assert streaming_path == (
+        f"v1/aiservicedesk/tickets/{_WORKSPACE_ID}/DEVOPS-42/sendMessageStreaming"
+    )
+    extra_headers = client.stream_post.call_args[1]["extra_headers"]
+    assert extra_headers == {"Accept": "text/event-stream"}
 
     assert result["ai_response"] == "Hello world"
 
@@ -394,12 +450,7 @@ def test_streaming_sse_handles_error_event(mocker):
         'data: {"type":"error","error":"agent exploded"}',
         '',
     ]
-    fake_stream = mocker.MagicMock()
-    fake_stream.status_code = 200
-    fake_stream.iter_lines.return_value = iter(sse_lines)
-    fake_stream.__enter__ = mocker.MagicMock(return_value=fake_stream)
-    fake_stream.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("duplo_resource.ai.requests.post", return_value=fake_stream)
+    client.stream_post.return_value = _fake_sse_response(mocker, sse_lines)
 
     with pytest.raises(DuploError, match="agent exploded"):
         ai.send_message(
@@ -408,26 +459,25 @@ def test_streaming_sse_handles_error_event(mocker):
             content="hello",
         )
 
-    # client.post never called — streaming path uses requests.post directly
+    # client.post never called — streaming path uses client.stream_post
     assert client.post.call_count == 0
 
 
 @pytest.mark.unit
 def test_streaming_sse_propagates_http_error(mocker):
-    """Non-2xx status on the streaming POST raises DuploError with the body."""
+    """Non-2xx status on the streaming POST raises DuploError via the shared client."""
     ai = _make_ai(mocker)
-    _make_client(
+    client = _make_client(
         mocker, ai,
         get_responses=[_WORKSPACE_LIST_RESPONSE, _TICKET_DETAIL, _AGENT_DETAIL_STREAMING],
         post_responses=[],
     )
 
-    fake_stream = mocker.MagicMock()
-    fake_stream.status_code = 500
-    fake_stream.text = "boom"
-    fake_stream.__enter__ = mocker.MagicMock(return_value=fake_stream)
-    fake_stream.__exit__ = mocker.MagicMock(return_value=False)
-    mocker.patch("duplo_resource.ai.requests.post", return_value=fake_stream)
+    # The shared client raises before returning when status is non-2xx —
+    # _validate_response wraps it as DuploError. Simulate that behavior.
+    client.stream_post.side_effect = DuploError(
+        "Duplo responded with (500): boom", 500
+    )
 
     with pytest.raises(DuploError, match="500"):
         ai.send_message(

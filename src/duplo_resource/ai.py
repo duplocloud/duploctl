@@ -1,9 +1,8 @@
 import json
-
-import requests
+from urllib.parse import quote_plus
 
 from duplocloud.controller import DuploCtl
-from duplocloud.errors import DuploConnectionError, DuploError
+from duplocloud.errors import DuploError
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -30,7 +29,8 @@ class DuploAI(DuploResourceV3):
       DuploError: If zero or multiple workspaces match the given name.
     """
     workspaces_data = self.client.get(
-        f"{api_version}/aiservicedesk/admin/data/workspaces?filters[name]={workspace_name}"
+        f"{api_version}/aiservicedesk/admin/data/workspaces"
+        f"?filters[name]={quote_plus(workspace_name)}"
     ).json()
     items = workspaces_data.get("data", {}).get("items", [])
     target = workspace_name.lower()
@@ -42,19 +42,41 @@ class DuploAI(DuploResourceV3):
           f"Multiple AI HelpDesk workspaces match name '{workspace_name}'; "
           "please use a unique name."
       )
-    return matches[0].get("id")
+    workspace_id = matches[0].get("id")
+    if not workspace_id:
+      raise DuploError(
+          f"AI HelpDesk workspace '{workspace_name}' is missing an 'id' field "
+          "in the API response."
+      )
+    return workspace_id
 
   def _resolve_agent_id(self, agent_name: str, api_version: str) -> str:
-    """Resolve an AI agent name to its agent ID via the agents lookup."""
+    """Resolve an AI agent name to its agent ID via the agents lookup.
+
+    Raises ``DuploError`` if zero or multiple agents match, mirroring the
+    workspace resolver's strict behavior so a duplicate-name backend state
+    never silently picks the wrong agent.
+    """
     agents_data = self.client.get(
-        f"{api_version}/aiservicedesk/admin/data/aiagents?filters[name]={agent_name}"
+        f"{api_version}/aiservicedesk/admin/data/aiagents"
+        f"?filters[name]={quote_plus(agent_name)}"
     ).json()
     items = agents_data.get("data", {}).get("items", [])
     target = agent_name.lower()
-    agent = next((a for a in items if (a.get("name") or "").lower() == target), None)
-    if not agent:
+    matches = [a for a in items if (a.get("name") or "").lower() == target]
+    if not matches:
       raise DuploError(f"No AI agent found with name '{agent_name}'")
-    return agent.get("id")
+    if len(matches) > 1:
+      raise DuploError(
+          f"Multiple AI agents match name '{agent_name}'; "
+          "please use a unique name or pass --agent_id."
+      )
+    agent_id = matches[0].get("id")
+    if not agent_id:
+      raise DuploError(
+          f"AI agent '{agent_name}' is missing an 'id' field in the API response."
+      )
+    return agent_id
 
   def _agent_supports_streaming(self, agent_id: str, api_version: str) -> bool:
     """Return True if the agent's ``metaData.STREAMING_ENABLED`` is the string ``"true"``.
@@ -288,6 +310,11 @@ class DuploAI(DuploResourceV3):
                               api_version: str) -> dict:
     """POST to the SSE sendMessageStreaming endpoint and assemble the reply.
 
+    Routes through ``DuploAPI.stream_post`` so URL construction, auth header
+    injection, timeout, exception translation, and status validation are
+    identical to non-streaming calls — the streaming transport is the only
+    difference.
+
     The endpoint returns ``text/event-stream`` chunks; each event is
     ``event: <type>\\ndata: <json>\\n\\n``. The agent emits ``text_delta``
     chunks for the visible reply, ``error`` events on failure, and a final
@@ -295,8 +322,8 @@ class DuploAI(DuploResourceV3):
     returns a dict shaped like the unary reply so callers don't need to
     branch on transport.
     """
-    url = (
-        f"{self.duplo.host}/{api_version}/aiservicedesk/tickets/"
+    path = (
+        f"{api_version}/aiservicedesk/tickets/"
         f"{workspace_id}/{ticket_id}/sendMessageStreaming"
     )
     payload = {
@@ -304,48 +331,31 @@ class DuploAI(DuploResourceV3):
       "data": {},
       "platform_context": {},
     }
-    headers = {
-      "Content-Type": "application/json",
-      "Authorization": f"Bearer {self.client.token}",
-      "Accept": "text/event-stream",
-    }
 
     text_parts: list[str] = []
     raw_events: list[dict] = []
-    try:
-      with requests.post(
-          url, json=payload, headers=headers,
-          timeout=self.duplo.timeout, stream=True,
-      ) as resp:
-        if resp.status_code >= 400:
+    with self.client.stream_post(
+        path, payload, extra_headers={"Accept": "text/event-stream"},
+    ) as resp:
+      for raw_line in resp.iter_lines(decode_unicode=True):
+        if not raw_line or not raw_line.startswith("data:"):
+          continue
+        data_str = raw_line[len("data:"):].strip()
+        if not data_str:
+          continue
+        try:
+          event = json.loads(data_str)
+        except json.JSONDecodeError:
+          continue
+        raw_events.append(event)
+        etype = event.get("type")
+        if etype == "text_delta":
+          text_parts.append(event.get("text", ""))
+        elif etype == "error":
           raise DuploError(
-              f"Duplo responded with ({resp.status_code}): {resp.text}",
-              resp.status_code,
-          )
-        for raw_line in resp.iter_lines(decode_unicode=True):
-          if not raw_line or not raw_line.startswith("data:"):
-            continue
-          data_str = raw_line[len("data:"):].strip()
-          if not data_str:
-            continue
-          try:
-            event = json.loads(data_str)
-          except json.JSONDecodeError:
-            continue
-          raw_events.append(event)
-          etype = event.get("type")
-          if etype == "text_delta":
-            text_parts.append(event.get("text", ""))
-          elif etype == "error":
-            raise DuploError(
-                f"Agent stream error: {event.get('error') or event}")
-          elif etype == "done":
-            break
-    except requests.exceptions.Timeout as e:
-      raise DuploConnectionError("Streaming request timed out") from e
-    except requests.exceptions.ConnectionError as e:
-      raise DuploConnectionError(
-          "Failed to establish streaming connection") from e
+              f"Agent stream error: {event.get('error') or event}")
+        elif etype == "done":
+          break
 
     return {
       "content": "".join(text_parts),
