@@ -44,7 +44,10 @@ build = [
   "Jinja2"
 ]
 test = [
-  "pytest",
+  # pytest-black 0.6.0 (latest) uses the legacy pytest_collect_file(path=...)
+  # hook signature that pytest 9.1 removed, which crashes plugin registration.
+  # Pin below 9.1 until pytest-black/pytest-isort are dropped in favor of ruff.
+  "pytest<9.1",
   "ruff",
   "pip-audit",
   "pytest-black",
