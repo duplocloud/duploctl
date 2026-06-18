@@ -47,8 +47,6 @@ test = [
   "pytest",
   "ruff",
   "pip-audit",
-  "pytest-black",
-  "pytest-isort",
   "pytest-cov",
   "pytest-dependency",
   "pytest-order",
