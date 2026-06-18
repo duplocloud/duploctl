@@ -141,11 +141,15 @@ class DuploRDS(DuploResourceV3):
     Lists all RDS resources, classifies each by engine, and stops them:
     regular instances via the instance endpoint, Aurora/cluster engines
     via the cluster endpoint (deduped so a multi-node cluster is stopped
-    once), and Aurora Serverless v1 / DocumentDB skipped. Errors meaning
-    the resource is already stopped/stopping are treated as benign.
+    once), and Aurora Serverless v1 / DocumentDB skipped. Resources
+    already stopped/stopping are treated as benign.
 
     Args:
       exclude: Instance identifiers to leave running.
+
+    Returns:
+      A list of (name, DuploError) for resources that failed for a
+      genuine reason (empty if all succeeded or were benign/skipped).
     """
     return self._action_all("stop", exclude)
 
@@ -156,12 +160,24 @@ class DuploRDS(DuploResourceV3):
 
     Args:
       exclude: Instance identifiers to leave stopped.
+
+    Returns:
+      A list of (name, DuploError) for resources that failed for a
+      genuine reason (empty if all succeeded or were benign/skipped).
     """
     return self._action_all("start", exclude)
 
   def _action_all(self, action, exclude=()):
-    """Apply ``action`` ("stop"/"start") to all RDS resources, deduped."""
+    """Apply ``action`` ("stop"/"start") to all RDS resources, deduped.
+
+    Best-effort: every eligible resource is attempted. Resources already
+    in the target state (benign) are logged and skipped. Genuine failures
+    are logged and collected, then returned as a list of (name, error) so
+    the caller can decide how to surface them — the sweep is not aborted
+    on the first real failure.
+    """
     seen_clusters = set()
+    errors = []
     for body in self.list():
       name = self.name_from_body(body)
       if name in exclude:
@@ -183,14 +199,17 @@ class DuploRDS(DuploResourceV3):
           continue  # one call per cluster, not per member
         seen_clusters.add(cluster_id)
       try:
-        self._route_action(action, body)
+        # Retry transient (gateway/connection) errors before giving up.
+        self.retry_transient(lambda: self._route_action(action, body))
       except DuploError as e:
         if self._is_benign_state_error(e):
           self.duplo.logger.warning(
             f"{name}: already in target state, skipping ({e})"
           )
         else:
-          self.duplo.logger.warning(f"Skipping {name}: {e}")
+          self.duplo.logger.warning(f"Failed to {action} {name}: {e}")
+          errors.append((name, e))
+    return errors
 
   def _route_action(self, action, body):
     """Route a single RDS resource body to the correct stop/start call."""
@@ -257,14 +276,20 @@ class DuploRDS(DuploResourceV3):
     return "instance"
 
   def _is_benign_state_error(self, e):
-    """True if the error means the resource is already in the target state."""
+    """True only when the resource is already in/transitioning to target state.
+
+    This is the one expected non-fatal condition for an idempotent bulk
+    sweep (re-running stop/start, or a cluster already stopping). It must
+    stay narrow: routing now prevents the "not eligible"/serverless
+    errors entirely, so matching those here would only mask a real
+    routing/classification bug. Genuine errors (500/503/auth/throttle)
+    are deliberately NOT treated as benign.
+    """
     msg = str(e).lower()
     return any(s in msg for s in (
       "invaliddbclusterstate",
       "invaliddbinstancestate",
-      "not in available state",
-      "not eligible for stopping",
-      "not supported for aurora serverless",
+      "is not in available state",
     ))
 
   @Command()

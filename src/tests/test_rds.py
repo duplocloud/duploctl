@@ -296,7 +296,7 @@ def test_stop_resources_honors_exclude(mocker):
 @pytest.mark.unit
 @pytest.mark.rds
 def test_stop_resources_swallows_benign_state_error(mocker):
-    """An 'already stopping' cluster error is benign — the sweep continues."""
+    """An 'already stopping' cluster error is benign — no genuine error returned."""
     r = _make_rds(mocker)
     mocker.patch.object(r, "list", return_value=[
         {"Identifier": "writer", "Engine": 9, "ClusterIdentifier": "duploclus1"},
@@ -306,7 +306,62 @@ def test_stop_resources_swallows_benign_state_error(mocker):
         DuploError("InvalidDBClusterStateException: already stopping", 400),
         MagicMock(),
     ]
-    # Should not raise despite the first call failing benignly.
-    r.stop_resources()
+    errors = r.stop_resources()
+    # Both attempted; the benign one is logged but not reported as a failure.
     assert r.client.post.call_count == 2
+    assert errors == []
     r.duplo.logger.warning.assert_called()
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_collects_genuine_error_and_continues(mocker):
+    """A genuine (non-benign, non-transient) error is collected; sweep continues."""
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "clus", "Engine": 9, "ClusterIdentifier": "duploclus1"},
+        {"Identifier": "plain", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    boom = DuploError("500 Internal Server Error", 500)  # non-transient
+    r.client.post.side_effect = [boom, MagicMock()]
+    errors = r.stop_resources()
+    # The plain instance was still attempted after the cluster failed...
+    assert r.client.post.call_count == 2
+    # ...and the genuine failure is reported back to the caller, not swallowed.
+    assert len(errors) == 1
+    assert errors[0][0] == "duploclus"
+    assert errors[0][1] is boom
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_retries_transient_then_succeeds(mocker):
+    """A transient 503 is retried, and the resource stops on the retry."""
+    mocker.patch("duplocloud.resource.time.sleep")  # no real backoff
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "plain", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    r.client.post.side_effect = [
+        DuploError("503 Service Unavailable", 503),  # first attempt fails
+        MagicMock(),                                  # retry succeeds
+    ]
+    errors = r.stop_resources()
+    assert r.client.post.call_count == 2
+    assert errors == []
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_records_persistent_transient_failure(mocker):
+    """A 503 that never clears is retried, then recorded as a genuine failure."""
+    mocker.patch("duplocloud.resource.time.sleep")
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "plain", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    r.client.post.side_effect = DuploError("503 Service Unavailable", 503)
+    errors = r.stop_resources()
+    assert r.client.post.call_count == 3  # default attempts
+    assert len(errors) == 1
+    assert errors[0][0] == "duploplain"

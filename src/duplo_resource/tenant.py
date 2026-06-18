@@ -518,26 +518,7 @@ class DuploTenant(DuploResourceV2):
     host_at_exclude = self.get_hosts_to_exclude(host_at)
     service_types['hosts'] = list(set(service_types['hosts']) | set(host_at_exclude))
 
-    for service_type in service_types.keys():
-      service = self.duplo.load(service_type)
-      excluded = service_types[service_type]
-      if service_type == "rds":
-        # RDS owns its routing: Aurora/cluster engines go to the cluster
-        # endpoint (deduped per cluster) and Serverless v1/DocDB are
-        # skipped. It also treats already-started resources as benign.
-        service.start_resources(exclude=excluded)
-        continue
-      for item in service.list():
-        service_name = service.name_from_body(item)
-        if service_name is None:
-          continue
-        if service_name not in excluded:
-          try:
-            service.start(service_name)
-          except DuploError as e:
-            self.duplo.logger.warning(
-              f"Skipping {service_type} '{service_name}': {e}"
-            )
+    self._sweep("start", service_types)
     return {
       "message": "Successfully started all resources for tenant"
     }
@@ -587,14 +568,38 @@ class DuploTenant(DuploResourceV2):
     host_at_exclude = self.get_hosts_to_exclude(host_at)
     service_types['hosts'] = list(set(service_types['hosts']) | set(host_at_exclude))
 
+    self._sweep("stop", service_types)
+    return {
+      "message": "Successfully stopped all resources for tenant"
+    }
+
+  def _sweep(self, action, service_types):
+    """Apply ``action`` ("stop"/"start") across all service types.
+
+    Best-effort: every eligible resource is attempted. RDS owns its own
+    engine-aware routing and cluster dedup and returns genuine failures
+    (rather than aborting mid-sweep); hosts are attempted per item.
+    Genuine failures from any service type are collected and, if any
+    occurred, raised as a single aggregated ``DuploError`` so the command
+    exits non-zero instead of falsely reporting success.
+
+    Args:
+      action: Either "stop" or "start".
+      service_types: Mapping of service name to the list of excluded
+        resource names.
+
+    Raises:
+      DuploError: If one or more resources failed for a genuine reason.
+    """
+    errors = []
     for service_type in service_types.keys():
       service = self.duplo.load(service_type)
       excluded = service_types[service_type]
       if service_type == "rds":
-        # RDS owns its routing: Aurora/cluster engines go to the cluster
-        # endpoint (deduped per cluster) and Serverless v1/DocDB are
-        # skipped. It also treats already-stopped resources as benign.
-        service.stop_resources(exclude=excluded)
+        # RDS routes Aurora/cluster engines to the cluster endpoint
+        # (deduped per cluster), skips Serverless v1/DocDB, treats
+        # already-in-state errors as benign, and returns genuine failures.
+        errors.extend(getattr(service, f"{action}_resources")(exclude=excluded))
         continue
       for item in service.list():
         service_name = service.name_from_body(item)
@@ -602,14 +607,21 @@ class DuploTenant(DuploResourceV2):
           continue
         if service_name not in excluded:
           try:
-            service.stop(service_name)
+            # Retry transient (gateway/connection) errors before giving up.
+            self.retry_transient(
+              lambda s=service, n=service_name: getattr(s, action)(n)
+            )
           except DuploError as e:
             self.duplo.logger.warning(
-              f"Skipping {service_type} '{service_name}': {e}"
+              f"Failed to {action} {service_type} '{service_name}': {e}"
             )
-    return {
-      "message": "Successfully stopped all resources for tenant"
-    }
+            errors.append((service_name, e))
+    if errors:
+      summary = "; ".join(f"{name}: {e}" for name, e in errors)
+      raise DuploError(
+        f"Failed to {action} {len(errors)} resource(s): {summary}",
+        errors[0][1].code
+      )
 
   def get_hosts_to_exclude(self, host_at):
     host_at_exclude = []
