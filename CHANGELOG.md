@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Removed unused `pytest-black` and `pytest-isort` dev dependencies that broke unit-test CI at pytest startup on current pytest; linting is handled by `ruff`
+- Fixed `tenant stop` and `tenant start` aborting the whole tenant when a single resource was ineligible (e.g. the DuploCloud API rejects stop/start on `aurora-postgresql` DB instances). The per-resource call is now wrapped so an ineligible resource is logged as a warning and the loop continues stopping/starting the remaining resources
 - Fixed `ssm_param find`/`update`/`delete` returning "Resource not found" for hierarchical parameter names (e.g. `/customer/web/demo`) by double URL-encoding the name in the path segment to match what the portal UI sends (`/` → `%252F`)
 - Fixed `ssm_param apply` crashing with `TypeError: update() got an unexpected keyword argument 'body'` by extending `ssm_param update` to accept `body` and `patches`, aligning it with the V3 base `apply` flow
 - Fixed `ssm_param update` with `patches` (or no value) overwriting a SecureString's real value with the obfuscated `****` placeholder by fetching the current body with `show_sensitive=True`

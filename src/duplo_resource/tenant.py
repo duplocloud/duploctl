@@ -525,7 +525,12 @@ class DuploTenant(DuploResourceV2):
         if service_name is None:
           continue
         if service_name not in service_types[service_type]:
-          service.start(service_name)
+          try:
+            service.start(service_name)
+          except DuploError as e:
+            self.duplo.logger.warning(
+              f"Skipping {service_type} '{service_name}': {e}"
+            )
     return {
       "message": "Successfully started all resources for tenant"
     }
@@ -582,7 +587,12 @@ class DuploTenant(DuploResourceV2):
         if service_name is None:
           continue
         if service_name not in service_types[service_type]:
-          service.stop(service_name)
+          try:
+            service.stop(service_name)
+          except DuploError as e:
+            self.duplo.logger.warning(
+              f"Skipping {service_type} '{service_name}': {e}"
+            )
     return {
       "message": "Successfully stopped all resources for tenant"
     }

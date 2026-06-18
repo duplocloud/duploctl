@@ -441,3 +441,75 @@ def test_tenant_delete_no_force_skips_metadata(mocker):
   resource._mock_client.post.assert_called_once_with(
       "admin/DeleteTenant/tid-abc", None
   )
+
+
+# ---------------------------------------------------------------------------
+# stop() / start() — resilience to ineligible resources
+# ---------------------------------------------------------------------------
+
+def _eligibility_error(name):
+  """Mimic the API rejecting stop/start on an Aurora DB instance."""
+  raise DuploError(
+      "aurora-postgresql DB instances are not eligible for "
+      "stopping and starting.", 400
+  )
+
+
+def _stub_services(resource, action):
+  """Wire ``duplo.load`` so 'rds' has one ineligible + one good instance.
+
+  ``action`` is "stop" or "start"; the matching method on the first RDS
+  instance raises a ``DuploError`` while the second succeeds. 'hosts'
+  returns an empty list so only the RDS path is exercised.
+  """
+  hosts = MagicMock()
+  hosts.list.return_value = []
+
+  rds = MagicMock()
+  rds.list.return_value = ["aurora-db", "mysql-db"]
+  rds.name_from_body.side_effect = lambda item: item
+  getattr(rds, action).side_effect = (
+      lambda name: _eligibility_error(name) if name == "aurora-db"
+      else {"message": "ok"}
+  )
+
+  resource.duplo.load.side_effect = lambda kind: {
+      "hosts": hosts, "rds": rds
+  }[kind]
+  return rds
+
+
+@pytest.mark.unit
+def test_tenant_stop_continues_past_ineligible_resource(mocker):
+  """stop() warns and keeps going when one resource is ineligible."""
+  resource = _make_tenant_resource(mocker)
+  rds = _stub_services(resource, "stop")
+
+  result = resource.stop()
+
+  # Both instances were attempted despite the first being rejected.
+  assert rds.stop.call_count == 2
+  rds.stop.assert_any_call("aurora-db")
+  rds.stop.assert_any_call("mysql-db")
+  # The ineligible resource was surfaced, not silently swallowed.
+  resource.duplo.logger.warning.assert_called_once()
+  assert result == {
+      "message": "Successfully stopped all resources for tenant"
+  }
+
+
+@pytest.mark.unit
+def test_tenant_start_continues_past_ineligible_resource(mocker):
+  """start() warns and keeps going when one resource is ineligible."""
+  resource = _make_tenant_resource(mocker)
+  rds = _stub_services(resource, "start")
+
+  result = resource.start()
+
+  assert rds.start.call_count == 2
+  rds.start.assert_any_call("aurora-db")
+  rds.start.assert_any_call("mysql-db")
+  resource.duplo.logger.warning.assert_called_once()
+  assert result == {
+      "message": "Successfully started all resources for tenant"
+  }
