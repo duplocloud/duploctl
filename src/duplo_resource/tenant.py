@@ -520,11 +520,18 @@ class DuploTenant(DuploResourceV2):
 
     for service_type in service_types.keys():
       service = self.duplo.load(service_type)
+      excluded = service_types[service_type]
+      if service_type == "rds":
+        # RDS owns its routing: Aurora/cluster engines go to the cluster
+        # endpoint (deduped per cluster) and Serverless v1/DocDB are
+        # skipped. It also treats already-started resources as benign.
+        service.start_resources(exclude=excluded)
+        continue
       for item in service.list():
         service_name = service.name_from_body(item)
         if service_name is None:
           continue
-        if service_name not in service_types[service_type]:
+        if service_name not in excluded:
           try:
             service.start(service_name)
           except DuploError as e:
@@ -582,11 +589,18 @@ class DuploTenant(DuploResourceV2):
 
     for service_type in service_types.keys():
       service = self.duplo.load(service_type)
+      excluded = service_types[service_type]
+      if service_type == "rds":
+        # RDS owns its routing: Aurora/cluster engines go to the cluster
+        # endpoint (deduped per cluster) and Serverless v1/DocDB are
+        # skipped. It also treats already-stopped resources as benign.
+        service.stop_resources(exclude=excluded)
+        continue
       for item in service.list():
         service_name = service.name_from_body(item)
         if service_name is None:
           continue
-        if service_name not in service_types[service_type]:
+        if service_name not in excluded:
           try:
             service.stop(service_name)
           except DuploError as e:
