@@ -441,3 +441,102 @@ def test_tenant_delete_no_force_skips_metadata(mocker):
   resource._mock_client.post.assert_called_once_with(
       "admin/DeleteTenant/tid-abc", None
   )
+
+
+# ---------------------------------------------------------------------------
+# stop() / start() — RDS delegation and per-host resilience
+# ---------------------------------------------------------------------------
+
+def _load_services(resource, hosts, rds):
+  """Wire ``duplo.load`` to return the given hosts/rds service mocks."""
+  resource.duplo.load.side_effect = lambda kind: {
+      "hosts": hosts, "rds": rds
+  }[kind]
+
+
+@pytest.mark.unit
+def test_tenant_stop_delegates_rds_to_stop_resources(mocker):
+  """stop() hands the RDS sweep to rds.stop_resources (engine-aware routing)."""
+  resource = _make_tenant_resource(mocker)
+  hosts = MagicMock()
+  hosts.list.return_value = []
+  rds = MagicMock()
+  rds.stop_resources.return_value = []
+  _load_services(resource, hosts, rds)
+
+  result = resource.stop()
+
+  rds.stop_resources.assert_called_once_with(exclude=[])
+  # The generic per-item loop is not used for RDS anymore.
+  rds.stop.assert_not_called()
+  assert result == {
+      "message": "Successfully stopped all resources for tenant"
+  }
+
+
+@pytest.mark.unit
+def test_tenant_start_delegates_rds_to_start_resources(mocker):
+  """start() hands the RDS sweep to rds.start_resources."""
+  resource = _make_tenant_resource(mocker)
+  hosts = MagicMock()
+  hosts.list.return_value = []
+  rds = MagicMock()
+  rds.start_resources.return_value = []
+  _load_services(resource, hosts, rds)
+
+  result = resource.start()
+
+  rds.start_resources.assert_called_once_with(exclude=[])
+  rds.start.assert_not_called()
+  assert result == {
+      "message": "Successfully started all resources for tenant"
+  }
+
+
+@pytest.mark.unit
+def test_tenant_stop_best_effort_then_raises_on_genuine_failure(mocker):
+  """A genuine host failure is attempted best-effort, then raised loudly."""
+  resource = _make_tenant_resource(mocker)
+  hosts = MagicMock()
+  hosts.list.return_value = [
+      {"FriendlyName": "h1", "MinionTags": []},
+      {"FriendlyName": "h2", "MinionTags": []},
+  ]
+  hosts.name_from_body.side_effect = lambda b: b["FriendlyName"]
+
+  def stop_side_effect(name):
+    if name == "h1":
+      raise DuploError("host h1 failed to stop", 500)  # non-transient
+    return {"message": "ok"}
+  hosts.stop.side_effect = stop_side_effect
+
+  rds = MagicMock()
+  rds.stop_resources.return_value = []
+  _load_services(resource, hosts, rds)
+
+  with pytest.raises(DuploError) as exc:
+    resource.stop()
+
+  # Both hosts were attempted (best-effort) before failing loudly...
+  assert hosts.stop.call_count == 2
+  # ...and the genuine failure surfaces with a non-success exit code.
+  assert "h1" in str(exc.value)
+  assert exc.value.code == 500
+  resource.duplo.logger.warning.assert_called()
+
+
+@pytest.mark.unit
+def test_tenant_stop_raises_when_rds_reports_genuine_failure(mocker):
+  """Genuine RDS failures returned by stop_resources are aggregated and raised."""
+  resource = _make_tenant_resource(mocker)
+  hosts = MagicMock()
+  hosts.list.return_value = []
+  rds = MagicMock()
+  rds.stop_resources.return_value = [("duplodb1", DuploError("boom", 500))]
+  _load_services(resource, hosts, rds)
+
+  with pytest.raises(DuploError) as exc:
+    resource.stop()
+
+  assert "duplodb1" in str(exc.value)
+  assert exc.value.code == 500

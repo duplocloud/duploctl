@@ -72,12 +72,15 @@ class DuploAPI():
       "NeedOTP": otp
     }
 
-  def _request(self, method: str, path: str, **kwargs):
+  def _request(self, method: str, path: str, extra_headers: dict = None, **kwargs):
+    headers = self._headers()
+    if extra_headers:
+      headers.update(extra_headers)
     try:
       response = requests.request(
         method,
         url=f"{self.duplo.host}/{path}",
-        headers=self._headers(),
+        headers=headers,
         timeout=self.duplo.timeout,
         **kwargs,
       )
@@ -102,16 +105,24 @@ class DuploAPI():
     """
     return self._request("GET", path)
 
-  def post(self, path: str, data: dict={}):
+  def post(self, path: str, data: dict={}, headers: dict=None, **kwargs):
     """Post data to a Duplo resource.
 
     Args:
       path: The path to the resource.
       data: The data to post.
+      headers: Optional headers merged over the default auth headers
+        (e.g. ``{"Accept": "text/event-stream"}``).
+      kwargs: Extra arguments forwarded to the underlying request, such as
+        ``stream=True`` for SSE / chunked responses. When streaming, the
+        response is returned unbuffered so callers can iterate
+        ``iter_lines()`` / ``iter_content()``; use a ``with`` block so the
+        connection closes cleanly.
     Returns:
-      The response as a JSON object.
+      The response as a JSON object, or a streaming response when
+      ``stream=True`` is passed.
     """
-    return self._request("POST", path, json=data)
+    return self._request("POST", path, json=data, extra_headers=headers, **kwargs)
 
   def put(self, path: str, data: dict={}):
     """Put data to a Duplo resource.

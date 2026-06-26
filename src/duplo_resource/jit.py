@@ -4,6 +4,7 @@ from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 import os
+import sys
 from pathlib import Path
 import yaml
 import configparser
@@ -15,6 +16,29 @@ INSTALL_HINT = """
 Install duploctl for use with kubectl by following
 https://cli.duplocloud.com/Jit/
 """
+
+
+def _mask_in_ci(values):
+  """Register ::add-mask:: workflow commands so CI runners scrub secrets from logs.
+
+  GitHub Actions logs step inputs verbatim (e.g. the `with:` block of
+  configure-aws-credentials), which exposes JIT credentials piped into
+  `$GITHUB_OUTPUT`. Emitting `::add-mask::<value>` tells the runner to
+  replace that string with `***` everywhere in the rest of the job.
+
+  Writes to stderr because `>> $GITHUB_OUTPUT` redirects stdout only; the
+  runner reads workflow commands from both stdout and stderr.
+
+  Args:
+    values: Iterable of secret strings to register. Empty/None values are
+      skipped — `::add-mask::` with an empty value is a no-op that just
+      wastes a log line.
+  """
+  if os.environ.get("GITHUB_ACTIONS", "").lower() != "true":
+    return
+  for v in values:
+    if v:
+      print(f"::add-mask::{v}", file=sys.stderr, flush=True)
 
 @Resource("jit")
 class DuploJit(DuploResource):
@@ -47,6 +71,7 @@ class DuploJit(DuploResource):
     Returns:
       token: The JWT token.
     """
+    _mask_in_ci([self.client.token])
     return {"token": self.client.token}
 
   @Command()
@@ -88,6 +113,7 @@ class DuploJit(DuploResource):
       if "Expiration" not in sts:
         sts["Expiration"] = self.cache.expiration()
       self.cache.set(k, sts)
+    _mask_in_ci([sts.get("Token")])
     return sts
 
   @Command()
@@ -127,6 +153,7 @@ class DuploJit(DuploResource):
       if "ExpiresAt" not in auth_data:
         auth_data["ExpiresAt"] = self.cache.expiration()
       self.cache.set(k, auth_data)
+    _mask_in_ci([auth_data.get("Token")])
     return auth_data
 
   @Command()
@@ -196,6 +223,12 @@ class DuploJit(DuploResource):
         sts["Expiration"] = self.cache.expiration()
       self.cache.set(k, sts)
     sts["Version"] = 1
+    _mask_in_ci([
+      sts.get("AccessKeyId"),
+      sts.get("SecretAccessKey"),
+      sts.get("SessionToken"),
+      sts.get("ConsoleUrl"),
+    ])
     return sts
 
   @Command()
@@ -309,6 +342,7 @@ class DuploJit(DuploResource):
       ctx = self.k8s_context(planId)
       creds = self.__k8s_exec_credential(ctx)
       self.cache.set(k, creds)
+    _mask_in_ci([creds.get("status", {}).get("token")])
     return creds
 
   @Command()
