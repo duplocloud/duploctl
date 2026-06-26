@@ -50,8 +50,6 @@ test = [
   "pytest<9.1",
   "ruff",
   "pip-audit",
-  "pytest-black",
-  "pytest-isort",
   "pytest-cov",
   "pytest-dependency",
   "pytest-order",

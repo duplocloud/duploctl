@@ -3,6 +3,56 @@ import os
 import pytest
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
+from duplo_resource import jit as jit_module
+
+
+@pytest.mark.unit
+def test_mask_in_ci_emits_workflow_commands_to_stderr(monkeypatch, capsys):
+  """When GITHUB_ACTIONS=true, each non-empty secret is emitted to stderr."""
+  monkeypatch.setenv("GITHUB_ACTIONS", "true")
+  jit_module._mask_in_ci(["AKIAFAKE", "secret-key", "session-token"])
+  captured = capsys.readouterr()
+  assert captured.out == ""
+  assert "::add-mask::AKIAFAKE" in captured.err
+  assert "::add-mask::secret-key" in captured.err
+  assert "::add-mask::session-token" in captured.err
+
+
+@pytest.mark.unit
+def test_mask_in_ci_skips_empty_values(monkeypatch, capsys):
+  """Empty strings and None are skipped — ::add-mask:: with no value is a no-op."""
+  monkeypatch.setenv("GITHUB_ACTIONS", "true")
+  jit_module._mask_in_ci(["", None, "real-secret"])
+  err = capsys.readouterr().err
+  assert err.count("::add-mask::") == 1
+  assert "::add-mask::real-secret" in err
+
+
+@pytest.mark.unit
+def test_mask_in_ci_noop_outside_github_actions(monkeypatch, capsys):
+  """Without GITHUB_ACTIONS=true, nothing is emitted."""
+  monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+  jit_module._mask_in_ci(["secret"])
+  captured = capsys.readouterr()
+  assert captured.out == ""
+  assert captured.err == ""
+
+
+@pytest.mark.unit
+def test_mask_in_ci_noop_when_github_actions_false(monkeypatch, capsys):
+  """The trigger is the literal string 'true' — 'false' must not mask."""
+  monkeypatch.setenv("GITHUB_ACTIONS", "false")
+  jit_module._mask_in_ci(["secret"])
+  assert capsys.readouterr().err == ""
+
+
+@pytest.mark.unit
+def test_mask_in_ci_accepts_uppercase_true(monkeypatch, capsys):
+  """GitHub's runner sets GITHUB_ACTIONS=true, but be lenient on case."""
+  monkeypatch.setenv("GITHUB_ACTIONS", "TRUE")
+  jit_module._mask_in_ci(["secret"])
+  assert "::add-mask::secret" in capsys.readouterr().err
+
 
 @pytest.mark.integration
 @pytest.mark.jit

@@ -1,5 +1,6 @@
 import pytest
 import time
+from unittest.mock import MagicMock
 from duplocloud.errors import DuploError, DuploStillWaiting
 from .conftest import get_test_data
 
@@ -173,3 +174,194 @@ class TestRDS:
                 print(f"RDS '{self.primary_name}' already deleted")
             else:
                 pytest.fail(f"Failed to delete RDS: {e}")
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — stop/start engine routing & cluster dedup
+# ---------------------------------------------------------------------------
+
+def _make_rds(mocker):
+    """Return a DuploRDS with a mocked HTTP client and tenant id.
+
+    The ``@Resource(scope="tenant")`` decorator sets ``self.client`` and
+    lazy tenant properties in the wrapped ``__init__``. We replace the
+    client with a MagicMock and pin ``_tenant_id`` so ``endpoint()`` and
+    cluster paths resolve without any API calls.
+    """
+    from duplo_resource.rds import DuploRDS
+    duplo = MagicMock()
+    duplo.wait = False
+    resource = DuploRDS(duplo)
+    resource.client = MagicMock()
+    resource._tenant_id = "tid-1"
+    return resource
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+@pytest.mark.parametrize("engine,expected", [
+    (0, "instance"),    # MySql
+    (1, "instance"),    # PostgreSql
+    (8, "cluster"),     # AuroraMySql
+    (9, "cluster"),     # AuroraPostgreSql
+    (16, "cluster"),    # Aurora (legacy)
+    (11, "skip"),       # Serverless v1 MySql
+    (12, "skip"),       # Serverless v1 PostgreSql
+    (13, "skip"),       # DocumentDB (skip until validated)
+    ("PostgreSql", "instance"),
+    ("AuroraPostgreSql", "cluster"),
+    ("AuroraServerlessMySql", "skip"),
+])
+def test_engine_category(mocker, engine, expected):
+    """_engine_category classifies int and string engines correctly."""
+    r = _make_rds(mocker)
+    assert r._engine_category({"Engine": engine}) == expected
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_routes_instance_engine_to_instance_endpoint(mocker):
+    """A regular RDS instance stops via the instance endpoint."""
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "find", return_value={
+        "Identifier": "db1", "Engine": 1, "InstanceStatus": "available"
+    })
+    r.stop("duplodb1")
+    r.client.post.assert_called_once_with(
+        "v3/subscriptions/tid-1/aws/rds/instance/duplodb1/stop"
+    )
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_routes_cluster_engine_to_cluster_endpoint(mocker):
+    """An Aurora instance stops via the cluster endpoint with ClusterIdentifier."""
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "find", return_value={
+        "Identifier": "db1", "Engine": 9, "ClusterIdentifier": "duploclus1"
+    })
+    r.stop("duplodb1")
+    r.client.post.assert_called_once_with(
+        "v3/subscriptions/tid-1/aws/rds/cluster/duploclus1/stop"
+    )
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_skips_serverless_v1(mocker):
+    """Serverless v1 is skipped — no endpoint is called."""
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "find", return_value={
+        "Identifier": "db1", "Engine": 11
+    })
+    result = r.stop("duplodb1")
+    r.client.post.assert_not_called()
+    assert "skipped" in result["message"]
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_dedupes_cluster_members(mocker):
+    """A multi-node Aurora cluster triggers one cluster stop, not one per member."""
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "writer", "Engine": 9, "ClusterIdentifier": "duploclus1"},
+        {"Identifier": "reader", "Engine": 9, "ClusterIdentifier": "duploclus1"},
+        {"Identifier": "plain", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    r.stop_resources()
+    posted = [c.args[0] for c in r.client.post.call_args_list]
+    assert posted == [
+        "v3/subscriptions/tid-1/aws/rds/cluster/duploclus1/stop",
+        "v3/subscriptions/tid-1/aws/rds/instance/duploplain/stop",
+    ]
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_honors_exclude(mocker):
+    """Excluded instance identifiers are left untouched."""
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "keep", "Engine": 1, "InstanceStatus": "available"},
+        {"Identifier": "skip", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    r.stop_resources(exclude=["duploskip"])
+    posted = [c.args[0] for c in r.client.post.call_args_list]
+    assert posted == [
+        "v3/subscriptions/tid-1/aws/rds/instance/duplokeep/stop"
+    ]
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_swallows_benign_state_error(mocker):
+    """An 'already stopping' cluster error is benign — no genuine error returned."""
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "writer", "Engine": 9, "ClusterIdentifier": "duploclus1"},
+        {"Identifier": "plain", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    r.client.post.side_effect = [
+        DuploError("InvalidDBClusterStateException: already stopping", 400),
+        MagicMock(),
+    ]
+    errors = r.stop_resources()
+    # Both attempted; the benign one is logged but not reported as a failure.
+    assert r.client.post.call_count == 2
+    assert errors == []
+    r.duplo.logger.warning.assert_called()
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_collects_genuine_error_and_continues(mocker):
+    """A genuine (non-benign, non-transient) error is collected; sweep continues."""
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "clus", "Engine": 9, "ClusterIdentifier": "duploclus1"},
+        {"Identifier": "plain", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    boom = DuploError("500 Internal Server Error", 500)  # non-transient
+    r.client.post.side_effect = [boom, MagicMock()]
+    errors = r.stop_resources()
+    # The plain instance was still attempted after the cluster failed...
+    assert r.client.post.call_count == 2
+    # ...and the genuine failure is reported back to the caller, not swallowed.
+    assert len(errors) == 1
+    assert errors[0][0] == "duploclus"
+    assert errors[0][1] is boom
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_retries_transient_then_succeeds(mocker):
+    """A transient 503 is retried, and the resource stops on the retry."""
+    mocker.patch("duplocloud.resource.time.sleep")  # no real backoff
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "plain", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    r.client.post.side_effect = [
+        DuploError("503 Service Unavailable", 503),  # first attempt fails
+        MagicMock(),                                  # retry succeeds
+    ]
+    errors = r.stop_resources()
+    assert r.client.post.call_count == 2
+    assert errors == []
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_stop_resources_records_persistent_transient_failure(mocker):
+    """A 503 that never clears is retried, then recorded as a genuine failure."""
+    mocker.patch("duplocloud.resource.time.sleep")
+    r = _make_rds(mocker)
+    mocker.patch.object(r, "list", return_value=[
+        {"Identifier": "plain", "Engine": 1, "InstanceStatus": "available"},
+    ])
+    r.client.post.side_effect = DuploError("503 Service Unavailable", 503)
+    errors = r.stop_resources()
+    assert r.client.post.call_count == 3  # default attempts
+    assert len(errors) == 1
+    assert errors[0][0] == "duploplain"
