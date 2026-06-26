@@ -261,10 +261,44 @@ class DuploTicket(DuploResource):
                   ticket_id: str,
                   content: str,
                   api_version: str) -> dict:
-    """POST to the unary sendMessage endpoint and return the JSON reply."""
+    """POST to the unary sendMessage endpoint and return the JSON reply.
+
+    A unary agent returns a single JSON object. If the agent actually
+    streams (its ``metaData.STREAMING_ENABLED`` flag is stale, so the unary
+    endpoint was chosen by mistake), the helpdesk's unary serializer can't
+    parse the agent's NDJSON and returns a 400 whose body still embeds the
+    reply events. Recover the reply from that body rather than surfacing the
+    raw backend deserialization error.
+    """
     path = (f"{api_version}/aiservicedesk/tickets/"
             f"{workspace_id}/{ticket_id}/sendMessage")
-    return self.client.post(path, self._message_payload(content)).json()
+    try:
+      return self.client.post(path, self._message_payload(content)).json()
+    except DuploError as err:
+      recovered = self._recover_streamed_reply(err)
+      if recovered is not None:
+        return recovered
+      raise
+
+  def _recover_streamed_reply(self, error: DuploError):
+    """Recover an assistant reply embedded in a unary-send error body.
+
+    When a streaming agent is hit on the unary endpoint the agent still
+    answers, but the helpdesk returns its NDJSON inside the (JSON-encoded)
+    error body. Assemble the events out of it. Returns None when the body
+    isn't that recognizable shape, so genuine errors propagate unchanged.
+    """
+    body = error.args[0] if error.args else None
+    if not isinstance(body, str):
+      return None
+    try:
+      body = json.loads(body)  # the backend body is a JSON-encoded string
+    except (ValueError, json.JSONDecodeError):
+      pass
+    if not isinstance(body, str):
+      return None
+    assembled = self._assemble_stream(body.splitlines())
+    return assembled if assembled["content"] else None
 
   def _send_streaming(self,
                       workspace_id: str,
@@ -276,37 +310,47 @@ class DuploTicket(DuploResource):
     Routes through ``DuploAPI.post(..., stream=True)`` so URL
     construction, auth header injection, timeout, exception translation,
     and status validation are identical to the unary call — the
-    streaming transport is the only difference. Each event is
-    ``data: <json>``; ``text_delta`` chunks are concatenated, ``error``
-    events raise, and ``done`` ends the stream.
+    streaming transport is the only difference.
     """
     path = (f"{api_version}/aiservicedesk/tickets/"
             f"{workspace_id}/{ticket_id}/sendMessageStreaming")
-    text_parts: list[str] = []
-    raw_events: list[dict] = []
     with self.client.post(
         path, self._message_payload(content),
         headers={"Accept": "text/event-stream"}, stream=True,
     ) as resp:
-      for raw_line in resp.iter_lines(decode_unicode=True):
-        if not raw_line or not raw_line.startswith("data:"):
-          continue
-        data_str = raw_line[len("data:"):].strip()
-        if not data_str:
-          continue
-        try:
-          event = json.loads(data_str)
-        except json.JSONDecodeError:
-          continue
-        raw_events.append(event)
-        etype = event.get("type")
-        if etype == "text_delta":
-          text_parts.append(event.get("text", ""))
-        elif etype == "error":
-          raise DuploError(
-              f"Agent stream error: {event.get('error') or event}")
-        elif etype == "done":
-          break
+      return self._assemble_stream(resp.iter_lines(decode_unicode=True))
+
+  def _assemble_stream(self, lines) -> dict:
+    """Assemble an agent reply from event lines (SSE ``data:`` or NDJSON).
+
+    Concatenates ``text_delta`` chunks, raises on an ``error`` event, and
+    stops at ``done``. Non-event lines — blanks, a backend error prefix,
+    anything not a JSON object — are skipped, so a stray wrapper around
+    otherwise-valid events doesn't lose the reply.
+    """
+    text_parts: list[str] = []
+    raw_events: list[dict] = []
+    for raw_line in lines:
+      if not raw_line:
+        continue
+      line = raw_line.strip()
+      if line.startswith("data:"):
+        line = line[len("data:"):].strip()
+      if not line.startswith("{"):
+        continue
+      try:
+        event = json.loads(line)
+      except json.JSONDecodeError:
+        continue
+      raw_events.append(event)
+      etype = event.get("type")
+      if etype == "text_delta":
+        text_parts.append(event.get("text", ""))
+      elif etype == "error":
+        raise DuploError(
+            f"Agent stream error: {event.get('error') or event}")
+      elif etype == "done":
+        break
 
     return {
       "content": "".join(text_parts),

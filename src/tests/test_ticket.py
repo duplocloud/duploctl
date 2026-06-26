@@ -1,4 +1,5 @@
 import argparse
+import json
 import io
 import pytest
 from duplocloud.errors import DuploError
@@ -153,6 +154,51 @@ def test_send_message_unary_when_agent_not_streaming(mocker):
     assert client.post.call_count == 1
     assert client.post.call_args[0][0].endswith("/sendMessage")
     assert result["ai_response"]["content"] == "hi there"
+
+
+@pytest.mark.unit
+def test_send_message_unary_recovers_from_ndjson(mocker):
+    # A stale STREAMING_ENABLED flag routes a streaming agent to the unary
+    # endpoint; the helpdesk 400s but embeds the agent's NDJSON reply in the
+    # (JSON-encoded) error body. The reply must be recovered, not surfaced as
+    # a raw backend deserialization error.
+    ticket, _, _ = _make_ticket(mocker, streaming_agent=False)
+    raw = (
+        'Error {"type":"executed_tool_calls"}\n'
+        '{"type":"text_delta","text":"Hi! "}\n'
+        '{"type":"text_delta","text":"there"}\n'
+        '{"type":"done"}\n'
+        ' in request call to Agent.'
+    )
+    get_resp = mocker.MagicMock()
+    get_resp.json.return_value = _TICKET_DETAIL  # _agent_id_from_ticket
+    mock_client = mocker.MagicMock()
+    mock_client.get.return_value = get_resp
+    # Body is a JSON-encoded string, exactly as the backend returns it.
+    mock_client.post.side_effect = DuploError(json.dumps(raw), 400)
+    mocker.patch.object(ticket, "client", mock_client)
+
+    result = ticket.send_message(
+        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="hi")
+
+    assert mock_client.post.call_args[0][0].endswith("/sendMessage")
+    assert result["ai_response"]["content"] == "Hi! there"
+
+
+@pytest.mark.unit
+def test_send_message_unary_reraises_unrecoverable_error(mocker):
+    # A genuine error (no embedded agent events) must propagate unchanged.
+    ticket, _, _ = _make_ticket(mocker, streaming_agent=False)
+    get_resp = mocker.MagicMock()
+    get_resp.json.return_value = _TICKET_DETAIL
+    mock_client = mocker.MagicMock()
+    mock_client.get.return_value = get_resp
+    mock_client.post.side_effect = DuploError("Ticket not found", 404)
+    mocker.patch.object(ticket, "client", mock_client)
+
+    with pytest.raises(DuploError, match="not found"):
+        ticket.send_message(
+            name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="hi")
 
 
 @pytest.mark.unit
