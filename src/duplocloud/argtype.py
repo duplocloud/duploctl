@@ -3,8 +3,9 @@ This module contains the customizations to the Argparse library.
 """
 from typing import NewType, Any, List
 import argparse
+import sys
 import yaml
-import json 
+import json
 import os
 from .errors import DuploError
 
@@ -113,6 +114,21 @@ class YamlAction(argparse.Action):
   def __call__(self, parser, namespace, value, option_string=None):
     data = yaml.load(value, Loader=yaml.FullLoader)
     setattr(namespace, self.dest, data)
+
+class StdinTextAction(argparse.Action):
+  """Stdin Text Action
+
+  A custom action that stores the argument value as verbatim text, reading
+  from stdin when the value is ``-``. Unlike :class:`YamlAction` it does not
+  parse the input, so text containing characters like ``:`` is preserved.
+  This lets a value be passed inline (``--content "hi"``) or streamed in
+  (``echo hi | ... -f -``); read a file by redirecting it to stdin
+  (``... -f - < message.txt``).
+  """
+  def __call__(self, parser, namespace, value, option_string=None):
+    if value == "-":
+      value = sys.stdin.read()
+    setattr(namespace, self.dest, value)
 
 class JsonPatchAction(argparse._AppendAction):
   """Json Patch Action
