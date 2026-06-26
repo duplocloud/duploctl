@@ -215,3 +215,106 @@ def test_stdin_text_action_reads_stdin_on_dash(monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("piped message\n"))
     ns = _content_parser().parse_args(["--content", "-"])
     assert ns.content == "piped message\n"
+
+
+@pytest.mark.unit
+def test_list_tickets(mocker):
+    ticket, wksp_svc, _ = _make_ticket(mocker)
+    client = _make_client(
+        mocker, ticket, get_responses=[[{"name": _TICKET_NAME}]])
+
+    result = ticket.list(workspace=_WORKSPACE_NAME)
+
+    assert client.get.call_args[0][0].endswith(f"/tickets/{_WORKSPACE_ID}")
+    assert result == [{"name": _TICKET_NAME}]
+
+
+@pytest.mark.unit
+def test_assignee(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(
+        mocker, ticket, get_responses=[{"id": _AGENT_ID, "name": "cicd"}])
+
+    result = ticket.assignee(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+
+    assert client.get.call_args[0][0].endswith(
+        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/assignee")
+    assert result["id"] == _AGENT_ID
+
+
+@pytest.mark.unit
+def test_reassign(mocker):
+    ticket, _, agent_svc = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+
+    result = ticket.reassign(
+        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, agent_name="cicd")
+
+    client.put.assert_called_once()
+    assert client.put.call_args[0][0].endswith(
+        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/assignee/{_AGENT_ID}")
+    assert "reassigned" in result["message"]
+
+
+@pytest.mark.unit
+def test_set_status(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+    put_mock = mocker.MagicMock()
+    put_mock.json.return_value = {"name": _TICKET_NAME, "status": "inProgress"}
+    client.put.return_value = put_mock
+
+    result = ticket.set_status(
+        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, status="inProgress")
+
+    url, body = client.put.call_args[0]
+    assert url.endswith(f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/status")
+    assert body == {"status": "inProgress"}
+    assert result["status"] == "inProgress"
+
+
+@pytest.mark.unit
+def test_set_status_requires_status(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    _make_client(mocker, ticket)
+
+    with pytest.raises(DuploError, match="status"):
+        ticket.set_status(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+
+
+@pytest.mark.unit
+def test_close_defaults_to_resolved(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+    put_mock = mocker.MagicMock()
+    put_mock.json.return_value = {"name": _TICKET_NAME, "status": "closed"}
+    client.put.return_value = put_mock
+
+    ticket.close(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+
+    url, body = client.put.call_args[0]
+    assert url.endswith("/status")
+    assert body == {"status": "closed", "disposition": "resolved"}
+
+
+@pytest.mark.unit
+def test_delete(mocker):
+    ticket, wksp_svc, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+
+    result = ticket.delete(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+
+    wksp_svc.find.assert_called_once()
+    client.delete.assert_called_once()
+    assert client.delete.call_args[0][0].endswith(
+        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
+    assert "deleted" in result["message"]
+
+
+@pytest.mark.unit
+def test_delete_requires_identifier(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    _make_client(mocker, ticket)
+
+    with pytest.raises(DuploError, match="name or --id"):
+        ticket.delete(workspace=_WORKSPACE_NAME)

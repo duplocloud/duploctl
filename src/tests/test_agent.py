@@ -118,3 +118,79 @@ def test_supports_streaming_false_from_metadata(mocker):
     _make_client(mocker, agent, get_responses=[_DETAIL_NON_STREAMING])
 
     assert agent.supports_streaming(id=_AGENT_ID) is False
+
+
+@pytest.mark.unit
+def test_delete(mocker):
+    agent = _make_agent(mocker)
+    client = _make_client(mocker, agent, get_responses=[_DETAIL_STREAMING])
+
+    result = agent.delete(id=_AGENT_ID)
+
+    client.delete.assert_called_once()
+    assert client.delete.call_args[0][0].endswith(f"/aiagents/{_AGENT_ID}")
+    assert "deleted" in result["message"]
+
+
+@pytest.mark.unit
+def test_create(mocker):
+    agent = _make_agent(mocker)
+    client = _make_client(mocker, agent, get_responses=[])
+    client.post.return_value.json.return_value = _DETAIL_STREAMING
+
+    result = agent.create(body={"name": _AGENT_NAME})
+
+    client.post.assert_called_once()
+    assert client.post.call_args[0][0].endswith("/aiagents")
+    assert client.post.call_args[0][1] == {"name": _AGENT_NAME}
+    assert result["id"] == _AGENT_ID
+
+
+@pytest.mark.unit
+def test_update_resolves_id_from_body_name(mocker):
+    agent = _make_agent(mocker)
+    client = _make_client(mocker, agent, get_responses=[_LIST_RESPONSE])
+    client.put.return_value.json.return_value = _DETAIL_STREAMING
+
+    result = agent.update(body={"name": _AGENT_NAME, "description": "x"})
+
+    client.put.assert_called_once()
+    assert client.put.call_args[0][0].endswith(f"/aiagents/{_AGENT_ID}")
+    assert result["id"] == _AGENT_ID
+
+
+@pytest.mark.unit
+def test_update_requires_body(mocker):
+    agent = _make_agent(mocker)
+    _make_client(mocker, agent, get_responses=[])
+
+    with pytest.raises(DuploError, match="body"):
+        agent.update(name=_AGENT_NAME)
+
+
+@pytest.mark.unit
+def test_apply_updates_when_found(mocker):
+    agent = _make_agent(mocker)
+    client = _make_client(mocker, agent,
+                          get_responses=[_LIST_RESPONSE, _LIST_RESPONSE])
+    client.put.return_value.json.return_value = _DETAIL_STREAMING
+
+    result = agent.apply(body={"name": _AGENT_NAME})
+
+    client.put.assert_called_once()
+    client.post.assert_not_called()
+    assert result["id"] == _AGENT_ID
+
+
+@pytest.mark.unit
+def test_apply_creates_when_not_found(mocker):
+    agent = _make_agent(mocker)
+    empty = {"success": True, "data": {"items": []}}
+    client = _make_client(mocker, agent, get_responses=[empty])
+    client.post.return_value.json.return_value = _DETAIL_STREAMING
+
+    result = agent.apply(body={"name": "newagent"})
+
+    client.post.assert_called_once()
+    client.put.assert_not_called()
+    assert result["id"] == _AGENT_ID

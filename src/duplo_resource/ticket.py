@@ -322,3 +322,247 @@ class DuploTicket(DuploResource):
     """Build the helpdesk chat URL for a ticket in the workspace."""
     return (f"{self.duplo.host}/app/ai/service-desk/"
             f"{workspace_id}/tickets/chat/{ticket_id}")
+
+  @Command("ls")
+  def list(self,
+           workspace: args.WORKSPACE = None,
+           workspace_id: args.WORKSPACEID = None,
+           api_version: args.APIVERSION = "v1") -> list:
+    """List the tickets in an AI HelpDesk workspace.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket list --workspace <workspace>
+      duploctl ticket list --workspace-id <workspace id>
+      ```
+
+    Args:
+      workspace: The workspace name the tickets belong to.
+      workspace_id: The workspace id the tickets belong to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      list: The tickets in the workspace.
+    """
+    api_version = api_version.strip().lower()
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    response = self.client.get(
+        f"{api_version}/aiservicedesk/tickets/{wid}").json()
+    if isinstance(response, dict):
+      data = response.get("data", response)
+      return data.get("items", data) if isinstance(data, dict) else data
+    return response
+
+  @Command()
+  def assignee(self,
+               name: args.NAME = None,
+               id: args.ID = None,
+               workspace: args.WORKSPACE = None,
+               workspace_id: args.WORKSPACEID = None,
+               api_version: args.APIVERSION = "v1") -> dict:
+    """Get the agent currently assigned to a ticket.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket assignee <name> --workspace <workspace>
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The assigned agent object.
+
+    Raises:
+      DuploError: If no ticket identifier is given.
+    """
+    api_version = api_version.strip().lower()
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    response = self.client.get(
+        f"{api_version}/aiservicedesk/tickets/"
+        f"{wid}/{quote_plus(identifier)}/assignee").json()
+    return self._data(response)
+
+  @Command()
+  def reassign(self,
+               name: args.NAME = None,
+               id: args.ID = None,
+               agent_name: args.AGENTNAME = None,
+               agent_id: args.AGENTID = None,
+               workspace: args.WORKSPACE = None,
+               workspace_id: args.WORKSPACEID = None,
+               api_version: args.APIVERSION = "v1") -> dict:
+    """Reassign a ticket to a different agent.
+
+    The agent is resolved by name or id via the ``agent`` resource.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket reassign <name> --workspace <workspace> --agent <agent>
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      agent_name: The agent name to assign.
+      agent_id: The agent id to assign. Skips the agent name lookup.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploError: If no ticket identifier is given.
+      DuploNotFound: If the agent cannot be found.
+    """
+    api_version = api_version.strip().lower()
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    aid = self.__agent_svc.find(
+        name=agent_name, id=agent_id, api_version=api_version)["id"]
+    self.client.put(
+        f"{api_version}/aiservicedesk/tickets/"
+        f"{wid}/{quote_plus(identifier)}/assignee/{quote_plus(aid)}")
+    return {"message": f"ticket '{identifier}' reassigned to agent "
+                       f"'{agent_name or agent_id}'"}
+
+  @Command()
+  def set_status(self,
+                 name: args.NAME = None,
+                 id: args.ID = None,
+                 status: args.TICKET_STATUS = None,
+                 disposition: args.TICKET_DISPOSITION = None,
+                 workspace: args.WORKSPACE = None,
+                 workspace_id: args.WORKSPACEID = None,
+                 api_version: args.APIVERSION = "v1") -> dict:
+    """Set a ticket's status.
+
+    When ``--status closed`` is used, ``--disposition`` (``resolved`` or
+    ``unResolved``) is required by the backend.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket set_status <name> --workspace <workspace> --status inProgress
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      status: The new status (open, inProgress, waitingForUserInput,
+        waitingForUserAgent, closed).
+      disposition: The disposition (resolved, unResolved); required when
+        closing.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The updated ticket object.
+
+    Raises:
+      DuploError: If no ticket identifier or status is given.
+    """
+    api_version = api_version.strip().lower()
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    if not status:
+      raise DuploError("--status is required")
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    body = {"status": status}
+    if disposition:
+      body["disposition"] = disposition
+    response = self.client.put(
+        f"{api_version}/aiservicedesk/tickets/"
+        f"{wid}/{quote_plus(identifier)}/status", body).json()
+    return self._data(response)
+
+  @Command()
+  def close(self,
+            name: args.NAME = None,
+            id: args.ID = None,
+            disposition: args.TICKET_DISPOSITION = "resolved",
+            workspace: args.WORKSPACE = None,
+            workspace_id: args.WORKSPACEID = None,
+            api_version: args.APIVERSION = "v1") -> dict:
+    """Close a ticket.
+
+    Convenience wrapper for ``set_status --status closed``. The backend
+    requires a disposition when closing; defaults to ``resolved``.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket close <name> --workspace <workspace>
+      duploctl ticket close <name> --workspace <workspace> --disposition unResolved
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      disposition: The disposition (resolved, unResolved). Defaults to
+        resolved.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The updated ticket object.
+    """
+    return self.set_status(
+        name=name, id=id, status="closed", disposition=disposition,
+        workspace=workspace, workspace_id=workspace_id,
+        api_version=api_version)
+
+  @Command()
+  def delete(self,
+             name: args.NAME = None,
+             id: args.ID = None,
+             workspace: args.WORKSPACE = None,
+             workspace_id: args.WORKSPACEID = None,
+             api_version: args.APIVERSION = "v1") -> dict:
+    """Delete an AI HelpDesk ticket from a workspace.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket delete <name> --workspace <workspace>
+      duploctl ticket delete --id <id> --workspace-id <workspace id>
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploError: If no ticket identifier is given.
+    """
+    api_version = api_version.strip().lower()
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    self.client.delete(
+        f"{api_version}/aiservicedesk/tickets/"
+        f"{wid}/{quote_plus(identifier)}")
+    return {"message": f"ticket '{identifier}' deleted"}

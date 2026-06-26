@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- AI HelpDesk CRUD and lifecycle commands against the existing backend endpoints (workspace/agent resolved by name or `--id` via their `find`):
+  - `workspace create`/`update`/`apply` (body via `-f`; `apply` upserts by the body's `name`), `workspace delete`, and `workspace add_agent`/`remove_agent` (`--agent`/`--agent_id` selects the agent).
+  - `agent create`/`update`/`apply` (body via `-f`), and `agent delete`.
+  - `ticket list` (per workspace), `ticket assignee` (get the assigned agent), `ticket reassign` (`--agent`/`--agent_id`), `ticket set_status` (`--status`), `ticket close` (`--disposition`, default `resolved`), and `ticket delete`.
+
 ### Changed
 
 - Split the AI HelpDesk `ai` resource into dedicated `workspace`, `agent`, and `ticket` resources so each endpoint is exposed as a first-class command rather than hidden behind a single resource. The `ai` resource (`ai create_ticket`, `ai send_message`) is removed.

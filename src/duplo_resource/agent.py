@@ -128,3 +128,125 @@ class DuploAgent(DuploResource):
     metadata = agent.get("metaData") or {}
     enabled = str(metadata.get("STREAMING_ENABLED", "")).strip().lower()
     return enabled == "true"
+
+  @Command()
+  def delete(self,
+             name: args.NAME = None,
+             id: args.ID = None,
+             api_version: args.APIVERSION = "v1") -> dict:
+    """Delete an AI HelpDesk agent by name or id.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl agent delete <name>
+      duploctl agent delete --id <id>
+      ```
+
+    Args:
+      name: The agent name as shown in the portal.
+      id: The agent id. Skips the name lookup when provided.
+      api_version: Helpdesk API version.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploNotFound: If no agent matches the name or id.
+    """
+    api_version = api_version.strip().lower()
+    aid = self.find(name=name, id=id, api_version=api_version)["id"]
+    self.client.delete(
+        f"{api_version}/aiservicedesk/admin/data/aiagents/"
+        f"{quote_plus(aid)}")
+    return {"message": f"agent '{name or id}' deleted"}
+
+  @Command()
+  def create(self,
+             body: args.BODY,
+             api_version: args.APIVERSION = "v1") -> dict:
+    """Create an AI HelpDesk agent.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl agent create -f agent.yaml
+      ```
+
+    Args:
+      body: The agent definition.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The created agent object.
+    """
+    api_version = api_version.strip().lower()
+    response = self.client.post(
+        f"{api_version}/aiservicedesk/admin/data/aiagents", body).json()
+    return self._data(response)
+
+  @Command()
+  def update(self,
+             body: args.BODY = None,
+             name: args.NAME = None,
+             id: args.ID = None,
+             api_version: args.APIVERSION = "v1") -> dict:
+    """Update an AI HelpDesk agent.
+
+    The target is resolved by ``--id``, ``name``, or the body's ``name``
+    field, in that order.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl agent update <name> -f agent.yaml
+      duploctl agent update -f agent.yaml
+      ```
+
+    Args:
+      body: The agent definition to apply.
+      name: The agent name. Defaults to the body's ``name``.
+      id: The agent id. Skips the name lookup when provided.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The updated agent object.
+
+    Raises:
+      DuploError: If no body is provided.
+      DuploNotFound: If the agent cannot be found.
+    """
+    api_version = api_version.strip().lower()
+    if not body:
+      raise DuploError("A request body (-f) is required")
+    aid = self.find(
+        name=name or body.get("name"), id=id, api_version=api_version)["id"]
+    response = self.client.put(
+        f"{api_version}/aiservicedesk/admin/data/aiagents/"
+        f"{quote_plus(aid)}", body).json()
+    return self._data(response)
+
+  @Command()
+  def apply(self,
+            body: args.BODY,
+            api_version: args.APIVERSION = "v1") -> dict:
+    """Create or update an AI HelpDesk agent.
+
+    Looks the agent up by the body's ``name``: updates it when it exists,
+    creates it otherwise.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl agent apply -f agent.yaml
+      ```
+
+    Args:
+      body: The agent definition to apply.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The created or updated agent object.
+    """
+    api_version = api_version.strip().lower()
+    try:
+      self.find(name=body.get("name"), api_version=api_version)
+    except DuploNotFound:
+      return self.create(body=body, api_version=api_version)
+    return self.update(body=body, api_version=api_version)
