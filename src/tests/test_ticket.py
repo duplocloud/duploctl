@@ -290,7 +290,9 @@ def test_close_defaults_to_resolved(mocker):
     put_mock.json.return_value = {"name": _TICKET_NAME, "status": "closed"}
     client.put.return_value = put_mock
 
-    ticket.close(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+    # disposition=None mirrors the CLI (argparse default), and must still
+    # resolve to "resolved" — the backend rejects a close with no disposition.
+    ticket.close(name=_TICKET_NAME, workspace=_WORKSPACE_NAME, disposition=None)
 
     url, body = client.put.call_args[0]
     assert url.endswith("/status")

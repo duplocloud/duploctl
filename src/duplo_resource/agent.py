@@ -218,6 +218,10 @@ class DuploAgent(DuploResource):
       raise DuploError("A request body (-f) is required")
     aid = self.find(
         name=name or body.get("name"), id=id, api_version=api_version)["id"]
+    # The backend's name-uniqueness check excludes the record being updated
+    # only when the body carries its id; without it the PUT is rejected as a
+    # name collision with itself.
+    body = {**body, "id": aid}
     response = self.client.put(
         f"{api_version}/aiservicedesk/admin/data/aiagents/"
         f"{quote_plus(aid)}", body).json()

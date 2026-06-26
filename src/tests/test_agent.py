@@ -155,7 +155,11 @@ def test_update_resolves_id_from_body_name(mocker):
     result = agent.update(body={"name": _AGENT_NAME, "description": "x"})
 
     client.put.assert_called_once()
-    assert client.put.call_args[0][0].endswith(f"/aiagents/{_AGENT_ID}")
+    url, body = client.put.call_args[0]
+    assert url.endswith(f"/aiagents/{_AGENT_ID}")
+    # id must be injected into the body so the backend excludes self from the
+    # name-uniqueness check.
+    assert body["id"] == _AGENT_ID
     assert result["id"] == _AGENT_ID
 
 

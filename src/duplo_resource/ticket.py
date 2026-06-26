@@ -523,8 +523,12 @@ class DuploTicket(DuploResource):
     Returns:
       resource: The updated ticket object.
     """
+    # The CLI passes disposition=None when --disposition is omitted (argparse
+    # uses args.TICKET_DISPOSITION's default of None, not this signature's
+    # default), so coerce here — the backend requires a disposition on close.
     return self.set_status(
-        name=name, id=id, status="closed", disposition=disposition,
+        name=name, id=id, status="closed",
+        disposition=disposition or "resolved",
         workspace=workspace, workspace_id=workspace_id,
         api_version=api_version)
 
