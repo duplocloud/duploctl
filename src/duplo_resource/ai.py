@@ -1,16 +1,25 @@
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
-from duplocloud.resource import DuploResourceV3
+from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 
 @Resource("ai", scope="tenant")
-class DuploAI(DuploResourceV3):
-  """Resource for creating tickets in the DuploCloud AI HelpDesk."""
+class DuploAI(DuploResource):
+  """Resource for creating tickets in the DuploCloud AI HelpDesk.
+
+  This resource is non-CRUD: it does not subclass ``DuploResourceV2`` or
+  ``DuploResourceV3`` because the helpdesk API does not expose
+  list/find/create/update/delete/apply routes that fit those contracts — the
+  ticket endpoints are built dynamically per command. It extends the v1
+  ``DuploResource`` base only to inherit ``__call__`` / ``command()`` CLI
+  dispatch, matching the pattern used by other multi-subcommand non-CRUD
+  resources like ``jit``, ``plan``, and ``system``.
+  """
 
   def __init__(self, duplo: DuploCtl):
-    super().__init__(duplo, "")  # No static endpoint; we build it dynamically
+    super().__init__(duplo)
 
   @Command()
   def create_ticket(self,

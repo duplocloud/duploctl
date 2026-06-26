@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `ai` resource no longer inherits from `DuploResourceV3`. The base class added `list`/`find`/`create`/`update`/`delete`/`apply` commands that routed through an empty slug, producing broken URLs (`v3/subscriptions/{tid}//`) and misleading users via `duploctl ai --help`. The helpdesk API is non-CRUD; the only working commands are `create_ticket` and `send_message`, both of which build their paths dynamically. `self.client` and `self.tenant_id` are still available via the `@Resource(scope="tenant")` decorator's injection.
 - `service update_image` now uses the V3 containerimage endpoint and supports updating main, sidecar, and init container images in a single call
 - `rds` exposes a `modify` command wrapping the `ModifyRDSDBInstance` endpoint; `set_monitor_interval`, `iam_auth`, `final_snapshot`, and `retention_period` now delegate to it
 
 ### Fixed
 
 - Fixed `jit` commands (`aws`, `gcp`, `argo_wf`, `k8s`, `token`) leaking credentials in GitHub Actions logs when output was piped to `$GITHUB_OUTPUT`. When `GITHUB_ACTIONS=true`, secret fields are now registered with `::add-mask::` so the runner redacts them in subsequent step logs.
+- Removed unused `pytest-black` and `pytest-isort` dev dependencies that broke unit-test CI at pytest startup on current pytest; linting is handled by `ruff`
+- Fixed `tenant stop`/`tenant start` (and `rds stop`/`rds start`) failing on Aurora. Aurora and other cluster engines can only be stopped/started at the cluster level, not on member instances — the previous code always called the instance endpoint and the API rejected it (`aurora-postgresql DB instances are not eligible for stopping and starting`). `rds` now classifies each resource by engine and routes Aurora/cluster engines to the cluster stop/start endpoint, regular RDS to the instance endpoint, and skips Aurora Serverless v1 (auto-pauses) and DocumentDB. Multi-node clusters are deduped so the cluster is actioned once. The tenant sweep is best-effort — only "already in target state" errors (e.g. re-running stop on an already-stopped cluster) are treated as benign and skipped; transient errors (gateway 502/503/504 and connection errors) are retried with backoff; and any remaining genuine failures are collected across the whole sweep and raised together at the end so the command exits non-zero rather than falsely reporting success
 - Fixed `ssm_param find`/`update`/`delete` returning "Resource not found" for hierarchical parameter names (e.g. `/customer/web/demo`) by double URL-encoding the name in the path segment to match what the portal UI sends (`/` → `%252F`)
 - Fixed `ssm_param apply` crashing with `TypeError: update() got an unexpected keyword argument 'body'` by extending `ssm_param update` to accept `body` and `patches`, aligning it with the V3 base `apply` flow
 - Fixed `ssm_param update` with `patches` (or no value) overwriting a SecureString's real value with the obfuscated `****` placeholder by fetching the current body with `show_sensitive=True`
