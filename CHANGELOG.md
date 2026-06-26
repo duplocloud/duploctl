@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed `service update_image` failing with `'' not found` (exit 148) on older Duplo backends that lack the V3 containerimage endpoint by falling back to the V2 ReplicationControllerChange endpoint
+
 ## [0.4.4] - 2026-06-26
 
 ### Changed
