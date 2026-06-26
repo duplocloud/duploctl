@@ -2,13 +2,10 @@ labels: null
 annotations: null
 lbConfig:
   listeners:
-    https:
-      - 443
     http:
       - 80
   dnsPrefix: "duploctl"
   isPublic: true
-  certArn:
 rules:
   - path: "/"
     pathType: "Prefix"

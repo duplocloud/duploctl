@@ -1,10 +1,10 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 from sys import exit
 
 def main():
   try:
-    duplo, args = DuploClient.from_env()
+    duplo, args = DuploCtl.from_env()
     o = duplo(*args)
     if o:
       print(o)

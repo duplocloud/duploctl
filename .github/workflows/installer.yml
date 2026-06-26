@@ -66,6 +66,7 @@ jobs:
         if [ -z "${GIT_TAG}" ]; then
           GIT_TAG=${GITHUB_REF#refs/*/}
         fi
+        GIT_TAG="${GIT_TAG//\//-}"
         VERSION="${GIT_TAG#v*}"
         NAME="duploctl-${VERSION}-${OS}"
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
@@ -81,7 +82,7 @@ jobs:
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         python-version: ${{ env.PY_VERSION }}
-        install: ".[build]"
+        install: ".[build,sdk]"
     
     - name: Pyinstaller
       id: installer

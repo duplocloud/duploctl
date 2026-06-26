@@ -1,0 +1,20 @@
+FriendlyName: duplohostecs
+Zone: 0
+IsEbsOptimized: false
+DesiredCapacity: 0
+MinSize:
+MaxSize:
+MetaData:
+- Key: OsDiskSize
+  Value: 30
+- Key: MetadataServiceOption
+  Value: enabled_v2_only
+UseLaunchTemplate: true
+CanScaleFromZero: false
+IsUserDataCombined: true
+KeyPairType:
+Capacity: t3.xlarge
+Base64UserData: ''
+TagsCsv: ''
+AgentPlatform: 8
+IsMinion: true

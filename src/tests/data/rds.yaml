@@ -2,7 +2,7 @@ Identifier: mydb01
 MasterUsername: fuzlletonnian
 MasterPassword: superstrongpassword
 Engine: 0
-EngineVersion: 8.0.36
+EngineVersion: 8.0.40
 AllocatedStorage: 30
 Cloud: 0
 StorageType: gp3

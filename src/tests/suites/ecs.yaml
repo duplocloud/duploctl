@@ -1,0 +1,4 @@
+infra_type: ecs
+jobs:
+- name: ecs
+  markers: "integration and (ecs or lifecycle)"

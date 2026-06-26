@@ -64,7 +64,12 @@ jobs:
         --push ${{ inputs.push }} 
         --token ${{ steps.setup.outputs.token }}
 
-    - uses: actions/upload-artifact@v6
+    - name: Upload Notes
+      env:
+        TAG: ${{ steps.bump.outputs.tag }}
+      run: echo "artifact_name=notes-${TAG//\//-}" >> $GITHUB_ENV
+
+    - uses: actions/upload-artifact@v7
       with:
-        name: notes-${{ steps.bump.outputs.tag }}
+        name: ${{ env.artifact_name }}
         path: dist/notes.md

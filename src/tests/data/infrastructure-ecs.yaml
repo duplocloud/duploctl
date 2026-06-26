@@ -1,0 +1,7 @@
+EnableK8Cluster: false
+EnableECSCluster: true
+AzCount: 2
+Vnet:
+  SubnetCidr: 22
+Cloud: 0
+Region: us-east-2

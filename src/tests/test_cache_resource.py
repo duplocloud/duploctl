@@ -1,12 +1,12 @@
 import os
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 @pytest.mark.unit
-class TestDuploCacheClear:
-  def test_clear_removes_files(self, tmp_path):
-    """Test that DuploClient.clear_cache removes files from cache dir."""
+class TestCacheResource:
+  def test_clear_command(self, tmp_path):
+    """Test the cache resource clear command calls clear_all_caches."""
     cache_dir = str(tmp_path / "cache")
     os.makedirs(cache_dir)
 
@@ -15,39 +15,45 @@ class TestDuploCacheClear:
       with open(os.path.join(cache_dir, name), "w") as f:
         f.write("{}")
 
-    mock_client = MagicMock()
-    mock_client.cache_dir = cache_dir
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
 
-    from duplocloud.client import DuploClient
-    count = DuploClient.clear_cache(mock_client)
-    assert count == 3
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource.clear()
+
+    assert result == {"message": "Cleared 3 cached file(s)"}
     assert os.listdir(cache_dir) == []
 
-  def test_clear_empty_dir(self, tmp_path):
-    """Test clear_cache on an empty directory returns 0."""
+  def test_clear_command_empty(self, tmp_path):
+    """Test the cache resource clear command with zero files."""
     cache_dir = str(tmp_path / "cache")
     os.makedirs(cache_dir)
 
-    mock_client = MagicMock()
-    mock_client.cache_dir = cache_dir
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
 
-    from duplocloud.client import DuploClient
-    count = DuploClient.clear_cache(mock_client)
-    assert count == 0
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource.clear()
 
-  def test_clear_nonexistent_dir(self, tmp_path):
-    """Test clear_cache with nonexistent dir returns 0."""
+    assert result == {"message": "Cleared 0 cached file(s)"}
+
+  def test_clear_command_nonexistent_dir(self, tmp_path):
+    """Test clear command with nonexistent dir returns 0."""
     cache_dir = str(tmp_path / "nonexistent")
 
-    mock_client = MagicMock()
-    mock_client.cache_dir = cache_dir
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
 
-    from duplocloud.client import DuploClient
-    count = DuploClient.clear_cache(mock_client)
-    assert count == 0
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource.clear()
+
+    assert result == {"message": "Cleared 0 cached file(s)"}
 
   def test_clear_skips_subdirectories(self, tmp_path):
-    """Test clear_cache only removes files, not subdirectories."""
+    """Test clear command only removes files, not subdirectories."""
     cache_dir = str(tmp_path / "cache")
     os.makedirs(cache_dir)
 
@@ -55,36 +61,12 @@ class TestDuploCacheClear:
       f.write("{}")
     os.makedirs(os.path.join(cache_dir, "subdir"))
 
-    mock_client = MagicMock()
-    mock_client.cache_dir = cache_dir
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
 
-    from duplocloud.client import DuploClient
-    count = DuploClient.clear_cache(mock_client)
-    assert count == 1
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource.clear()
+
+    assert result == {"message": "Cleared 1 cached file(s)"}
     assert "subdir" in os.listdir(cache_dir)
-
-
-@pytest.mark.unit
-class TestCacheResource:
-  def test_clear_command(self, tmp_path):
-    """Test the cache resource clear command delegates to DuploClient.clear_cache."""
-    mock_client = MagicMock()
-    mock_client.clear_cache.return_value = 5
-
-    from duplo_resource.cache import DuploCache
-    resource = DuploCache(mock_client)
-    result = resource.clear()
-
-    mock_client.clear_cache.assert_called_once()
-    assert result == {"message": "Cleared 5 cached file(s)"}
-
-  def test_clear_command_empty(self):
-    """Test the cache resource clear command with zero files."""
-    mock_client = MagicMock()
-    mock_client.clear_cache.return_value = 0
-
-    from duplo_resource.cache import DuploCache
-    resource = DuploCache(mock_client)
-    result = resource.clear()
-
-    assert result == {"message": "Cleared 0 cached file(s)"}

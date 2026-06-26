@@ -1,6 +1,6 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -11,10 +11,10 @@ class DuploBatchCompute(DuploResourceV3):
   Run batch jobs as a managed service on AWS infrastructure. 
 
   Read more docs here: 
-  https://docs.duplocloud.com/docs/overview/aws-services/batch
+  https://docs.duplocloud.com/docs/automation-platform/overview/aws-services/batch
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, 
                      slug="aws/batchComputeEnvironment", 
                      prefixed=True)
@@ -51,7 +51,7 @@ class DuploBatchCompute(DuploResourceV3):
       status = status_field.get("Value", "CREATING") if isinstance(status_field, dict) else status_field
       if s != status:
         s = status
-        self.duplo.logger.warn(f"Batch Compute Environment {name} is {status}")
+        self.duplo.logger.warning(f"Batch Compute Environment {name} is {status}")
       if status == "INVALID":
         raise DuploFailedResource(name)
       if status != "VALID":
@@ -83,7 +83,7 @@ class DuploBatchCompute(DuploResourceV3):
     for env in envs:
       if self.name_from_body(env) == n:
         return env
-    raise DuploError(f"Batch Compute Environment '{name}' not found", 404)
+    raise DuploNotFound(name, "Batch Compute Environment")
   
   @Command()
   def disable(self, 
@@ -106,7 +106,7 @@ class DuploBatchCompute(DuploResourceV3):
     """
     n = self.prefixed_name(name)
     endpoint = f"{self.endpoint()}Disable/{n}"
-    self.duplo.delete(endpoint)
+    self.client.delete(endpoint)
     return {
       "message": f"Batch Compute Environment '{name}' disabled"
     }

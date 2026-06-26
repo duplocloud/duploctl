@@ -12,7 +12,7 @@ COPY . .
 # Install build dependencies
 RUN <<EOF
 pip install --no-cache-dir --upgrade pip
-pip install --no-cache-dir .[build]
+pip install --no-cache-dir .[build,sdk]
 EOF
 
 # dev container build

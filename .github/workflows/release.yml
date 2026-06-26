@@ -50,11 +50,12 @@ jobs:
         if [ -z "$GIT_TAG" ]; then
           GIT_TAG=${GITHUB_REF#refs/*/}
         fi
+        GIT_TAG="${GIT_TAG//\//-}"
         VERSION=$(echo $GIT_TAG | cut -d'v' -f2)
         NAME="duploctl-${VERSION}"
         PACKAGE_NAME="duplocloud_client-${VERSION}"
         RELEASE_URL="${REPO_URL}/releases/download/${GIT_TAG}"
-        echo "NOTES_ARTIFACT=notes-${GIT_TAG}" >> $GITHUB_OUTPUT
+        echo "NOTES_ARTIFACT=notes-${GIT_TAG//\//-}" >> $GITHUB_OUTPUT
         echo "GIT_TAG=${GIT_TAG}" >> $GITHUB_OUTPUT
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "NAME=${NAME}" >> $GITHUB_OUTPUT
@@ -63,20 +64,20 @@ jobs:
         echo "REPO_URL=${REPO_URL}" >> $GITHUB_OUTPUT
     
     - name: Download Installer Artifacts
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v7
       with:
         pattern: ${{ steps.info.outputs.NAME }}-*
         path: artifacts/installer
         merge-multiple: false
-    
+
     - name: Download Package Artifacts
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v7
       with:
         pattern: duplocloud_client-*
         path: artifacts
-    
+
     - name: Download Notes
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v7
       with:
         pattern: ${{ steps.info.outputs.NOTES_ARTIFACT }}
         path: ${{ steps.info.outputs.NOTES_ARTIFACT }}

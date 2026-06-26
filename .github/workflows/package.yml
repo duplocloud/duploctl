@@ -1,7 +1,7 @@
 name: Python Package
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
     inputs:
       push:
         description: Push the artifact to PyPi?
@@ -11,7 +11,7 @@ on:
         description: Tag to push
         required: true
         type: string
-  workflow_call: 
+  workflow_call:
     inputs:
       push:
         description: Push the artifact to PyPi?
@@ -22,7 +22,7 @@ on:
         required: true
         type: string
     outputs:
-      version: 
+      version:
         description: The true version of the package
         value: ${{ jobs.package.outputs.version }}
     secrets:
@@ -37,7 +37,7 @@ jobs:
   package:
     name: Package
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: pypi
       url: https://pypi.org/project/duplocloud-client
     outputs:
@@ -60,7 +60,7 @@ jobs:
         echo "Building Version: $version"
         echo "version=$version" >> $GITHUB_OUTPUT
         echo "package=$package" >> $GITHUB_OUTPUT
-    
+
     - name: Run the Build
       run: python -m build
 
@@ -73,16 +73,23 @@ jobs:
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
 
-    - name: Build the Plugins
+    - name: Build Plugin aws
       run: |
-        for d in ./plugins/*; do 
-          python -m build "$d" -o=dist
-        done
-        ls -l dist
+        python -m build ./plugins/aws -o=dist/plugins/aws
+        ls -l dist/plugins/aws
+
+    - name: Publish Plugin aws to PyPI
+      if: inputs.push == true
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        packages-dir: dist/plugins/aws/
 
     - name: Github Artifact
       uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.check_version.outputs.package }}
-        path: dist/*.tar.gz
-          
+        path: |
+          dist/*.tar.gz
+          dist/plugins/**/*.tar.gz
+

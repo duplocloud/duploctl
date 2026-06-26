@@ -13,7 +13,7 @@ UseLaunchTemplate: true
 CanScaleFromZero: false
 IsUserDataCombined: true
 KeyPairType: 
-Capacity: t3.small
+Capacity: t3.large
 Base64UserData: ''
 TagsCsv: ''
 AgentPlatform: 7

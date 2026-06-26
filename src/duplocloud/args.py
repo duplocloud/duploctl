@@ -1,6 +1,14 @@
 import argparse
 import logging
-from .argtype import Arg, YamlAction, JsonPatchAction, DataMapAction
+from .argtype import (
+    Arg,
+    YamlAction,
+    JsonPatchAction,
+    DataMapAction,
+    MetadataAction,
+    StdinTextAction,
+    ALLOWED_METADATA_TYPES,
+)
 from .commander import available_resources, available_formats, VERSION
 
 # the global args for the CLI
@@ -238,6 +246,42 @@ DELETEVAR = Arg("deletevar", "-D",
             action='append',
             help='a key to delete from the environment variables')
 
+METADATA = Arg(
+    "metadata", "--metadata",
+    action=MetadataAction,
+    help=(
+        "A typed key-value metadata entry: --metadata <key> <type> <value> "
+        f"(repeatable). Type must be one of: "
+        f"{', '.join(sorted(ALLOWED_METADATA_TYPES))}."
+    ),
+)
+"""Metadata Entry
+
+Repeatable flag that appends a ``(key, type, value)`` tuple. Used by commands
+such as ``tenant set_metadata`` to create typed metadata entries.
+
+Example:
+  ```sh
+  duploctl tenant set_metadata -T myenv \\
+    --metadata featureFlag text enabled \\
+    --metadata dashboard url https://internal.example.com
+  ```
+"""
+
+DELETES = Arg("deletes", "--delete",
+              action='append',
+              help='A key to delete (repeatable).')
+"""Delete Key
+
+Repeatable flag that collects key names to delete. Used alongside
+:data:`METADATA` by commands such as ``tenant set_metadata``.
+
+Example:
+  ```sh
+  duploctl tenant set_metadata -T myenv --delete featureFlag
+  ```
+"""
+
 SCHEDULE = Arg("schedule","-s",
                help='The schedule to use')
 
@@ -265,6 +309,22 @@ WAIT = Arg("wait", "-w",
            help='Wait for the operation to complete',
            type=bool,
            action='store_true')
+
+FORCE = Arg("force", "--force",
+            help='Force the operation, bypassing safety guards such as delete protection',
+            type=bool,
+            action='store_true')
+
+STREAM = Arg("stream", "--stream",
+             help='Stream the response (follow live output until complete)',
+             type=bool,
+             action='store_true')
+
+STREAMING = Arg("streaming", "--streaming",
+                help='Force the streaming (SSE) send endpoint regardless of '
+                     'the agent\'s advertised streaming support.',
+                type=bool,
+                action='store_true')
 
 VALIDATE = Arg("validate", "--validate",
                help='Validate body inputs against the SDK model schema.',
@@ -316,27 +376,47 @@ TITLE = Arg("title", "--title",
             help= "The Title for ticket",
             required=True)
 
-AGENTNAME = Arg("agent_name", "--agent_name", "--agent",
-                help= "AI Agent to be used to process the ticket",
-                required=True)
+ID = Arg("id", "--id",
+         help="The resource id. When provided, the resource is fetched "
+              "directly by id and the name lookup is skipped.",
+         required=False,
+         default=None)
 
-INSTANCEID = Arg("instance_id","--instance_id", "--instance",
-                help= "AI Agent Instance Id",
-                required=True)
+AGENTNAME = Arg("agent_name", "--agent_name", "--agent",
+                help= "AI Agent name to be used to process the ticket. Either --agent_id or --agent_name is required; --agent_id is preferred.",
+                required=False,
+                default=None)
+
+AGENTID = Arg("agent_id", "--agent_id", "--aid",
+              help= "AI Agent ID to be used to process the ticket. Skips the agent name lookup when provided.",
+              required=False,
+              default=None)
+
+WORKSPACE = Arg("workspace", "--workspace", "--wksp", "-W",
+                help="AI HelpDesk workspace name. Resolved to a workspace id "
+                     "via the workspaces lookup.",
+                required=False,
+                default=None)
+
+WORKSPACEID = Arg("workspace_id", "--workspace-id", "--wksp-id",
+                  help="AI HelpDesk workspace id. Skips the workspace name "
+                       "lookup when provided.",
+                  required=False,
+                  default=None)
 
 APIVERSION = Arg("api_version", "--api-version",
                 help="API Version",
                 required=False,
                 default="v1")
 
-TICKETID = Arg("ticket_id", "--ticket_id", "--ticket",
-              help="The ID of the AI HelpDesk ticket",
-              required=True)
-
-MESSAGE = Arg("message", "--content", "--msg", "--message",
+MESSAGE = Arg("message", "--content", "--msg", "--message", "-f",
+              action=StdinTextAction,
               required=False,
               default=None,
-              help="The message you want to send to the AI agent")
+              help="The message to send to the AI agent. Pass text inline "
+                   "(--content 'hello') or read from stdin with '-f -' "
+                   "(e.g. 'echo hello | duploctl ticket send_message -f -'). "
+                   "Read from a file with '-f - < message.txt'.")
 
 HELPDESK_ORIGIN = Arg("helpdesk_origin", "--helpdesk-origin", "--origin",
                       help="The helpdesk origin to use for the ticket",
@@ -371,3 +451,8 @@ BATCH_QUEUE = Arg("queue", "-BQ", "-bq", "--batch-queue",
 
 ALLOCATION_TAGS = Arg("allocationtags",
              help='Allocation tag used to specify custom allocation rules')
+
+RESOURCE_TYPE = Arg("resource_type", "--type",
+            help='Filter by cloud resource type number (e.g. 17 for ECR)',
+            type=int,
+            default=None)

@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient  # Importing necessary modules
+from duplocloud.controller import DuploCtl  # Importing necessary modules
 from duplocloud.errors import DuploFailedResource, DuploStillWaiting
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
@@ -12,13 +12,13 @@ class DuploJob(DuploResourceV3):
 
   See more details at: https://docs.duplocloud.com/docs/kubernetes-overview/jobs
   """
-  def __init__(self, duplo: DuploClient):  # Constructor method
+  def __init__(self, duplo: DuploCtl):  # Constructor method
     super().__init__(duplo, "k8s/job")  
     self.wait_timeout = 1000
     self.wait_poll = 3
     self.__pod_svc = self.duplo.load("pod")
 
-  @Command()  
+  @Command(model="CreateJobRequest")  
   def create(self, 
              body: args.BODY):
     """Create a Kubernetes Job.
@@ -84,7 +84,7 @@ class DuploJob(DuploResourceV3):
         a = active
         s = succeeded
         f = failed
-        self.duplo.logger.warn(f"Job {name}: active({active}/{completions}), succeeded({succeeded}/{completions}), failed({failed}/{limit})")
+        self.duplo.logger.warning(f"Job {name}: active({active}/{completions}), succeeded({succeeded}/{completions}), failed({failed}/{limit})")
       # make sure we can get pods and logs first
       pods_exist = (active > 0 or succeeded > 0 or failed > 0)
       pods = self.pods(name)

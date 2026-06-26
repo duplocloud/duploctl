@@ -1,0 +1,30 @@
+Family: duploctl-task
+Cpu: '256'
+Memory: '512'
+ContainerDefinitions:
+- Essential: true
+  Image: public.ecr.aws/nginx/nginx:stable-alpine
+  Name: app
+  Command:
+  - /bin/sh
+  - -c
+  - echo hello from duploctl task && sleep 30
+  LogConfiguration:
+    LogDriver:
+      Value: awslogs
+    Options:
+      awslogs-create-group: 'true'
+      awslogs-group: /ecs/duploctl-task
+      awslogs-region: us-east-2
+      awslogs-stream-prefix: ecs
+    SecretOptions: []
+InferenceAccelerators: []
+NetworkMode:
+  Value: awsvpc
+RuntimePlatform:
+  CpuArchitecture:
+    Value: X86_64
+  OperatingSystemFamily:
+    Value: LINUX
+RequiresCompatibilities:
+- EC2

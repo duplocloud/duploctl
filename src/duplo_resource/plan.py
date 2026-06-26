@@ -1,5 +1,5 @@
-from duplocloud.client import DuploClient
-from duplocloud.errors import DuploError
+from duplocloud.controller import DuploCtl
+from duplocloud.errors import DuploNotFound
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -7,7 +7,7 @@ import duplocloud.args as args
 @Resource("plan")
 class DuploPlan(DuploResource):
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
   
   @Command()
@@ -22,7 +22,7 @@ class DuploPlan(DuploResource):
     Returns:
       list: List of Plans
     """
-    response = self.duplo.get("adminproxy/GetPlans")
+    response = self.client.get("adminproxy/GetPlans")
     return response.json()
   
   @Command()
@@ -44,7 +44,7 @@ class DuploPlan(DuploResource):
     try:
       return [s for s in self.list() if self.name_from_body(s) == name][0]
     except IndexError:
-      raise DuploError(f"Plan '{name}' not found", 404)
+      raise DuploNotFound(name, "Plan")
 
   def name_from_body(self, body):
     return body["Name"]

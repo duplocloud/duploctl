@@ -1,32 +1,35 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
 @Resource("user")
 class DuploUser(DuploResourceV2):
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
     self.tenent_svc = duplo.load('tenant')
+
+  def name_from_body(self, body):
+    return body["Username"]
 
   @Command("ls")
   def list(self):
     """Retrieve a list of all users in the Duplo system."""
-    response = self.duplo.get("admin/GetAllUserRoles")
+    response = self.client.get("admin/GetAllUserRoles")
     return response.json()
-  
+
   @Command("get")
-  def find(self, 
+  def find(self,
            name: args.NAME):
     """Find a User by their username."""
     try:
       return [u for u in self.list() if u["Username"] == name][0]
     except IndexError:
-      raise DuploError(f"User '{name}' not found", 404)
-  
+      raise DuploNotFound(name, "User")
+
   @Command()
-  def create(self, 
+  def create(self,
              body: args.BODY) -> dict:
     """Create a new user.
 
@@ -38,16 +41,40 @@ class DuploUser(DuploResourceV2):
       ```yaml
       --8<-- "src/tests/data/user.yaml"
       ```
-    
+
     Args:
-      body: The user body. 
+      body: The user body.
 
     Returns:
       message: A success message.
     """
     if 'State' not in body:
       body['State'] = 'added'
-    response = self.duplo.post("admin/UpdateUserRole", body)
+    response = self.client.post("admin/UpdateUserRole", body)
+    return response.json()
+
+  @Command()
+  def update(self,
+             name: args.NAME = None,
+             body: args.BODY = None) -> dict:
+    """Update an existing user.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl user update -f 'user.yaml'
+      ```
+
+    Args:
+      name: The username (unused; kept for signature parity with the
+        base ``apply`` which calls ``update(name, body)`` positionally).
+      body: The user body.
+
+    Returns:
+      message: A success message.
+    """
+    if 'State' not in body:
+      body['State'] = 'updated'
+    response = self.client.post("admin/UpdateUserRole", body)
     return response.json()
   
   @Command()
@@ -70,5 +97,5 @@ class DuploUser(DuploResourceV2):
       "Username": name,
       "State": "deleted"
     }
-    self.duplo.post("admin/UpdateUserRole", body)
+    self.client.post("admin/UpdateUserRole", body)
     return {"message": name+ " deleted successfully"}

@@ -1,12 +1,12 @@
 from . import args
-from .client import DuploClient
-from .errors import DuploError, DuploFailedResource, DuploStillWaiting, DuploConnectionError
+from .controller import DuploCtl
+from .errors import DuploError, DuploFailedResource, DuploNotFound, DuploStillWaiting, DuploConnectionError
 from .commander import get_parser, extract_args, get_command_schema, Command
 import math
 import time
 
 class DuploCommand():
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     self.duplo = duplo
   
   def __call__(self, *args):
@@ -14,7 +14,7 @@ class DuploCommand():
 
 class DuploResource():
 
-  def __init__(self, duplo: DuploClient, api_version: str="v1", slug: str=None, prefixed: bool=False):
+  def __init__(self, duplo: DuploCtl, api_version: str="v1", slug: str=None, prefixed: bool=False):
     self.duplo = duplo
     self.__logger = None
     self.slug = slug
@@ -45,21 +45,25 @@ class DuploResource():
       pargs = vars(parser.parse_args(args))
       pargs.update(kwargs)
       # if validation was enabled then the body will be validated
-      if model and "body" in pargs:
+      if model and "body" in pargs and pargs["body"] is not None:
         pargs["body"] = self.duplo.validate_model(model, pargs["body"])
       return command(**pargs)
     return wrapped
   
   def wait(self, wait_check: callable, timeout: int=3600, poll: int=10):
     """Wait for Resource
-    
-    Waits for a the given wait_check callable to complete successfully. If the global wait_timeout is set on the DuploClient, it will override the timeout parameter so that a user can always choose their own timeout for waiting operations. The timeout param for other functions is just a default value for that particular resource operation.
-    
+
+    Waits for a the given wait_check callable to complete successfully. If the global wait_timeout is set on the DuploCtl, it will override the timeout parameter so that a user can always choose their own timeout for waiting operations. The timeout param for other functions is just a default value for that particular resource operation.
+
+    The GET cache is disabled for the duration of the wait so that each
+    poll reflects the live API state rather than a stale cached response.
+
     Args:
       wait_check: A callable function to check if the resource is ready.
       timeout: The maximum time to wait in seconds. Default is 3600 seconds (1 hour).
       poll: The polling interval in seconds. Default is 10 seconds.
     """
+    self.client.disable_get_cache()
     timeout = self.duplo.wait_timeout or timeout
     exp = math.ceil(timeout / poll)
     max_connection_errors = 10
@@ -85,9 +89,41 @@ class DuploResource():
     else:
       raise DuploStillWaiting("Timed out waiting")
 
+  def retry_transient(self, fn: callable, attempts: int=3, base_delay: int=2):
+    """Call ``fn`` and retry only on transient errors.
+
+    Retries up to ``attempts`` times with linear backoff for transient
+    failures — gateway codes (502/503/504) and ``DuploConnectionError``.
+    Non-transient ``DuploError``s propagate immediately (no retry), and
+    the final transient failure is re-raised after the last attempt so
+    the caller can record it.
+
+    Args:
+      fn: Zero-arg callable performing the request.
+      attempts: Total number of tries, including the first.
+      base_delay: Seconds multiplied by the attempt number for backoff.
+
+    Returns:
+      Whatever ``fn`` returns on the first successful attempt.
+    """
+    transient_codes = {502, 503, 504}
+    for attempt in range(1, attempts + 1):
+      try:
+        return fn()
+      except DuploError as e:
+        is_transient = (
+          isinstance(e, DuploConnectionError) or e.code in transient_codes
+        )
+        if not is_transient or attempt == attempts:
+          raise
+        self.duplo.logger.warning(
+          f"Transient error (attempt {attempt}/{attempts}), retrying: {e}"
+        )
+        time.sleep(base_delay * attempt)
+
 class DuploResourceV2(DuploResource):
 
-  def __init__(self, duplo: DuploClient, slug: str = None, prefixed: bool = False):
+  def __init__(self, duplo: DuploCtl, slug: str = None, prefixed: bool = False):
     super().__init__(duplo, api_version="v2", slug=slug, prefixed=prefixed)
 
   def name_from_body(self, body):
@@ -107,13 +143,13 @@ class DuploResourceV2(DuploResource):
     
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} list
+      duploctl {{command}} list
       ```
 
     Returns:
       list: A list of {{kind}}.
     """
-    response = self.duplo.get(self.endpoint(self.paths["list"]))
+    response = self.client.get(self.endpoint(self.paths["list"]))
     return response.json()
   @Command()
   def find(self, 
@@ -122,7 +158,7 @@ class DuploResourceV2(DuploResource):
 
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} find <name>
+      duploctl {{command}} find <name>
       ```
     
     Args:
@@ -137,7 +173,7 @@ class DuploResourceV2(DuploResource):
     try:
       return [s for s in self.list() if self.name_from_body(s) == name][0]
     except IndexError:
-      raise DuploError(f"{self.kind} '{name}' not found", 404)
+      raise DuploNotFound(name, self.kind)
       
   @Command()
   def apply(self,
@@ -147,13 +183,13 @@ class DuploResourceV2(DuploResource):
     name = self.name_from_body(body)
     try:
       self.find(name)
-      return self.update(name, body, wait)
-    except DuploError:
-      return self.create(body, wait)
+      return self.update(name, body)
+    except DuploNotFound:
+      return self.create(body=body)
   
 
 class DuploResourceV3(DuploResource):
-  def __init__(self, duplo: DuploClient, slug: str, prefixed: bool = False):
+  def __init__(self, duplo: DuploCtl, slug: str, prefixed: bool = False):
     super().__init__(duplo, api_version="v3", slug=slug, prefixed=prefixed)
 
   def name_from_body(self, body):
@@ -178,72 +214,72 @@ class DuploResourceV3(DuploResource):
 
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} list
+      duploctl {{command}} list
       ```
     
     Returns:
       list: A list of {{kind}}.
     """
-    response = self.duplo.get(self.endpoint())
+    response = self.client.get(self.endpoint())
     return response.json()
-  
+
   @Command()
-  def find(self, 
+  def find(self,
            name: args.NAME) -> dict:
     """Find {{kind}} resources by name.
 
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} find <name>
+      duploctl {{command}} find <name>
       ```
-    
+
     Args:
       name: The name of the {{kind}} resource to find.
 
-    Returns: 
+    Returns:
       resource: The {{kind}} object.
-      
+
     Raises:
       DuploError: If the {{kind}} could not be found.
     """
     n = self.prefixed_name(name) if self._prefixed else name
-    response = self.duplo.get(self.endpoint(n))
+    response = self.client.get(self.endpoint(n))
     return response.json()
-  
+
   @Command()
-  def delete(self, 
+  def delete(self,
              name: args.NAME) -> dict:
     """Delete a {{kind}} resource by name.
 
     Usage: cli usage
       ```sh
-      duploctl {{kind | lower}} delete <name>
+      duploctl {{command}} delete <name>
       ```
-    
+
     Args:
       name: The name of the {{kind}} resource to delete.
 
-    Returns: 
+    Returns:
       message: A success message.
 
     Raises:
-      DuploError: If the {{kind}} resource could not be found or deleted. 
+      DuploError: If the {{kind}} resource could not be found or deleted.
     """
     n = self.prefixed_name(name) if self._prefixed else name
-    self.duplo.delete(self.endpoint(n))
+    self.client.delete(self.endpoint(n))
     return {
       "message": f"{self.slug}/{name} deleted"
     }
-  
+
   @Command()
-  def create(self, 
+  def create(self,
              body: args.BODY,
              wait_check: callable=None) -> dict:
     """Create a {{kind}} resource.
 
     Usage: CLI Usage
       ```sh
-      duploctl {{kind | lower}} create -f '{{kind | lower}}.yaml'
+      duploctl {{command}} create -f '{{kind | lower}}.yaml'
       ```
       Contents of the `{{kind|lower}}.yaml` file
       ```yaml
@@ -254,22 +290,22 @@ class DuploResourceV3(DuploResource):
       ```sh
       echo \"\"\"
       --8<-- "src/tests/data/{{kind|lower}}.yaml"
-      \"\"\" | duploctl {{kind | lower}} create -f -
+      \"\"\" | duploctl {{command}} create -f -
       ```
-    
+
     Args:
       body: The resource to create.
       wait: Wait for the resource to be created.
       wait_check: A callable function to check if the resource
 
-    Returns: 
+    Returns:
       message: Success message.
 
     Raises:
       DuploError: If the resource could not be created.
     """
     name = self.name_from_body(body)
-    response = self.duplo.post(self.endpoint(), body)
+    response = self.client.post(self.endpoint(), body)
     if self.duplo.wait:
       def _default_wait_check():
         try:
@@ -304,7 +340,7 @@ class DuploResourceV3(DuploResource):
       body = self.duplo.jsonpatch(body, patches)
     name = name if name else self.name_from_body(body)
     n = self.prefixed_name(name) if self._prefixed else name
-    response = self.duplo.put(self.endpoint(n), body)
+    response = self.client.put(self.endpoint(n), body)
     return response.json()
   
   @Command()
@@ -317,7 +353,7 @@ class DuploResourceV3(DuploResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl {{kind | lower}} apply -f '{{kind | lower}}.yaml'
+      duploctl {{command}} apply -f '{{kind | lower}}.yaml'
       ```
       Contents of the `{{kind|lower}}.yaml` file
       ```yaml
@@ -336,7 +372,7 @@ class DuploResourceV3(DuploResource):
     try:
       self.find(name)
       return self.update(name=name, body=body, patches=patches)
-    except DuploError:
-      return self.create(body)
+    except DuploNotFound:
+      return self.create(body=body)
 
 

@@ -1,14 +1,14 @@
+import os
 import pytest
 
 from duplocloud.errors import DuploError
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 
-duplo, _ = DuploClient.from_env()
 
+@pytest.mark.integration
 class Testportal:
 
-  @pytest.mark.integration
-  def test_system_info(self):
+  def test_system_info(self, duplo):
     r = duplo.load("system")
     try:
       info = r("info")

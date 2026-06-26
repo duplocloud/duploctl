@@ -1,6 +1,6 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -13,7 +13,7 @@ class DuploAsg(DuploResourceV2):
   See more details at: https://docs.duplocloud.com/docs/overview/use-cases/hosts-vms/auto-scaling/auto-scaling-groups
   """
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
   
   @Command()
@@ -31,7 +31,7 @@ class DuploAsg(DuploResourceV2):
       list: A list of all ASGs with their configurations.
     """
     tenant_id = self.tenant["TenantId"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetTenantAsgProfiles")
+    response = self.client.get(f"subscriptions/{tenant_id}/GetTenantAsgProfiles")
     return response.json()
 
   @Command()
@@ -58,9 +58,9 @@ class DuploAsg(DuploResourceV2):
     try:
       return [s for s in self.list() if s["FriendlyName"] == name][0]
     except IndexError:
-      raise DuploError(f"ASG Profile '{name}' not found", 404)
+      raise DuploNotFound(name, "ASG Profile")
     
-  @Command()
+  @Command(model="AsgProfile")
   def create(self,
              body: args.BODY) -> dict:
     """Create an ASG.
@@ -70,7 +70,7 @@ class DuploAsg(DuploResourceV2):
     
     Usage: CLI Usage
       ```sh
-      duploctl hosts create -f 'asg.yaml'
+      duploctl asg create -f 'asg.yaml'
       ```
       Contents of the `asg.yaml` file
       ```yaml
@@ -99,7 +99,7 @@ class DuploAsg(DuploResourceV2):
     name = self.name_from_body(body)
     if body.get("ImageId", None) is None:
       body["ImageId"] = self.discover_image(body.get("AgentPlatform", 0))
-    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    res = self.client.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     def wait_check():
       return self.find(name)
     if self.duplo.wait:
@@ -109,7 +109,7 @@ class DuploAsg(DuploResourceV2):
       "data": res.json()
     }
   
-  @Command()
+  @Command(model="AsgProfile")
   def update(self,
              body: args.BODY) -> dict:
     """Update an ASG.
@@ -132,7 +132,7 @@ class DuploAsg(DuploResourceV2):
       DuploError: If the ASG could not be updated due to invalid configuration or API errors.
     """
     tenant_id = self.tenant["TenantId"]
-    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    res = self.client.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     return {
       "message": f"Successfully updated asg '{body['FriendlyName']}'",
       "data": res.json()
@@ -165,7 +165,7 @@ class DuploAsg(DuploResourceV2):
       "FriendlyName": name,
       "State": "delete"
     }
-    res = self.duplo.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
+    res = self.client.post(f"subscriptions/{tenant_id}/UpdateTenantAsgProfile", body)
     return {
       "message": f"Successfully deleted asg '{name}'",
       "data": res.json()
@@ -184,11 +184,11 @@ class DuploAsg(DuploResourceV2):
 
     Usage: CLI Usage
       ```sh
-      duploctl asg scale -n <name> [-m <min>] [-M <max>]
+      duploctl asg scale <name> [-m <min>] [-M <max>]
       ```
-    
+
     Args:
-      name: The  name of the ASG to scale.
+      name: The name of the ASG to scale (positional).
       min: The new minimum number of instances the ASG should maintain. Use -m flag to set.
       max: The new maximum number of instances the ASG can scale to. Use -M flag to set.
 
@@ -263,5 +263,5 @@ class DuploAsg(DuploResourceV2):
         "Value": allocationtags,
         "State": "create"
     }
-    self.duplo.post(f"subscriptions/{tenant_id}/UpdateCustomData", payload)
+    self.client.post(f"subscriptions/{tenant_id}/UpdateCustomData", payload)
     return {"message": f"Successfully updated allocation tag for asg '{name}'"}

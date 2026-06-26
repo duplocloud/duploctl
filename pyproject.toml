@@ -28,8 +28,7 @@ dependencies = [
   "pyyaml>=6.0.1",
   "jsonpatch>=1.33",
   "pyjwt>=2.8.0",
-  "jsonpointer>=2.4",
-  "duplocloud-sdk"
+  "jsonpointer>=2.4"
 ]
 [project.optional-dependencies]
 build = [
@@ -45,15 +44,19 @@ build = [
   "Jinja2"
 ]
 test = [
-  "pytest",
+  # pytest-black 0.6.0 (latest) uses the legacy pytest_collect_file(path=...)
+  # hook signature that pytest 9.1 removed, which crashes plugin registration.
+  # Pin below 9.1 until pytest-black/pytest-isort are dropped in favor of ruff.
+  "pytest<9.1",
   "ruff",
   "pip-audit",
-  "pytest-black",
-  "pytest-isort",
   "pytest-cov",
   "pytest-dependency",
   "pytest-order",
   "pytest-mock"
+]
+sdk = [
+  "duplocloud-sdk"
 ]
 aws = [
   "boto3>=1.34.83"
@@ -83,7 +86,7 @@ LatestRelease = "https://github.com/duplocloud/duploctl/releases"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "src --verbose --cov=src --cov-report term-missing"
+addopts = "--verbose --cov=src --cov-report term-missing"
 testpaths = [
   "src/tests"
 ]
@@ -98,9 +101,25 @@ markers = [
   "gcp: mark a test as a gcp test",
   "azure: mark a test as an azure test",
 
-  "k8s: mark a test as a k8s test",
-  "ecs: mark a test as an ecs test",
-  "native: mark a test as a native test"
+  "k8s: mark a test as requiring a kubernetes (EKS/GKE/AKS) infrastructure",
+  "ecs: mark a test as requiring an ECS infrastructure (AWS only)",
+  "duplo: mark a test as requiring a duplo-native infrastructure (no k8s, no ecs)",
+  "lifecycle: mark a test as an infra/tenant lifecycle test (always required for dep registration)",
+
+  "hosts: mark a test as a hosts resource test",
+  "asg: mark a test as an asg resource test",
+  "configmap: mark a test as a configmap resource test",
+  "secret: mark a test as a secret resource test",
+  "ingress: mark a test as an ingress resource test",
+  "job: mark a test as a job resource test",
+  "cronjob: mark a test as a cronjob resource test",
+  "lambda_: mark a test as a lambda resource test",
+  "rds: mark a test as an rds resource test",
+  "s3: mark a test as an s3 resource test",
+  "cloudfront: mark a test as a cloudfront resource test",
+  "awssecret: mark a test as an aws secret resource test",
+  "jit: mark a test as a jit resource test",
+  "ecr: mark a test as an ecr resource test"
 ]
 
 [tool.coverage.run]
@@ -149,7 +168,9 @@ system = "duplo_resource.system:DuploSystem"
 asg = "duplo_resource.asg:DuploAsg"
 secret = "duplo_resource.secret:DuploSecret"
 configmap = "duplo_resource.configmap:DuploConfigMap"
-ai = "duplo_resource.ai:DuploAI"
+workspace = "duplo_resource.workspace:DuploWorkspace"
+agent = "duplo_resource.agent:DuploAgent"
+ticket = "duplo_resource.ticket:DuploTicket"
 hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
 rds = "duplo_resource.rds:DuploRDS"
@@ -163,7 +184,14 @@ batch_definition = "duplo_resource.batch_definition:DuploBatchDefinition"
 batch_job = "duplo_resource.batch_job:DuploBatchJob"
 batch_scheduling_policy = "duplo_resource.batch_scheduling_policy:DuploBatchSchedulingPolicy"
 argo_wf = "duplo_resource.argo_wf:DuploArgoWorkflow"
+argo_wf_template = "duplo_resource.argo_wf:DuploArgoWorkflowTemplate"
 cache = "duplo_resource.cache:DuploCache"
+cloud_resource = "duplo_resource.cloud_resource:DuploCloudResource"
+ecr = "duplo_resource.ecr:DuploECR"
+
+[project.entry-points."clients.duplocloud.net"]
+duplo = "duplocloud.client:DuploAPI"
+argo_wf = "duplo_resource.argo_client:DuploArgoClient"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"

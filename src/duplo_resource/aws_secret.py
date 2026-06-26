@@ -1,6 +1,6 @@
 from duplocloud import args
-from duplocloud.client import DuploClient
-from duplocloud.errors import DuploError
+from duplocloud.controller import DuploCtl
+from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.resource import DuploResourceV3
 from duplocloud.commander import Command, Resource
 import json
@@ -19,7 +19,7 @@ class DuploAwsSecret(DuploResourceV3):
   Manages [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) in the background. 
   """
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "aws/secret")
   
   def name_from_body(self, body):
@@ -51,12 +51,12 @@ class DuploAwsSecret(DuploResourceV3):
     # if the name has the prefix we good, otherwise add it
     response = None
     try:
-      response = self.duplo.get(self.endpoint(name))
+      response = self.client.get(self.endpoint(name))
     except DuploError as e:
       # if it wasn't found try with the full prefix
       prefixed = self.prefixed_name(name)
       if e.code in (400, 404) and prefixed != name:
-        response = self.duplo.get(self.endpoint(prefixed))
+        response = self.client.get(self.endpoint(prefixed))
       else:
         raise e
     if not show_sensitive:
@@ -68,7 +68,7 @@ class DuploAwsSecret(DuploResourceV3):
     else:
       return response.json()
   
-  @Command()
+  @Command(model="AwsSecret")
   def create(self, 
              name: args.NAME=None,
              body: args.BODY=None,
@@ -142,7 +142,7 @@ class DuploAwsSecret(DuploResourceV3):
     else:
       return super().create(body=body)
     
-  @Command()
+  @Command(model="AwsSecret")
   def update(self, 
              name: args.NAME=None,
              body: args.BODY=None,
@@ -197,6 +197,32 @@ class DuploAwsSecret(DuploResourceV3):
       return body
     else:
       return super().update(name=name, body=body)
+
+  @Command(model="AwsSecret")
+  def apply(self,
+            body: args.BODY) -> dict:
+    """Apply an AWS Secrets Manager secret.
+
+    Create or update an AWS secret. If the secret exists it will be
+    updated, otherwise a new secret is created.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl aws_secret apply -f 'secret.yaml'
+      ```
+
+    Args:
+      body: The AWS secret definition.
+
+    Returns:
+      message: Success message.
+    """
+    name = self.name_from_body(body)
+    try:
+      self.find(name)
+      return self.update(name=name, body=body)
+    except DuploNotFound:
+      return self.create(body=body)
 
   @Command()
   def delete(self,

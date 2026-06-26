@@ -3,8 +3,9 @@ This module contains the customizations to the Argparse library.
 """
 from typing import NewType, Any, List
 import argparse
+import sys
 import yaml
-import json 
+import json
 import os
 from .errors import DuploError
 
@@ -114,6 +115,21 @@ class YamlAction(argparse.Action):
     data = yaml.load(value, Loader=yaml.FullLoader)
     setattr(namespace, self.dest, data)
 
+class StdinTextAction(argparse.Action):
+  """Stdin Text Action
+
+  A custom action that stores the argument value as verbatim text, reading
+  from stdin when the value is ``-``. Unlike :class:`YamlAction` it does not
+  parse the input, so text containing characters like ``:`` is preserved.
+  This lets a value be passed inline (``--content "hi"``) or streamed in
+  (``echo hi | ... -f -``); read a file by redirecting it to stdin
+  (``... -f - < message.txt``).
+  """
+  def __call__(self, parser, namespace, value, option_string=None):
+    if value == "-":
+      value = sys.stdin.read()
+    setattr(namespace, self.dest, value)
+
 class JsonPatchAction(argparse._AppendAction):
   """Json Patch Action
 
@@ -152,6 +168,53 @@ class JsonPatchAction(argparse._AppendAction):
     elif op in ["copy", "move"]:
       patch = {"op": op, "from": key, "path": validate_key(value[1])}
     super().__call__(parser, namespace, patch, option_string)
+
+ALLOWED_METADATA_TYPES = {"aws_console", "url", "text"}
+
+
+class MetadataAction(argparse._AppendAction):
+  """Metadata Action
+
+  A custom argparse action for repeatable typed key-value metadata entries.
+  Each use of the flag consumes three tokens: key, type, and value.
+
+  The ``type`` token is validated against :data:`ALLOWED_METADATA_TYPES` and
+  normalised to lowercase before storing, so ``TEXT`` and ``text`` are
+  equivalent.
+
+  Example:
+    ```bash
+    --metadata featureFlag text enabled
+    --metadata dashboard url https://internal.example.com
+    --metadata console aws_console https://console.aws.amazon.com/...
+    ```
+
+  Each invocation appends a ``(key, type, value)`` tuple to the destination
+  list, making the flag repeatable.
+  """
+
+  def __init__(
+      self,
+      option_strings,
+      dest,
+      nargs=3,
+      metavar=("key", "type", "value"),
+      **kwargs
+  ):
+    super().__init__(
+        option_strings, dest, nargs=nargs, metavar=metavar, **kwargs
+    )
+
+  def __call__(self, parser, namespace, values, option_string=None):
+    key, mtype, value = values
+    mtype = mtype.lower()
+    if mtype not in ALLOWED_METADATA_TYPES:
+      raise argparse.ArgumentTypeError(
+          f"Invalid metadata type '{mtype}'. "
+          f"Allowed: {', '.join(sorted(ALLOWED_METADATA_TYPES))}"
+      )
+    super().__call__(parser, namespace, (key, mtype, value), option_string)
+
 
 class DataMapAction(argparse.Action):
   """Data Map Action

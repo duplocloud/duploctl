@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Changed
 
 - added ability to pass in kwargs when calling the client as function
 - **Authentication cooldown** via `DUPLO_AUTH_COOLDOWN` — prevents duplicate browser login prompts when multiple processes request tokens concurrently. Thanks to [@scholzie](https://github.com/scholzie) for the original contribution in [duplocloud/duplo-jit#52](https://github.com/duplocloud/duplo-jit/pull/52).
@@ -18,12 +18,111 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DuploResource.command()` gates model loading and validation behind the `validate` flag — no overhead when disabled
   - `@Command(model="...")` decorator parameter stores the associated model name in the command schema
   - `duplocloud-sdk` added as a core dependency
+- Split the AI HelpDesk `ai` resource into dedicated `workspace`, `agent`, and `ticket` resources so each endpoint is exposed as a first-class command rather than hidden behind a single resource. The `ai` resource (`ai create_ticket`, `ai send_message`) is removed.
+  - `workspace find` resolves an AI HelpDesk workspace by name (case-insensitive) or `--id`; `workspace list` lists workspaces.
+  - `agent find` resolves an agent by name or `--id`; `agent supports_streaming` reports the agent's `metaData.STREAMING_ENABLED` flag.
+  - `ticket create_ticket` takes `--workspace`/`--workspace-id` plus `--agent_id` (preferred) or `--agent_name`, delegating workspace/agent resolution to the new resources. `ticket send_message` identifies the ticket by name or `--id` and accepts `--streaming` to force the SSE send endpoint. `ticket find` looks a ticket up within a workspace.
+  - The message for `ticket create_ticket` and `ticket send_message` is passed via `--content` (inline) or read from stdin with `-f -` (e.g. `echo "msg" | duploctl ticket send_message … -f -`, or `-f - < message.txt`). Message text is taken verbatim — it is not YAML/JSON parsed — so messages containing characters like `:` are preserved.
+  - Ticket message dispatch checks the assigned agent's `metaData.STREAMING_ENABLED` and uses `POST /sendMessageStreaming` (SSE, concatenating `text_delta` events) when streaming, falling back to `POST /sendMessage` otherwise — avoiding the backend's non-streaming deserializer choking on NDJSON from streaming agents. Workspace names are resolved to the workspace ID used in the ticket URL, payload, and chat URL.
+- `DuploClient.post()` now accepts an optional `headers` argument (merged over the default auth headers) and forwards `**kwargs` (e.g. `stream=True`) to the underlying request, replacing the dedicated `stream_post()` method. Streaming calls now go through the same request/exception-handling path as every other verb.
+- `service update_image` now uses the V3 containerimage endpoint and supports updating main, sidecar, and init container images in a single call
+- `rds` exposes a `modify` command wrapping the `ModifyRDSDBInstance` endpoint; `set_monitor_interval`, `iam_auth`, `final_snapshot`, and `retention_period` now delegate to it
 
 ### Fixed
 
+- Fixed `jit` commands (`aws`, `gcp`, `argo_wf`, `k8s`, `token`) leaking credentials in GitHub Actions logs when output was piped to `$GITHUB_OUTPUT`. When `GITHUB_ACTIONS=true`, secret fields are now registered with `::add-mask::` so the runner redacts them in subsequent step logs.
+- Removed unused `pytest-black` and `pytest-isort` dev dependencies that broke unit-test CI at pytest startup on current pytest; linting is handled by `ruff`
+- Fixed `tenant stop`/`tenant start` (and `rds stop`/`rds start`) failing on Aurora. Aurora and other cluster engines can only be stopped/started at the cluster level, not on member instances — the previous code always called the instance endpoint and the API rejected it (`aurora-postgresql DB instances are not eligible for stopping and starting`). `rds` now classifies each resource by engine and routes Aurora/cluster engines to the cluster stop/start endpoint, regular RDS to the instance endpoint, and skips Aurora Serverless v1 (auto-pauses) and DocumentDB. Multi-node clusters are deduped so the cluster is actioned once. The tenant sweep is best-effort — only "already in target state" errors (e.g. re-running stop on an already-stopped cluster) are treated as benign and skipped; transient errors (gateway 502/503/504 and connection errors) are retried with backoff; and any remaining genuine failures are collected across the whole sweep and raised together at the end so the command exits non-zero rather than falsely reporting success
+- Fixed `ssm_param find`/`update`/`delete` returning "Resource not found" for hierarchical parameter names (e.g. `/customer/web/demo`) by double URL-encoding the name in the path segment to match what the portal UI sends (`/` → `%252F`)
+- Fixed `ssm_param apply` crashing with `TypeError: update() got an unexpected keyword argument 'body'` by extending `ssm_param update` to accept `body` and `patches`, aligning it with the V3 base `apply` flow
+- Fixed `ssm_param update` with `patches` (or no value) overwriting a SecureString's real value with the obfuscated `****` placeholder by fetching the current body with `show_sensitive=True`
+- Fixed `ecs update_image --container-image` silently registering an unchanged task-definition revision (and triggering a service rollout) when the supplied container name did not exist; it now raises with the list of valid container names
+- Fixed auto-generated CLI usage examples in the docs rendering the wrong command name for resources whose class name differs from the entry-point name. The base `DuploResourceV2`/`DuploResourceV3` docstrings now use `{{command}}` (the entry-point name) instead of `{{kind | lower}}` (derived from the class name). Affects `aws_secret` (was `awssecret`), `ssm_param` (was `param`), `pvc` (was `persistentvolumeclaim`), and `ecs` (was `ecsservice`).
+- Fixed `asg create` docstring showing `duploctl hosts create` instead of `duploctl asg create`
+- Fixed `asg scale` docstring advertising a non-existent `-n <name>` flag; `name` is a positional argument
+- Fixed `ecs list_task_def_family` docstring referencing a non-existent `list_definitions` command
+- Added missing `Usage: CLI Usage` blocks to all remaining `ecs` commands without one (`create_service`, `update_service`, `update_taskdef`, `delete_service`, `find_def`, `find_def_by_arn`, `find_service_family`, `find_task_def_family`) so the generated docs show how to invoke them
+- Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` and `apply` to use `Username` and set the correct `State` for create vs update
+- Updated broken links in batch documentation
+- Fixed `batch_scheduling_policy update` returning 405 by PUTting to the collection endpoint instead of a named resource path
+- Fixed `batch_scheduling_policy` resource decorator name colliding with `batch_job`
+- Fixed `rds delete` showing internal AWS path (`aws/rds/instance/<name>`) instead of only the database name
+- Fixed `cloudfront apply` crashing with `KeyError: 'metadata'` by overriding `apply` to resolve the distribution by its `Comment` (CloudFront's logical name) via a find-then-update-or-create flow; `find` now takes separate `name` (Comment) and `id` parameters, mirroring `tenant.find()`
+- Fixed `user apply` failing with `KeyError: 'Name'` by overriding `name_from_body` to return `Username` and adding an `update` method; the inherited V2 `apply` now drives the find → update/create flow
+- Fixed `apply` failing for resources whose API returns HTTP 400 (not 404) for not-found lookups (e.g. RDS) by promoting 400 responses containing "not found" to `DuploNotFound`
+- Fixed `rds retention_period`, `rds iam_auth`, and `rds final_snapshot` failing with JSON decode error by using the correct `ModifyRDSDBInstance` endpoint
+- Fixed `s3 update` and `s3 find` failing when using short bucket names by trying the name as-is against the single-bucket GET endpoint and falling back to the constructed full name (`duploservices-<tenant>-<name>-<account_id>`) when not found
+- Fixed `lambda apply` failing with "No lambda functions found" when creating the first lambda in a tenant
+- Fixed `service apply` creating instead of updating when V3 find endpoint returns 200 with null body for non-existent services
+- Fixed `service update` crashing with `KeyError: 'Template'` when given a flat YAML body without the Template wrapper
+- Fixed `service update_env` and `update_labels` crashing when `OtherDockerConfig` is empty
+- Fixed `tenant config` crashing with help text when `--deletevar` is not provided
+- Fixed `apply` misrouting the body into the `name` parameter for subclasses whose `create` signature starts with `name` (e.g. `ssm_param`, `secret`, `aws_secret`, `configmap`); the V2 and V3 base `apply` now call `self.create(body=body)` by keyword
+
+## [0.4.3] - 2026-03-18
+
+### Added
+
+- `infrastructure update` — no-op that validates field immutability; raises if any body field differs from existing state
+- `DuploNotFound` error subclass (code 404) with optional `kind` label for clearer not-found messages
+- `apply()` now catches `DuploNotFound` instead of the broad `DuploError`, avoiding over-catching unrelated errors
+- `tenant get_metadata` and `tenant set_metadata` commands for typed key-value metadata entries (`aws_console`, `url`, `text`)
+- Add `ecr` resource for managing AWS ECR repositories (list, find, create, update, delete, apply)
+- Add `cloud_resource` resource exposing the unified `GetCloudResources` endpoint with optional `--type` filter
+- Bind OpenAPI models to resource commands to enable body validation and schema explanation
+- more details to readme
+- publish plugins to pypi
+
+### Fixed
+
+- Restored Argo Workflows enablement check — argo commands now raise a clear error when Argo is not configured on the infrastructure instead of a cryptic server 500
+- Fixed `aws_secret apply` failing when the secret already exists — the base V3 `apply` passed `patches=` which `aws_secret.update` does not accept
+- Fixed `service update_otherdockerconfig --add` to auto-create missing parent arrays (e.g. `EnvFrom/-`) when the key does not yet exist in `OtherDockerConfig`
+- Fixed ECS `_wait_on_service` not detecting stalled deployments without circuit breaker. When tasks repeatedly fail but ECS keeps the deployment `IN_PROGRESS`, the wait loop now checks `RunningCount`, `PendingCount`, and `FailedTasks` to detect the stall. Also detects rollbacks by deployment status demotion, not just `RolloutState`.
+- `brew install duploctl --with-pip` fails due to `pydantic_core` sdist requiring Rust toolchain in Homebrew sandbox; made `duplocloud-sdk` an optional dependency
+- `brew install duploctl` binary crashes with `No module named 'duplocloud.client'`; added missing hidden imports and package metadata to PyInstaller spec
+- Fixed `storageclass` commands (`find`, `update`, `create --wait`, `apply`) failing because names were not tenant-prefixed. Enabled `prefixed=True` on the resource.
+- Fixed `hosts find` and `hosts apply` — `name_from_body` crashed with `KeyError` on list response items missing `FriendlyName`. Added custom `find` and `apply` overrides for hosts resource.
+- should not use GET cache when waiting
+
+## [0.4.2] - 2026-03-11
+
+### Added
+
+- **ECS `apply` and `list`/`find` support** — added `apply` command for create-or-update of ECS services, and `paths` definition enabling inherited `list` and `find` commands
+- **Argo Workflow support** via new `argo_wf` and `argo_wf_template` resources
+  - `argo_wf`: `list`, `find` (aliases: `get`, `get_workflow`), `create` (alias: `submit`), `delete` (alias: `delete_workflow`), `apply`, `logs` commands
+  - `argo_wf_template`: `list`, `find`, `create`, `update`, `delete`, `apply` commands
+  - `DuploArgoClient` client extension handles Argo JWT auth headers and proxied HTTP requests
+  - `jit argo_wf` command for standalone Argo JWT token acquisition with caching
+  - Dynamic tenant `prefix` property now reads `ResourceNamePrefix` from `system.info()` with fallback to `duploservices`
+- added ability to pass in kwargs when calling the client as function
+- better docs for args and commands
+- **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
+  - `DuploCtl.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name
+  - `DuploCtl.validate_model(model, data)` validates and serializes a body dict, raising `DuploInvalidError` (422) on failure
+  - `DuploResource.command()` gates model loading and validation behind the `validate` flag — no overhead when disabled
+  - `@Command(model="...")` decorator parameter stores the associated model name in the command schema
+  - `duplocloud-sdk` added as a core dependency
+- greatly updated the integration tests and how they run in the pipelines
+
+#### New Client Extension Points
+
+This release introduces a brand new entry point called @Clients for the project. @Clients are like @Resources in how they are registered in the pyproject.toml. This enables the project to isolate the client and authentication functionality and opens the door to using new clients like argo and openapi.
+
+Biggest change here is now instead of `self.duplo.get` you do `self.client.get` for making an http call.
+
+### Fixed
+
+- Fixed ECS `_wait_on_service` not detecting deployment rollbacks. When ECS rolls back a failed deployment, the PRIMARY deployment becomes the rollback (old task definition), causing the wait loop to poll until timeout instead of failing immediately. Now scans all deployments for the target ARN's rollout state and checks `FAILED` before `IN_PROGRESS`.
+- Fixed "updates" parameter on call to wait in bulk image updates.
 - Updated GitHub workflow action versions (artifact actions, Docker Hub description, auto-assign) and migrated Slack notify step to `slack-github-action@v2`.
 - Fixed `--wait` failing permanently when a transient network error (DNS failure, TCP timeout) occurs during polling. Introduced `DuploConnectionError` as a dedicated subclass of `DuploError` for network-level failures; the `wait` loop now retries on `DuploConnectionError` instead of propagating it. Server-side HTTP errors still surface immediately.
 - Fixed `batch_definition update_image` docstring showing incorrect `--image <image>` flag syntax — the `image` argument is positional, so the correct usage is `duploctl batch_definition update_image <name> <image>`
+- fixed waiting for the ecs and ec2 host services 
+- Fixed ECS `_wait_on_service` raising `DuploFailedResource` when no PRIMARY deployment exists yet — changed to `DuploStillWaiting` so the poller keeps retrying until AWS registers the deployment on a freshly created service.
+- Fixed integration test `infra_type` always resolving to `duplo` when the lifecycle CI job runs with `-m "integration and lifecycle"` — suite YAMLs now declare `infra_type` and pass it explicitly via `--infra-type`.
+- Added detailed logging to infra and tenant creation tests showing host, type, data file, ECS/K8s flags, CIDR, and provisioning result.
 
 ## [0.4.1] - 2026-02-19
 
@@ -79,7 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - added a wait timeout for the global wait operation.
 - updated wait logic to validate new image instead of not old image
 - added additional debug logging around wait functionality
-- added a wait timeout for the global wait operation. 
+- added a wait timeout for the global wait operation.
 - Argo workflow related imporvements
 
 ### Fixed
@@ -202,7 +301,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added DuploStillWaiting class to reflect scenarios where a command waits too long for a resource operation to complete.
 - Added integration tests for k8 Secret resource.
-- Added wait flag as an argument to DuploClient.
+- Added wait flag as an argument to DuploCtl.
 
 ### Fixed
 

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import ANY, MagicMock
 from duplo_resource.ecs_service import DuploEcsService
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploStillWaiting
 from tests.test_utils import execute_test, assert_response
 
@@ -72,6 +72,34 @@ def test_update_image_without_container(mocker):
     # Verify service was updated with new task definition
     service.update_service.assert_called_once_with(mock_service_family["DuploEcsService"])
     assert_response(result, "ECS Service and Task Definition updated successfully.")
+
+@pytest.mark.unit
+def test_update_image_unknown_container_raises_and_does_not_mutate(mocker):
+    mock_client = mocker.MagicMock()
+    service = DuploEcsService(mock_client)
+    mock_task_def = {
+        "ContainerDefinitions": [
+            {"Name": "app", "Image": "old-image:1"},
+            {"Name": "sidecar", "Image": "sidecar:1"}
+        ]
+    }
+    mocker.patch.object(service, 'prefixed_name', return_value="test-service")
+    mocker.patch.object(service, 'find_def', return_value=mock_task_def)
+    mocker.patch.object(service, 'update_taskdef')
+    mocker.patch.object(service, 'find_service_family')
+    mocker.patch.object(service, 'update_service')
+
+    with pytest.raises(DuploError) as exc_info:
+        service.update_image("test-service", container_image=[("typo", "nginx:1.2")])
+
+    assert exc_info.value.code == 404
+    assert "typo" in str(exc_info.value)
+    assert "app" in str(exc_info.value) and "sidecar" in str(exc_info.value)
+    service.update_taskdef.assert_not_called()
+    service.update_service.assert_not_called()
+    assert mock_task_def["ContainerDefinitions"][0]["Image"] == "old-image:1"
+    assert mock_task_def["ContainerDefinitions"][1]["Image"] == "sidecar:1"
+
 
 @pytest.mark.unit
 def test_update_image_no_service(mocker):
@@ -277,7 +305,11 @@ def test_wait_on_service(mocker):
                     {
                         "Status": "PRIMARY",
                         "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
-                        "RolloutState": { "Value": "COMPLETE" }
+                        "RolloutState": { "Value": "COMPLETE" },
+                        "DesiredCount": 1,
+                        "RunningCount": 1,
+                        "PendingCount": 0,
+                        "FailedTasks": 0
                     }
                 ]
             }
@@ -293,7 +325,11 @@ def test_wait_on_service(mocker):
                     {
                         "Status": "PRIMARY",
                         "TaskDefinition": updated_task_definition_revision,
-                        "RolloutState": { "Value": "IN_PROGRESS" }
+                        "RolloutState": { "Value": "IN_PROGRESS" },
+                        "DesiredCount": 1,
+                        "RunningCount": 0,
+                        "PendingCount": 1,
+                        "FailedTasks": 0
                     }
                 ]
             }
@@ -334,6 +370,102 @@ def test_wait_on_service(mocker):
         },
     ]
 
+    # ECS rolled back: PRIMARY is now the old task definition (rollback), target deployment is FAILED and demoted
+    mock_deployment_rollback_failed = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "COMPLETED" },
+                        "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
+                        "RolloutStateReason": "ECS deployment ecs-svc/1234567890123456789 completed."
+                    },
+                    {
+                        "Status": "ACTIVE",
+                        "RolloutState": { "Value": "FAILED" },
+                        "TaskDefinition": updated_task_definition_revision,
+                        "RolloutStateReason": "ECS deployment circuit breaker: tasks failed to start."
+                    }
+                ]
+            }
+        },
+    ]
+
+    # ECS rolled back: target demoted from PRIMARY but RolloutState is not yet FAILED
+    mock_deployment_rollback_demoted = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "COMPLETED" },
+                        "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
+                        "RolloutStateReason": "ECS deployment ecs-svc/1234567890123456789 completed."
+                    },
+                    {
+                        "Status": "ACTIVE",
+                        "RolloutState": { "Value": "IN_PROGRESS" },
+                        "TaskDefinition": updated_task_definition_revision,
+                        "RolloutStateReason": "ECS deployment ecs-svc/9876543210987654321 in progress."
+                    }
+                ]
+            }
+        },
+    ]
+
+    # Deployment stalled: PRIMARY is target but tasks keep failing with none running
+    mock_deployment_stalled = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "IN_PROGRESS" },
+                        "TaskDefinition": updated_task_definition_revision,
+                        "RolloutStateReason": "ECS deployment ecs-svc/1003416065081254639 in progress.",
+                        "DesiredCount": 1,
+                        "RunningCount": 0,
+                        "PendingCount": 0,
+                        "FailedTasks": 3
+                    },
+                    {
+                        "Status": "ACTIVE",
+                        "RolloutState": { "Value": "COMPLETED" },
+                        "TaskDefinition": "arn:aws:ecs:us-east-1:1234567890:task-definition/target-task-definition:1",
+                        "DesiredCount": 1,
+                        "RunningCount": 1,
+                        "PendingCount": 0,
+                        "FailedTasks": 0
+                    }
+                ]
+            }
+        },
+    ]
+
+    # Deployment stalled without target_definition_arn (apply flow)
+    mock_deployment_stalled_no_target = [
+        {
+            "EcsServiceName": "target-service",
+            "AwsEcsService": {
+                "Deployments": [
+                    {
+                        "Status": "PRIMARY",
+                        "RolloutState": { "Value": "IN_PROGRESS" },
+                        "TaskDefinition": updated_task_definition_revision,
+                        "DesiredCount": 1,
+                        "RunningCount": 0,
+                        "PendingCount": 0,
+                        "FailedTasks": 2
+                    }
+                ]
+            }
+        },
+    ]
+
     mocker.patch.object(service, "list_detailed_services", side_effect=[
         mock_missing_service,
         mock_malformed,
@@ -342,14 +474,19 @@ def test_wait_on_service(mocker):
         mock_deployment_incomplete,
         mock_deployment_failed,
         mock_deployment_succeeded,
+        mock_deployment_rollback_failed,
+        mock_deployment_rollback_demoted,
+        mock_deployment_stalled,
+        mock_deployment_stalled_no_target,
     ])
 
     # catches wait for cases when target service is not found
     with pytest.raises(DuploError, match=r"Unable to find ECS service"):
         service._wait_on_service("target-service", updated_task_definition_revision)
 
-    # catches wait for cases when target service is malformed
-    with pytest.raises(DuploError, match=r"Failed to find primary deployment for ECS Service"):
+    # no PRIMARY deployment yet (empty Deployments list, e.g. freshly created service) —
+    # transient state, should keep waiting rather than hard-fail
+    with pytest.raises(DuploStillWaiting, match=r"Waiting for primary deployment"):
         service._wait_on_service("target-service", updated_task_definition_revision)
 
     # succeeds even if deployment is stale if no target task definition revision is defined
@@ -367,5 +504,21 @@ def test_wait_on_service(mocker):
     with pytest.raises(DuploError, match=r"deployment failed with reason"):
         service._wait_on_service("target-service", updated_task_definition_revision)
 
-    # passes if service found with primary dpeloyment in complete state
+    # passes if service found with primary deployment in complete state
     service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # detects rollback: target deployment FAILED via RolloutState
+    with pytest.raises(DuploError, match=r"deployment failed with reason"):
+        service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # detects rollback: target demoted from PRIMARY (even without FAILED RolloutState)
+    with pytest.raises(DuploError, match=r"deployment rolled back"):
+        service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # detects stalled deployment: tasks failing with none running (with target)
+    with pytest.raises(DuploError, match=r"deployment stalled"):
+        service._wait_on_service("target-service", updated_task_definition_revision)
+
+    # detects stalled deployment via primary check (apply flow, no target)
+    with pytest.raises(DuploError, match=r"deployment stalled"):
+        service._wait_on_service("target-service")

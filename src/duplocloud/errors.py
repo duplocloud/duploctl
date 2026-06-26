@@ -30,6 +30,12 @@ class DuploInvalidError(DuploError):
   def __init__(self, message: str):
     super().__init__(message, 422)
 
+class DuploNotFound(DuploError):
+  """Raised when a Duplo resource is not found."""
+  def __init__(self, name: str, kind: str = None):
+    label = f"{kind} '{name}'" if kind else f"'{name}'"
+    super().__init__(f"{label} not found", 404)
+
 class DuploConnectionError(DuploError):
   """Raised when a network/connectivity error occurs talking to Duplo."""
   def __init__(self, message: str):

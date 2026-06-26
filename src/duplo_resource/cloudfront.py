@@ -1,6 +1,11 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3
-from duplocloud.errors import DuploError, DuploFailedResource, DuploStillWaiting
+from duplocloud.errors import (
+  DuploError,
+  DuploFailedResource,
+  DuploNotFound,
+  DuploStillWaiting,
+)
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -14,11 +19,21 @@ class DuploCloudFront(DuploResourceV3):
   See more details at: https://docs.duplocloud.com/docs/overview/aws-services/cloudfront
   """
 
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo, "aws/cloudFrontDistribution")
 
+  def name_from_body(self, body):
+    """Return the distribution's ``Comment`` — its logical name.
+
+    Unwraps the ``Distribution`` envelope (direct-GET response) and
+    falls through ``DistributionConfig`` when absent (list-item
+    summary) so all three body shapes resolve to the same key.
+    """
+    inner = body.get("Distribution", body)
+    return inner.get("DistributionConfig", inner).get("Comment")
+
   def wait_check(self, distribution_id):
-    status_response = self.find(distribution_id)
+    status_response = self.find(distribution_id=distribution_id)
     status = status_response.get("Distribution", {}).get("Status", "Unknown").lower()
     if status == "deployed":
       return status_response
@@ -28,27 +43,48 @@ class DuploCloudFront(DuploResourceV3):
       raise DuploStillWaiting(f"Timed out waiting for CloudFront {distribution_id} to be deployed.")
 
   @Command()
-  def find(self, distribution_id: args.DISTRIBUTION_ID):
-    """Find a CloudFront distribution.
+  def find(self,
+           name: args.NAME = None,
+           distribution_id: str = None) -> dict:
+    """Find a CloudFront distribution by Comment (name) or by ID.
 
-    Find a CloudFront distribution by its distribution ID.
+    Mirrors the ``tenant.find()`` flow: pass ``distribution_id`` when
+    the AWS distribution ID is known (uses the direct GET endpoint),
+    otherwise pass ``name`` — the distribution's ``Comment``, which
+    acts as CloudFront's logical name. Callers with both values
+    should pass both; ``distribution_id`` takes priority. The CLI
+    only exposes ``name``; ``distribution_id`` is available to
+    Python callers and to ``apply`` when a body carries an ``Id``.
 
     Usage:
       ```sh
-      duploctl cloudfront find <distribution_id>
+      duploctl cloudfront find <name>
       ```
 
     Args:
-      distribution_id: The CloudFront distribution ID.
+      name: The distribution's Comment (logical name).
+      distribution_id: The AWS distribution ID.
 
     Returns:
-      dict: The service object.
-    """
-    response = self.duplo.get(self.endpoint(name=distribution_id))
-    response.raise_for_status()
-    return response.json()
+      dict: The distribution object.
 
-  @Command()
+    Raises:
+      DuploError: If neither ``name`` nor ``distribution_id`` is provided.
+      DuploNotFound: If no distribution matches.
+    """
+    if not name and not distribution_id:
+      raise DuploError("find requires name or distribution_id")
+    if not distribution_id:
+      prefixed = self.prefixed_name(name)
+      for dist in self.list():
+        if self.name_from_body(dist) in (name, prefixed):
+          distribution_id = dist["Id"]
+          break
+      else:
+        raise DuploNotFound(name, "cloudfront")
+    return self.client.get(self.endpoint(distribution_id)).json()
+
+  @Command(model="AmazonCloudFrontRequest")
   def create(self, body: args.BODY):
     """Create a CloudFront distribution.
 
@@ -76,7 +112,7 @@ class DuploCloudFront(DuploResourceV3):
     """
     data = None
     try:
-      response = self.duplo.post(self.endpoint(), body)
+      response = self.client.post(self.endpoint(), body)
       response.raise_for_status()
       data = response.json()
       distribution_id = data.get("Id") or data.get("Distribution", {}).get("Id")
@@ -88,7 +124,7 @@ class DuploCloudFront(DuploResourceV3):
     except Exception as e:
       raise DuploError(f"Failed to create CloudFront distribution: {e}")
 
-  @Command()
+  @Command(model="AmazonCloudFrontRequest")
   def update(self, body: args.BODY):
     """Update a CloudFront distribution.
 
@@ -115,7 +151,7 @@ class DuploCloudFront(DuploResourceV3):
       DuploFailedResource: If the update process fails.
     """
     try:
-      response = self.duplo.put(self.endpoint(), body)
+      response = self.client.put(self.endpoint(), body)
       response.raise_for_status()
       data = response.json()
       distribution_id = data.get("Id") or data.get("Distribution", {}).get("Id")
@@ -150,7 +186,7 @@ class DuploCloudFront(DuploResourceV3):
       DuploFailedResource: If the disable process fails.
     """
     body = {"Id":distribution_id,"DistributionConfig":{"Disabled":"true"}}
-    response = self.duplo.put(self.endpoint(), body)
+    response = self.client.put(self.endpoint(), body)
     if self.duplo.wait:
       self.wait(lambda: self.wait_check(distribution_id) is not None, 1200)
     return response.json()
@@ -179,7 +215,7 @@ class DuploCloudFront(DuploResourceV3):
       DuploFailedResource: If the enable process fails.
     """
     body = {"Id":distribution_id,"DistributionConfig":{"Enabled":"true"}}
-    response = self.duplo.put(self.endpoint(), body)
+    response = self.client.put(self.endpoint(), body)
     if self.duplo.wait:
       self.wait(lambda: self.wait_check(distribution_id) is not None, 1200)
     return response.json()
@@ -206,9 +242,40 @@ class DuploCloudFront(DuploResourceV3):
     Raises:
       DuploError: If the distribution could not be deleted or is not in a deletable state.
     """
-    response = self.duplo.delete(self.endpoint(distribution_id))
+    response = self.client.delete(self.endpoint(distribution_id))
     response.raise_for_status()
     return {"message": f"CloudFront distribution {distribution_id} deleted"}
+
+  @Command()
+  def apply(self, body: args.BODY) -> dict:
+    """Apply a CloudFront distribution.
+
+    Creates the distribution if none exists with the body's ``Comment``,
+    otherwise updates the existing one. The ``Comment`` is CloudFront's
+    logical name; re-applying the same YAML targets the same
+    distribution without requiring a server-assigned ``Id`` to be
+    hand-copied into source control.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl cloudfront apply -f 'cloudfront.yaml'
+      ```
+
+    Args:
+      body: The distribution configuration.
+
+    Returns:
+      resource: The created or updated distribution.
+    """
+    try:
+      existing = self.find(name=self.name_from_body(body), distribution_id=body.get("Id"))
+    except DuploNotFound:
+      return self.create(body)
+    dc = existing["Distribution"]["DistributionConfig"]
+    body["Id"] = existing["Distribution"]["Id"]
+    body["DistributionConfig"]["Comment"] = dc["Comment"]
+    body["DistributionConfig"]["CallerReference"] = dc["CallerReference"]
+    return self.update(body)
 
   @Command()
   def get_status(self, distribution_id: args.DISTRIBUTION_ID):
@@ -232,7 +299,7 @@ class DuploCloudFront(DuploResourceV3):
     Raises:
       DuploError: If the distribution could not be found or the status is unavailable.
     """
-    response = self.find(distribution_id)
+    response = self.find(distribution_id=distribution_id)
     status = response.get("Distribution", {}).get("Status")
     if status is None:
       raise DuploError(f"Status not found for CloudFront distribution {distribution_id}")

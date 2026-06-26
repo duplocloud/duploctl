@@ -1,19 +1,19 @@
+# Origin DomainName, Id, and TargetOriginId are replaced at test runtime
+# with the actual S3 bucket domain created by TestS3.
 UseOAIIdentity: true
 DistributionConfig:
-  DefaultRootObject: "index.html"
+  DefaultRootObject: index.html
   Aliases:
     Items: []
     Quantity: 0
   ViewerCertificate:
-    MinimumProtocolVersion:
-      Value: "TLSv1.2_2021"
-    ACMCertificateArn: ""
-    SSLSupportMethod:
-      Value: "sni-only"
+    CloudFrontDefaultCertificate: true
   Origins:
     Items:
-      - DomainName: ""
-        Id: ""
+    - DomainName: placeholder.s3.amazonaws.com
+      Id: placeholder.s3.amazonaws.com
+      S3OriginConfig:
+        OriginAccessIdentity: ""
     Quantity: 1
   CacheBehaviors:
     Items: []
@@ -25,12 +25,13 @@ DistributionConfig:
     Enabled: false
   DefaultCacheBehavior:
     ViewerProtocolPolicy:
-      Value: "redirect-to-https"
+      Value: redirect-to-https
     LambdaFunctionAssociations:
       Items: []
       Quantity: 0
     Compress: true
-    TargetOriginId: ""
-    CachePolicyId: ""
-  Comment: "duplo-cloudfront"
+    TargetOriginId: placeholder.s3.amazonaws.com
+    # CachingOptimized managed policy — works for S3 origins without requiring ForwardedValues/MinTTL
+    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+  Comment: duplo-cloudfront
 CorsAllowedHostNames: []

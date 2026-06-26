@@ -1,6 +1,6 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError
+from duplocloud.errors import DuploNotFound, DuploStillWaiting
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
 
@@ -11,7 +11,7 @@ class DuploLambda(DuploResourceV2):
   Duplo Lambdas are serverless functions that run in response to events.
   """
   
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
   
   @Command()
@@ -29,12 +29,8 @@ class DuploLambda(DuploResourceV2):
       list: A list of all lambdas in the current subscription.
     """
     tenant_id = self.tenant["TenantId"]
-    tenant_name = self.tenant["AccountName"]
-    response = self.duplo.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
-    if (data := response.json()):
-      return data
-    else:
-      raise DuploError(f"No lambda functions found in tenant '{tenant_name}'", 404)
+    response = self.client.get(f"subscriptions/{tenant_id}/GetLambdaFunctions")
+    return response.json() or []
   
   @Command()
   def find(self, 
@@ -55,9 +51,9 @@ class DuploLambda(DuploResourceV2):
     try:
       return [s for s in self.list() if s["FunctionName"] == name][0]
     except IndexError:
-      raise DuploError(f"Lambda '{name}' not found", 404)
+      raise DuploNotFound(name, "Lambda")
     
-  @Command()
+  @Command(model="AmazonLambdaRequest")
   def create(self, 
              body: args.BODY) -> dict:
     """Create a new tenant.
@@ -80,9 +76,12 @@ class DuploLambda(DuploResourceV2):
     """
     def wait_check():
       name = self.name_from_body(body)
-      self.find(name)
+      try:
+        self.find(name)
+      except DuploNotFound:
+        raise DuploStillWaiting(f"Waiting for Lambda '{name}' to become visible")
     tenant_id = self.tenant["TenantId"]
-    self.duplo.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", body)
+    self.client.post(f"subscriptions/{tenant_id}/CreateLambdaFunction", body)
     if self.duplo.wait:
       self.wait(wait_check, 400)
     return {
@@ -106,7 +105,7 @@ class DuploLambda(DuploResourceV2):
       message: A success message.
     """
     tenant_id = self.tenant["TenantId"]
-    self.duplo.post(f"subscriptions/{tenant_id}/DeleteLambdaFunction/{name}")
+    self.client.post(f"subscriptions/{tenant_id}/DeleteLambdaFunction/{name}")
     return {
       "message": f"Lambda {name} deleted"
     }
@@ -134,7 +133,7 @@ class DuploLambda(DuploResourceV2):
       "FunctionName": name,
       "ImageUri": image
     }
-    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    response = self.client.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
     return response.json()
 
   @Command()
@@ -160,7 +159,7 @@ class DuploLambda(DuploResourceV2):
       "S3Bucket": bucket,
       "S3Key": key
     }
-    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
+    response = self.client.post(f"subscriptions/{tenant_id}/UpdateLambdaFunction", data)
     return response.json()
 
   def name_from_body(self, body):
@@ -208,7 +207,7 @@ class DuploLambda(DuploResourceV2):
       "Environment": {"Variables": merged_env}
     }
 
-    response = self.duplo.post(f"subscriptions/{tenant_id}/UpdateLambdaFunctionConfiguration", payload)
+    response = self.client.post(f"subscriptions/{tenant_id}/UpdateLambdaFunctionConfiguration", payload)
     if response.ok:
       return {"message": f"Successfully updated environment variables for Lambda '{name}'"}
     else:

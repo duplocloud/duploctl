@@ -1,4 +1,4 @@
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.commander import Resource
 from importlib.metadata import version
 
@@ -16,7 +16,7 @@ class DuploVersion():
   Returns:
     version (dict): The Duplo version.
   """
-  def __init__(self, duplo: DuploClient):
+  def __init__(self, duplo: DuploCtl):
     self.duplo = duplo
     self.paths = {
       "ui": "build-metadata.json", 
@@ -36,7 +36,7 @@ class DuploVersion():
     }
     for (name, path) in self.paths.items():
       try:
-        res = self.duplo.get(path).json()
+        res = self.client.get(path).json()
       except Exception as e:
         self.duplo.logger.error(f"Failed to get version for {path}: {e}")
         res = {"error": str(e)}

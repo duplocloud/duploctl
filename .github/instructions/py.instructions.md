@@ -49,7 +49,7 @@ import yaml
 from typing import List, Dict
 
 # 3. Local application imports
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -98,7 +98,7 @@ def calculate_area(radius: float) -> float:
 When creating resources for duploctl, follow this pattern:
 
 ```python
-from duplocloud.client import DuploClient
+from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV3  # or V2, or no base class
 from duplocloud.commander import Command, Resource
 import duplocloud.args as args
@@ -111,7 +111,7 @@ class DuploMyResource(DuploResourceV3):  # Only extend if CRUD is needed
     and how it's used.
     """
     
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
         super().__init__(duplo, slug="myresources")
     
     @Command()
@@ -137,7 +137,7 @@ class DuploMyResource(DuploResourceV3):  # Only extend if CRUD is needed
         Raises:
           DuploError: If the resource is not found or action fails.
         """
-        response = self.duplo.post(self.endpoint(name, "action"), {"value": value})
+        response = self.client.post(self.endpoint(name, "action"), {"value": value})
         return response.json()
 ```
 
@@ -208,7 +208,7 @@ def tenant(self):
 @Command("ls")  # Alias: "ls" in addition to "list"
 def list(self) -> list:
     """Retrieve a list of resources."""
-    response = self.duplo.get(self.endpoint("list"))
+    response = self.client.get(self.endpoint("list"))
     return response.json()
 
 @Command()
@@ -230,7 +230,7 @@ def create(self,
 # Non-CRUD: No base class needed
 @Resource("version")
 class DuploVersion:
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
         self.duplo = duplo
     
     def __call__(self) -> dict:
@@ -239,6 +239,6 @@ class DuploVersion:
 # CRUD: Extend V2 or V3
 @Resource("service", scope="tenant")
 class DuploService(DuploResourceV2):
-    def __init__(self, duplo: DuploClient):
+    def __init__(self, duplo: DuploCtl):
         super().__init__(duplo)
 ```

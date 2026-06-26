@@ -69,7 +69,7 @@ def setup_resource_fixture(duplo: Any,
     """Standard resource fixture setup.
     
     Args:
-        duplo: DuploClient instance
+        duplo: DuploCtl instance
         resource_type: Type of resource to load
         request: pytest request object
         suffix: Optional suffix for resource name

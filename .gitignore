@@ -24,9 +24,13 @@ requirements.txt
 actions-runner/
 stuff/
 foo.*
+.names
 
 # can be ignored globally, we do want the tasks
 !.vscode/
 .qodo
 .env
 *.env
+
+# ai stuff
+.claude
