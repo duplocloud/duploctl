@@ -369,11 +369,36 @@ class DuploService(DuploResourceV2):
     old = None
     if self.duplo.wait:
       old = self.find(name)
-    self.client.put(endpoint, payload)
+    try:
+      self.client.put(endpoint, payload)
+    except DuploNotFound:
+      self.duplo.logger.debug("V3 containerimage endpoint not found, falling back to V2")
+      self._update_image_v2(name, image, container_image, init_container_image, old)
+    else:
+      if self.duplo.wait:
+        self.duplo.logger.debug("Wait enabled, beginning wait process")
+        self._wait(old, {"Name": name, "Image": image or ""})
+    return {"message": f"Successfully updated image for service '{name}'."}
+
+  def _update_image_v2(self, name, image, container_image, init_container_image, old):
+    """Fallback to V2 endpoint for older Duplo backends."""
+    if container_image or init_container_image:
+      raise DuploError(
+        "Sidecar and init container image updates require a newer Duplo backend. "
+        "Please upgrade your Duplo portal or use the main image parameter only."
+      )
+    if not image:
+      raise DuploError("No image provided for V2 fallback.")
+    service = old if old else self.find(name)
+    data = {
+      "Name": name,
+      "Image": image,
+      "AllocationTags": service["Template"].get("AllocationTags", "")
+    }
+    self.client.post(self.endpoint("ReplicationControllerChange"), data)
     if self.duplo.wait:
       self.duplo.logger.debug("Wait enabled, beginning wait process")
-      self._wait(old, {"Name": name, "Image": image or ""})
-    return {"message": f"Successfully updated image for service '{name}'."}
+      self._wait(service, data)
 
   @Command()
   def update_env(self,
