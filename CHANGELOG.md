@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- added ability to pass in kwargs when calling the client as function
+- **Authentication cooldown** via `DUPLO_AUTH_COOLDOWN` — prevents duplicate browser login prompts when multiple processes request tokens concurrently. Thanks to [@scholzie](https://github.com/scholzie) for the original contribution in [duplocloud/duplo-jit#52](https://github.com/duplocloud/duplo-jit/pull/52).
+- **Cache resource** with `duploctl cache clear` command to remove cached credentials and cooldown files
+- **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
+  - `DuploClient.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name
+  - `DuploClient.validate_model(model, data)` validates and serializes a body dict, raising `DuploInvalidError` (422) on failure
+  - `DuploResource.command()` gates model loading and validation behind the `validate` flag — no overhead when disabled
+  - `@Command(model="...")` decorator parameter stores the associated model name in the command schema
+  - `duplocloud-sdk` added as a core dependency
 - Split the AI HelpDesk `ai` resource into dedicated `workspace`, `agent`, and `ticket` resources so each endpoint is exposed as a first-class command rather than hidden behind a single resource. The `ai` resource (`ai create_ticket`, `ai send_message`) is removed.
   - `workspace find` resolves an AI HelpDesk workspace by name (case-insensitive) or `--id`; `workspace list` lists workspaces.
   - `agent find` resolves an agent by name or `--id`; `agent supports_streaming` reports the agent's `metaData.STREAMING_ENABLED` flag.

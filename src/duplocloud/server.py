@@ -13,10 +13,6 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     Handles the redirect flow for a token from a redirect and GET.
     Returns a redirect back to the portal to let the user know it all worked.
     """
-    redirect = f"{self.server.host}/app/user/verify-token?localAppName=duploctl&success=true&localPort={self.server.server_port}"
-    self.send_response(302)
-    self.send_header('Location', redirect)
-    self.end_headers()
     # get the token from the params
     url = urlparse(self.path)
     query_components = dict(qc.split("=") for qc in url.query.split("&"))
@@ -25,6 +21,10 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
       raise DuploError("No token received", 403)
     # store the token in the server instance
     self.server.token = token
+    redirect = f"{self.server.host}/app/user/verify-token?localAppName=duploctl&success=true&localPort={self.server.server_port}"
+    self.send_response(302)
+    self.send_header('Location', redirect)
+    self.end_headers()
 
       
 
@@ -35,13 +35,12 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     """
     content_length = int(self.headers['Content-Length'])
     post_data = self.rfile.read(content_length)
+    self.server.token = post_data.decode('utf-8')
     
     # Send response back to client
     self.send_response(200)
     self.end_headers()
     self.wfile.write(b'"done"')
-    token = post_data.decode('utf-8')
-    self.server.token = token
 
   def do_OPTIONS(self):
     """Do Options
@@ -67,20 +66,21 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     pass
 
 class TokenServer(ThreadingHTTPServer):
-  def __init__(self, host: str, timeout=60):
+  def __init__(self, host: str, timeout=60, port=0):
     """TokenServer
     
-    A simple HTTP server to receive a token from a callback. The bind host is always empty for localhost and the port is always 0 to get a random port. The server is started in a separate thread and the token is received in the main thread. The given host is the only host that is allowed to send a token and this is enforced in the allow origin cors header.
+    A simple HTTP server to receive a token from a callback. The bind host is always empty for localhost and the port is 0 by default to get a random port. A specific port can be provided for relay scenarios. The server is started in a separate thread and the token is received in the main thread. The given host is the only host that is allowed to send a token and this is enforced in the allow origin cors header.
 
     Args:
       host: The host to receive the callbcack from.
       timeout: The timeout to wait for a token.
+      port: The port to listen on. Defaults to 0 (random).
 
     """
     self.token = None
     self.host = host
     self.timeout = timeout
-    super().__init__(('', 0), TokenCallbackHandler, True)
+    super().__init__(('', port), TokenCallbackHandler, True)
 
   def serve_token(self):
     """Serve Token
