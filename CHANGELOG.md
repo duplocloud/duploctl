@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `service update_env` and `update_labels` crashing when `OtherDockerConfig` is empty
 - Fixed `tenant config` crashing with help text when `--deletevar` is not provided
 - Fixed `apply` misrouting the body into the `name` parameter for subclasses whose `create` signature starts with `name` (e.g. `ssm_param`, `secret`, `aws_secret`, `configmap`); the V2 and V3 base `apply` now call `self.create(body=body)` by keyword
+- Fixed `service update_image` failing with `'' not found` (exit 148) on older Duplo backends that lack the V3 containerimage endpoint by falling back to the V2 ReplicationControllerChange endpoint
 
 ## [0.4.3] - 2026-03-18
 
