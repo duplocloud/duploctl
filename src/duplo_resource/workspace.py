@@ -265,7 +265,7 @@ class DuploWorkspace(DuploResource):
       DuploNotFound: If the workspace cannot be found.
     """
     api_version = api_version.strip().lower()
-    if not body:
+    if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
     wid = self.find(
         name=name or body.get("name"), id=id, api_version=api_version)["id"]
@@ -300,6 +300,8 @@ class DuploWorkspace(DuploResource):
       resource: The created or updated workspace object.
     """
     api_version = api_version.strip().lower()
+    if not isinstance(body, dict):
+      raise DuploError("A request body (-f) is required")
     try:
       self.find(name=body.get("name"), api_version=api_version)
     except DuploNotFound:

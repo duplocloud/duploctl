@@ -214,7 +214,7 @@ class DuploAgent(DuploResource):
       DuploNotFound: If the agent cannot be found.
     """
     api_version = api_version.strip().lower()
-    if not body:
+    if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
     aid = self.find(
         name=name or body.get("name"), id=id, api_version=api_version)["id"]
@@ -249,6 +249,8 @@ class DuploAgent(DuploResource):
       resource: The created or updated agent object.
     """
     api_version = api_version.strip().lower()
+    if not isinstance(body, dict):
+      raise DuploError("A request body (-f) is required")
     try:
       self.find(name=body.get("name"), api_version=api_version)
     except DuploNotFound:

@@ -329,6 +329,35 @@ def test_set_status_requires_status(mocker):
 
 
 @pytest.mark.unit
+def test_set_status_closed_requires_disposition(mocker):
+    # The backend rejects closing without a disposition; enforce the documented
+    # contract client-side so the user gets a clear error first.
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+
+    with pytest.raises(DuploError, match="disposition"):
+        ticket.set_status(
+            name=_TICKET_NAME, workspace=_WORKSPACE_NAME, status="closed")
+    client.put.assert_not_called()
+
+
+@pytest.mark.unit
+def test_set_status_closed_with_disposition(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+    put_mock = mocker.MagicMock()
+    put_mock.json.return_value = {"name": _TICKET_NAME, "status": "closed"}
+    client.put.return_value = put_mock
+
+    ticket.set_status(
+        name=_TICKET_NAME, workspace=_WORKSPACE_NAME,
+        status="closed", disposition="resolved")
+
+    _, body = client.put.call_args[0]
+    assert body == {"status": "closed", "disposition": "resolved"}
+
+
+@pytest.mark.unit
 def test_close_defaults_to_resolved(mocker):
     ticket, _, _ = _make_ticket(mocker)
     client = _make_client(mocker, ticket)

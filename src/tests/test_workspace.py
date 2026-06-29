@@ -209,3 +209,14 @@ def test_apply_creates_when_not_found(mocker):
     client.post.assert_called_once()
     client.put.assert_not_called()
     assert result["id"] == _WORKSPACE_ID
+
+
+@pytest.mark.unit
+def test_apply_requires_body(mocker):
+    # Omitting -f yields body=None; apply() should raise a clear DuploError
+    # instead of an AttributeError from body.get(...).
+    wksp = _make_workspace(mocker)
+    _make_client(mocker, wksp, get_responses=[])
+
+    with pytest.raises(DuploError, match="body"):
+        wksp.apply(body=None)

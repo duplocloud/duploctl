@@ -526,6 +526,13 @@ class DuploTicket(DuploResource):
       raise DuploError("Either a ticket name or --id is required")
     if not status:
       raise DuploError("--status is required")
+    # The backend requires a disposition when closing a ticket; enforce the
+    # documented contract here so the user gets a clear error instead of a
+    # backend rejection (matches close(), which always supplies one).
+    if status == "closed" and not disposition:
+      raise DuploError(
+          "--disposition (resolved|unResolved) is required when closing "
+          "a ticket")
     wid = self.__workspace_svc.find(
         name=workspace, id=workspace_id, api_version=api_version)["id"]
     body = {"status": status}
