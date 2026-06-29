@@ -1,17 +1,34 @@
 import json
 import os
 from datetime import datetime, timezone, timedelta
-from duplocloud.commander import Resource
+from duplocloud.commander import Resource, Command
 from duplocloud.errors import DuploExpiredCache
+from duplocloud.authcooldown import clear_all_caches
 
 @Resource("cache", client=None)
 class DuploCache():
   """Cache Resource
 
   Filesystem cache operations for storing and retrieving JSON data.
+  Also provides CLI commands for managing the cache.
   """
   def __init__(self, duplo):
     self.duplo = duplo
+
+  @Command()
+  def clear(self) -> dict:
+    """Clear all cached credentials and cooldown files.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl cache clear
+      ```
+
+    Returns:
+      message: Summary of cleared files.
+    """
+    count = clear_all_caches(self.duplo.cache_dir)
+    return {"message": f"Cleared {count} cached file(s)"}
 
   def get(self, key: str) -> dict:
     """Get a cached item from the cache directory.

@@ -61,7 +61,8 @@ class DuploCtl():
                loglevel: args.LOGLEVEL="WARN",
                wait: args.WAIT=False,
                wait_timeout: args.WAIT_TIMEOUT=None,
-               validate: args.VALIDATE=False):
+               validate: args.VALIDATE=False,
+               auth_cooldown: args.AUTH_COOLDOWN=None):
     """DuploCtl Constructor
 
     Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each of the arguments are annotated types that are used by argparse to create the command line arguments.
@@ -83,6 +84,7 @@ class DuploCtl():
       query: The query to use.
       output: The output format for the client.
       loglevel: The log level for the client.
+      auth_cooldown: The auth cooldown setting.
 
     Returns:
       duplo (DuploCtl): An instance of a DuploCtl.
@@ -121,6 +123,7 @@ class DuploCtl():
     self.wait = wait
     self.wait_timeout = wait_timeout
     self.validate = validate
+    self.auth_cooldown = auth_cooldown
     self._clients = {}
 
   @staticmethod
