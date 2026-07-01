@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DuploClient.post()` now accepts an optional `headers` argument (merged over the default auth headers) and forwards `**kwargs` (e.g. `stream=True`) to the underlying request, replacing the dedicated `stream_post()` method. Streaming calls now go through the same request/exception-handling path as every other verb.
 - `service update_image` now uses the V3 containerimage endpoint and supports updating main, sidecar, and init container images in a single call
 - `rds` exposes a `modify` command wrapping the `ModifyRDSDBInstance` endpoint; `set_monitor_interval`, `iam_auth`, `final_snapshot`, and `retention_period` now delegate to it
+- Resource subcommand discoverability: invalid subcommands, no-subcommand invocations, and `<resource> --help` now print the list of available commands for the resource (DUPLO-14197)
 
 ### Fixed
 
