@@ -404,6 +404,30 @@ WORKSPACEID = Arg("workspace_id", "--workspace-id", "--wksp-id",
                   required=False,
                   default=None)
 
+ENVIRONMENT = Arg("environment", "--environment", "--env", "-E",
+                  help="AI HelpDesk environment name. Resolved to an "
+                       "environment id via the environments lookup.",
+                  required=False,
+                  default=None)
+
+ENVIRONMENTID = Arg("environment_id", "--environment-id", "--env-id",
+                    help="AI HelpDesk environment id. Skips the environment "
+                         "name lookup when provided.",
+                    required=False,
+                    default=None)
+
+RESOURCEGROUP = Arg("resource_group", "--resource-group", "--rg", "-G",
+                    help="AI HelpDesk resource group name. Resolved to a "
+                         "resource group id via the resource groups lookup.",
+                    required=False,
+                    default=None)
+
+RESOURCEGROUPID = Arg("resource_group_id", "--resource-group-id", "--rg-id",
+                      help="AI HelpDesk resource group id. Skips the resource "
+                           "group name lookup when provided.",
+                      required=False,
+                      default=None)
+
 APIVERSION = Arg("api_version", "--api-version",
                 help="API Version",
                 required=False,
