@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `agent create`/`update`/`apply` (body via `-f`), and `agent delete`.
   - `ticket list` (per workspace), `ticket assignee` (get the assigned agent), `ticket reassign` (`--agent`/`--agent_id`), `ticket set_status` (`--status`), `ticket close` (`--disposition`, default `resolved`), and `ticket delete`.
   - Inputs are validated before the request: `create`/`update`/`apply` require a mapping body (clear `DuploError` when `-f` is omitted rather than an `AttributeError`), and `ticket set_status --status closed` requires `--disposition`.
+- AI HelpDesk V2 (HDV2) workload resources — the HelpDesk equivalent of the Core Platform `service`/`lambda` resources and their `update-image` action:
+  - `appservice` for HDV2 Kubernetes (EKS) AppServices: `list`/`find`/`update_image` at the workspace scope, and `create`/`update`/`apply`/`delete` on the nested environment/resource-group scope (`--environment`/`--resource-group`, resolved by name or id). `delete` initiates deprovisioning.
+  - `hd_lambda` for HDV2 AWS Lambdas: same command set; `update_image` reads the function's environment/resource-group off its record and passes the new `ImageUri` through to AWS `UpdateFunctionCode`.
+  - `environment` and `resource_group` resolver resources (`list`/`find`) so workloads can be placed and looked up by human-readable names; `resource_group find` accepts `--environment` to disambiguate names shared across environments.
+  - ECS is intentionally not included: the HelpDesk V2 backend has no ECS controller/update-image endpoint yet (tracked in DUPLO-43548).
 
 ### Changed
 
