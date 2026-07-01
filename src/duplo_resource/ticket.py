@@ -261,10 +261,44 @@ class DuploTicket(DuploResource):
                   ticket_id: str,
                   content: str,
                   api_version: str) -> dict:
-    """POST to the unary sendMessage endpoint and return the JSON reply."""
+    """POST to the unary sendMessage endpoint and return the JSON reply.
+
+    A unary agent returns a single JSON object. If the agent actually
+    streams (its ``metaData.STREAMING_ENABLED`` flag is stale, so the unary
+    endpoint was chosen by mistake), the helpdesk's unary serializer can't
+    parse the agent's NDJSON and returns a 400 whose body still embeds the
+    reply events. Recover the reply from that body rather than surfacing the
+    raw backend deserialization error.
+    """
     path = (f"{api_version}/aiservicedesk/tickets/"
             f"{workspace_id}/{ticket_id}/sendMessage")
-    return self.client.post(path, self._message_payload(content)).json()
+    try:
+      return self.client.post(path, self._message_payload(content)).json()
+    except DuploError as err:
+      recovered = self._recover_streamed_reply(err)
+      if recovered is not None:
+        return recovered
+      raise
+
+  def _recover_streamed_reply(self, error: DuploError):
+    """Recover an assistant reply embedded in a unary-send error body.
+
+    When a streaming agent is hit on the unary endpoint the agent still
+    answers, but the helpdesk returns its NDJSON inside the (JSON-encoded)
+    error body. Assemble the events out of it. Returns None when the body
+    isn't that recognizable shape, so genuine errors propagate unchanged.
+    """
+    body = error.args[0] if error.args else None
+    if not isinstance(body, str):
+      return None
+    try:
+      body = json.loads(body)  # the backend body is a JSON-encoded string
+    except (ValueError, json.JSONDecodeError):
+      pass
+    if not isinstance(body, str):
+      return None
+    assembled = self._assemble_stream(body.splitlines())
+    return assembled if assembled["content"] else None
 
   def _send_streaming(self,
                       workspace_id: str,
@@ -276,37 +310,47 @@ class DuploTicket(DuploResource):
     Routes through ``DuploAPI.post(..., stream=True)`` so URL
     construction, auth header injection, timeout, exception translation,
     and status validation are identical to the unary call — the
-    streaming transport is the only difference. Each event is
-    ``data: <json>``; ``text_delta`` chunks are concatenated, ``error``
-    events raise, and ``done`` ends the stream.
+    streaming transport is the only difference.
     """
     path = (f"{api_version}/aiservicedesk/tickets/"
             f"{workspace_id}/{ticket_id}/sendMessageStreaming")
-    text_parts: list[str] = []
-    raw_events: list[dict] = []
     with self.client.post(
         path, self._message_payload(content),
         headers={"Accept": "text/event-stream"}, stream=True,
     ) as resp:
-      for raw_line in resp.iter_lines(decode_unicode=True):
-        if not raw_line or not raw_line.startswith("data:"):
-          continue
-        data_str = raw_line[len("data:"):].strip()
-        if not data_str:
-          continue
-        try:
-          event = json.loads(data_str)
-        except json.JSONDecodeError:
-          continue
-        raw_events.append(event)
-        etype = event.get("type")
-        if etype == "text_delta":
-          text_parts.append(event.get("text", ""))
-        elif etype == "error":
-          raise DuploError(
-              f"Agent stream error: {event.get('error') or event}")
-        elif etype == "done":
-          break
+      return self._assemble_stream(resp.iter_lines(decode_unicode=True))
+
+  def _assemble_stream(self, lines) -> dict:
+    """Assemble an agent reply from event lines (SSE ``data:`` or NDJSON).
+
+    Concatenates ``text_delta`` chunks, raises on an ``error`` event, and
+    stops at ``done``. Non-event lines — blanks, a backend error prefix,
+    anything not a JSON object — are skipped, so a stray wrapper around
+    otherwise-valid events doesn't lose the reply.
+    """
+    text_parts: list[str] = []
+    raw_events: list[dict] = []
+    for raw_line in lines:
+      if not raw_line:
+        continue
+      line = raw_line.strip()
+      if line.startswith("data:"):
+        line = line[len("data:"):].strip()
+      if not line.startswith("{"):
+        continue
+      try:
+        event = json.loads(line)
+      except json.JSONDecodeError:
+        continue
+      raw_events.append(event)
+      etype = event.get("type")
+      if etype == "text_delta":
+        text_parts.append(event.get("text", ""))
+      elif etype == "error":
+        raise DuploError(
+            f"Agent stream error: {event.get('error') or event}")
+      elif etype == "done":
+        break
 
     return {
       "content": "".join(text_parts),
@@ -322,3 +366,258 @@ class DuploTicket(DuploResource):
     """Build the helpdesk chat URL for a ticket in the workspace."""
     return (f"{self.duplo.host}/app/ai/service-desk/"
             f"{workspace_id}/tickets/chat/{ticket_id}")
+
+  @Command("ls")
+  def list(self,
+           workspace: args.WORKSPACE = None,
+           workspace_id: args.WORKSPACEID = None,
+           api_version: args.APIVERSION = "v1") -> list:
+    """List the tickets in an AI HelpDesk workspace.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket list --workspace <workspace>
+      duploctl ticket list --workspace-id <workspace id>
+      ```
+
+    Args:
+      workspace: The workspace name the tickets belong to.
+      workspace_id: The workspace id the tickets belong to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      list: The tickets in the workspace.
+    """
+    api_version = api_version.strip().lower()
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    response = self.client.get(
+        f"{api_version}/aiservicedesk/tickets/{wid}").json()
+    if isinstance(response, dict):
+      data = response.get("data", response)
+      return data.get("items", data) if isinstance(data, dict) else data
+    return response
+
+  @Command()
+  def assignee(self,
+               name: args.NAME = None,
+               id: args.ID = None,
+               workspace: args.WORKSPACE = None,
+               workspace_id: args.WORKSPACEID = None,
+               api_version: args.APIVERSION = "v1") -> dict:
+    """Get the agent currently assigned to a ticket.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket assignee <name> --workspace <workspace>
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The assigned agent object.
+
+    Raises:
+      DuploError: If no ticket identifier is given.
+    """
+    api_version = api_version.strip().lower()
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    response = self.client.get(
+        f"{api_version}/aiservicedesk/tickets/"
+        f"{wid}/{quote_plus(identifier)}/assignee").json()
+    return self._data(response)
+
+  @Command()
+  def reassign(self,
+               name: args.NAME = None,
+               id: args.ID = None,
+               agent_name: args.AGENTNAME = None,
+               agent_id: args.AGENTID = None,
+               workspace: args.WORKSPACE = None,
+               workspace_id: args.WORKSPACEID = None,
+               api_version: args.APIVERSION = "v1") -> dict:
+    """Reassign a ticket to a different agent.
+
+    The agent is resolved by name or id via the ``agent`` resource.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket reassign <name> --workspace <workspace> --agent <agent>
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      agent_name: The agent name to assign.
+      agent_id: The agent id to assign. Skips the agent name lookup.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploError: If no ticket identifier is given.
+      DuploNotFound: If the agent cannot be found.
+    """
+    api_version = api_version.strip().lower()
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    aid = self.__agent_svc.find(
+        name=agent_name, id=agent_id, api_version=api_version)["id"]
+    self.client.put(
+        f"{api_version}/aiservicedesk/tickets/"
+        f"{wid}/{quote_plus(identifier)}/assignee/{quote_plus(aid)}")
+    return {"message": f"ticket '{identifier}' reassigned to agent "
+                       f"'{agent_name or agent_id}'"}
+
+  @Command()
+  def set_status(self,
+                 name: args.NAME = None,
+                 id: args.ID = None,
+                 status: args.TICKET_STATUS = None,
+                 disposition: args.TICKET_DISPOSITION = None,
+                 workspace: args.WORKSPACE = None,
+                 workspace_id: args.WORKSPACEID = None,
+                 api_version: args.APIVERSION = "v1") -> dict:
+    """Set a ticket's status.
+
+    When ``--status closed`` is used, ``--disposition`` (``resolved`` or
+    ``unResolved``) is required by the backend.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket set_status <name> --workspace <workspace> --status inProgress
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      status: The new status (open, inProgress, waitingForUserInput,
+        waitingForUserAgent, closed).
+      disposition: The disposition (resolved, unResolved); required when
+        closing.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The updated ticket object.
+
+    Raises:
+      DuploError: If no ticket identifier or status is given.
+    """
+    api_version = api_version.strip().lower()
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    if not status:
+      raise DuploError("--status is required")
+    # The backend requires a disposition when closing a ticket; enforce the
+    # documented contract here so the user gets a clear error instead of a
+    # backend rejection (matches close(), which always supplies one).
+    if status == "closed" and not disposition:
+      raise DuploError(
+          "--disposition (resolved|unResolved) is required when closing "
+          "a ticket")
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    body = {"status": status}
+    if disposition:
+      body["disposition"] = disposition
+    response = self.client.put(
+        f"{api_version}/aiservicedesk/tickets/"
+        f"{wid}/{quote_plus(identifier)}/status", body).json()
+    return self._data(response)
+
+  @Command()
+  def close(self,
+            name: args.NAME = None,
+            id: args.ID = None,
+            disposition: args.TICKET_DISPOSITION = "resolved",
+            workspace: args.WORKSPACE = None,
+            workspace_id: args.WORKSPACEID = None,
+            api_version: args.APIVERSION = "v1") -> dict:
+    """Close a ticket.
+
+    Convenience wrapper for ``set_status --status closed``. The backend
+    requires a disposition when closing; defaults to ``resolved``.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket close <name> --workspace <workspace>
+      duploctl ticket close <name> --workspace <workspace> --disposition unResolved
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      disposition: The disposition (resolved, unResolved). Defaults to
+        resolved.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      resource: The updated ticket object.
+    """
+    # The CLI passes disposition=None when --disposition is omitted (argparse
+    # uses args.TICKET_DISPOSITION's default of None, not this signature's
+    # default), so coerce here — the backend requires a disposition on close.
+    return self.set_status(
+        name=name, id=id, status="closed",
+        disposition=disposition or "resolved",
+        workspace=workspace, workspace_id=workspace_id,
+        api_version=api_version)
+
+  @Command()
+  def delete(self,
+             name: args.NAME = None,
+             id: args.ID = None,
+             workspace: args.WORKSPACE = None,
+             workspace_id: args.WORKSPACEID = None,
+             api_version: args.APIVERSION = "v1") -> dict:
+    """Delete an AI HelpDesk ticket from a workspace.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket delete <name> --workspace <workspace>
+      duploctl ticket delete --id <id> --workspace-id <workspace id>
+      ```
+
+    Args:
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: The ticket id. Used instead of name when provided.
+      workspace: The workspace name the ticket belongs to.
+      workspace_id: The workspace id the ticket belongs to.
+      api_version: Helpdesk API version.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploError: If no ticket identifier is given.
+    """
+    api_version = api_version.strip().lower()
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    wid = self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    self.client.delete(
+        f"{api_version}/aiservicedesk/tickets/"
+        f"{wid}/{quote_plus(identifier)}")
+    return {"message": f"ticket '{identifier}' deleted"}

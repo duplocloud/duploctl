@@ -409,6 +409,20 @@ APIVERSION = Arg("api_version", "--api-version",
                 required=False,
                 default="v1")
 
+TICKET_STATUS = Arg("status", "--status",
+                    help="The ticket status to set.",
+                    choices=["open", "inProgress", "waitingForUserInput",
+                             "waitingForUserAgent", "closed"],
+                    required=False,
+                    default=None)
+
+TICKET_DISPOSITION = Arg("disposition", "--disposition",
+                         help="The ticket disposition. Required when closing "
+                              "a ticket.",
+                         choices=["resolved", "unResolved"],
+                         required=False,
+                         default=None)
+
 MESSAGE = Arg("message", "--content", "--msg", "--message", "-f",
               action=StdinTextAction,
               required=False,

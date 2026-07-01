@@ -1,4 +1,5 @@
 import argparse
+import json
 import io
 import pytest
 from duplocloud.errors import DuploError
@@ -156,6 +157,51 @@ def test_send_message_unary_when_agent_not_streaming(mocker):
 
 
 @pytest.mark.unit
+def test_send_message_unary_recovers_from_ndjson(mocker):
+    # A stale STREAMING_ENABLED flag routes a streaming agent to the unary
+    # endpoint; the helpdesk 400s but embeds the agent's NDJSON reply in the
+    # (JSON-encoded) error body. The reply must be recovered, not surfaced as
+    # a raw backend deserialization error.
+    ticket, _, _ = _make_ticket(mocker, streaming_agent=False)
+    raw = (
+        'Error {"type":"executed_tool_calls"}\n'
+        '{"type":"text_delta","text":"Hi! "}\n'
+        '{"type":"text_delta","text":"there"}\n'
+        '{"type":"done"}\n'
+        ' in request call to Agent.'
+    )
+    get_resp = mocker.MagicMock()
+    get_resp.json.return_value = _TICKET_DETAIL  # _agent_id_from_ticket
+    mock_client = mocker.MagicMock()
+    mock_client.get.return_value = get_resp
+    # Body is a JSON-encoded string, exactly as the backend returns it.
+    mock_client.post.side_effect = DuploError(json.dumps(raw), 400)
+    mocker.patch.object(ticket, "client", mock_client)
+
+    result = ticket.send_message(
+        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="hi")
+
+    assert mock_client.post.call_args[0][0].endswith("/sendMessage")
+    assert result["ai_response"]["content"] == "Hi! there"
+
+
+@pytest.mark.unit
+def test_send_message_unary_reraises_unrecoverable_error(mocker):
+    # A genuine error (no embedded agent events) must propagate unchanged.
+    ticket, _, _ = _make_ticket(mocker, streaming_agent=False)
+    get_resp = mocker.MagicMock()
+    get_resp.json.return_value = _TICKET_DETAIL
+    mock_client = mocker.MagicMock()
+    mock_client.get.return_value = get_resp
+    mock_client.post.side_effect = DuploError("Ticket not found", 404)
+    mocker.patch.object(ticket, "client", mock_client)
+
+    with pytest.raises(DuploError, match="not found"):
+        ticket.send_message(
+            name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="hi")
+
+
+@pytest.mark.unit
 def test_send_message_streams_when_agent_supports_streaming(mocker):
     ticket, _, agent_svc = _make_ticket(mocker, streaming_agent=True)
     client = _make_client(mocker, ticket, get_responses=[_TICKET_DETAIL])
@@ -215,3 +261,137 @@ def test_stdin_text_action_reads_stdin_on_dash(monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("piped message\n"))
     ns = _content_parser().parse_args(["--content", "-"])
     assert ns.content == "piped message\n"
+
+
+@pytest.mark.unit
+def test_list_tickets(mocker):
+    ticket, wksp_svc, _ = _make_ticket(mocker)
+    client = _make_client(
+        mocker, ticket, get_responses=[[{"name": _TICKET_NAME}]])
+
+    result = ticket.list(workspace=_WORKSPACE_NAME)
+
+    assert client.get.call_args[0][0].endswith(f"/tickets/{_WORKSPACE_ID}")
+    assert result == [{"name": _TICKET_NAME}]
+
+
+@pytest.mark.unit
+def test_assignee(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(
+        mocker, ticket, get_responses=[{"id": _AGENT_ID, "name": "cicd"}])
+
+    result = ticket.assignee(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+
+    assert client.get.call_args[0][0].endswith(
+        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/assignee")
+    assert result["id"] == _AGENT_ID
+
+
+@pytest.mark.unit
+def test_reassign(mocker):
+    ticket, _, agent_svc = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+
+    result = ticket.reassign(
+        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, agent_name="cicd")
+
+    client.put.assert_called_once()
+    assert client.put.call_args[0][0].endswith(
+        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/assignee/{_AGENT_ID}")
+    assert "reassigned" in result["message"]
+
+
+@pytest.mark.unit
+def test_set_status(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+    put_mock = mocker.MagicMock()
+    put_mock.json.return_value = {"name": _TICKET_NAME, "status": "inProgress"}
+    client.put.return_value = put_mock
+
+    result = ticket.set_status(
+        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, status="inProgress")
+
+    url, body = client.put.call_args[0]
+    assert url.endswith(f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/status")
+    assert body == {"status": "inProgress"}
+    assert result["status"] == "inProgress"
+
+
+@pytest.mark.unit
+def test_set_status_requires_status(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    _make_client(mocker, ticket)
+
+    with pytest.raises(DuploError, match="status"):
+        ticket.set_status(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+
+
+@pytest.mark.unit
+def test_set_status_closed_requires_disposition(mocker):
+    # The backend rejects closing without a disposition; enforce the documented
+    # contract client-side so the user gets a clear error first.
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+
+    with pytest.raises(DuploError, match="disposition"):
+        ticket.set_status(
+            name=_TICKET_NAME, workspace=_WORKSPACE_NAME, status="closed")
+    client.put.assert_not_called()
+
+
+@pytest.mark.unit
+def test_set_status_closed_with_disposition(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+    put_mock = mocker.MagicMock()
+    put_mock.json.return_value = {"name": _TICKET_NAME, "status": "closed"}
+    client.put.return_value = put_mock
+
+    ticket.set_status(
+        name=_TICKET_NAME, workspace=_WORKSPACE_NAME,
+        status="closed", disposition="resolved")
+
+    _, body = client.put.call_args[0]
+    assert body == {"status": "closed", "disposition": "resolved"}
+
+
+@pytest.mark.unit
+def test_close_defaults_to_resolved(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+    put_mock = mocker.MagicMock()
+    put_mock.json.return_value = {"name": _TICKET_NAME, "status": "closed"}
+    client.put.return_value = put_mock
+
+    # disposition=None mirrors the CLI (argparse default), and must still
+    # resolve to "resolved" — the backend rejects a close with no disposition.
+    ticket.close(name=_TICKET_NAME, workspace=_WORKSPACE_NAME, disposition=None)
+
+    url, body = client.put.call_args[0]
+    assert url.endswith("/status")
+    assert body == {"status": "closed", "disposition": "resolved"}
+
+
+@pytest.mark.unit
+def test_delete(mocker):
+    ticket, wksp_svc, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+
+    result = ticket.delete(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+
+    wksp_svc.find.assert_called_once()
+    client.delete.assert_called_once()
+    assert client.delete.call_args[0][0].endswith(
+        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
+    assert "deleted" in result["message"]
+
+
+@pytest.mark.unit
+def test_delete_requires_identifier(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    _make_client(mocker, ticket)
+
+    with pytest.raises(DuploError, match="name or --id"):
+        ticket.delete(workspace=_WORKSPACE_NAME)

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- AI HelpDesk CRUD and lifecycle commands against the existing backend endpoints (workspace/agent resolved by name or `--id` via their `find`):
+  - `workspace create`/`update`/`apply` (body via `-f`; `apply` upserts by the body's `name`), `workspace delete`, and `workspace add_agent`/`remove_agent` (`--agent`/`--agent_id` selects the agent).
+  - `agent create`/`update`/`apply` (body via `-f`), and `agent delete`.
+  - `ticket list` (per workspace), `ticket assignee` (get the assigned agent), `ticket reassign` (`--agent`/`--agent_id`), `ticket set_status` (`--status`), `ticket close` (`--disposition`, default `resolved`), and `ticket delete`.
+  - Inputs are validated before the request: `create`/`update`/`apply` require a mapping body (clear `DuploError` when `-f` is omitted rather than an `AttributeError`), and `ticket set_status --status closed` requires `--disposition`.
+
 ### Changed
 
 - added ability to pass in kwargs when calling the client as function
