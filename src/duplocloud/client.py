@@ -125,9 +125,13 @@ class DuploAPI():
 
         if owns_cooldown:
           # Cache the token before releasing the cooldown so a process that
-          # sees no cooldown file always finds the cached credentials.
+          # sees no cooldown file always finds the cached credentials. A
+          # failed cache write must not fail the auth or orphan the cooldown.
           if not self.duplo.nocache:
-            self.cache.set(self.cache.key_for("duplo-creds"), self._token_cache(token))
+            try:
+              self.cache.set(self.cache.key_for("duplo-creds"), self._token_cache(token))
+            except OSError as e:
+              self.duplo.logger.warning("auth cooldown: failed to cache token: %s", e)
           clear_auth_cooldown(self.duplo.cache_dir, self.duplo.host, self.duplo.isadmin)
 
         return token

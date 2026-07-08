@@ -734,3 +734,55 @@ class TestVanishedCooldownRecovery:
       cache_dir, host, False, 0, 3600,
       get_cached_token=lambda: "holder-finished")
     assert result == CooldownResult(token="holder-finished")
+
+
+@pytest.mark.unit
+class TestRequestTokenCacheFailure:
+  def test_cache_write_failure_still_clears_cooldown_and_returns_token(self, tmp_path, monkeypatch):
+    """A failed credential-cache write must not fail the auth or leave the
+    cooldown file orphaned behind a dead PID."""
+    from unittest.mock import MagicMock
+    import duplocloud.client as cl
+    from duplocloud.client import DuploAPI
+
+    host, cache_dir = setup_test_host(tmp_path)
+
+    duplo = MagicMock()
+    duplo.host = host
+    duplo.cache_dir = cache_dir
+    duplo.isadmin = False
+    duplo.nocache = False
+    duplo.auth_cooldown = "true"
+    duplo.browser = None
+
+    api = DuploAPI.__new__(DuploAPI)
+    api.duplo = duplo
+    api.cache = MagicMock()
+    api.cache.set.side_effect = OSError("disk full")
+    api.cache.get.side_effect = OSError("disk full")
+
+    class FakeServer:
+      server_port = 12345
+
+      def __init__(self, *args, **kwargs):
+        pass
+
+      def __enter__(self):
+        return self
+
+      def __exit__(self, *args):
+        return False
+
+      def open_callback(self, *args, **kwargs):
+        pass
+
+      def serve_token(self):
+        return "tok123"
+
+    monkeypatch.setattr(cl, "TokenServer", FakeServer)
+    monkeypatch.setattr(cl, "is_tty", lambda: False)
+
+    token = api.request_token()
+    assert token == "tok123"
+    # Cooldown must be released even though caching the token failed.
+    assert read_cooldown_info(cache_dir, host, False) is None

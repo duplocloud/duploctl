@@ -114,6 +114,21 @@ def _auth_cooldown_path(cache_dir: str, host: str, admin: bool) -> str:
   return os.path.join(cache_dir, hostname + suffix)
 
 
+def atomic_write_json(path: str, data: dict) -> None:
+  """Write JSON to a file atomically via a temp file and rename.
+
+  Concurrent readers never observe a truncated or partially written file.
+
+  Args:
+    path: The destination file path.
+    data: The dict to serialize.
+  """
+  tmp_path = f"{path}.tmp.{os.getpid()}"
+  with open(tmp_path, "w") as f:
+    json.dump(data, f)
+  os.replace(tmp_path, path)
+
+
 def _read_info_from_path(path: str) -> dict | None:
   """Read cooldown info from a file path.
 
@@ -274,10 +289,7 @@ def update_cooldown(cache_dir: str, host: str, admin: bool, port: int) -> None:
 
   try:
     cooldown_path = _auth_cooldown_path(cache_dir, host, admin)
-    tmp_path = f"{cooldown_path}.tmp.{os.getpid()}"
-    with open(tmp_path, "w") as f:
-      json.dump(info, f)
-    os.replace(tmp_path, cooldown_path)
+    atomic_write_json(cooldown_path, info)
   except OSError as e:
     logger.warning("auth cooldown: failed to update cooldown for relay: %s", e)
 
