@@ -58,8 +58,12 @@ class DuploCache():
     if not os.path.exists(self.duplo.cache_dir):
       os.makedirs(self.duplo.cache_dir)
     fn = f"{self.duplo.cache_dir}/{key}.json"
-    with open(fn, "w") as f:
+    # Write to a temp file and rename so concurrent readers never observe
+    # a truncated file (multiple duploctl processes share this cache).
+    tmp = f"{fn}.tmp.{os.getpid()}"
+    with open(tmp, "w") as f:
       json.dump(data, f)
+    os.replace(tmp, fn)
 
   def key_for(self, name: str) -> str:
     """Get the cache key for the given name.

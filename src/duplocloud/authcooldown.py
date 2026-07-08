@@ -185,7 +185,7 @@ def _try_set_cooldown(cooldown_path: str, port: int, admin: bool, cooldown_durat
   }
 
   try:
-    fd = os.open(cooldown_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    _publish_cooldown_file(cooldown_path, info)
   except FileExistsError:
     existing = _read_info_from_path(cooldown_path)
     if retry_on_stale and (existing is None or _is_stale(existing, cooldown_duration)):
@@ -208,17 +208,36 @@ def _try_set_cooldown(cooldown_path: str, port: int, admin: bool, cooldown_durat
   except OSError as e:
     return False, None, f"failed to create cooldown file: {e}"
 
+  return True, None, None
+
+
+def _publish_cooldown_file(cooldown_path: str, info: dict) -> None:
+  """Atomically create the cooldown file with its full content.
+
+  The file must never be observable empty: a concurrent reader that finds
+  unparseable content treats the cooldown as stale and steals it, opening a
+  duplicate browser tab. Writing to a temp file and hard-linking it into
+  place makes creation exclusive AND content-complete in one step.
+
+  Args:
+    cooldown_path: The final cooldown file path.
+    info: The cooldown info dict to write.
+
+  Raises:
+    FileExistsError: If a cooldown file already exists.
+    OSError: On other filesystem errors.
+  """
+  tmp_path = f"{cooldown_path}.tmp.{os.getpid()}"
   try:
+    fd = os.open(tmp_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     with os.fdopen(fd, "w") as f:
       json.dump(info, f)
-  except OSError:
+    os.link(tmp_path, cooldown_path)
+  finally:
     try:
-      os.remove(cooldown_path)
+      os.remove(tmp_path)
     except OSError:
       pass
-    return False, None, "failed to write cooldown file"
-
-  return True, None, None
 
 
 def _is_stale(info: dict, cooldown_duration: int) -> bool:
@@ -255,8 +274,10 @@ def update_cooldown(cache_dir: str, host: str, admin: bool, port: int) -> None:
 
   try:
     cooldown_path = _auth_cooldown_path(cache_dir, host, admin)
-    with open(cooldown_path, "w") as f:
+    tmp_path = f"{cooldown_path}.tmp.{os.getpid()}"
+    with open(tmp_path, "w") as f:
       json.dump(info, f)
+    os.replace(tmp_path, cooldown_path)
   except OSError as e:
     logger.warning("auth cooldown: failed to update cooldown for relay: %s", e)
 
@@ -398,6 +419,12 @@ def check_cooldown_before_listen(cache_dir: str, host: str, admin: bool, default
     result = _wait_for_cooldown_holder(cache_dir, host, admin, default_port, info, cooldown_duration, get_cached_token)
     return default_port, True, cooldown_duration, result
 
+  # The holder is gone — it may have just finished successfully, in which
+  # case the cached token is fresher than a relay attempt.
+  result = _cached_token_result(get_cached_token)
+  if result:
+    return default_port, True, cooldown_duration, result
+
   logger.info("auth cooldown: previous process (PID %d) is dead, attempting relay on port %d",
         pid, info.get("port", 0))
   return info.get("port", default_port), False, remaining, None
@@ -453,11 +480,13 @@ def acquire_or_update_cooldown(cache_dir: str, host: str, admin: bool, default_p
       info = read_cooldown_info(cache_dir, host, admin)
       if info:
         return _wait_for_cooldown_holder(cache_dir, host, admin, default_port, info, cooldown_duration, get_cached_token)
-      expiry_str = expiry.isoformat() if expiry else "unknown"
-      return CooldownResult(error=(
-        f"authentication for {get_host_cache_key(host)} was recently attempted (expires {expiry_str})\n"
-        f"To force a new attempt: duploctl cache clear  (or unset {AUTH_COOLDOWN_ENV_VAR} to disable cooldown)"
-      ))
+      # The cooldown vanished between the acquire attempt and the re-read:
+      # the holder finished (token may be cached) or the file was cleared.
+      result = _cached_token_result(get_cached_token)
+      if result:
+        return result
+      time.sleep(0.2)
+      return CooldownResult(retry=True)
   else:
     update_cooldown(cache_dir, host, admin, local_port)
   return None

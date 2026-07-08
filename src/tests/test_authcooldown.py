@@ -647,3 +647,90 @@ class TestAcquireOrUpdateCooldownEdgeCases:
 def test_is_tty_returns_bool():
   result = is_tty()
   assert isinstance(result, bool)
+
+
+# --- Regression tests for concurrent-burst races (DUPLO-41877) ---
+
+@pytest.mark.unit
+class TestCooldownFileAtomicity:
+  def test_publish_writes_complete_content(self, tmp_path):
+    """The cooldown file must contain valid JSON the instant it exists."""
+    host, cache_dir = setup_test_host(tmp_path)
+    must_set_cooldown(cache_dir, host, 8080, False, 3600)
+
+    cooldown_path = _auth_cooldown_path(cache_dir, host, False)
+    with open(cooldown_path) as f:
+      info = json.load(f)
+    assert info["pid"] == os.getpid()
+    assert info["port"] == 8080
+
+  def test_publish_leaves_no_temp_file(self, tmp_path):
+    host, cache_dir = setup_test_host(tmp_path)
+    must_set_cooldown(cache_dir, host, 8080, False, 3600)
+    leftovers = [e for e in os.listdir(cache_dir) if ".tmp." in e]
+    assert leftovers == []
+
+  def test_publish_raises_when_file_exists(self, tmp_path):
+    from duplocloud.authcooldown import _publish_cooldown_file
+    host, cache_dir = setup_test_host(tmp_path)
+    cooldown_path = _auth_cooldown_path(cache_dir, host, False)
+    _publish_cooldown_file(cooldown_path, {"pid": 1})
+    with pytest.raises(FileExistsError):
+      _publish_cooldown_file(cooldown_path, {"pid": 2})
+
+  def test_empty_file_is_treated_as_corrupt_and_replaced(self, tmp_path):
+    """With atomic publish an empty cooldown file can only be a corrupt
+    leftover, so a new process may safely replace it."""
+    host, cache_dir = setup_test_host(tmp_path)
+    cooldown_path = _auth_cooldown_path(cache_dir, host, False)
+    with open(cooldown_path, "w"):
+      pass
+
+    must_set_cooldown(cache_dir, host, 8080, False, 3600)
+    info = read_cooldown_info(cache_dir, host, False)
+    assert info["pid"] == os.getpid()
+
+  def test_update_cooldown_leaves_no_temp_file(self, tmp_path):
+    host, cache_dir = setup_test_host(tmp_path)
+    write_fake_cooldown(cache_dir, host, False, 9999, 8080,
+              datetime.now(timezone.utc))
+    update_cooldown(cache_dir, host, False, 5555)
+    leftovers = [e for e in os.listdir(cache_dir) if ".tmp." in e]
+    assert leftovers == []
+
+
+@pytest.mark.unit
+class TestVanishedCooldownRecovery:
+  def test_acquire_retries_when_cooldown_vanishes(self, tmp_path, monkeypatch):
+    """If the cooldown disappears between the failed acquire and the re-read
+    (holder just finished), the caller should retry, not hard-fail."""
+    import duplocloud.authcooldown as ac
+    host, cache_dir = setup_test_host(tmp_path)
+    monkeypatch.setattr(ac, "try_set_auth_cooldown",
+              lambda *a, **kw: (False, None, None))
+
+    result = acquire_or_update_cooldown(cache_dir, host, False, 0, 9090, True, 3600)
+    assert result == CooldownResult(retry=True)
+
+  def test_acquire_uses_cached_token_when_cooldown_vanishes(self, tmp_path, monkeypatch):
+    import duplocloud.authcooldown as ac
+    host, cache_dir = setup_test_host(tmp_path)
+    monkeypatch.setattr(ac, "try_set_auth_cooldown",
+              lambda *a, **kw: (False, None, None))
+
+    result = acquire_or_update_cooldown(
+      cache_dir, host, False, 0, 9090, True, 3600,
+      get_cached_token=lambda: "vanished-cached")
+    assert result == CooldownResult(token="vanished-cached")
+
+  def test_dead_holder_with_cached_token_skips_relay(self, tmp_path):
+    """A dead holder that already cached a token means auth completed —
+    return the token instead of relaying on the old port."""
+    host, cache_dir = setup_test_host(tmp_path)
+    write_fake_cooldown(cache_dir, host, False, 2147483647, 54321,
+              datetime.now(timezone.utc) - timedelta(seconds=600))
+
+    port, browser, timeout, result = check_cooldown_before_listen(
+      cache_dir, host, False, 0, 3600,
+      get_cached_token=lambda: "holder-finished")
+    assert result == CooldownResult(token="holder-finished")
