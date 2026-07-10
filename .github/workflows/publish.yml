@@ -27,6 +27,11 @@ on:
         required: false
         default: qa-aws
         type: environment
+      e2e_region:
+        description: AWS region override for integration test infrastructure
+        required: false
+        default: ""
+        type: string
 
 jobs:
 
@@ -48,6 +53,7 @@ jobs:
       environment: ${{ inputs.e2e_environment }}
       enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
       suite: aws
+      region: ${{ inputs.e2e_region }}
 
   integration_k8s:
     name: Integration Tests
@@ -57,6 +63,7 @@ jobs:
       environment: ${{ inputs.e2e_environment }}
       enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
       suite: k8s
+      region: ${{ inputs.e2e_region }}
 
   integration_ecs:
     name: Integration Tests
@@ -66,6 +73,7 @@ jobs:
       environment: ${{ inputs.e2e_environment }}
       enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
       suite: ecs
+      region: ${{ inputs.e2e_region }}
 
   version:
     name: Version

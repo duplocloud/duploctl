@@ -23,6 +23,10 @@ on:
         required: false
         description: Pre-existing tenant name. Empty mirrors infra name.
         type: string
+      region:
+        required: false
+        description: AWS region override for infrastructure creation. Empty uses the test data default.
+        type: string
       python_version:
         required: false
         description: Python version
@@ -50,6 +54,9 @@ on:
         required: false
         type: string
       tenant:
+        required: false
+        type: string
+      region:
         required: false
         type: string
       python_version:
@@ -133,11 +140,13 @@ jobs:
         INFRA: ${{ inputs.infra }}
         TENANT: ${{ inputs.tenant }}
         INFRA_TYPE: ${{ steps.suite.outputs.infra_type }}
+        REGION: ${{ inputs.region }}
       run: |
         ARGS=(src -m "integration and lifecycle" --no-cov --junit-xml=lifecycle-results.xml -v -s --names-file=.names --no-teardown)
         if [ -n "$INFRA" ]; then ARGS+=(--infra "$INFRA"); fi
         if [ -n "$TENANT" ]; then ARGS+=(--tenant "$TENANT"); fi
         if [ -n "$INFRA_TYPE" ]; then ARGS+=(--infra-type "$INFRA_TYPE"); fi
+        if [ -n "$REGION" ]; then ARGS+=(--region "$REGION"); fi
         pytest "${ARGS[@]}"
 
     - name: Export resolved names

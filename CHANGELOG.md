@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Integration tests generate tenant names as `dctl{n}` instead of `duploctl{n}` to avoid the portal's shared-prefix conflict with the existing `duploctl` tenant on QA portals
+- Integration test workflow accepts a `region` input (and `publish.yml` an `e2e_region` input) to create test infrastructure in an alternate AWS region, e.g. to avoid per-region VPC quota exhaustion
 
 ### Fixed
 
