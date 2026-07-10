@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Integration tests generate tenant names as `dctl{n}` instead of `duploctl{n}` to avoid the portal's shared-prefix conflict with the existing `duploctl` tenant on QA portals
+
 - added ability to pass in kwargs when calling the client as function
 - **Authentication cooldown** via `DUPLO_AUTH_COOLDOWN` — prevents duplicate browser login prompts when multiple processes request tokens concurrently. Thanks to [@scholzie](https://github.com/scholzie) for the original contribution in [duplocloud/duplo-jit#52](https://github.com/duplocloud/duplo-jit/pull/52).
 - **Cache resource** with `duploctl cache clear` command to remove cached credentials and cooldown files
