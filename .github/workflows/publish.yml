@@ -20,7 +20,7 @@ on:
       run_e2e:
         description: Run end to end tests
         required: false
-        default: false
+        default: true
         type: boolean
       e2e_environment:
         description: GHA environment for integration tests (e.g. qa-aws)
