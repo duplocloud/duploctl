@@ -31,13 +31,21 @@ class DuploResourceGroup(DuploResource):
     data = response.get("data")
     return data if isinstance(data, dict) else response
 
+  def _id_of(self, obj: dict) -> str:
+    """Read an object's id, tolerating either ``id`` or ``Id`` casing."""
+    oid = obj.get("id") or obj.get("Id")
+    if not oid:
+      raise DuploError(
+          "The AI HelpDesk response did not include an id.")
+    return oid
+
   def _resolve_workspace_id(self,
                             workspace: str,
                             workspace_id: str,
                             api_version: str) -> str:
     """Resolve a workspace name/id to its id via the workspace resource."""
-    return self.__workspace_svc.find(
-        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    return self._id_of(self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version))
 
   def _resolve_environment_id(self,
                               workspace_id: str,
@@ -45,9 +53,9 @@ class DuploResourceGroup(DuploResource):
                               environment_id: str,
                               api_version: str) -> str:
     """Resolve an environment name/id to its id, scoped to the workspace."""
-    return self.__environment_svc.find(
+    return self._id_of(self.__environment_svc.find(
         name=environment, id=environment_id, workspace_id=workspace_id,
-        api_version=api_version)["id"]
+        api_version=api_version))
 
   def _base(self, workspace_id: str, api_version: str) -> str:
     """Build the workspace-scoped resource-groups endpoint."""
@@ -261,7 +269,7 @@ class DuploResourceGroup(DuploResource):
     rg = self.find(
         name=name or body.get("name"), id=id, workspace_id=wid,
         api_version=api_version)
-    rgid = rg.get("id") or rg.get("Id")
+    rgid = self._id_of(rg)
     # The backend rejects the PUT as a self name-collision unless the body
     # carries its own id, matching the workspace/agent update contract.
     body = {**body, "id": rgid}
@@ -272,8 +280,10 @@ class DuploResourceGroup(DuploResource):
     existing_spec = rg.get("spec") or rg.get("Spec") or {}
     spec = dict(body.get("spec") or {})
     for field in ("environmentId", "clusterId", "awsResourceName"):
-      if not spec.get(field) and existing_spec.get(field):
-        spec[field] = existing_spec[field]
+      pascal = field[0].upper() + field[1:]
+      value = existing_spec.get(field) or existing_spec.get(pascal)
+      if value and not (spec.get(field) or spec.get(pascal)):
+        spec[field] = value
     if spec:
       body["spec"] = spec
     response = self.client.put(
@@ -311,11 +321,13 @@ class DuploResourceGroup(DuploResource):
       resource: The created or updated resource group object.
 
     Raises:
-      DuploError: If no body is provided.
+      DuploError: If no body is provided or it has no ``name``.
     """
     api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
+    if not body.get("name"):
+      raise DuploError("The body must include a 'name'")
     wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     try:
       self.find(name=body.get("name"), workspace_id=wid,
@@ -361,7 +373,7 @@ class DuploResourceGroup(DuploResource):
     wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     rg = self.find(
         name=name, id=id, workspace_id=wid, api_version=api_version)
-    rgid = rg.get("id") or rg.get("Id")
+    rgid = self._id_of(rg)
     self.client.delete(
         f"{self._base(wid, api_version)}/{quote_plus(rgid)}")
     return {"message": f"resource group '{name or id}' deleted"}
@@ -403,7 +415,7 @@ class DuploResourceGroup(DuploResource):
     wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     rg = self.find(
         name=name, id=id, workspace_id=wid, api_version=api_version)
-    rgid = rg.get("id") or rg.get("Id")
+    rgid = self._id_of(rg)
     base = self._base(wid, api_version)
     # The backend rejects a partial selection, so confirm every direct
     # child returned by the preview. The preview envelope wraps a bare

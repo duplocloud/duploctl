@@ -228,6 +228,34 @@ def test_apply_creates_when_not_found(mocker):
 
 
 @pytest.mark.unit
+def test_apply_requires_name(mocker):
+    svc = _make_appservice(mocker)
+    _make_client(mocker, svc, get_responses=[])
+
+    with pytest.raises(DuploError, match="name"):
+        svc.apply(body={"spec": {}}, workspace="platform")
+
+
+@pytest.mark.unit
+def test_create_resolves_pascal_case_ids(mocker):
+    svc = _make_appservice(mocker)
+    # sibling find() results may carry `Id` instead of `id`
+    svc.duplo.load("workspace").find.return_value = {"Id": _WORKSPACE_ID}
+    svc.duplo.load("environment").find.return_value = {"Id": _ENV_ID}
+    svc.duplo.load("resource_group").find.return_value = {"Id": _RG_ID}
+    client = _make_client(mocker, svc, get_responses=[])
+    client.post.return_value.json.return_value = _DETAIL_RESPONSE
+
+    svc.create(
+        body={"name": _APPSVC_NAME, "spec": {}},
+        environment="dev", resource_group="web", workspace="platform")
+
+    url = client.post.call_args[0][0]
+    assert f"/workspaces/{_WORKSPACE_ID}/environments/{_ENV_ID}" in url
+    assert f"/resource-groups/{_RG_ID}/appservices" in url
+
+
+@pytest.mark.unit
 def test_update_image_posts_to_endpoint(mocker):
     svc = _make_appservice(mocker)
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])

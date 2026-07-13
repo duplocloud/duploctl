@@ -172,6 +172,15 @@ def test_apply_creates_when_not_found(mocker):
 
 
 @pytest.mark.unit
+def test_apply_requires_name(mocker):
+    svc = _make_lambda(mocker)
+    _make_client(mocker, svc, get_responses=[])
+
+    with pytest.raises(DuploError, match="name"):
+        svc.apply(body={"spec": {}}, workspace="platform")
+
+
+@pytest.mark.unit
 def test_update_image_posts_to_nested_code_endpoint(mocker):
     svc = _make_lambda(mocker)
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])

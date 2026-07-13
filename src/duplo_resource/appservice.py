@@ -35,13 +35,21 @@ class DuploAppService(DuploResource):
     data = response.get("data")
     return data if isinstance(data, dict) else response
 
+  def _id_of(self, obj: dict) -> str:
+    """Read an object's id, tolerating either ``id`` or ``Id`` casing."""
+    oid = obj.get("id") or obj.get("Id")
+    if not oid:
+      raise DuploError(
+          "The AI HelpDesk response did not include an id.")
+    return oid
+
   def _resolve_workspace_id(self,
                             workspace: str,
                             workspace_id: str,
                             api_version: str) -> str:
     """Resolve a workspace name/id to its id via the workspace resource."""
-    return self.__workspace_svc.find(
-        name=workspace, id=workspace_id, api_version=api_version)["id"]
+    return self._id_of(self.__workspace_svc.find(
+        name=workspace, id=workspace_id, api_version=api_version))
 
   def _resolve_env_rg(self,
                       workspace_id: str,
@@ -55,12 +63,12 @@ class DuploAppService(DuploResource):
     The resource group is looked up within the resolved environment so a
     name shared across environments stays unambiguous.
     """
-    eid = self.__environment_svc.find(
+    eid = self._id_of(self.__environment_svc.find(
         name=environment, id=environment_id, workspace_id=workspace_id,
-        api_version=api_version)["id"]
-    rgid = self.__resource_group_svc.find(
+        api_version=api_version))
+    rgid = self._id_of(self.__resource_group_svc.find(
         name=resource_group, id=resource_group_id, workspace_id=workspace_id,
-        environment_id=eid, api_version=api_version)["id"]
+        environment_id=eid, api_version=api_version))
     return eid, rgid
 
   def _record_env_rg(self, appsvc: dict) -> tuple:
@@ -275,7 +283,7 @@ class DuploAppService(DuploResource):
     wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     appsvc = self._find_in_workspace(
         wid, name or body.get("name"), id, api_version)
-    aid = appsvc.get("id") or appsvc.get("Id")
+    aid = self._id_of(appsvc)
     eid, rgid = self._record_env_rg(appsvc)
     # The backend rejects the PUT as a self name-collision unless the body
     # carries its own id, matching the workspace/agent update contract.
@@ -320,11 +328,13 @@ class DuploAppService(DuploResource):
       resource: The created or updated appservice object.
 
     Raises:
-      DuploError: If no body is provided.
+      DuploError: If no body is provided or it has no ``name``.
     """
     api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
+    if not body.get("name"):
+      raise DuploError("The body must include a 'name'")
     wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     try:
       self._find_in_workspace(wid, body.get("name"), None, api_version)
@@ -370,7 +380,7 @@ class DuploAppService(DuploResource):
     api_version = api_version.strip().lower()
     wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     appsvc = self._find_in_workspace(wid, name, id, api_version)
-    aid = appsvc.get("id") or appsvc.get("Id")
+    aid = self._id_of(appsvc)
     eid, rgid = self._record_env_rg(appsvc)
     self.client.post(
         f"{self._nested_base(wid, eid, rgid, api_version)}/"
@@ -415,7 +425,7 @@ class DuploAppService(DuploResource):
       raise DuploError("An image is required")
     wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     appsvc = self._find_in_workspace(wid, name, None, api_version)
-    aid = appsvc.get("id") or appsvc.get("Id")
+    aid = self._id_of(appsvc)
     response = self.client.post(
         f"{self._base(wid, api_version)}/{quote_plus(aid)}/update-image",
         {"image": image}).json()

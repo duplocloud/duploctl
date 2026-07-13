@@ -174,6 +174,37 @@ def test_update_puts_with_injected_id_and_preserved_env(mocker):
 
 
 @pytest.mark.unit
+def test_update_preserves_pascal_case_spec(mocker):
+    svc = _make_resource_group(mocker)
+    # the immutable placement must be carried forward even if the existing
+    # record's spec uses `EnvironmentId`/`ClusterId` casing
+    pascal_list = {
+        "success": True,
+        "data": {"items": [
+            {"id": _RG_ID, "name": _RG_NAME,
+             "spec": {"EnvironmentId": _ENV_ID, "ClusterId": "cid-1"}},
+        ]},
+    }
+    client = _make_client(mocker, svc, get_responses=[pascal_list])
+    client.put.return_value.json.return_value = _DETAIL_RESPONSE
+
+    svc.update(body={"name": _RG_NAME, "spec": {}}, workspace="platform")
+
+    _, body = client.put.call_args[0]
+    assert body["spec"]["environmentId"] == _ENV_ID
+    assert body["spec"]["clusterId"] == "cid-1"
+
+
+@pytest.mark.unit
+def test_apply_requires_name(mocker):
+    svc = _make_resource_group(mocker)
+    _make_client(mocker, svc, get_responses=[])
+
+    with pytest.raises(DuploError, match="name"):
+        svc.apply(body={"spec": {}}, workspace="platform")
+
+
+@pytest.mark.unit
 def test_delete_plain(mocker):
     svc = _make_resource_group(mocker)
     # delete(id=...) resolves via find(id=...), a direct single-object GET

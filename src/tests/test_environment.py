@@ -163,6 +163,15 @@ def test_apply_creates_when_not_found(mocker):
 
 
 @pytest.mark.unit
+def test_apply_requires_name(mocker):
+    svc = _make_environment(mocker)
+    _make_client(mocker, svc, get_responses=[])
+
+    with pytest.raises(DuploError, match="name"):
+        svc.apply(body={}, workspace="platform")
+
+
+@pytest.mark.unit
 def test_delete(mocker):
     svc = _make_environment(mocker)
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
