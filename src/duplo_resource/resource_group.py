@@ -2,60 +2,24 @@ from urllib.parse import quote_plus
 
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
-from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
+from duplo_resource.helpdesk import HelpdeskResource
 import duplocloud.args as args
 
 
 @Resource("resource_group", scope="tenant")
-class DuploResourceGroup(DuploResource):
+class DuploResourceGroup(HelpdeskResource):
   """Manage AI HelpDesk (HDV2) resource groups in DuploCloud.
 
   A resource group lives inside an environment within a workspace and
   parents the workloads (appservices, lambdas). Resource groups are
   resolved by name to their id; workspace and environment resolution are
-  delegated to the ``workspace`` and ``environment`` resources.
+  delegated to the ``workspace`` and ``environment`` resources via the
+  shared :class:`HelpdeskResource` helpers.
   """
 
   def __init__(self, duplo: DuploCtl):
-    super().__init__(duplo, api_version="v1")
-    self.__workspace_svc = self.duplo.load("workspace")
-    self.__environment_svc = self.duplo.load("environment")
-
-  def _items(self, response: dict) -> list:
-    """Unwrap a paginated list envelope ``{data: {items: [...]}}``."""
-    return response.get("data", {}).get("items", [])
-
-  def _data(self, response: dict) -> dict:
-    """Unwrap a single-object envelope ``{success, data: {...}}``."""
-    data = response.get("data")
-    return data if isinstance(data, dict) else response
-
-  def _id_of(self, obj: dict) -> str:
-    """Read an object's id, tolerating either ``id`` or ``Id`` casing."""
-    oid = obj.get("id") or obj.get("Id")
-    if not oid:
-      raise DuploError(
-          "The AI HelpDesk response did not include an id.")
-    return oid
-
-  def _resolve_workspace_id(self,
-                            workspace: str,
-                            workspace_id: str,
-                            api_version: str) -> str:
-    """Resolve a workspace name/id to its id via the workspace resource."""
-    return self._id_of(self.__workspace_svc.find(
-        name=workspace, id=workspace_id, api_version=api_version))
-
-  def _resolve_environment_id(self,
-                              workspace_id: str,
-                              environment: str,
-                              environment_id: str,
-                              api_version: str) -> str:
-    """Resolve an environment name/id to its id, scoped to the workspace."""
-    return self._id_of(self.__environment_svc.find(
-        name=environment, id=environment_id, workspace_id=workspace_id,
-        api_version=api_version))
+    super().__init__(duplo)
 
   def _base(self, workspace_id: str, api_version: str) -> str:
     """Build the workspace-scoped resource-groups endpoint."""
@@ -153,32 +117,14 @@ class DuploResourceGroup(DuploResource):
     """
     api_version = api_version.strip().lower()
     wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    base = self._base(wid, api_version)
-    if id:
-      rg = self._data(self.client.get(f"{base}/{quote_plus(id)}").json())
-      if not (rg.get("id") or rg.get("Id")):
-        raise DuploNotFound(id, self.kind)
-      return rg
-
-    if not name:
-      raise DuploError("Either a resource group name or --id is required")
-
-    eid = None
     if environment or environment_id:
       eid = self._resolve_environment_id(
           wid, environment, environment_id, api_version)
-
-    response = self.client.get(
-        f"{base}?filters[name]={quote_plus(name)}").json()
-    target = name.lower()
-    match = next(
-        (rg for rg in self._items(response)
-         if (rg.get("name") or rg.get("Name") or "").lower() == target
-         and (eid is None or self._environment_of(rg) == eid)),
-        None)
-    if not match:
-      raise DuploNotFound(name, self.kind)
-    return match
+      def where(rg):
+        return self._environment_of(rg) == eid
+    else:
+      where = None
+    return self._find_in_workspace(wid, name, id, api_version, where=where)
 
   @Command()
   def create(self,
