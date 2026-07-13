@@ -58,8 +58,6 @@ class DuploCache():
     if not os.path.exists(self.duplo.cache_dir):
       os.makedirs(self.duplo.cache_dir)
     fn = f"{self.duplo.cache_dir}/{key}.json"
-    # Atomic write so concurrent readers never observe a truncated file
-    # (multiple duploctl processes share this cache).
     atomic_write_json(fn, data)
 
   def key_for(self, name: str) -> str:
