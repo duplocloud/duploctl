@@ -1,6 +1,6 @@
 import os
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
 @pytest.mark.unit
@@ -70,3 +70,31 @@ class TestCacheResource:
 
     assert result == {"message": "Cleared 1 cached file(s)"}
     assert "subdir" in os.listdir(cache_dir)
+
+  def test_set_get_roundtrip(self, tmp_path):
+    """Test set writes a readable JSON file and get returns it."""
+    cache_dir = str(tmp_path / "cache")
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    resource.set("mykey", {"DuploToken": "abc"})
+
+    assert resource.get("mykey") == {"DuploToken": "abc"}
+
+  def test_set_leaves_no_temp_file(self, tmp_path):
+    """Test the atomic write leaves no .tmp leftovers (DUPLO-41877)."""
+    cache_dir = str(tmp_path / "cache")
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    resource.set("mykey", {"DuploToken": "abc"})
+
+    leftovers = [e for e in os.listdir(cache_dir) if ".tmp." in e]
+    assert leftovers == []
+    assert "mykey.json" in os.listdir(cache_dir)

@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timezone, timedelta
 from duplocloud.commander import Resource, Command
 from duplocloud.errors import DuploExpiredCache
-from duplocloud.authcooldown import clear_all_caches
+from duplocloud.authcooldown import clear_all_caches, atomic_write_json
 
 @Resource("cache", client=None)
 class DuploCache():
@@ -58,8 +58,7 @@ class DuploCache():
     if not os.path.exists(self.duplo.cache_dir):
       os.makedirs(self.duplo.cache_dir)
     fn = f"{self.duplo.cache_dir}/{key}.json"
-    with open(fn, "w") as f:
-      json.dump(data, f)
+    atomic_write_json(fn, data)
 
   def key_for(self, name: str) -> str:
     """Get the cache key for the given name.

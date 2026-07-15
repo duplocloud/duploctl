@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Auth cooldown (`DUPLO_AUTH_COOLDOWN`) no longer opens duplicate browser tabs when many non-TTY processes authenticate at once: the cooldown file is now published atomically (readers could previously observe it empty and steal the cooldown), the credential cache is written atomically and before the cooldown is released, blocked processes retry instead of failing when the cooldown vanishes mid-check, and only the process that owns the cooldown may clear it.
+
 ### Changed
 
 - Integration tests generate tenant names as `dctl{n}` instead of `duploctl{n}` to avoid the portal's shared-prefix conflict with the existing `duploctl` tenant on QA portals
