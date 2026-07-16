@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `duploctl cache clear` actually clears the cache now — `DuploCache` did not extend `DuploResource`, so the CLI could not dispatch the `clear` command and printed the resource docstring instead of removing cached credentials and cooldown files
 - Auth cooldown (`DUPLO_AUTH_COOLDOWN`) no longer opens duplicate browser tabs when many non-TTY processes authenticate at once: the cooldown file is now published atomically (readers could previously observe it empty and steal the cooldown), the credential cache is written atomically and before the cooldown is released, blocked processes retry instead of failing when the cooldown vanishes mid-check, and only the process that owns the cooldown may clear it.
 
 ### Changed

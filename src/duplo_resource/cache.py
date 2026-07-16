@@ -3,17 +3,18 @@ import os
 from datetime import datetime, timezone, timedelta
 from duplocloud.commander import Resource, Command
 from duplocloud.errors import DuploExpiredCache
+from duplocloud.resource import DuploResource
 from duplocloud.authcooldown import clear_all_caches, atomic_write_json
 
 @Resource("cache", client=None)
-class DuploCache():
+class DuploCache(DuploResource):
   """Cache Resource
 
   Filesystem cache operations for storing and retrieving JSON data.
   Also provides CLI commands for managing the cache.
   """
   def __init__(self, duplo):
-    self.duplo = duplo
+    super().__init__(duplo)
 
   @Command()
   def clear(self) -> dict:
