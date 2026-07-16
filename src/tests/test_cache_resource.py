@@ -71,6 +71,29 @@ class TestCacheResource:
     assert result == {"message": "Cleared 1 cached file(s)"}
     assert "subdir" in os.listdir(cache_dir)
 
+  def test_clear_via_cli_dispatch(self, tmp_path):
+    """Test clear runs through resource(cmd) dispatch like the CLI does.
+
+    Regression test for DUPLO-41877: DuploCache did not extend
+    DuploResource, so `duploctl cache clear` raised a TypeError and
+    printed the class docstring instead of clearing anything.
+    """
+    cache_dir = str(tmp_path / "cache")
+    os.makedirs(cache_dir)
+    with open(os.path.join(cache_dir, "host-duplo-creds.json"), "w") as f:
+      f.write("{}")
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+    mock_duplo.validate = False
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource("clear")
+
+    assert result == {"message": "Cleared 1 cached file(s)"}
+    assert os.listdir(cache_dir) == []
+
   def test_set_get_roundtrip(self, tmp_path):
     """Test set writes a readable JSON file and get returns it."""
     cache_dir = str(tmp_path / "cache")
