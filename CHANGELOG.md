@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.4] - 2026-07-20
-
 ### Fixed
 
 - `duploctl cache clear` actually clears the cache now — `DuploCache` did not extend `DuploResource`, so the CLI could not dispatch the `clear` command and printed the resource docstring instead of removing cached credentials and cooldown files
