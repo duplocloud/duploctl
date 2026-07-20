@@ -1,0 +1,72 @@
+{
+  "features": {
+    "ghcr.io/devcontainers/features/aws-cli:1": {
+      "version": "1.1.4",
+      "resolved": "ghcr.io/devcontainers/features/aws-cli@sha256:1f93c8315b7a6d76982ebb2269f8b0d50413fc0f965c032edf4aee0caceb73ef",
+      "integrity": "sha256:1f93c8315b7a6d76982ebb2269f8b0d50413fc0f965c032edf4aee0caceb73ef"
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "version": "1.10.0",
+      "resolved": "ghcr.io/devcontainers/features/docker-outside-of-docker@sha256:c2c2cf829505ead8e4892c88c31b6594ae94a2bbb209e16e1fac456c1a3a624e",
+      "integrity": "sha256:c2c2cf829505ead8e4892c88c31b6594ae94a2bbb209e16e1fac456c1a3a624e"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "1.3.8",
+      "resolved": "ghcr.io/devcontainers/features/git@sha256:fd75977de13a9979000e0e78baf949adb0ca71d2398995fa22e0a36d7e7e7fe2",
+      "integrity": "sha256:fd75977de13a9979000e0e78baf949adb0ca71d2398995fa22e0a36d7e7e7fe2"
+    },
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "1.3.1",
+      "resolved": "ghcr.io/devcontainers/features/kubectl-helm-minikube@sha256:bbe8adf6b37fff8c67412ab0a4579f4c2f30bbaba1d9a5cebd9e38bade54025b",
+      "integrity": "sha256:bbe8adf6b37fff8c67412ab0a4579f4c2f30bbaba1d9a5cebd9e38bade54025b"
+    },
+    "ghcr.io/duplocloud/devcontainers/ai-claude:latest": {
+      "version": "1.0.2",
+      "resolved": "ghcr.io/duplocloud/devcontainers/ai-claude@sha256:4e60e39119ef4010dea0a86699c21aea9b5007c1905203221f78979825edce92",
+      "integrity": "sha256:4e60e39119ef4010dea0a86699c21aea9b5007c1905203221f78979825edce92",
+      "dependsOn": [
+        "ghcr.io/duplocloud/devcontainers/ai:latest"
+      ]
+    },
+    "ghcr.io/duplocloud/devcontainers/ai:latest": {
+      "version": "1.0.3",
+      "resolved": "ghcr.io/duplocloud/devcontainers/ai@sha256:c5cb77650b6d2ed568f2d85dda54de6dbd5bd654a7174f8ae0538dca3304fcfe",
+      "integrity": "sha256:c5cb77650b6d2ed568f2d85dda54de6dbd5bd654a7174f8ae0538dca3304fcfe"
+    },
+    "ghcr.io/duplocloud/devcontainers/aws-cli:1": {
+      "version": "1.0.13",
+      "resolved": "ghcr.io/duplocloud/devcontainers/aws-cli@sha256:0e3426c900abb02f1cb070e2a10284387cedab4de97db3aca81ff0a94e896d47",
+      "integrity": "sha256:0e3426c900abb02f1cb070e2a10284387cedab4de97db3aca81ff0a94e896d47",
+      "dependsOn": [
+        "ghcr.io/devcontainers/features/aws-cli:1"
+      ]
+    },
+    "ghcr.io/duplocloud/devcontainers/direnv:1": {
+      "version": "1.1.4",
+      "resolved": "ghcr.io/duplocloud/devcontainers/direnv@sha256:6aa41b63e7b1169bd78c05dd7aee13b674b0692bb69266c700264f6bd0b90425",
+      "integrity": "sha256:6aa41b63e7b1169bd78c05dd7aee13b674b0692bb69266c700264f6bd0b90425"
+    },
+    "ghcr.io/duplocloud/devcontainers/git:1": {
+      "version": "1.1.0",
+      "resolved": "ghcr.io/duplocloud/devcontainers/git@sha256:deda48da601f79e73fd70fc7cd9850f35a7aeaf0566073639720ef7b42ea5c9d",
+      "integrity": "sha256:deda48da601f79e73fd70fc7cd9850f35a7aeaf0566073639720ef7b42ea5c9d",
+      "dependsOn": [
+        "ghcr.io/devcontainers/features/git:1"
+      ]
+    },
+    "ghcr.io/duplocloud/devcontainers/github:latest": {
+      "version": "1.1.0",
+      "resolved": "ghcr.io/duplocloud/devcontainers/github@sha256:0c5304eea648b2fa7054d063bfa0382a5be604e6eb3555eab7210f0676661c4a",
+      "integrity": "sha256:0c5304eea648b2fa7054d063bfa0382a5be604e6eb3555eab7210f0676661c4a",
+      "dependsOn": [
+        "ghcr.io/duplocloud/devcontainers/git:1",
+        "ghcr.io/duplocloud/devcontainers/ai:latest"
+      ]
+    },
+    "ghcr.io/duplocloud/devcontainers/onepassword-cli:1": {
+      "version": "1.1.3",
+      "resolved": "ghcr.io/duplocloud/devcontainers/onepassword-cli@sha256:e4e3b3440176375e9ac18778c4cc86e4b22989719dce5376c9c9d0520db78523",
+      "integrity": "sha256:e4e3b3440176375e9ac18778c4cc86e4b22989719dce5376c9c9d0520db78523"
+    }
+  }
+}
