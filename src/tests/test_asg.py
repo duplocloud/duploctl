@@ -1,5 +1,7 @@
+import json
 import pytest
 import time
+from unittest.mock import MagicMock
 from duplocloud.errors import DuploError
 from .conftest import get_test_data
 
@@ -123,3 +125,125 @@ class TestAsg:
         r, _ = asg_resource
         response = execute_test(r.delete, "duploctl")
         assert "Successfully deleted asg" in response["message"]
+
+
+# ---------------------------------------------------------------------------
+# stop_resources() / start_resources() — snapshot, scale-to-zero, restore
+# ---------------------------------------------------------------------------
+
+def _make_asg(mocker):
+    """Return a DuploAsg with a mocked client and pinned tenant."""
+    from duplo_resource.asg import DuploAsg
+    duplo = MagicMock()
+    duplo.wait = False
+    resource = DuploAsg(duplo)
+    resource.client = MagicMock()
+    resource._tenant = {"TenantId": "tid-1", "AccountName": "mytenant"}
+    resource._tenant_id = "tid-1"
+    return resource
+
+
+def _asg_body(min_size=2, max_size=3, desired=3, autoscaled=False,
+              snapshot=None):
+    body = {
+        "FriendlyName": "duploservices-mytenant-apps",
+        "MinSize": min_size, "MaxSize": max_size,
+        "DesiredCapacity": desired, "IsClusterAutoscaled": autoscaled,
+        "CanScaleFromZero": False, "CustomDataTags": [],
+    }
+    if snapshot is not None:
+        body["CustomDataTags"] = [
+            {"Key": "DuploctlSleepState", "Value": snapshot}]
+    return body
+
+
+_SNAP = json.dumps({"MinSize": 2, "MaxSize": 3, "DesiredCapacity": 3,
+                    "CanScaleFromZero": False})
+
+
+@pytest.mark.unit
+@pytest.mark.asg
+def test_asg_stop_resources_snapshots_then_scales_to_zero(mocker):
+    r = _make_asg(mocker)
+    mocker.patch.object(r, "list", return_value=[_asg_body()])
+    set_cd = mocker.patch.object(r, "_set_custom_data")
+    apply = mocker.patch.object(r, "_apply_capacity")
+
+    errors = r.stop_resources()
+
+    assert errors == []
+    assert set_cd.call_args.args[1] == r._SLEEP_KEY
+    assert json.loads(set_cd.call_args.args[2]) == {
+        "MinSize": 2, "MaxSize": 3, "DesiredCapacity": 3,
+        "CanScaleFromZero": False}
+    # non-autoscaled group: CanScaleFromZero left untouched
+    apply.assert_called_once_with(_asg_body(), 0, 0, 0,
+                                  can_scale_from_zero=None)
+
+
+@pytest.mark.unit
+@pytest.mark.asg
+def test_asg_stop_resources_enables_scale_from_zero_when_autoscaled(mocker):
+    r = _make_asg(mocker)
+    mocker.patch.object(r, "list", return_value=[_asg_body(autoscaled=True)])
+    mocker.patch.object(r, "_set_custom_data")
+    apply = mocker.patch.object(r, "_apply_capacity")
+
+    r.stop_resources()
+
+    assert apply.call_args.kwargs["can_scale_from_zero"] is True
+
+
+@pytest.mark.unit
+@pytest.mark.asg
+def test_asg_stop_resources_skips_group_already_at_zero(mocker):
+    r = _make_asg(mocker)
+    asleep = _asg_body(min_size=0, max_size=0, desired=0, snapshot=_SNAP)
+    mocker.patch.object(r, "list", return_value=[asleep])
+    set_cd = mocker.patch.object(r, "_set_custom_data")
+    apply = mocker.patch.object(r, "_apply_capacity")
+
+    assert r.stop_resources() == []
+    set_cd.assert_not_called()
+    apply.assert_not_called()
+
+
+@pytest.mark.unit
+@pytest.mark.asg
+def test_asg_stop_resources_rolls_back_snapshot_on_scale_failure(mocker):
+    r = _make_asg(mocker)
+    mocker.patch.object(r, "list", return_value=[_asg_body()])
+    set_cd = mocker.patch.object(r, "_set_custom_data")
+    mocker.patch.object(r, "_apply_capacity",
+                        side_effect=DuploError("nope", 400))
+
+    errors = r.stop_resources()
+
+    assert len(errors) == 1
+    # the snapshot written before the failed scale is rolled back
+    assert any(c.kwargs.get("delete") for c in set_cd.call_args_list)
+
+
+@pytest.mark.unit
+@pytest.mark.asg
+def test_asg_start_resources_restores_snapshot_then_clears(mocker):
+    r = _make_asg(mocker)
+    body = _asg_body(min_size=0, max_size=0, desired=0, snapshot=_SNAP)
+    mocker.patch.object(r, "list", return_value=[body])
+    apply = mocker.patch.object(r, "_apply_capacity")
+    set_cd = mocker.patch.object(r, "_set_custom_data")
+
+    assert r.start_resources() == []
+    apply.assert_called_once_with(body, 2, 3, 3, can_scale_from_zero=False)
+    assert any(c.kwargs.get("delete") for c in set_cd.call_args_list)
+
+
+@pytest.mark.unit
+@pytest.mark.asg
+def test_asg_start_resources_skips_without_snapshot(mocker):
+    r = _make_asg(mocker)
+    mocker.patch.object(r, "list", return_value=[_asg_body()])
+    apply = mocker.patch.object(r, "_apply_capacity")
+
+    assert r.start_resources() == []
+    apply.assert_not_called()
