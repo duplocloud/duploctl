@@ -290,6 +290,10 @@ class DuploRDS(DuploResourceV3):
       "invaliddbclusterstate",
       "invaliddbinstancestate",
       "is not in available state",
+      # cluster-level equivalent: stopping a cluster that is already
+      # stopped (target state already reached) — e.g. "DbCluster X is in
+      # stopped state but expected it to be one of available."
+      "is in stopped state but expected",
     ))
 
   @Command()

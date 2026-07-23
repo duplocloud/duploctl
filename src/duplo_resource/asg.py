@@ -1,3 +1,5 @@
+import json
+
 from duplocloud.controller import DuploCtl
 from duplocloud.resource import DuploResourceV2
 from duplocloud.errors import DuploError, DuploNotFound
@@ -265,3 +267,168 @@ class DuploAsg(DuploResourceV2):
     }
     self.client.post(f"subscriptions/{tenant_id}/UpdateCustomData", payload)
     return {"message": f"Successfully updated allocation tag for asg '{name}'"}
+
+  # Key under which tenant stop/start snapshots an ASG's prior sizing so
+  # start can restore it. Stored in the ASG's custom data (no ':' so it is
+  # a valid AWS tag key). Not "AllocationTags", so it never affects
+  # service placement.
+  _SLEEP_KEY = "DuploctlSleepState"
+
+  def _set_custom_data(self, asg_name, key, value, delete=False):
+    """Set or clear one ASG custom-data key via UpdateCustomData.
+
+    Writes land in the profile's ``CustomDataTags`` and are read back on
+    the next ``list``/``find`` (the same channel as allocation tags).
+
+    Args:
+      asg_name: The prefixed FriendlyName of the ASG.
+      key: The custom-data key.
+      value: The value to store (ignored when deleting).
+      delete: When True, remove the key instead of setting it.
+    """
+    tenant_id = self.tenant["TenantId"]
+    payload = {
+      "ComponentId": asg_name,
+      "ComponentType": 3,  # ASG (see CustomComponentType enum)
+      "Key": key,
+      "Value": "" if delete else value,
+      "State": "delete" if delete else "create",
+    }
+    self.client.post(f"subscriptions/{tenant_id}/UpdateCustomData", payload)
+
+  def _get_custom_data(self, asg, key):
+    """Read one custom-data value off an ASG profile body.
+
+    Args:
+      asg: An ASG profile body as returned by ``list``/``find``.
+      key: The custom-data key to look up.
+
+    Returns:
+      The stored value, or None if the key is not present.
+    """
+    for kv in (asg.get("CustomDataTags") or []):
+      if kv.get("Key") == key:
+        return kv.get("Value")
+    return None
+
+  # Computed fields the backend returns but does not accept back on
+  # update (Terraform's expandAsgProfile omits them too).
+  _READONLY_ASG_FIELDS = ("Status", "AutoScalingGroupARN", "Created")
+
+  def _apply_capacity(self, asg, min_size, max_size, desired,
+                      can_scale_from_zero=None):
+    """Update an ASG's capacity by re-sending its full profile.
+
+    ``UpdateTenantAsgProfile`` validates and applies the *entire*
+    submitted profile — omitted fields fall back to defaults. A sparse
+    body therefore silently no-ops the capacity change and mis-validates
+    flags such as ``CanScaleFromZero`` (which the backend rejects unless
+    ``IsClusterAutoscaled`` is present and true). So start from the
+    current profile and override only the capacity fields, as the
+    Terraform provider does.
+
+    Args:
+      asg: The full ASG profile body from ``list``/``find``.
+      min_size: New minimum size.
+      max_size: New maximum size.
+      desired: New desired capacity.
+      can_scale_from_zero: When set, overrides the CanScaleFromZero flag.
+    """
+    body = {k: v for k, v in asg.items()
+            if k not in self._READONLY_ASG_FIELDS}
+    body["MinSize"] = min_size
+    body["MaxSize"] = max_size
+    body["DesiredCapacity"] = desired
+    if can_scale_from_zero is not None:
+      body["CanScaleFromZero"] = can_scale_from_zero
+    self.update(body)
+
+  def stop_resources(self, exclude=()):
+    """Scale every ASG to zero, snapshotting prior sizing first.
+
+    Best-effort: each ASG's current MinSize/MaxSize/DesiredCapacity and
+    CanScaleFromZero are stored as a JSON blob in the ASG's custom data
+    before it is scaled to zero, so ``start_resources`` can restore them.
+    An ASG that already carries a snapshot is assumed to be asleep and is
+    left untouched, so a repeated stop never overwrites the snapshot with
+    zeros. Genuine failures are collected and returned rather than
+    aborting the sweep.
+
+    Args:
+      exclude: ASG FriendlyNames to leave running.
+
+    Returns:
+      A list of (name, DuploError) for ASGs that failed to stop.
+    """
+    errors = []
+    for asg in self.list():
+      name = asg["FriendlyName"]
+      if name in exclude:
+        continue
+      already_zero = (str(asg.get("MinSize")) == "0"
+                      and str(asg.get("DesiredCapacity")) == "0")
+      if self._get_custom_data(asg, self._SLEEP_KEY) is not None \
+          and already_zero:
+        # Genuinely asleep already — don't re-snapshot zeros over the
+        # real sizing. A snapshot on a group that is NOT at zero is stale
+        # (a prior stop failed after writing it), so fall through and
+        # re-snapshot the real sizing before retrying the scale-down.
+        continue
+      try:
+        snap = {
+          "MinSize": asg.get("MinSize"),
+          "MaxSize": asg.get("MaxSize"),
+          "DesiredCapacity": asg.get("DesiredCapacity"),
+          "CanScaleFromZero": asg.get("CanScaleFromZero", False),
+        }
+        self._set_custom_data(name, self._SLEEP_KEY, json.dumps(snap))
+        try:
+          # Cluster-autoscaled groups need CanScaleFromZero to sit at zero
+          # nodes; the backend rejects that flag on non-autoscaled groups,
+          # so only enable it where it is allowed.
+          csfz = True if asg.get("IsClusterAutoscaled") else None
+          self._apply_capacity(asg, 0, 0, 0, can_scale_from_zero=csfz)
+        except DuploError:
+          # Roll back the snapshot so a retry re-snapshots real sizing
+          # instead of skipping this group as already asleep.
+          self._set_custom_data(name, self._SLEEP_KEY, "", delete=True)
+          raise
+      except DuploError as e:
+        self.duplo.logger.warning(f"Failed to stop asg '{name}': {e}")
+        errors.append((name, e))
+    return errors
+
+  def start_resources(self, exclude=()):
+    """Restore every asleep ASG from its snapshot, then clear it.
+
+    Mirror of ``stop_resources``. ASGs without a snapshot are skipped
+    (nothing to restore). Genuine failures are collected and returned.
+
+    Args:
+      exclude: ASG FriendlyNames to leave stopped.
+
+    Returns:
+      A list of (name, DuploError) for ASGs that failed to start.
+    """
+    errors = []
+    for asg in self.list():
+      name = asg["FriendlyName"]
+      if name in exclude:
+        continue
+      raw = self._get_custom_data(asg, self._SLEEP_KEY)
+      if raw is None:
+        continue
+      try:
+        snap = json.loads(raw)
+        self._apply_capacity(
+          asg,
+          snap["MinSize"],
+          snap["MaxSize"],
+          snap["DesiredCapacity"],
+          can_scale_from_zero=snap.get("CanScaleFromZero", False),
+        )
+        self._set_custom_data(name, self._SLEEP_KEY, "", delete=True)
+      except (DuploError, ValueError, KeyError) as e:
+        self.duplo.logger.warning(f"Failed to start asg '{name}': {e}")
+        errors.append((name, e))
+    return errors
