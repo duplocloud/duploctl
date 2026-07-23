@@ -322,10 +322,10 @@ class DuploAsg(DuploResourceV2):
     ``UpdateTenantAsgProfile`` validates and applies the *entire*
     submitted profile — omitted fields fall back to defaults. A sparse
     body therefore silently no-ops the capacity change and mis-validates
-    flags such as ``CanScaleFromZero`` (which the backend rejects unless
-    ``IsClusterAutoscaled`` is present and true). So start from the
-    current profile and override only the capacity fields, as the
-    Terraform provider does.
+    flags such as ``CanScaleFromZero`` (which the backend rejects when
+    set to ``true`` unless ``IsClusterAutoscaled`` is present and true;
+    ``false`` is always accepted). So start from the current profile and
+    override only the capacity fields, as the Terraform provider does.
 
     Args:
       asg: The full ASG profile body from ``list``/``find``.
@@ -384,8 +384,9 @@ class DuploAsg(DuploResourceV2):
         self._set_custom_data(name, self._SLEEP_KEY, json.dumps(snap))
         try:
           # Cluster-autoscaled groups need CanScaleFromZero to sit at zero
-          # nodes; the backend rejects that flag on non-autoscaled groups,
-          # so only enable it where it is allowed.
+          # nodes; the backend rejects setting it to true unless
+          # IsClusterAutoscaled is true, so only enable it on autoscaled
+          # groups (setting/leaving it false is always accepted).
           csfz = True if asg.get("IsClusterAutoscaled") else None
           self._apply_capacity(asg, 0, 0, 0, can_scale_from_zero=csfz)
         except DuploError:
@@ -420,6 +421,10 @@ class DuploAsg(DuploResourceV2):
         continue
       try:
         snap = json.loads(raw)
+        # Restore the *original* CanScaleFromZero from the snapshot: stop
+        # may have flipped it to true on an autoscaled group, so start
+        # must set it back. The snapshot value is false for non-autoscaled
+        # groups, which the backend always accepts.
         self._apply_capacity(
           asg,
           snap["MinSize"],
