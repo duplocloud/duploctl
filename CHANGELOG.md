@@ -9,10 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `tenant stop`/`tenant start` now scale Auto Scaling Groups to zero and back. Previously the sweep only stopped native hosts and RDS, so ASG-managed hosts were relaunched by the group and the tenant never actually parked. Each ASG's prior `MinSize`/`MaxSize`/`DesiredCapacity` (and `CanScaleFromZero`) is snapshotted into the ASG's custom data before it is scaled to zero, and restored — then cleared — on start. Exclude specific groups with `--exclude asg/<name>`.
-- ASG-managed hosts are now excluded from the native-host sweep in `tenant stop`/`tenant start` (detected via the `aws:autoscaling:groupName` tag, falling back to the ASG naming convention), so the group scales them down instead of the host sweep stopping instances the ASG would immediately relaunch.
-- `rds stop`/`tenant stop` no longer report an already-stopped Aurora/cluster as a failure. The benign-state check only matched the instance-level "is not in available state" wording; it now also matches the cluster-level "is in stopped state but expected …", so re-running stop on an already-stopped cluster is skipped (as it already was for instances) instead of exiting non-zero.
-- `tenant stop`/`tenant start` now also stop/start ReplicationController services (k8s and native Docker; ECS is not included), not just infrastructure. Services use the platform's native `ReplicationController` suspend/resume, so the configured replica count is preserved by the backend and no snapshot is needed. The sweep is ordered so services drain before their compute is pulled on stop, and compute is restored before services resume on start. Exclude specific services with `--exclude service/<name>`.
+- `tenant stop`/`start` now scale ASGs to zero and back (prior sizing snapshotted in the ASG's custom data), and skip ASG-managed hosts in the host sweep so the group handles them. Exclude with `--exclude asg/<name>`.
+- `tenant stop`/`start` now also stop/start ReplicationController services (k8s and native Docker, not ECS); the platform preserves replica counts. Exclude with `--exclude service/<name>`.
+- `tenant stop` treats an already-stopped Aurora cluster as benign instead of a failure.
 
 ## [0.4.5] - 2026-07-20
 
