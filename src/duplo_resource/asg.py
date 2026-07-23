@@ -354,6 +354,9 @@ class DuploAsg(DuploResourceV2):
     zeros. Genuine failures are collected and returned rather than
     aborting the sweep.
 
+    info:
+      This is not a cli command. It's primarily used internally but could be useful in a custom script.
+
     Args:
       exclude: ASG FriendlyNames to leave running.
 
@@ -404,6 +407,9 @@ class DuploAsg(DuploResourceV2):
 
     Mirror of ``stop_resources``. ASGs without a snapshot are skipped
     (nothing to restore). Genuine failures are collected and returned.
+
+    info:
+      This is not a cli command. It's primarily used internally but could be useful in a custom script.
 
     Args:
       exclude: ASG FriendlyNames to leave stopped.
