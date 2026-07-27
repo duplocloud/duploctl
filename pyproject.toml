@@ -192,6 +192,7 @@ ecr = "duplo_resource.ecr:DuploECR"
 [project.entry-points."clients.duplocloud.net"]
 duplo = "duplocloud.client:DuploAPI"
 argo_wf = "duplo_resource.argo_client:DuploArgoClient"
+helpdesk = "duplo_resource.helpdesk_client:DuploHelpdeskClient"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"
