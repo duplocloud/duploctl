@@ -2,7 +2,6 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-docker-compose
 {
 	"name": "Duploctl Dev",
-
 	// Update the 'dockerComposeFile' list if you have more compose files or use different names.
 	// The .devcontainer/docker-compose.yml file contains any overrides you need/want to make.
 	// "service": "duploctl-dev",
@@ -10,12 +9,10 @@
 	// "dockerComposeFile": [
 	// 	"docker-compose.yaml"
 	// ],
-	
 	"build": {
 		"dockerfile": "Dockerfile",
 		"target": "dev"
 	},
-
 	// Environment variables for the container
 	"containerEnv": {
 		"DUPLO_USE_VENV": "1",
@@ -23,34 +20,55 @@
 		"DUPLO_HOME": "${containerWorkspaceFolder}/config",
 		"DUPLO_CACHE": "${containerWorkspaceFolder}/config/cache",
 		"AWS_CONFIG_FILE": "${containerWorkspaceFolder}/config/aws",
-		"KUBECONFIG": "${containerWorkspaceFolder}/config/kubeconfig.yaml"
+		"KUBECONFIG": "${containerWorkspaceFolder}/config/kubeconfig.yaml",
+		"WORKSPACE_FOLDER": "${containerWorkspaceFolder}",
+		"CLOUDSDK_PYTHON": "/usr/local/bin/python",
+		"XDG_CONFIG_HOME": "${containerWorkspaceFolder}/config",
+		"CONF_DIR": "${containerWorkspaceFolder}/config",
+		"CLAUDE_CONFIG_DIR": "${containerWorkspaceFolder}/config/claude",
+		"CODEX_HOME": "${containerWorkspaceFolder}/.codex",
+		"AWS_DEFAULT_REGION": "us-east-1",
+		"AWS_REGION": "us-east-1",
+		"CLOUDSDK_CONFIG": "${containerWorkspaceFolder}/config/gcloud",
+		"GIT_USERNAME": "${localEnv:GIT_USERNAME}",
+		"GIT_EMAIL": "${localEnv:GIT_EMAIL}",
+		"EDITOR": "code --wait",
+		"OP_PASSWD": "${localEnv:OP_PASSWD}",
+		"JINA_API_KEY": "${localEnv:JINA_API_KEY}"
 	},
-
 	// Load .env file if it exists
 	"runArgs": [
 		"--env-file=${localWorkspaceFolder}/.env"
 	],
-
 	// The optional 'workspaceFolder' property is the path VS Code should open by default when
 	// connected. This is typically a file mount in .devcontainer/docker-compose.yml
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
-		   "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-			   "moby": false
-		   }
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+			"moby": false
+		},
+		"ghcr.io/duplocloud/devcontainers/onepassword-cli:1": {
+			"enabled": "${localEnv:OP_CLI_ENABLED}",
+			"autoSsh": "${localEnv:OP_AUTO_SSH}",
+			"sshSecretNames": "${localEnv:OP_SSH_SECRET}",
+			"vault": "${localEnv:OP_VAULT_NAME}",
+			"account": "${localEnv:OP_ACCOUNT}",
+			"userEmail": "${localEnv:USER_EMAIL}",
+			"interactive": true
+		},
+		"ghcr.io/duplocloud/devcontainers/ai-claude:latest": {},
+		"ghcr.io/duplocloud/devcontainers/github:latest": {},
+		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
+		"ghcr.io/duplocloud/devcontainers/aws-cli:1": {},
+		"ghcr.io/duplocloud/devcontainers/direnv:1": {}
 	},
-
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
-
 	// Uncomment the next line if you want to keep your containers running after VS Code shuts down.
 	// "shutdownAction": "none",
-
 	"initializeCommand": "./scripts/init.devcontainer.sh",
 	"postCreateCommand": "./scripts/setup.sh",
-
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
@@ -65,11 +83,10 @@
 			"settings": {
 				"python.defaultInterpreterPath": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/python",
 				"python.envFile": "${workspaceFolder}/.env",
-        		"python.terminal.useEnvFile": true
+				"python.terminal.useEnvFile": true
 			}
 		}
 	}
-
 	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "devcontainer"
 }
