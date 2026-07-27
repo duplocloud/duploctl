@@ -402,11 +402,6 @@ WORKSPACEID = Arg("workspace_id", "--workspace-id", "--wksp-id",
                        "lookup when provided.",
                   env='DUPLO_WORKSPACE_ID')
 
-APIVERSION = Arg("api_version", "--api-version",
-                help="API Version",
-                required=False,
-                default="v1")
-
 TICKET_STATUS = Arg("status", "--status",
                     help="The ticket status to set.",
                     choices=["open", "inProgress", "waitingForUserInput",

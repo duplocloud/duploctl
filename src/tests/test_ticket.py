@@ -13,16 +13,19 @@ _AGENT_ID = "agent-abc-123"
 _TICKET_NAME = "DEVOPS-42"
 
 
-def _make_ticket(mocker, streaming_agent=False):
+def _make_ticket(mocker, streaming_agent=False, workspace_id=_WORKSPACE_ID):
     """Create a DuploTicket with mocked client and workspace/agent resources."""
     mock_duplo = mocker.MagicMock()
     mock_duplo.wait = False
     mock_duplo.host = "https://example.duplocloud.net"
     mock_duplo.timeout = 30
+    mock_duplo.workspace = _WORKSPACE_NAME
+    mock_duplo.workspaceid = None
 
     # Stub the delegated workspace/agent resources before constructing the
-    # ticket, since they are loaded eagerly in __init__. Unknown names (e.g.
-    # the tenant load from tenant-scope injection) get a generic mock.
+    # ticket: the agent resource is loaded eagerly in __init__ and the
+    # workspace resource by the workspace-scope injection. Unknown names get
+    # a generic mock.
     wksp_svc = mocker.MagicMock()
     wksp_svc.find.return_value = {"id": _WORKSPACE_ID, "name": _WORKSPACE_NAME}
     agent_svc = mocker.MagicMock()
@@ -32,8 +35,9 @@ def _make_ticket(mocker, streaming_agent=False):
         "workspace": wksp_svc, "agent": agent_svc}.get(n, mocker.MagicMock())
 
     ticket = DuploTicket(mock_duplo)
-    ticket._tenant = {"AccountName": "myaccount", "TenantId": "tid-123"}
-    ticket._tenant_id = "tid-123"
+    # Pre-resolve the workspace id so commands don't consult the workspace
+    # service; lazy resolution has its own dedicated test below.
+    ticket._workspace_id = workspace_id
     return ticket, wksp_svc, agent_svc
 
 
@@ -78,19 +82,32 @@ _SSE_LINES = [
 
 
 @pytest.mark.unit
+def test_workspace_resolved_lazily_from_global_flag(mocker):
+    # No pre-set workspace id: the injected workspace scope resolves the
+    # global --workspace name through the workspace resource exactly once.
+    ticket, wksp_svc, _ = _make_ticket(mocker, workspace_id=None)
+    client = _make_client(mocker, ticket, get_responses=[_TICKET_DETAIL])
+
+    ticket.find(name=_TICKET_NAME)
+
+    wksp_svc.find.assert_called_once_with(name=_WORKSPACE_NAME, id=None)
+    assert client.get.call_args[0][0].endswith(
+        f"tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
+
+
+@pytest.mark.unit
 def test_create_ticket_with_agent_id(mocker):
     ticket, wksp_svc, agent_svc = _make_ticket(mocker)
     client = _make_client(mocker, ticket, post_responses=[_TICKET_RESPONSE])
 
-    result = ticket.create_ticket(
-        title="Test", workspace=_WORKSPACE_NAME, agent_id=_AGENT_ID)
+    result = ticket.create_ticket(title="Test", agent_id=_AGENT_ID)
 
-    # workspace resolved via the workspace resource, agent lookup skipped
-    wksp_svc.find.assert_called_once()
+    # workspace id pre-resolved by the scope, agent lookup skipped
+    wksp_svc.find.assert_not_called()
     agent_svc.find.assert_not_called()
 
     post_url, post_body = client.post.call_args[0]
-    assert post_url.endswith(f"/tickets/{_WORKSPACE_ID}")
+    assert post_url.endswith(f"tickets/{_WORKSPACE_ID}")
     assert post_body["aiAgentId"] == _AGENT_ID
     assert post_body["workspaceId"] == _WORKSPACE_ID
     assert result["ticketname"] == _TICKET_NAME
@@ -103,8 +120,7 @@ def test_create_ticket_with_agent_name_resolves_id(mocker):
     ticket, wksp_svc, agent_svc = _make_ticket(mocker)
     _make_client(mocker, ticket, post_responses=[_TICKET_RESPONSE])
 
-    ticket.create_ticket(
-        title="Test", workspace=_WORKSPACE_NAME, agent_name="cicd")
+    ticket.create_ticket(title="Test", agent_name="cicd")
 
     agent_svc.find.assert_called_once()
 
@@ -115,7 +131,7 @@ def test_create_ticket_requires_agent(mocker):
     _make_client(mocker, ticket, post_responses=[])
 
     with pytest.raises(DuploError, match="agent_id or --agent_name"):
-        ticket.create_ticket(title="Test", workspace=_WORKSPACE_NAME)
+        ticket.create_ticket(title="Test")
 
 
 @pytest.mark.unit
@@ -123,11 +139,11 @@ def test_find_ticket_by_name(mocker):
     ticket, _, _ = _make_ticket(mocker)
     client = _make_client(mocker, ticket, get_responses=[_TICKET_DETAIL])
 
-    result = ticket.find(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+    result = ticket.find(name=_TICKET_NAME)
 
     assert result["name"] == _TICKET_NAME
     assert client.get.call_args[0][0].endswith(
-        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
+        f"tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
 
 
 @pytest.mark.unit
@@ -136,7 +152,7 @@ def test_find_requires_identifier(mocker):
     _make_client(mocker, ticket)
 
     with pytest.raises(DuploError, match="ticket name or --id"):
-        ticket.find(workspace=_WORKSPACE_NAME)
+        ticket.find()
 
 
 @pytest.mark.unit
@@ -148,8 +164,7 @@ def test_send_message_unary_when_agent_not_streaming(mocker):
         post_responses=[_MSG_RESPONSE],   # unary send
     )
 
-    result = ticket.send_message(
-        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="hello agent")
+    result = ticket.send_message(name=_TICKET_NAME, content="hello agent")
 
     assert client.post.call_count == 1
     assert client.post.call_args[0][0].endswith("/sendMessage")
@@ -178,8 +193,7 @@ def test_send_message_unary_recovers_from_ndjson(mocker):
     mock_client.post.side_effect = DuploError(json.dumps(raw), 400)
     mocker.patch.object(ticket, "client", mock_client)
 
-    result = ticket.send_message(
-        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="hi")
+    result = ticket.send_message(name=_TICKET_NAME, content="hi")
 
     assert mock_client.post.call_args[0][0].endswith("/sendMessage")
     assert result["ai_response"]["content"] == "Hi! there"
@@ -197,8 +211,7 @@ def test_send_message_unary_reraises_unrecoverable_error(mocker):
     mocker.patch.object(ticket, "client", mock_client)
 
     with pytest.raises(DuploError, match="not found"):
-        ticket.send_message(
-            name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="hi")
+        ticket.send_message(name=_TICKET_NAME, content="hi")
 
 
 @pytest.mark.unit
@@ -207,8 +220,7 @@ def test_send_message_streams_when_agent_supports_streaming(mocker):
     client = _make_client(mocker, ticket, get_responses=[_TICKET_DETAIL])
     client.post.side_effect = [_fake_sse_response(mocker, _SSE_LINES)]
 
-    result = ticket.send_message(
-        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="hello")
+    result = ticket.send_message(name=_TICKET_NAME, content="hello")
 
     stream_call = client.post.call_args
     assert stream_call[0][0].endswith("/sendMessageStreaming")
@@ -224,9 +236,7 @@ def test_send_message_streaming_flag_forces_streaming(mocker):
     client = _make_client(mocker, ticket, get_responses=[_TICKET_DETAIL])
     client.post.side_effect = [_fake_sse_response(mocker, _SSE_LINES)]
 
-    ticket.send_message(
-        name=_TICKET_NAME, workspace=_WORKSPACE_NAME,
-        content="hello", streaming=True)
+    ticket.send_message(name=_TICKET_NAME, content="hello", streaming=True)
 
     # supports_streaming is short-circuited by the explicit flag
     agent_svc.supports_streaming.assert_not_called()
@@ -239,8 +249,7 @@ def test_send_message_requires_content(mocker):
     _make_client(mocker, ticket)
 
     with pytest.raises(DuploError, match="content"):
-        ticket.send_message(
-            name=_TICKET_NAME, workspace=_WORKSPACE_NAME, content="   ")
+        ticket.send_message(name=_TICKET_NAME, content="   ")
 
 
 def _content_parser():
@@ -269,9 +278,9 @@ def test_list_tickets(mocker):
     client = _make_client(
         mocker, ticket, get_responses=[[{"name": _TICKET_NAME}]])
 
-    result = ticket.list(workspace=_WORKSPACE_NAME)
+    result = ticket.list()
 
-    assert client.get.call_args[0][0].endswith(f"/tickets/{_WORKSPACE_ID}")
+    assert client.get.call_args[0][0].endswith(f"tickets/{_WORKSPACE_ID}")
     assert result == [{"name": _TICKET_NAME}]
 
 
@@ -281,10 +290,10 @@ def test_assignee(mocker):
     client = _make_client(
         mocker, ticket, get_responses=[{"id": _AGENT_ID, "name": "cicd"}])
 
-    result = ticket.assignee(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+    result = ticket.assignee(name=_TICKET_NAME)
 
     assert client.get.call_args[0][0].endswith(
-        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/assignee")
+        f"tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/assignee")
     assert result["id"] == _AGENT_ID
 
 
@@ -293,12 +302,11 @@ def test_reassign(mocker):
     ticket, _, agent_svc = _make_ticket(mocker)
     client = _make_client(mocker, ticket)
 
-    result = ticket.reassign(
-        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, agent_name="cicd")
+    result = ticket.reassign(name=_TICKET_NAME, agent_name="cicd")
 
     client.put.assert_called_once()
     assert client.put.call_args[0][0].endswith(
-        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/assignee/{_AGENT_ID}")
+        f"tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/assignee/{_AGENT_ID}")
     assert "reassigned" in result["message"]
 
 
@@ -310,11 +318,10 @@ def test_set_status(mocker):
     put_mock.json.return_value = {"name": _TICKET_NAME, "status": "inProgress"}
     client.put.return_value = put_mock
 
-    result = ticket.set_status(
-        name=_TICKET_NAME, workspace=_WORKSPACE_NAME, status="inProgress")
+    result = ticket.set_status(name=_TICKET_NAME, status="inProgress")
 
     url, body = client.put.call_args[0]
-    assert url.endswith(f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/status")
+    assert url.endswith(f"tickets/{_WORKSPACE_ID}/{_TICKET_NAME}/status")
     assert body == {"status": "inProgress"}
     assert result["status"] == "inProgress"
 
@@ -325,7 +332,7 @@ def test_set_status_requires_status(mocker):
     _make_client(mocker, ticket)
 
     with pytest.raises(DuploError, match="status"):
-        ticket.set_status(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+        ticket.set_status(name=_TICKET_NAME)
 
 
 @pytest.mark.unit
@@ -336,8 +343,7 @@ def test_set_status_closed_requires_disposition(mocker):
     client = _make_client(mocker, ticket)
 
     with pytest.raises(DuploError, match="disposition"):
-        ticket.set_status(
-            name=_TICKET_NAME, workspace=_WORKSPACE_NAME, status="closed")
+        ticket.set_status(name=_TICKET_NAME, status="closed")
     client.put.assert_not_called()
 
 
@@ -349,9 +355,7 @@ def test_set_status_closed_with_disposition(mocker):
     put_mock.json.return_value = {"name": _TICKET_NAME, "status": "closed"}
     client.put.return_value = put_mock
 
-    ticket.set_status(
-        name=_TICKET_NAME, workspace=_WORKSPACE_NAME,
-        status="closed", disposition="resolved")
+    ticket.set_status(name=_TICKET_NAME, status="closed", disposition="resolved")
 
     _, body = client.put.call_args[0]
     assert body == {"status": "closed", "disposition": "resolved"}
@@ -367,7 +371,7 @@ def test_close_defaults_to_resolved(mocker):
 
     # disposition=None mirrors the CLI (argparse default), and must still
     # resolve to "resolved" — the backend rejects a close with no disposition.
-    ticket.close(name=_TICKET_NAME, workspace=_WORKSPACE_NAME, disposition=None)
+    ticket.close(name=_TICKET_NAME, disposition=None)
 
     url, body = client.put.call_args[0]
     assert url.endswith("/status")
@@ -379,12 +383,12 @@ def test_delete(mocker):
     ticket, wksp_svc, _ = _make_ticket(mocker)
     client = _make_client(mocker, ticket)
 
-    result = ticket.delete(name=_TICKET_NAME, workspace=_WORKSPACE_NAME)
+    result = ticket.delete(name=_TICKET_NAME)
 
-    wksp_svc.find.assert_called_once()
+    wksp_svc.find.assert_not_called()
     client.delete.assert_called_once()
     assert client.delete.call_args[0][0].endswith(
-        f"/tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
+        f"tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
     assert "deleted" in result["message"]
 
 
@@ -394,4 +398,4 @@ def test_delete_requires_identifier(mocker):
     _make_client(mocker, ticket)
 
     with pytest.raises(DuploError, match="name or --id"):
-        ticket.delete(workspace=_WORKSPACE_NAME)
+        ticket.delete()

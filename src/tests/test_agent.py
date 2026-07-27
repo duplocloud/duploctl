@@ -13,10 +13,7 @@ def _make_agent(mocker):
     mock_duplo.wait = False
     mock_duplo.host = "https://example.duplocloud.net"
     mock_duplo.timeout = 30
-    agent = DuploAgent(mock_duplo)
-    agent._tenant = {"AccountName": "myaccount", "TenantId": "tid-123"}
-    agent._tenant_id = "tid-123"
-    return agent
+    return DuploAgent(mock_duplo)
 
 
 def _make_client(mocker, agent, get_responses):

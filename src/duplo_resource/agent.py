@@ -4,10 +4,11 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
+from duplo_resource.helpdesk_client import unwrap_data, unwrap_items
 import duplocloud.args as args
 
 
-@Resource("agent", scope="tenant")
+@Resource("agent", scope="portal", client="helpdesk")
 class DuploAgent(DuploResource):
   """Manage AI HelpDesk agents in DuploCloud.
 
@@ -17,19 +18,10 @@ class DuploAgent(DuploResource):
   """
 
   def __init__(self, duplo: DuploCtl):
-    super().__init__(duplo, api_version="v1")
-
-  def _items(self, response: dict) -> list:
-    """Unwrap a list envelope ``{success, data: {items: [...]}}``."""
-    return response.get("data", {}).get("items", [])
-
-  def _data(self, response: dict) -> dict:
-    """Unwrap a single-object envelope ``{success, data: {...}}``."""
-    data = response.get("data")
-    return data if isinstance(data, dict) else response
+    super().__init__(duplo)
 
   @Command("ls")
-  def list(self, api_version: args.APIVERSION = "v1") -> list:
+  def list(self) -> list:
     """Retrieve a list of AI HelpDesk agents.
 
     Usage: CLI Usage
@@ -37,22 +29,16 @@ class DuploAgent(DuploResource):
       duploctl agent list
       ```
 
-    Args:
-      api_version: Helpdesk API version.
-
     Returns:
       list: A list of agent objects.
     """
-    api_version = api_version.strip().lower()
-    response = self.client.get(
-        f"{api_version}/aiservicedesk/admin/data/aiagents").json()
-    return self._items(response)
+    response = self.client.get("admin/data/aiagents").json()
+    return unwrap_items(response)
 
   @Command()
   def find(self,
            name: args.NAME = None,
-           id: args.ID = None,
-           api_version: args.APIVERSION = "v1") -> dict:
+           id: args.ID = None) -> dict:
     """Find an AI HelpDesk agent by name or id.
 
     With ``--id`` the agent is fetched directly. Otherwise it is matched
@@ -69,7 +55,6 @@ class DuploAgent(DuploResource):
     Args:
       name: The agent name as shown in the portal.
       id: The agent id. Skips the name lookup when provided.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The matching agent object.
@@ -78,10 +63,9 @@ class DuploAgent(DuploResource):
       DuploError: If neither name nor id is given.
       DuploNotFound: If no agent matches the name or id.
     """
-    api_version = api_version.strip().lower()
-    base = f"{api_version}/aiservicedesk/admin/data/aiagents"
     if id:
-      agent = self._data(self.client.get(f"{base}/{quote_plus(id)}").json())
+      agent = unwrap_data(
+          self.client.get(f"admin/data/aiagents/{quote_plus(id)}").json())
       if not agent.get("id"):
         raise DuploNotFound(id, self.kind)
       return agent
@@ -90,9 +74,9 @@ class DuploAgent(DuploResource):
       raise DuploError("Either an agent name or --id is required")
 
     response = self.client.get(
-        f"{base}?filters[name]={quote_plus(name)}").json()
+        f"admin/data/aiagents?filters[name]={quote_plus(name)}").json()
     target = name.lower()
-    match = next((a for a in self._items(response)
+    match = next((a for a in unwrap_items(response)
                   if (a.get("name") or "").lower() == target), None)
     if not match:
       raise DuploNotFound(name, self.kind)
@@ -101,8 +85,7 @@ class DuploAgent(DuploResource):
   @Command()
   def supports_streaming(self,
                          name: args.NAME = None,
-                         id: args.ID = None,
-                         api_version: args.APIVERSION = "v1") -> bool:
+                         id: args.ID = None) -> bool:
     """Return whether an agent streams its responses.
 
     The top-level ``doesSupportStreaming`` is unreliable on some portals
@@ -119,12 +102,11 @@ class DuploAgent(DuploResource):
     Args:
       name: The agent name as shown in the portal.
       id: The agent id. Skips the name lookup when provided.
-      api_version: Helpdesk API version.
 
     Returns:
       bool: True when ``metaData.STREAMING_ENABLED`` is ``"true"``.
     """
-    agent = self.find(name=name, id=id, api_version=api_version)
+    agent = self.find(name=name, id=id)
     metadata = agent.get("metaData") or {}
     enabled = str(metadata.get("STREAMING_ENABLED", "")).strip().lower()
     return enabled == "true"
@@ -132,8 +114,7 @@ class DuploAgent(DuploResource):
   @Command()
   def delete(self,
              name: args.NAME = None,
-             id: args.ID = None,
-             api_version: args.APIVERSION = "v1") -> dict:
+             id: args.ID = None) -> dict:
     """Delete an AI HelpDesk agent by name or id.
 
     Usage: CLI Usage
@@ -145,7 +126,6 @@ class DuploAgent(DuploResource):
     Args:
       name: The agent name as shown in the portal.
       id: The agent id. Skips the name lookup when provided.
-      api_version: Helpdesk API version.
 
     Returns:
       message: A success message.
@@ -153,17 +133,12 @@ class DuploAgent(DuploResource):
     Raises:
       DuploNotFound: If no agent matches the name or id.
     """
-    api_version = api_version.strip().lower()
-    aid = self.find(name=name, id=id, api_version=api_version)["id"]
-    self.client.delete(
-        f"{api_version}/aiservicedesk/admin/data/aiagents/"
-        f"{quote_plus(aid)}")
+    aid = self.find(name=name, id=id)["id"]
+    self.client.delete(f"admin/data/aiagents/{quote_plus(aid)}")
     return {"message": f"agent '{name or id}' deleted"}
 
   @Command()
-  def create(self,
-             body: args.BODY,
-             api_version: args.APIVERSION = "v1") -> dict:
+  def create(self, body: args.BODY) -> dict:
     """Create an AI HelpDesk agent.
 
     Usage: CLI Usage
@@ -173,22 +148,18 @@ class DuploAgent(DuploResource):
 
     Args:
       body: The agent definition.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The created agent object.
     """
-    api_version = api_version.strip().lower()
-    response = self.client.post(
-        f"{api_version}/aiservicedesk/admin/data/aiagents", body).json()
-    return self._data(response)
+    response = self.client.post("admin/data/aiagents", body).json()
+    return unwrap_data(response)
 
   @Command()
   def update(self,
              body: args.BODY = None,
              name: args.NAME = None,
-             id: args.ID = None,
-             api_version: args.APIVERSION = "v1") -> dict:
+             id: args.ID = None) -> dict:
     """Update an AI HelpDesk agent.
 
     The target is resolved by ``--id``, ``name``, or the body's ``name``
@@ -204,7 +175,6 @@ class DuploAgent(DuploResource):
       body: The agent definition to apply.
       name: The agent name. Defaults to the body's ``name``.
       id: The agent id. Skips the name lookup when provided.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The updated agent object.
@@ -213,24 +183,19 @@ class DuploAgent(DuploResource):
       DuploError: If no body is provided.
       DuploNotFound: If the agent cannot be found.
     """
-    api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
-    aid = self.find(
-        name=name or body.get("name"), id=id, api_version=api_version)["id"]
+    aid = self.find(name=name or body.get("name"), id=id)["id"]
     # The backend's name-uniqueness check excludes the record being updated
     # only when the body carries its id; without it the PUT is rejected as a
     # name collision with itself.
     body = {**body, "id": aid}
     response = self.client.put(
-        f"{api_version}/aiservicedesk/admin/data/aiagents/"
-        f"{quote_plus(aid)}", body).json()
-    return self._data(response)
+        f"admin/data/aiagents/{quote_plus(aid)}", body).json()
+    return unwrap_data(response)
 
   @Command()
-  def apply(self,
-            body: args.BODY,
-            api_version: args.APIVERSION = "v1") -> dict:
+  def apply(self, body: args.BODY) -> dict:
     """Create or update an AI HelpDesk agent.
 
     Looks the agent up by the body's ``name``: updates it when it exists,
@@ -243,16 +208,14 @@ class DuploAgent(DuploResource):
 
     Args:
       body: The agent definition to apply.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The created or updated agent object.
     """
-    api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
     try:
-      self.find(name=body.get("name"), api_version=api_version)
+      self.find(name=body.get("name"))
     except DuploNotFound:
-      return self.create(body=body, api_version=api_version)
-    return self.update(body=body, api_version=api_version)
+      return self.create(body=body)
+    return self.update(body=body)
