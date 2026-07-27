@@ -14,7 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `agent create`/`update`/`apply` (body via `-f`), and `agent delete`.
   - `ticket list` (per workspace), `ticket assignee` (get the assigned agent), `ticket reassign` (`--agent`/`--agent_id`), `ticket set_status` (`--status`), `ticket close` (`--disposition`, default `resolved`), and `ticket delete`.
   - Inputs are validated before the request: `create`/`update`/`apply` require a mapping body (clear `DuploError` when `-f` is omitted rather than an `AttributeError`), and `ticket set_status --status closed` requires `--disposition`.
-  
+- **Workspace resource scope** — `@Resource(name, scope="workspace")` mirrors the tenant scope: workspace-scoped resources get lazy `workspace`/`workspace_id` properties resolved through the `workspace` resource. The `ticket` resource uses it; `workspace` and `agent` are portal-scoped.
+- **Global `--workspace`/`-W` and `--workspace-id` flags** with `DUPLO_WORKSPACE`/`DUPLO_WORKSPACE_ID` environment variables select the AI HelpDesk workspace for a whole invocation (like `-T`/`DUPLO_TENANT` for tenants); `ticket` commands no longer take per-command workspace flags.
+- **Dedicated AI HelpDesk client** (`clients.duplocloud.net` entry point `helpdesk`, following the argo client pattern) owns the `v1/aiservicedesk` URL prefix, auth headers, GET caching, and error mapping for the `workspace`, `agent`, and `ticket` resources.
+
+### Removed
+
+- The per-command `--api-version` flag on `workspace`, `agent`, and `ticket` commands (introduced within this unreleased cycle): the backend only serves `v1` routes, which the helpdesk client now owns.
+
+
 ## [0.4.5] - 2026-07-20
 
 ### Fixed
