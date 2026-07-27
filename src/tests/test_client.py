@@ -262,3 +262,30 @@ def test_call_none_result_returns_none(duplo_with_mock_resource):
   c.load("tenant").return_value = None
   result = c("tenant", "list")
   assert result is None
+
+@pytest.mark.unit
+def test_workspace_id_wins_over_name():
+  """A workspace id nulls the workspace name, mirroring tenant behavior"""
+  c = DuploCtl(host=host, workspace="plat", workspace_id="6a0db3da984d2b398701bca7")
+  assert c.workspace is None
+  assert c.workspaceid == "6a0db3da984d2b398701bca7"
+
+@pytest.mark.unit
+def test_workspace_name_not_lowercased():
+  """Workspace names keep their casing for the backend name filter"""
+  c = DuploCtl(host=host, workspace=" Platform ")
+  assert c.workspace == "Platform"
+  assert c.workspaceid is None
+
+@pytest.mark.unit
+def test_build_command_round_trips_workspace():
+  """build_command emits the workspace id or name like it does for tenant"""
+  c = DuploCtl(host=host, workspace_id="6a0db3da984d2b398701bca7")
+  cmd = c.build_command("ticket", "list")
+  assert "--workspace-id" in cmd
+  assert "6a0db3da984d2b398701bca7" in cmd
+
+  c = DuploCtl(host=host, workspace="plat")
+  cmd = c.build_command("ticket", "list")
+  assert "--workspace" in cmd
+  assert "plat" in cmd

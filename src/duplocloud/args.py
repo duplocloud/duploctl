@@ -395,14 +395,12 @@ AGENTID = Arg("agent_id", "--agent_id", "--aid",
 WORKSPACE = Arg("workspace", "--workspace", "--wksp", "-W",
                 help="AI HelpDesk workspace name. Resolved to a workspace id "
                      "via the workspaces lookup.",
-                required=False,
-                default=None)
+                env='DUPLO_WORKSPACE')
 
 WORKSPACEID = Arg("workspace_id", "--workspace-id", "--wksp-id",
                   help="AI HelpDesk workspace id. Skips the workspace name "
                        "lookup when provided.",
-                  required=False,
-                  default=None)
+                  env='DUPLO_WORKSPACE_ID')
 
 APIVERSION = Arg("api_version", "--api-version",
                 help="API Version",
