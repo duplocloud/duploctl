@@ -1,9 +1,13 @@
 import json
-import pytest
 import time
 from unittest.mock import MagicMock
+
+import pytest
+
 from duplocloud.errors import DuploError
+
 from .conftest import get_test_data
+
 
 @pytest.fixture(scope="class")
 def asg_resource(duplo):

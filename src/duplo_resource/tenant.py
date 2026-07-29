@@ -1,11 +1,13 @@
-from datetime import timedelta
 import datetime
 import time
-from duplocloud.controller import DuploCtl
-from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploNotFound, DuploStillWaiting
+from datetime import timedelta
+
+from duplocloud import args
 from duplocloud.commander import Command, Resource
-import duplocloud.args as args
+from duplocloud.controller import DuploCtl
+from duplocloud.errors import DuploError, DuploNotFound, DuploStillWaiting
+from duplocloud.resource import DuploResourceV2
+
 
 @Resource("tenant")
 class DuploTenant(DuploResourceV2):
@@ -686,9 +688,7 @@ class DuploTenant(DuploResourceV2):
       if not name:
         continue
       tags = (host.get("Tags") or []) + (host.get("TagsEx") or [])
-      if any(t.get("Key") == "aws:autoscaling:groupName" for t in tags):
-        managed.add(name)
-      elif any(name == a or name.startswith(f"{a}-") for a in asg_names):
+      if any(t.get("Key") == "aws:autoscaling:groupName" for t in tags) or any(name == a or name.startswith(f"{a}-") for a in asg_names):
         managed.add(name)
     return managed
 

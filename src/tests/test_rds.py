@@ -1,7 +1,10 @@
-import pytest
 import time
 from unittest.mock import MagicMock
+
+import pytest
+
 from duplocloud.errors import DuploError, DuploStillWaiting
+
 from .conftest import get_test_data
 
 

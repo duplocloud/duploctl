@@ -1,10 +1,11 @@
 import json
 
-from duplocloud.controller import DuploCtl
-from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploNotFound
+from duplocloud import args
 from duplocloud.commander import Command, Resource
-import duplocloud.args as args
+from duplocloud.controller import DuploCtl
+from duplocloud.errors import DuploError, DuploNotFound
+from duplocloud.resource import DuploResourceV2
+
 
 @Resource("asg", scope="tenant")
 class DuploAsg(DuploResourceV2):

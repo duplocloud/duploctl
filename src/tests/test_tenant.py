@@ -1,13 +1,14 @@
 import argparse
-
-import pytest
 import time
 from unittest.mock import MagicMock
 
+import pytest
+
+from duplocloud.argtype import ALLOWED_METADATA_TYPES, MetadataAction
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
-from duplocloud.argtype import MetadataAction, ALLOWED_METADATA_TYPES
 from tests.conftest import get_test_data
+
 
 @pytest.mark.integration
 @pytest.mark.lifecycle
@@ -126,8 +127,8 @@ class TestTenant:
 @pytest.mark.unit
 def test_tenant_create_model_annotation():
   """create command on DuploTenant is annotated with the AddTenantRequest model"""
-  from duplocloud.commander import get_command_schema
   from duplo_resource.tenant import DuploTenant
+  from duplocloud.commander import get_command_schema
   cmd = get_command_schema(DuploTenant, "create")
   assert cmd["model"] == "AddTenantRequest"
 

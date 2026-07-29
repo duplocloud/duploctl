@@ -1,10 +1,16 @@
 import time
-from duplocloud.controller import DuploCtl
-from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploFailedResource, DuploNotFound, DuploStillWaiting
-from duplocloud.commander import Command, Resource
 from json import dumps, loads
-import duplocloud.args as args
+
+from duplocloud import args
+from duplocloud.commander import Command, Resource
+from duplocloud.controller import DuploCtl
+from duplocloud.errors import (
+  DuploError,
+  DuploFailedResource,
+  DuploNotFound,
+  DuploStillWaiting,
+)
+from duplocloud.resource import DuploResourceV2
 
 _STATUS_CODES = {
   "1": "Running",
@@ -93,8 +99,7 @@ class DuploService(DuploResourceV2):
     for c in containers:
       if c["Name"] == body["Name"]:
         return c["Image"]
-    else:
-      return body.get("DockerImage", body.get("Image", None))
+    return body.get("DockerImage", body.get("Image", None))
 
   @Command()
   def find(self,

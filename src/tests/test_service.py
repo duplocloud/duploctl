@@ -1,8 +1,11 @@
 import json
-import pytest
 from unittest.mock import ANY
+
+import pytest
+
 from duplo_resource.service import DuploService
 from duplocloud.errors import DuploError, DuploNotFound
+
 
 @pytest.mark.unit
 def test_create_service(mocker):
