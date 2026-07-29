@@ -1,13 +1,14 @@
 import argparse
-
-import pytest
 import time
 from unittest.mock import MagicMock
 
+import pytest
+
+from duplocloud.argtype import ALLOWED_METADATA_TYPES, MetadataAction
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
-from duplocloud.argtype import MetadataAction, ALLOWED_METADATA_TYPES
 from tests.conftest import get_test_data
+
 
 @pytest.mark.integration
 @pytest.mark.lifecycle
@@ -126,8 +127,8 @@ class TestTenant:
 @pytest.mark.unit
 def test_tenant_create_model_annotation():
   """create command on DuploTenant is annotated with the AddTenantRequest model"""
-  from duplocloud.commander import get_command_schema
   from duplo_resource.tenant import DuploTenant
+  from duplocloud.commander import get_command_schema
   cmd = get_command_schema(DuploTenant, "create")
   assert cmd["model"] == "AddTenantRequest"
 
@@ -447,11 +448,27 @@ def test_tenant_delete_no_force_skips_metadata(mocker):
 # stop() / start() — RDS delegation and per-host resilience
 # ---------------------------------------------------------------------------
 
-def _load_services(resource, hosts, rds):
-  """Wire ``duplo.load`` to return the given hosts/rds service mocks."""
+def _load_services(resource, hosts, rds, asg=None, service=None):
+  """Wire ``duplo.load`` to return service mocks per resource type.
+
+  ``hosts``/``rds`` are required; ``asg``/``service`` default to empty
+  mocks so the ordered sweep and ``_asg_managed_hosts`` have something
+  to iterate. Returns the asg/service mocks for assertions.
+  """
+  if asg is None:
+    asg = MagicMock()
+    asg.list.return_value = []
+    asg.stop_resources.return_value = []
+    asg.start_resources.return_value = []
+  if service is None:
+    service = MagicMock()
+    service.list.return_value = []
+    service.stop_resources.return_value = []
+    service.start_resources.return_value = []
   resource.duplo.load.side_effect = lambda kind: {
-      "hosts": hosts, "rds": rds
+      "hosts": hosts, "rds": rds, "asg": asg, "service": service
   }[kind]
+  return asg, service
 
 
 @pytest.mark.unit
@@ -540,3 +557,83 @@ def test_tenant_stop_raises_when_rds_reports_genuine_failure(mocker):
 
   assert "duplodb1" in str(exc.value)
   assert exc.value.code == 500
+
+
+@pytest.mark.unit
+def test_tenant_stop_delegates_asg_and_service(mocker):
+  """stop() delegates the ASG and service sweeps to their *_resources."""
+  resource = _make_tenant_resource(mocker)
+  hosts = MagicMock()
+  hosts.list.return_value = []
+  rds = MagicMock()
+  rds.stop_resources.return_value = []
+  asg, service = _load_services(resource, hosts, rds)
+
+  resource.stop()
+
+  asg.stop_resources.assert_called_once_with(exclude=[])
+  service.stop_resources.assert_called_once_with(exclude=[])
+
+
+@pytest.mark.unit
+def test_tenant_start_delegates_asg_and_service(mocker):
+  """start() delegates the ASG and service sweeps to their *_resources."""
+  resource = _make_tenant_resource(mocker)
+  hosts = MagicMock()
+  hosts.list.return_value = []
+  rds = MagicMock()
+  rds.start_resources.return_value = []
+  asg, service = _load_services(resource, hosts, rds)
+
+  resource.start()
+
+  asg.start_resources.assert_called_once_with(exclude=[])
+  service.start_resources.assert_called_once_with(exclude=[])
+
+
+@pytest.mark.unit
+def test_tenant_stop_excludes_asg_managed_hosts(mocker):
+  """Hosts tagged aws:autoscaling:groupName are skipped by the host sweep.
+
+  The ASG owns their lifecycle (scale-to-zero), so the per-host stop must
+  not touch them — otherwise the group relaunches the instances (churn).
+  """
+  resource = _make_tenant_resource(mocker)
+  hosts = MagicMock()
+  hosts.list.return_value = [
+      {"FriendlyName": "duploservices-mytenant-standalone",
+       "MinionTags": [], "Tags": []},
+      {"FriendlyName": "duploservices-mytenant-apps", "MinionTags": [],
+       "Tags": [{"Key": "aws:autoscaling:groupName",
+                 "Value": "duploservices-mytenant-apps"}]},
+  ]
+  hosts.name_from_body.side_effect = lambda b: b["FriendlyName"]
+  rds = MagicMock()
+  rds.stop_resources.return_value = []
+  _load_services(resource, hosts, rds)
+
+  resource.stop()
+
+  stopped = [c.args[0] for c in hosts.stop.call_args_list]
+  assert "duploservices-mytenant-standalone" in stopped
+  assert "duploservices-mytenant-apps" not in stopped
+
+
+@pytest.mark.unit
+def test_tenant_stop_exclude_parsing(mocker):
+  """--exclude routes each category to the right sweep with prefixed names."""
+  resource = _make_tenant_resource(mocker)
+  hosts = MagicMock()
+  hosts.list.return_value = []
+  rds = MagicMock()
+  rds.stop_resources.return_value = []
+  asg, service = _load_services(resource, hosts, rds)
+
+  resource.stop(exclude=["asg/apps", "service/admin", "rds/db1"])
+
+  # asg names get the tenant prefix; rds gets the "duplo" prefix; service
+  # names are used verbatim.
+  asg.stop_resources.assert_called_once_with(
+      exclude=["duploservices-mytenant-apps"])
+  service.stop_resources.assert_called_once_with(exclude=["admin"])
+  rds.stop_resources.assert_called_once_with(exclude=["duplodb1"])

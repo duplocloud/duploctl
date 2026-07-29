@@ -1,8 +1,11 @@
 import json
-import pytest
 from unittest.mock import ANY
+
+import pytest
+
 from duplo_resource.service import DuploService
 from duplocloud.errors import DuploError, DuploNotFound
+
 
 @pytest.mark.unit
 def test_create_service(mocker):
@@ -202,3 +205,30 @@ def test_update_env_empty_otherdockerconfig(mocker):
   posted_body = mock_client.post.call_args[0][1]
   config = json.loads(posted_body["OtherDockerConfig"])
   assert config["Env"] == [{"Name": "MY_VAR", "Value": "val"}]
+
+
+@pytest.mark.unit
+def test_service_stop_resources_forces_no_wait_and_maps_errors(mocker):
+    """The tenant-sweep entry point never health-waits and returns tuples.
+
+    Health-waiting would fault on Unschedulable pods (expected while the
+    tenant's nodes are down), so the sweep must force wait off even when
+    the global --wait flag is set, and adapt errors into (name, error).
+    """
+    mock_client = mocker.MagicMock()
+    mock_client.load_client.return_value = mock_client
+    mock_client.wait = True  # global --wait on; sweep must still not wait
+    service = DuploService(mock_client)
+    mocker.patch.object(service, "list", return_value=[
+        {"Name": "keep"}, {"Name": "skip"}])
+    perform = mocker.patch.object(
+        service, "_perform_action",
+        return_value={"details": {"errors": [
+            {"service": "keep", "error": "boom"}]}})
+
+    errors = service.stop_resources(exclude=["skip"])
+
+    perform.assert_called_once_with("Stop", targets=["keep"], wait=False)
+    assert len(errors) == 1
+    assert errors[0][0] == "keep"
+    assert isinstance(errors[0][1], DuploError)
