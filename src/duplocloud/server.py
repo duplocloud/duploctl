@@ -3,7 +3,52 @@ from .errors import DuploError
 import threading
 import time
 import webbrowser
-from urllib.parse import urlparse
+from webbrowser import Error as BrowserError
+from urllib.parse import urlparse, parse_qs
+
+HEADLESS_CALLBACK_PORT = 56789
+"""Headless Callback Port
+
+The port placed in the portal callback url when logging in headlessly. No
+server ever listens on it: the browser redirect to
+`http://localhost:56789/?t=<token>` is expected to fail so the token stays
+visible in the address bar for the user to copy. It is a fixed, rarely used
+high port so the redirect is unlikely to reach an unrelated local service.
+"""
+
+
+def parse_token(value: str) -> str:
+  """Parse Token
+
+  Parse a token out of what a user pasted back during a headless login. The
+  paste is normally the full redirect url the browser landed on, so the token
+  is read from the `t` query parameter. A bare token is accepted as is for
+  portals that display the token instead of redirecting.
+
+  Args:
+    value: The pasted redirect url or a raw token.
+
+  Returns:
+    The token as a string.
+
+  Raises:
+    DuploError: If nothing was pasted or the url carries no token.
+  """
+  v = (value or "").strip().strip('"').strip("'")
+  if not v:
+    raise DuploError("No token received", 403)
+  # anything that looks like a url gets the token pulled from its query,
+  # including the scheme-less "localhost:56789/?t=..." browsers may show
+  if "://" not in v and not v.startswith("localhost"):
+    return v
+  url = urlparse(v if "://" in v else f"http://{v}")
+  # the token is normally in the query, but tolerate a fragment redirect
+  for qs in (url.query, url.fragment):
+    if qs and (token := parse_qs(qs).get("t", [None])[0]):
+      return token
+  raise DuploError(
+    "No token found in the pasted url, expected a 't' query parameter", 403)
+
 
 class TokenCallbackHandler(SimpleHTTPRequestHandler):
 
@@ -66,21 +111,24 @@ class TokenCallbackHandler(SimpleHTTPRequestHandler):
     pass
 
 class TokenServer(ThreadingHTTPServer):
-  def __init__(self, host: str, timeout=60, port=0):
+  def __init__(self, host: str, timeout=60, port=0, bind=''):
     """TokenServer
-    
-    A simple HTTP server to receive a token from a callback. The bind host is always empty for localhost and the port is 0 by default to get a random port. A specific port can be provided for relay scenarios. The server is started in a separate thread and the token is received in the main thread. The given host is the only host that is allowed to send a token and this is enforced in the allow origin cors header.
+
+    A simple HTTP server to receive a token from a callback. The bind host is empty for localhost and the port is 0 by default to get a random port. A specific port can be provided for relay scenarios. The server is started in a separate thread and the token is received in the main thread. The given host is the only host that is allowed to send a token and this is enforced in the allow origin cors header.
 
     Args:
       host: The host to receive the callbcack from.
       timeout: The timeout to wait for a token.
       port: The port to listen on. Defaults to 0 (random).
+      bind: The interface to bind to. Defaults to all interfaces. Pass
+        '127.0.0.1' to only accept callbacks from this machine, which is
+        enough for an ssh forwarded port.
 
     """
     self.token = None
     self.host = host
     self.timeout = timeout
-    super().__init__(('', port), TokenCallbackHandler, True)
+    super().__init__((bind, port), TokenCallbackHandler, True)
 
   def serve_token(self):
     """Serve Token
@@ -117,7 +165,18 @@ class TokenServer(ThreadingHTTPServer):
     Args:
       page: The page to open in the browser.
       browser: The browser to use. If not specified, the default browser is used.
+
+    Returns:
+      True when a browser was launched, False when none could be found.
+
+    Raises:
+      DuploError: If the requested browser is not available.
     """
     url = f"{self.host}/{page}"
-    wb = webbrowser if not browser else webbrowser.get(browser)
-    wb.open(url, new=0, autoraise=True)
+    try:
+      wb = webbrowser if not browser else webbrowser.get(browser)
+    except BrowserError as e:
+      raise DuploError(
+        f"Browser '{browser}' is not available, "
+        "use --headless to log in without a browser", 500) from e
+    return wb.open(url, new=0, autoraise=True)

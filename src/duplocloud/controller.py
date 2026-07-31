@@ -52,6 +52,8 @@ class DuploCtl():
                cache_dir: args.CACHE_DIR=None,
                version: args.VERSION=False,
                interactive: args.INTERACTIVE=False,
+               headless: args.HEADLESS=False,
+               headless_port: args.HEADLESS_PORT=None,
                ctx: args.CONTEXT=None,
                nocache: args.NOCACHE=False,
                browser: args.BROWSER=None,
@@ -77,6 +79,8 @@ class DuploCtl():
       cache_dir: The cache directory for the client.
       version: The version of the client.
       interactive: The interactive mode for the client.
+      headless: Log in without a browser by pasting back the redirect url. Implies interactive.
+      headless_port: Listen on this port for the headless callback instead of prompting for a paste. Implies headless.
       ctx: The context to use.
       nocache: The nocache flag for the client.
       browser: The browser to use for interactive login.
@@ -93,6 +97,12 @@ class DuploCtl():
     if ctx:
       host = None
       token = None
+    # a callback port is only meaningful for a headless login and headless
+    # login is a flavor of interactive login, so each one implies the next
+    if headless_port:
+      headless = True
+    if headless:
+      interactive = True
     # ignore the given token with interactive mode
     if token and interactive:
       token = None
@@ -112,6 +122,14 @@ class DuploCtl():
     self.tenantid = tenant_id.strip() if tenant_id else tenant_id
     self.version = version
     self.interactive = interactive
+    self.headless = headless
+    # argparse only coerces values it parsed itself, a port from the
+    # environment arrives as a string and must be converted here
+    try:
+      self.headless_port = int(headless_port) if headless_port else None
+    except (TypeError, ValueError) as e:
+      raise DuploInvalidError(
+        f"Invalid headless port '{headless_port}', must be a number") from e
     self.nocache = nocache
     self.browser = browser
     self.isadmin = isadmin
@@ -341,7 +359,9 @@ Available Resources:
     self._host = self._sanitize_host(ctx.get("host", None))
     self._token = ctx.get("token", None)
     self._tenant = ctx.get("tenant", self._tenant)
-    self.interactive = ctx.get("interactive", False)
+    self.headless = ctx.get("headless", self.headless)
+    self.headless_port = ctx.get("headless_port", self.headless_port)
+    self.interactive = ctx.get("interactive", False) or self.headless
     self.isadmin = ctx.get("admin", False)
     self.nocache = ctx.get("nocache", False)
 
@@ -536,6 +556,13 @@ Available Resources:
     # interactive settings or token
     if self.interactive:
       cmd.append("--interactive")
+      # a generated command runs later in the same place, so it needs the
+      # same browserless login settings this command was given
+      if self.headless:
+        cmd.append("--headless")
+      if self.headless_port:
+        cmd.append("--headless-port")
+        cmd.append(str(self.headless_port))
       if self.nocache:
         cmd.append("--nocache")
       if self.browser:

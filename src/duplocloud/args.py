@@ -103,6 +103,33 @@ INTERACTIVE = Arg("interactive","-I",
               type=bool,
               action='store_true')
 
+HEADLESS = Arg("headless","--no-browser",
+              help='Log in without a browser by pasting back the redirect url. Implies interactive login.',
+              type=bool,
+              action='store_true',
+              env='DUPLO_HEADLESS')
+"""Headless Login
+
+For machines with no browser, like a remote host over ssh or a container. The
+login url is printed to stderr, the user opens it in a browser anywhere, and
+pastes the url the browser was redirected to back into the terminal. The token
+is parsed out of that url and cached like any other interactive login. This
+implies `--interactive` so `--headless` alone is enough.
+"""
+
+HEADLESS_PORT = Arg("headless-port","--headless-port",
+              help='Listen on this port for the headless login callback instead of prompting for a pasted url. Requires the port to be forwarded, e.g. ssh -L. Implies --headless.',
+              type=int,
+              env='DUPLO_HEADLESS_PORT')
+"""Headless Callback Port
+
+Turns the headless login into a relay instead of a copy/paste. The callback
+server listens on this fixed port on the remote machine and the login url
+points the browser at `http://localhost:<port>`, so with the port forwarded
+(`ssh -L 56789:localhost:56789 remotehost`) the redirect reaches duploctl and
+the login completes without pasting anything.
+"""
+
 ISADMIN = Arg("admin","--isadmin",
               help='Request admin access when using interactive login.',
               type=bool,
