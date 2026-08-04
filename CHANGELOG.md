@@ -19,8 +19,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `hd_lambda` for HDV2 AWS Lambdas: same command set; `update_image` reads the function's environment/resource-group off its record and passes the new `ImageUri` through to AWS `UpdateFunctionCode`.
   - `environment` and `resource_group` resolver resources (`list`/`find`) so workloads can be placed and looked up by human-readable names; `resource_group find` accepts `--environment` to disambiguate names shared across environments.
   - ECS is intentionally not included: the HelpDesk V2 backend has no ECS controller/update-image endpoint yet (tracked in DUPLO-43548).
+- **Workspace resource scope** — `@Resource(name, scope="workspace")` mirrors the tenant scope: workspace-scoped resources get lazy `workspace`/`workspace_id` properties resolved through the `workspace` resource. The `ticket` and HDV2 (`environment`/`resource_group`/`appservice`/`hd_lambda`) resources use it; `workspace` and `agent` are portal-scoped.
+- **Global `--workspace`/`-W` and `--workspace-id` flags** with `DUPLO_WORKSPACE`/`DUPLO_WORKSPACE_ID` environment variables select the AI HelpDesk workspace for a whole invocation (like `-T`/`DUPLO_TENANT` for tenants); the `ticket` and HDV2 commands no longer take per-command workspace flags.
+- **Dedicated AI HelpDesk client** (`clients.duplocloud.net` entry point `helpdesk`, following the argo client pattern) owns the `v1/aiservicedesk` URL prefix, auth headers, GET caching, and error mapping for the `workspace`, `agent`, `ticket`, and HDV2 resources.
+
+### Removed
+
+- The per-command `--api-version` flag on the AI HelpDesk commands (introduced within this unreleased cycle): the backend only serves `v1` routes, which the helpdesk client now owns.
+
+- `tenant stop`/`start` now scale ASGs to zero and back (prior sizing snapshotted in the ASG's custom data), and skip ASG-managed hosts in the host sweep so the group handles them. Exclude with `--exclude asg/<name>`.
+- `tenant stop`/`start` now also stop/start ReplicationController services (k8s and native Docker, not ECS); the platform preserves replica counts. Exclude with `--exclude service/<name>`.
+- `tenant stop` treats an already-stopped Aurora cluster as benign instead of a failure.
+
+## [0.4.5] - 2026-07-20
+
+### Fixed
+
+- `duploctl cache clear` actually clears the cache now — `DuploCache` did not extend `DuploResource`, so the CLI could not dispatch the `clear` command and printed the resource docstring instead of removing cached credentials and cooldown files
+- Auth cooldown (`DUPLO_AUTH_COOLDOWN`) no longer opens duplicate browser tabs when many non-TTY processes authenticate at once: the cooldown file is now published atomically (readers could previously observe it empty and steal the cooldown), the credential cache is written atomically and before the cooldown is released, blocked processes retry instead of failing when the cooldown vanishes mid-check, and only the process that owns the cooldown may clear it.
 
 ### Changed
+
+- Integration tests generate tenant names as `dctl{n}` instead of `duploctl{n}` to avoid the portal's shared-prefix conflict with the existing `duploctl` tenant on QA portals
+- Integration test workflow accepts a `region` input (and `publish.yml` an `e2e_region` input) to create test infrastructure in an alternate AWS region, e.g. to avoid per-region VPC quota exhaustion
+- Publish workflow runs integration tests by default (`run_e2e` now defaults to true; uncheck to skip for e.g. hotfixes)
+
+### Fixed
+
+- `rds engine_versions` works against newer portals that removed the combined `engineVersions` endpoint — uses the per-engine `rds/catalog` endpoints and falls back to the old endpoint on older portals
 
 - added ability to pass in kwargs when calling the client as function
 - **Authentication cooldown** via `DUPLO_AUTH_COOLDOWN` — prevents duplicate browser login prompts when multiple processes request tokens concurrently. Thanks to [@scholzie](https://github.com/scholzie) for the original contribution in [duplocloud/duplo-jit#52](https://github.com/duplocloud/duplo-jit/pull/52).

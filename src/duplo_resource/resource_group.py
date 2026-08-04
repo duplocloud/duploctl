@@ -4,44 +4,39 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 from duplo_resource.helpdesk import HelpdeskResource
+from duplo_resource.helpdesk_client import unwrap_data, unwrap_items
 import duplocloud.args as args
 
 
-@Resource("resource_group", scope="tenant")
+@Resource("resource_group", scope="workspace", client="helpdesk")
 class DuploResourceGroup(HelpdeskResource):
   """Manage AI HelpDesk (HDV2) resource groups in DuploCloud.
 
   A resource group lives inside an environment within a workspace and
   parents the workloads (appservices, lambdas). Resource groups are
-  resolved by name to their id; workspace and environment resolution are
-  delegated to the ``workspace`` and ``environment`` resources via the
-  shared :class:`HelpdeskResource` helpers.
+  resolved by name to their id; environment resolution is delegated to
+  the ``environment`` resource via the shared :class:`HelpdeskResource`
+  helpers. The workspace comes from the global ``-W``/``--workspace-id``
+  flags (or ``DUPLO_WORKSPACE``/``DUPLO_WORKSPACE_ID``).
   """
 
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
 
-  def _base(self, workspace_id: str, api_version: str) -> str:
+  def _base(self) -> str:
     """Build the workspace-scoped resource-groups endpoint."""
-    return (f"{api_version}/aiservicedesk/user/data/workspaces/"
-            f"{workspace_id}/environment/resource-groups")
+    return (f"user/data/workspaces/{self.workspace_id}/"
+            f"environment/resource-groups")
 
-  def _nested_base(self,
-                   workspace_id: str,
-                   environment_id: str,
-                   api_version: str) -> str:
+  def _nested_base(self, environment_id: str) -> str:
     """Build the environment-scoped resource-groups create endpoint."""
-    return (f"{api_version}/aiservicedesk/user/data/workspaces/"
-            f"{workspace_id}/environments/{quote_plus(environment_id)}/"
-            f"resource-groups")
+    return (f"user/data/workspaces/{self.workspace_id}/environments/"
+            f"{quote_plus(environment_id)}/resource-groups")
 
   @Command("ls")
   def list(self,
-           workspace: args.WORKSPACE = None,
-           workspace_id: args.WORKSPACEID = None,
            environment: args.ENVIRONMENT = None,
-           environment_id: args.ENVIRONMENTID = None,
-           api_version: args.APIVERSION = "v1") -> list:
+           environment_id: args.ENVIRONMENTID = None) -> list:
     """Retrieve the resource groups in an AI HelpDesk workspace.
 
     When an environment is given the results are narrowed to that
@@ -49,27 +44,21 @@ class DuploResourceGroup(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl resource_group list --workspace <workspace>
-      duploctl resource_group list --workspace <workspace> --environment <env>
+      duploctl resource_group list -W <workspace>
+      duploctl resource_group list -W <workspace> --environment <env>
       ```
 
     Args:
-      workspace: The workspace name the resource groups belong to.
-      workspace_id: The workspace id the resource groups belong to.
       environment: Narrow the results to this environment name.
       environment_id: Narrow the results to this environment id.
-      api_version: Helpdesk API version.
 
     Returns:
       list: The resource groups in the workspace (optionally scoped to an
         environment).
     """
-    api_version = api_version.strip().lower()
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    items = self._items(self.client.get(self._base(wid, api_version)).json())
+    items = unwrap_items(self.client.get(self._base()).json())
     if environment or environment_id:
-      eid = self._resolve_environment_id(
-          wid, environment, environment_id, api_version)
+      eid = self._resolve_environment_id(environment, environment_id)
       items = [rg for rg in items if self._environment_of(rg) == eid]
     return items
 
@@ -82,11 +71,8 @@ class DuploResourceGroup(HelpdeskResource):
   def find(self,
            name: args.NAME = None,
            id: args.ID = None,
-           workspace: args.WORKSPACE = None,
-           workspace_id: args.WORKSPACEID = None,
            environment: args.ENVIRONMENT = None,
-           environment_id: args.ENVIRONMENTID = None,
-           api_version: args.APIVERSION = "v1") -> dict:
+           environment_id: args.ENVIRONMENTID = None) -> dict:
     """Find an AI HelpDesk resource group by name or id.
 
     With ``--id`` the resource group is fetched directly. Otherwise it is
@@ -95,18 +81,15 @@ class DuploResourceGroup(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl resource_group find <name> --workspace <workspace>
+      duploctl resource_group find <name> -W <workspace>
       duploctl resource_group find --id <id> --workspace-id <workspace id>
       ```
 
     Args:
       name: The resource group name as shown in the portal.
       id: The resource group id. Skips the name lookup when provided.
-      workspace: The workspace name the resource group belongs to.
-      workspace_id: The workspace id the resource group belongs to.
       environment: Disambiguate the name lookup by environment name.
       environment_id: Disambiguate the name lookup by environment id.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The matching resource group object.
@@ -115,25 +98,19 @@ class DuploResourceGroup(HelpdeskResource):
       DuploError: If neither name nor id is given.
       DuploNotFound: If no resource group matches the name or id.
     """
-    api_version = api_version.strip().lower()
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     if environment or environment_id:
-      eid = self._resolve_environment_id(
-          wid, environment, environment_id, api_version)
+      eid = self._resolve_environment_id(environment, environment_id)
       def where(rg):
         return self._environment_of(rg) == eid
     else:
       where = None
-    return self._find_in_workspace(wid, name, id, api_version, where=where)
+    return self._find_in_workspace(name, id, where=where)
 
   @Command()
   def create(self,
              body: args.BODY,
              environment: args.ENVIRONMENT = None,
-             environment_id: args.ENVIRONMENTID = None,
-             workspace: args.WORKSPACE = None,
-             workspace_id: args.WORKSPACEID = None,
-             api_version: args.APIVERSION = "v1") -> dict:
+             environment_id: args.ENVIRONMENTID = None) -> dict:
     """Create an AI HelpDesk resource group under an environment.
 
     The resource group is created on the nested environment route, which
@@ -145,16 +122,13 @@ class DuploResourceGroup(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl resource_group create -f resource-group.yaml --workspace <workspace> --environment <env>
+      duploctl resource_group create -f resource-group.yaml -W <workspace> --environment <env>
       ```
 
     Args:
       body: The resource group definition (at minimum a ``name``).
       environment: The environment name to create the group in.
       environment_id: The environment id. Skips the environment lookup.
-      workspace: The workspace name the resource group belongs to.
-      workspace_id: The workspace id the resource group belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The created resource group object.
@@ -163,24 +137,17 @@ class DuploResourceGroup(HelpdeskResource):
       DuploError: If no body is provided.
       DuploNotFound: If the environment cannot be found.
     """
-    api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    eid = self._resolve_environment_id(
-        wid, environment, environment_id, api_version)
-    response = self.client.post(
-        self._nested_base(wid, eid, api_version), body).json()
-    return self._data(response)
+    eid = self._resolve_environment_id(environment, environment_id)
+    response = self.client.post(self._nested_base(eid), body).json()
+    return unwrap_data(response)
 
   @Command()
   def update(self,
              body: args.BODY = None,
              name: args.NAME = None,
-             id: args.ID = None,
-             workspace: args.WORKSPACE = None,
-             workspace_id: args.WORKSPACEID = None,
-             api_version: args.APIVERSION = "v1") -> dict:
+             id: args.ID = None) -> dict:
     """Update an AI HelpDesk resource group.
 
     The target is resolved by ``--id``, ``name``, or the body's ``name``
@@ -189,17 +156,14 @@ class DuploResourceGroup(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl resource_group update <name> -f resource-group.yaml --workspace <workspace>
-      duploctl resource_group update -f resource-group.yaml --workspace <workspace>
+      duploctl resource_group update <name> -f resource-group.yaml -W <workspace>
+      duploctl resource_group update -f resource-group.yaml -W <workspace>
       ```
 
     Args:
       body: The resource group definition to apply.
       name: The resource group name. Defaults to the body's ``name``.
       id: The resource group id. Skips the name lookup when provided.
-      workspace: The workspace name the resource group belongs to.
-      workspace_id: The workspace id the resource group belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The updated resource group object.
@@ -208,13 +172,9 @@ class DuploResourceGroup(HelpdeskResource):
       DuploError: If no body is provided.
       DuploNotFound: If the resource group cannot be found.
     """
-    api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    rg = self.find(
-        name=name or body.get("name"), id=id, workspace_id=wid,
-        api_version=api_version)
+    rg = self.find(name=name or body.get("name"), id=id)
     rgid = self._id_of(rg)
     # The backend rejects the PUT as a self name-collision unless the body
     # carries its own id, matching the workspace/agent update contract.
@@ -233,17 +193,14 @@ class DuploResourceGroup(HelpdeskResource):
     if spec:
       body["spec"] = spec
     response = self.client.put(
-        f"{self._base(wid, api_version)}/{quote_plus(rgid)}", body).json()
-    return self._data(response)
+        f"{self._base()}/{quote_plus(rgid)}", body).json()
+    return unwrap_data(response)
 
   @Command()
   def apply(self,
             body: args.BODY,
             environment: args.ENVIRONMENT = None,
-            environment_id: args.ENVIRONMENTID = None,
-            workspace: args.WORKSPACE = None,
-            workspace_id: args.WORKSPACEID = None,
-            api_version: args.APIVERSION = "v1") -> dict:
+            environment_id: args.ENVIRONMENTID = None) -> dict:
     """Create or update an AI HelpDesk resource group.
 
     Looks the resource group up by the body's ``name``: updates it when
@@ -252,16 +209,13 @@ class DuploResourceGroup(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl resource_group apply -f resource-group.yaml --workspace <workspace> --environment <env>
+      duploctl resource_group apply -f resource-group.yaml -W <workspace> --environment <env>
       ```
 
     Args:
       body: The resource group definition to apply.
       environment: The environment name (used when creating).
       environment_id: The environment id (used when creating).
-      workspace: The workspace name the resource group belongs to.
-      workspace_id: The workspace id the resource group belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The created or updated resource group object.
@@ -269,28 +223,21 @@ class DuploResourceGroup(HelpdeskResource):
     Raises:
       DuploError: If no body is provided or it has no ``name``.
     """
-    api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
     if not body.get("name"):
       raise DuploError("The body must include a 'name'")
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     try:
-      self.find(name=body.get("name"), workspace_id=wid,
-                api_version=api_version)
+      self.find(name=body.get("name"))
     except DuploNotFound:
       return self.create(
-          body=body, environment=environment, environment_id=environment_id,
-          workspace_id=wid, api_version=api_version)
-    return self.update(body=body, workspace_id=wid, api_version=api_version)
+          body=body, environment=environment, environment_id=environment_id)
+    return self.update(body=body)
 
   @Command()
   def delete(self,
              name: args.NAME = None,
-             id: args.ID = None,
-             workspace: args.WORKSPACE = None,
-             workspace_id: args.WORKSPACEID = None,
-             api_version: args.APIVERSION = "v1") -> dict:
+             id: args.ID = None) -> dict:
     """Delete an AI HelpDesk resource group by name or id.
 
     Removes the resource group record directly. Use ``deprovision`` for
@@ -298,16 +245,13 @@ class DuploResourceGroup(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl resource_group delete <name> --workspace <workspace>
+      duploctl resource_group delete <name> -W <workspace>
       duploctl resource_group delete --id <id> --workspace-id <workspace id>
       ```
 
     Args:
       name: The resource group name as shown in the portal.
       id: The resource group id. Skips the name lookup when provided.
-      workspace: The workspace name the resource group belongs to.
-      workspace_id: The workspace id the resource group belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       message: A success message.
@@ -315,22 +259,15 @@ class DuploResourceGroup(HelpdeskResource):
     Raises:
       DuploNotFound: If no resource group matches the name or id.
     """
-    api_version = api_version.strip().lower()
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    rg = self.find(
-        name=name, id=id, workspace_id=wid, api_version=api_version)
+    rg = self.find(name=name, id=id)
     rgid = self._id_of(rg)
-    self.client.delete(
-        f"{self._base(wid, api_version)}/{quote_plus(rgid)}")
+    self.client.delete(f"{self._base()}/{quote_plus(rgid)}")
     return {"message": f"resource group '{name or id}' deleted"}
 
   @Command()
   def deprovision(self,
                   name: args.NAME = None,
-                  id: args.ID = None,
-                  workspace: args.WORKSPACE = None,
-                  workspace_id: args.WORKSPACEID = None,
-                  api_version: args.APIVERSION = "v1") -> dict:
+                  id: args.ID = None) -> dict:
     """Cascade-deprovision an AI HelpDesk resource group.
 
     Initiates the orchestrated teardown of the resource group and all of
@@ -340,16 +277,13 @@ class DuploResourceGroup(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl resource_group deprovision <name> --workspace <workspace>
+      duploctl resource_group deprovision <name> -W <workspace>
       duploctl resource_group deprovision --id <id> --workspace-id <workspace id>
       ```
 
     Args:
       name: The resource group name as shown in the portal.
       id: The resource group id. Skips the name lookup when provided.
-      workspace: The workspace name the resource group belongs to.
-      workspace_id: The workspace id the resource group belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       message: A success message noting how many children were included.
@@ -357,12 +291,9 @@ class DuploResourceGroup(HelpdeskResource):
     Raises:
       DuploNotFound: If no resource group matches the name or id.
     """
-    api_version = api_version.strip().lower()
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    rg = self.find(
-        name=name, id=id, workspace_id=wid, api_version=api_version)
+    rg = self.find(name=name, id=id)
     rgid = self._id_of(rg)
-    base = self._base(wid, api_version)
+    base = self._base()
     # The backend rejects a partial selection, so confirm every direct
     # child returned by the preview. The preview envelope wraps a bare
     # list under ``data`` (not the ``data.items`` page shape).

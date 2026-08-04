@@ -1,11 +1,13 @@
-from datetime import timedelta
 import datetime
 import time
-from duplocloud.controller import DuploCtl
-from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploNotFound, DuploStillWaiting
+from datetime import timedelta
+
+from duplocloud import args
 from duplocloud.commander import Command, Resource
-import duplocloud.args as args
+from duplocloud.controller import DuploCtl
+from duplocloud.errors import DuploError, DuploNotFound, DuploStillWaiting
+from duplocloud.resource import DuploResourceV2
+
 
 @Resource("tenant")
 class DuploTenant(DuploResourceV2):
@@ -491,12 +493,14 @@ class DuploTenant(DuploResourceV2):
       exclude (optional): A list of resources to exclude from starting. Can include:
         - hosts/<host_name>: Exclude a specific host.
         - rds/<rds_name>: Exclude a specific RDS instance.
+        - asg/<asg_name>: Exclude a specific Auto Scaling Group.
+        - service/<service_name>: Exclude a specific service.
         - hosts/at/<allocation_tags>: Exclude hosts with specific allocation tags.
 
     Returns:
       message: A success message.
     """
-    service_types = {"hosts": [], "rds": []}
+    service_types = {"hosts": [], "rds": [], "asg": [], "service": []}
     host_at = []
     if exclude:
       for item in exclude:
@@ -504,19 +508,23 @@ class DuploTenant(DuploResourceV2):
         if 'at/' in value:
           _, at_name = value.split('at/', 1)
           host_at.append(at_name)
-        elif category in {"hosts", "rds"}:
+        elif category in {"hosts", "rds", "asg", "service"}:
           tenant_name = self.find(name)['AccountName']
-          if category == "hosts":
+          if category in {"hosts", "asg"}:
             prefix = f"duploservices-{tenant_name}"
             value = f"{prefix}-{value}" if not value.startswith(prefix) else value
           elif category == "rds":
             value = f"duplo{value}" if not value.startswith("duplo") else value
+          # service names are not prefixed; append the raw value
           service_types[category].append(value)
         else:
           print(f"Unknown service: {category}")
 
     host_at_exclude = self.get_hosts_to_exclude(host_at)
-    service_types['hosts'] = list(set(service_types['hosts']) | set(host_at_exclude))
+    service_types['hosts'] = list(
+      set(service_types['hosts'])
+      | set(host_at_exclude)
+      | self._asg_managed_hosts())
 
     self._sweep("start", service_types)
     return {
@@ -541,12 +549,14 @@ class DuploTenant(DuploResourceV2):
       exclude (optional): A list of resources to exclude from stopping. Can include:
         - hosts/<host_name>: Exclude a specific host.
         - rds/<rds_name>: Exclude a specific RDS instance.
+        - asg/<asg_name>: Exclude a specific Auto Scaling Group.
+        - service/<service_name>: Exclude a specific service.
         - hosts/at/<allocation_tags>: Exclude hosts with specific allocation tags.
 
     Returns:
       message: A success message.
     """
-    service_types = {"hosts": [], "rds": []}
+    service_types = {"hosts": [], "rds": [], "asg": [], "service": []}
     host_at = []
     if exclude:
       for item in exclude:
@@ -554,19 +564,23 @@ class DuploTenant(DuploResourceV2):
         if 'at/' in value:
           _, at_name = value.split('at/', 1)
           host_at.append(at_name)
-        elif category in {"hosts", "rds"}:
+        elif category in {"hosts", "rds", "asg", "service"}:
           tenant_name = self.find(name)['AccountName']
-          if category == "hosts":
+          if category in {"hosts", "asg"}:
             prefix = f"duploservices-{tenant_name}"
             value = f"{prefix}-{value}" if not value.startswith(prefix) else value
           elif category == "rds":
             value = f"duplo{value}" if not value.startswith("duplo") else value
+          # service names are not prefixed; append the raw value
           service_types[category].append(value)
         else:
           print(f"Unknown service: {category}")
 
     host_at_exclude = self.get_hosts_to_exclude(host_at)
-    service_types['hosts'] = list(set(service_types['hosts']) | set(host_at_exclude))
+    service_types['hosts'] = list(
+      set(service_types['hosts'])
+      | set(host_at_exclude)
+      | self._asg_managed_hosts())
 
     self._sweep("stop", service_types)
     return {
@@ -576,9 +590,9 @@ class DuploTenant(DuploResourceV2):
   def _sweep(self, action, service_types):
     """Apply ``action`` ("stop"/"start") across all service types.
 
-    Best-effort: every eligible resource is attempted. RDS owns its own
-    engine-aware routing and cluster dedup and returns genuine failures
-    (rather than aborting mid-sweep); hosts are attempted per item.
+    Best-effort: every eligible resource is attempted. RDS, ASG, and
+    services own their own routing and return genuine failures (rather
+    than aborting mid-sweep); hosts are attempted per item.
     Genuine failures from any service type are collected and, if any
     occurred, raised as a single aggregated ``DuploError`` so the command
     exits non-zero instead of falsely reporting success.
@@ -592,13 +606,28 @@ class DuploTenant(DuploResourceV2):
       DuploError: If one or more resources failed for a genuine reason.
     """
     errors = []
-    for service_type in service_types.keys():
+    # Order matters: on stop, drain container services before pulling
+    # their compute; on start, restore compute (and RDS) first so resumed
+    # services have somewhere to schedule (especially under --wait). Any
+    # type absent from service_types is skipped.
+    stop_order = ("service", "hosts", "asg", "rds")
+    start_order = ("hosts", "asg", "rds", "service")
+    order = stop_order if action == "stop" else start_order
+    for service_type in order:
+      if service_type not in service_types:
+        continue
       service = self.duplo.load(service_type)
       excluded = service_types[service_type]
-      if service_type == "rds":
-        # RDS routes Aurora/cluster engines to the cluster endpoint
-        # (deduped per cluster), skips Serverless v1/DocDB, treats
-        # already-in-state errors as benign, and returns genuine failures.
+      if service_type in ("rds", "asg", "service"):
+        # RDS, ASG, and services own their own sweep logic and return a
+        # list of (name, error) for genuine failures rather than aborting
+        # mid-sweep. RDS routes Aurora/cluster engines to the cluster
+        # endpoint (deduped per cluster), skips Serverless v1/DocDB, and
+        # treats already-in-state errors as benign. ASG snapshots each
+        # group's sizing into custom data before scaling it to zero, and
+        # restores from that snapshot on start. Services use the native
+        # ReplicationController suspend/resume, which preserves the
+        # configured replica count.
         errors.extend(getattr(service, f"{action}_resources")(exclude=excluded))
         continue
       for item in service.list():
@@ -617,9 +646,9 @@ class DuploTenant(DuploResourceV2):
             )
             errors.append((service_name, e))
     if errors:
-      summary = "; ".join(f"{name}: {e}" for name, e in errors)
+      summary = "\n".join(f"  - {name}: {e}" for name, e in errors)
       raise DuploError(
-        f"Failed to {action} {len(errors)} resource(s): {summary}",
+        f"Failed to {action} {len(errors)} resource(s):\n{summary}",
         errors[0][1].code
       )
 
@@ -636,6 +665,32 @@ class DuploTenant(DuploResourceV2):
       if allocation_tags_value in host_at:
         host_at_exclude.append(host['FriendlyName'])
     return host_at_exclude
+
+  def _asg_managed_hosts(self):
+    """FriendlyNames of hosts whose lifecycle an ASG owns.
+
+    The ASG sweep scales groups to zero, which terminates their
+    instances. Those instances also appear in the native-host list, so
+    without this exclusion the host sweep issues a per-instance stop that
+    the ASG immediately relaunches (churn) before the ASG sweep scales it
+    to zero. A host is treated as ASG-managed if it carries the
+    ``aws:autoscaling:groupName`` tag, or, as a fallback, its
+    FriendlyName matches an ASG's (Duplo names an ASG's instances after
+    the group).
+
+    Returns:
+      A set of host FriendlyNames to exclude from the host sweep.
+    """
+    asg_names = [a["FriendlyName"] for a in self.duplo.load("asg").list()]
+    managed = set()
+    for host in self.duplo.load("hosts").list():
+      name = host.get("FriendlyName")
+      if not name:
+        continue
+      tags = (host.get("Tags") or []) + (host.get("TagsEx") or [])
+      if any(t.get("Key") == "aws:autoscaling:groupName" for t in tags) or any(name == a or name.startswith(f"{a}-") for a in asg_names):
+        managed.add(name)
+    return managed
 
   @Command()
   def dns_config(self, 

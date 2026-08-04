@@ -48,7 +48,9 @@ test = [
   # hook signature that pytest 9.1 removed, which crashes plugin registration.
   # Pin below 9.1 until pytest-black/pytest-isort are dropped in favor of ruff.
   "pytest<9.1",
-  "ruff",
+  # ruff 0.16 enabled new rules (I001/PLR0402/RUF015/...) that flag many
+  # pre-existing files. Pin below 0.16 until the tree is cleaned up.
+  "ruff<0.16",
   "pip-audit",
   "pytest-cov",
   "pytest-dependency",
@@ -132,7 +134,7 @@ omit = [
 
 [tool.ruff]
 exclude = [
-  "**/*_test.py", 
+  "**/*_test.py",
   "**/test_*.py",
   "src/tests/*"
 ]
@@ -196,6 +198,7 @@ ecr = "duplo_resource.ecr:DuploECR"
 [project.entry-points."clients.duplocloud.net"]
 duplo = "duplocloud.client:DuploAPI"
 argo_wf = "duplo_resource.argo_client:DuploArgoClient"
+helpdesk = "duplo_resource.helpdesk_client:DuploHelpdeskClient"
 
 [project.entry-points."formats.duplocloud.net"]
 json = "duplocloud.formats:tojson"

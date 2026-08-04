@@ -14,10 +14,7 @@ def _make_workspace(mocker):
     mock_duplo.wait = False
     mock_duplo.host = "https://example.duplocloud.net"
     mock_duplo.timeout = 30
-    wksp = DuploWorkspace(mock_duplo)
-    wksp._tenant = {"AccountName": "myaccount", "TenantId": "tid-123"}
-    wksp._tenant_id = "tid-123"
-    return wksp
+    return DuploWorkspace(mock_duplo)
 
 
 def _make_client(mocker, wksp, get_responses):
@@ -86,7 +83,7 @@ def test_find_requires_name_or_id(mocker):
     wksp = _make_workspace(mocker)
     _make_client(mocker, wksp, get_responses=[])
 
-    with pytest.raises(DuploError, match="name or --id"):
+    with pytest.raises(DuploError, match="workspace is required"):
         wksp.find()
 
 

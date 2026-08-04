@@ -102,6 +102,7 @@ class DuploAPI():
             get_cached_token=self._try_cached_token))
       raise
 
+    owns_cooldown = False
     with server:
       try:
         if use_cooldown:
@@ -111,6 +112,7 @@ class DuploAPI():
               get_cached_token=self._try_cached_token)
           if cd_result is not None:
             return self._handle_cooldown_result(cd_result)
+          owns_cooldown = True
 
         if open_browser:
           page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}&redirect=true"
@@ -121,12 +123,20 @@ class DuploAPI():
 
         token = server.serve_token()
 
-        if use_cooldown:
+        if owns_cooldown:
+          # Cache the token before releasing the cooldown so a process that
+          # sees no cooldown file always finds the cached credentials. A
+          # failed cache write must not fail the auth or orphan the cooldown.
+          if not self.duplo.nocache:
+            try:
+              self.cache.set(self.cache.key_for("duplo-creds"), self._token_cache(token))
+            except OSError as e:
+              self.duplo.logger.warning("auth cooldown: failed to cache token: %s", e)
           clear_auth_cooldown(self.duplo.cache_dir, self.duplo.host, self.duplo.isadmin)
 
         return token
       except DuploError:
-        if use_cooldown:
+        if owns_cooldown:
           clear_auth_cooldown(self.duplo.cache_dir, self.duplo.host, self.duplo.isadmin)
         raise
       except KeyboardInterrupt:

@@ -4,61 +4,48 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 from duplo_resource.helpdesk import HelpdeskResource
+from duplo_resource.helpdesk_client import unwrap_data, unwrap_items
 import duplocloud.args as args
 
 
-@Resource("environment", scope="tenant")
+@Resource("environment", scope="workspace", client="helpdesk")
 class DuploEnvironment(HelpdeskResource):
   """Manage AI HelpDesk (HDV2) environments in DuploCloud.
 
   An environment groups resource groups and their workloads inside a
   workspace. Environments are resolved by name to their id so the same
-  name-or-id lookup is shared across the CLI; workspace resolution is
-  delegated to the ``workspace`` resource via the shared
-  :class:`HelpdeskResource` helpers.
+  name-or-id lookup is shared across the CLI. The workspace comes from
+  the global ``-W``/``--workspace-id`` flags (or ``DUPLO_WORKSPACE``/
+  ``DUPLO_WORKSPACE_ID``) via the workspace scope.
   """
 
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
 
-  def _base(self, workspace_id: str, api_version: str) -> str:
+  def _base(self) -> str:
     """Build the workspace-scoped environments endpoint."""
-    return (f"{api_version}/aiservicedesk/user/data/workspaces/"
-            f"{workspace_id}/environments")
+    return (f"user/data/workspaces/{self.workspace_id}/environments")
 
   @Command("ls")
-  def list(self,
-           workspace: args.WORKSPACE = None,
-           workspace_id: args.WORKSPACEID = None,
-           api_version: args.APIVERSION = "v1") -> list:
+  def list(self) -> list:
     """Retrieve the environments in an AI HelpDesk workspace.
 
     Usage: CLI Usage
       ```sh
-      duploctl environment list --workspace <workspace>
+      duploctl environment list -W <workspace>
       duploctl environment list --workspace-id <workspace id>
       ```
-
-    Args:
-      workspace: The workspace name the environments belong to.
-      workspace_id: The workspace id the environments belong to.
-      api_version: Helpdesk API version.
 
     Returns:
       list: The environments in the workspace.
     """
-    api_version = api_version.strip().lower()
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    response = self.client.get(self._base(wid, api_version)).json()
-    return self._items(response)
+    response = self.client.get(self._base()).json()
+    return unwrap_items(response)
 
   @Command()
   def find(self,
            name: args.NAME = None,
-           id: args.ID = None,
-           workspace: args.WORKSPACE = None,
-           workspace_id: args.WORKSPACEID = None,
-           api_version: args.APIVERSION = "v1") -> dict:
+           id: args.ID = None) -> dict:
     """Find an AI HelpDesk environment by name or id within a workspace.
 
     With ``--id`` the environment is fetched directly. Otherwise it is
@@ -66,16 +53,13 @@ class DuploEnvironment(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl environment find <name> --workspace <workspace>
+      duploctl environment find <name> -W <workspace>
       duploctl environment find --id <id> --workspace-id <workspace id>
       ```
 
     Args:
       name: The environment name as shown in the portal.
       id: The environment id. Skips the name lookup when provided.
-      workspace: The workspace name the environment belongs to.
-      workspace_id: The workspace id the environment belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The matching environment object.
@@ -84,16 +68,10 @@ class DuploEnvironment(HelpdeskResource):
       DuploError: If neither name nor id is given.
       DuploNotFound: If no environment matches the name or id.
     """
-    api_version = api_version.strip().lower()
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    return self._find_in_workspace(wid, name, id, api_version)
+    return self._find_in_workspace(name, id)
 
   @Command()
-  def create(self,
-             body: args.BODY,
-             workspace: args.WORKSPACE = None,
-             workspace_id: args.WORKSPACEID = None,
-             api_version: args.APIVERSION = "v1") -> dict:
+  def create(self, body: args.BODY) -> dict:
     """Create an AI HelpDesk environment in a workspace.
 
     An environment is a logical grouping with no provisioning lifecycle,
@@ -101,14 +79,11 @@ class DuploEnvironment(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl environment create -f environment.yaml --workspace <workspace>
+      duploctl environment create -f environment.yaml -W <workspace>
       ```
 
     Args:
       body: The environment definition (at minimum a ``name``).
-      workspace: The workspace name the environment belongs to.
-      workspace_id: The workspace id the environment belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The created environment object.
@@ -116,22 +91,16 @@ class DuploEnvironment(HelpdeskResource):
     Raises:
       DuploError: If no body is provided.
     """
-    api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    response = self.client.post(
-        self._base(wid, api_version), body).json()
-    return self._data(response)
+    response = self.client.post(self._base(), body).json()
+    return unwrap_data(response)
 
   @Command()
   def update(self,
              body: args.BODY = None,
              name: args.NAME = None,
-             id: args.ID = None,
-             workspace: args.WORKSPACE = None,
-             workspace_id: args.WORKSPACEID = None,
-             api_version: args.APIVERSION = "v1") -> dict:
+             id: args.ID = None) -> dict:
     """Update an AI HelpDesk environment.
 
     The target is resolved by ``--id``, ``name``, or the body's ``name``
@@ -139,17 +108,14 @@ class DuploEnvironment(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl environment update <name> -f environment.yaml --workspace <workspace>
-      duploctl environment update -f environment.yaml --workspace <workspace>
+      duploctl environment update <name> -f environment.yaml -W <workspace>
+      duploctl environment update -f environment.yaml -W <workspace>
       ```
 
     Args:
       body: The environment definition to apply.
       name: The environment name. Defaults to the body's ``name``.
       id: The environment id. Skips the name lookup when provided.
-      workspace: The workspace name the environment belongs to.
-      workspace_id: The workspace id the environment belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The updated environment object.
@@ -158,27 +124,19 @@ class DuploEnvironment(HelpdeskResource):
       DuploError: If no body is provided.
       DuploNotFound: If the environment cannot be found.
     """
-    api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    env = self.find(
-        name=name or body.get("name"), id=id, workspace_id=wid,
-        api_version=api_version)
+    env = self.find(name=name or body.get("name"), id=id)
     eid = self._id_of(env)
     # The backend rejects the PUT as a self name-collision unless the body
     # carries its own id, matching the workspace/agent update contract.
     body = {**body, "id": eid}
     response = self.client.put(
-        f"{self._base(wid, api_version)}/{quote_plus(eid)}", body).json()
-    return self._data(response)
+        f"{self._base()}/{quote_plus(eid)}", body).json()
+    return unwrap_data(response)
 
   @Command()
-  def apply(self,
-            body: args.BODY,
-            workspace: args.WORKSPACE = None,
-            workspace_id: args.WORKSPACEID = None,
-            api_version: args.APIVERSION = "v1") -> dict:
+  def apply(self, body: args.BODY) -> dict:
     """Create or update an AI HelpDesk environment.
 
     Looks the environment up by the body's ``name``: updates it when it
@@ -186,14 +144,11 @@ class DuploEnvironment(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl environment apply -f environment.yaml --workspace <workspace>
+      duploctl environment apply -f environment.yaml -W <workspace>
       ```
 
     Args:
       body: The environment definition to apply.
-      workspace: The workspace name the environment belongs to.
-      workspace_id: The workspace id the environment belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The created or updated environment object.
@@ -201,41 +156,31 @@ class DuploEnvironment(HelpdeskResource):
     Raises:
       DuploError: If no body is provided or it has no ``name``.
     """
-    api_version = api_version.strip().lower()
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
     if not body.get("name"):
       raise DuploError("The body must include a 'name'")
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
     try:
-      self.find(name=body.get("name"), workspace_id=wid,
-                api_version=api_version)
+      self.find(name=body.get("name"))
     except DuploNotFound:
-      return self.create(
-          body=body, workspace_id=wid, api_version=api_version)
-    return self.update(body=body, workspace_id=wid, api_version=api_version)
+      return self.create(body=body)
+    return self.update(body=body)
 
   @Command()
   def delete(self,
              name: args.NAME = None,
-             id: args.ID = None,
-             workspace: args.WORKSPACE = None,
-             workspace_id: args.WORKSPACEID = None,
-             api_version: args.APIVERSION = "v1") -> dict:
+             id: args.ID = None) -> dict:
     """Delete an AI HelpDesk environment by name or id.
 
     Usage: CLI Usage
       ```sh
-      duploctl environment delete <name> --workspace <workspace>
+      duploctl environment delete <name> -W <workspace>
       duploctl environment delete --id <id> --workspace-id <workspace id>
       ```
 
     Args:
       name: The environment name as shown in the portal.
       id: The environment id. Skips the name lookup when provided.
-      workspace: The workspace name the environment belongs to.
-      workspace_id: The workspace id the environment belongs to.
-      api_version: Helpdesk API version.
 
     Returns:
       message: A success message.
@@ -243,11 +188,7 @@ class DuploEnvironment(HelpdeskResource):
     Raises:
       DuploNotFound: If no environment matches the name or id.
     """
-    api_version = api_version.strip().lower()
-    wid = self._resolve_workspace_id(workspace, workspace_id, api_version)
-    env = self.find(
-        name=name, id=id, workspace_id=wid, api_version=api_version)
+    env = self.find(name=name, id=id)
     eid = self._id_of(env)
-    self.client.delete(
-        f"{self._base(wid, api_version)}/{quote_plus(eid)}")
+    self.client.delete(f"{self._base()}/{quote_plus(eid)}")
     return {"message": f"environment '{name or id}' deleted"}

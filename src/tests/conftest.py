@@ -128,7 +128,7 @@ def infra_name(pytestconfig) -> str:
     2. If --tenant / DUPLO_TENANT is given but no --infra:
          a. Tenant already exists  → use its PlanID as the infra name.
          b. Tenant does not exist  → use the tenant name as the infra name.
-    3. Neither given  → generate a unique name (duploctl{1000-9999}).
+    3. Neither given  → generate a unique name (dctl{1000-9999}).
   """
   if _is_unit_run(pytestconfig):
     return None
@@ -151,8 +151,11 @@ def infra_name(pytestconfig) -> str:
     # Tenant doesn't exist: infra name mirrors the tenant name.
     return tenant_hint
 
+  # Duplo rejects tenant names that share a prefix with an existing tenant,
+  # so avoid "duploctl{n}" — a real tenant named "duploctl" exists on the QA
+  # portals and 409s every generated name.
   inc = random.randint(1000, 9999)
-  return f"duploctl{inc}"
+  return f"dctl{inc}"
 
 @pytest.fixture(scope='session', autouse=True)
 def tenant_name(pytestconfig, infra_name) -> str:

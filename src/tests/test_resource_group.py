@@ -4,6 +4,7 @@ from duplo_resource.resource_group import DuploResourceGroup
 
 
 _WORKSPACE_ID = "6a0db3da984d2b398701bca7"
+_WORKSPACE_NAME = "platform"
 _ENV_ID = "8c2fd5fc106f4d5ba923dec9"
 _RG_ID = "9d3ae60d217e5e6cba34efd0"
 _RG_NAME = "web"
@@ -15,6 +16,8 @@ def _make_resource_group(mocker):
     mock_duplo.wait = False
     mock_duplo.host = "https://example.duplocloud.net"
     mock_duplo.timeout = 30
+    mock_duplo.workspace = _WORKSPACE_NAME
+    mock_duplo.workspaceid = None
     services = {}
 
     def _load(name):
@@ -22,10 +25,7 @@ def _make_resource_group(mocker):
 
     mock_duplo.load.side_effect = _load
     svc = DuploResourceGroup(mock_duplo)
-    svc._tenant = {"AccountName": "myaccount", "TenantId": "tid-123"}
-    svc._tenant_id = "tid-123"
-    svc.duplo.load("workspace").find.return_value = {
-        "id": _WORKSPACE_ID, "name": "platform"}
+    svc._workspace_id = _WORKSPACE_ID
     return svc
 
 
@@ -65,7 +65,7 @@ def test_list_unwraps_envelope(mocker):
     svc = _make_resource_group(mocker)
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
 
-    result = svc.list(workspace="platform")
+    result = svc.list()
 
     assert result == _LIST_RESPONSE["data"]["items"]
     assert client.get.call_args[0][0].endswith(
@@ -76,9 +76,9 @@ def test_list_unwraps_envelope(mocker):
 def test_list_scoped_to_environment(mocker):
     svc = _make_resource_group(mocker)
     svc.duplo.load("environment").find.return_value = {"id": _ENV_ID}
-    client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
+    _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
 
-    result = svc.list(workspace="platform", environment="dev")
+    result = svc.list(environment="dev")
 
     assert [rg["id"] for rg in result] == [_RG_ID]
 
@@ -89,7 +89,7 @@ def test_find_by_name_disambiguated_by_environment(mocker):
     svc.duplo.load("environment").find.return_value = {"id": _ENV_ID}
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
 
-    result = svc.find(name="WEB", workspace="platform", environment="dev")
+    result = svc.find(name="WEB", environment="dev")
 
     assert result["id"] == _RG_ID
     assert "filters[name]=WEB" in client.get.call_args[0][0]
@@ -100,7 +100,7 @@ def test_find_by_id_hits_endpoint_directly(mocker):
     svc = _make_resource_group(mocker)
     client = _make_client(mocker, svc, get_responses=[_DETAIL_RESPONSE])
 
-    result = svc.find(id=_RG_ID, workspace_id=_WORKSPACE_ID)
+    result = svc.find(id=_RG_ID)
 
     assert result["id"] == _RG_ID
     assert client.get.call_args[0][0].endswith(f"/resource-groups/{_RG_ID}")
@@ -112,7 +112,7 @@ def test_find_requires_name_or_id(mocker):
     _make_client(mocker, svc, get_responses=[])
 
     with pytest.raises(DuploError, match="name or --id"):
-        svc.find(workspace="platform")
+        svc.find()
 
 
 @pytest.mark.unit
@@ -123,7 +123,7 @@ def test_find_not_found_when_environment_excludes_match(mocker):
     _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
 
     with pytest.raises(DuploNotFound):
-        svc.find(name=_RG_NAME, workspace="platform", environment="ghost")
+        svc.find(name=_RG_NAME, environment="ghost")
 
 
 @pytest.mark.unit
@@ -135,7 +135,7 @@ def test_create_posts_to_nested_environment_endpoint(mocker):
 
     result = svc.create(
         body={"name": _RG_NAME, "spec": {"cloud": "K8S_ONLY"}},
-        environment="dev", workspace="platform")
+        environment="dev")
 
     client.post.assert_called_once()
     url, body = client.post.call_args[0]
@@ -151,7 +151,7 @@ def test_create_requires_body(mocker):
     _make_client(mocker, svc, get_responses=[])
 
     with pytest.raises(DuploError, match="body"):
-        svc.create(body=None, environment="dev", workspace="platform")
+        svc.create(body=None, environment="dev")
 
 
 @pytest.mark.unit
@@ -160,8 +160,7 @@ def test_update_puts_with_injected_id_and_preserved_env(mocker):
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
     client.put.return_value.json.return_value = _DETAIL_RESPONSE
 
-    result = svc.update(
-        body={"name": _RG_NAME, "spec": {}}, workspace="platform")
+    result = svc.update(body={"name": _RG_NAME, "spec": {}})
 
     client.put.assert_called_once()
     url, body = client.put.call_args[0]
@@ -188,7 +187,7 @@ def test_update_preserves_pascal_case_spec(mocker):
     client = _make_client(mocker, svc, get_responses=[pascal_list])
     client.put.return_value.json.return_value = _DETAIL_RESPONSE
 
-    svc.update(body={"name": _RG_NAME, "spec": {}}, workspace="platform")
+    svc.update(body={"name": _RG_NAME, "spec": {}})
 
     _, body = client.put.call_args[0]
     assert body["spec"]["environmentId"] == _ENV_ID
@@ -201,7 +200,7 @@ def test_apply_requires_name(mocker):
     _make_client(mocker, svc, get_responses=[])
 
     with pytest.raises(DuploError, match="name"):
-        svc.apply(body={"spec": {}}, workspace="platform")
+        svc.apply(body={"spec": {}})
 
 
 @pytest.mark.unit
@@ -210,7 +209,7 @@ def test_delete_plain(mocker):
     # delete(id=...) resolves via find(id=...), a direct single-object GET
     client = _make_client(mocker, svc, get_responses=[_DETAIL_RESPONSE])
 
-    result = svc.delete(id=_RG_ID, workspace="platform")
+    result = svc.delete(id=_RG_ID)
 
     client.delete.assert_called_once()
     assert client.delete.call_args[0][0].endswith(
@@ -229,7 +228,7 @@ def test_deprovision_confirms_all_preview_children(mocker):
     ]}
     client = _make_client(mocker, svc, get_responses=[detail, preview])
 
-    result = svc.deprovision(id=_RG_ID, workspace="platform")
+    result = svc.deprovision(id=_RG_ID)
 
     client.post.assert_called_once()
     url, body = client.post.call_args[0]

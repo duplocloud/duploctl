@@ -1,7 +1,10 @@
-import pytest
 import time
 from unittest.mock import MagicMock
+
+import pytest
+
 from duplocloud.errors import DuploError, DuploStillWaiting
+
 from .conftest import get_test_data
 
 
@@ -311,6 +314,24 @@ def test_stop_resources_swallows_benign_state_error(mocker):
     assert r.client.post.call_count == 2
     assert errors == []
     r.duplo.logger.warning.assert_called()
+
+
+@pytest.mark.unit
+@pytest.mark.rds
+def test_is_benign_state_error_matches_already_stopped_cluster(mocker):
+    """Stopping an already-stopped cluster is benign (target state reached).
+
+    The instance-level wording was already covered; this pins the
+    cluster-level 'is in stopped state but expected …' message so a
+    re-run of stop on a stopped cluster is skipped, not failed.
+    """
+    r = _make_rds(mocker)
+    already_stopped = DuploError(
+        '{"Message":"DbCluster duplo-shared-cluster is in stopped state '
+        'but expected it to be one of available."}', 400)
+    genuine = DuploError('{"Message":"Internal server error"}', 500)
+    assert r._is_benign_state_error(already_stopped) is True
+    assert r._is_benign_state_error(genuine) is False
 
 
 @pytest.mark.unit

@@ -1,8 +1,8 @@
-from duplocloud.controller import DuploCtl
-from duplocloud.errors import DuploError, DuploStillWaiting
-from duplocloud.resource import DuploResourceV3
+from duplocloud import args
 from duplocloud.commander import Command, Resource
-import duplocloud.args as args
+from duplocloud.controller import DuploCtl
+from duplocloud.errors import DuploError, DuploNotFound, DuploStillWaiting
+from duplocloud.resource import DuploResourceV3
 
 # DBEngine enum values from the backend (RDSConfiguration.cs). Cluster
 # engines (Aurora) support stop/start only at the cluster level, not on
@@ -290,6 +290,10 @@ class DuploRDS(DuploResourceV3):
       "invaliddbclusterstate",
       "invaliddbinstancestate",
       "is not in available state",
+      # cluster-level equivalent: stopping a cluster that is already
+      # stopped (target state already reached) — e.g. "DbCluster X is in
+      # stopped state but expected it to be one of available."
+      "is in stopped state but expected",
     ))
 
   @Command()
@@ -478,10 +482,24 @@ class DuploRDS(DuploResourceV3):
 
   @Command()
   def engine_versions(self) -> dict:
-    """List supported RDS engine versions and instance types."""
-    path = f"v3/subscriptions/{self.tenant_id}/aws/rds/engineVersions"
-    response = self.client.post(path, {})
-    return response.json()
+    """List supported RDS engine versions per engine.
+
+    Newer portals removed the combined engineVersions endpoint in favor
+    of per-engine catalog endpoints; older portals only have the
+    combined one. Try the catalog first and fall back on 404.
+    """
+    catalog = f"v3/subscriptions/{self.tenant_id}/aws/rds/catalog"
+    try:
+      engines = self.client.get(f"{catalog}/engines").json()
+      data = {
+        engine: self.client.get(f"{catalog}/engines/{engine}/versions").json()
+        for engine in engines
+      }
+      return {"EngineVersions": {"Data": data}}
+    except DuploNotFound:
+      path = f"v3/subscriptions/{self.tenant_id}/aws/rds/engineVersions"
+      response = self.client.post(path, {})
+      return response.json()
 
   def name_from_body(self, body):
     other_name = body.get("DBInstanceIdentifier", None)
