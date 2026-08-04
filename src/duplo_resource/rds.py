@@ -1,8 +1,8 @@
+from duplocloud import args
+from duplocloud.commander import Command, Resource
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound, DuploStillWaiting
 from duplocloud.resource import DuploResourceV3
-from duplocloud.commander import Command, Resource
-import duplocloud.args as args
 
 # DBEngine enum values from the backend (RDSConfiguration.cs). Cluster
 # engines (Aurora) support stop/start only at the cluster level, not on
@@ -290,6 +290,10 @@ class DuploRDS(DuploResourceV3):
       "invaliddbclusterstate",
       "invaliddbinstancestate",
       "is not in available state",
+      # cluster-level equivalent: stopping a cluster that is already
+      # stopped (target state already reached) — e.g. "DbCluster X is in
+      # stopped state but expected it to be one of available."
+      "is in stopped state but expected",
     ))
 
   @Command()

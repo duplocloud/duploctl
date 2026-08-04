@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The per-command `--api-version` flag on `workspace`, `agent`, and `ticket` commands (introduced within this unreleased cycle): the backend only serves `v1` routes, which the helpdesk client now owns.
 
+- `tenant stop`/`start` now scale ASGs to zero and back (prior sizing snapshotted in the ASG's custom data), and skip ASG-managed hosts in the host sweep so the group handles them. Exclude with `--exclude asg/<name>`.
+- `tenant stop`/`start` now also stop/start ReplicationController services (k8s and native Docker, not ECS); the platform preserves replica counts. Exclude with `--exclude service/<name>`.
+- `tenant stop` treats an already-stopped Aurora cluster as benign instead of a failure.
 
 ## [0.4.5] - 2026-07-20
 
