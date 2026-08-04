@@ -132,10 +132,15 @@ omit = [
 
 [tool.ruff]
 exclude = [
-  "**/*_test.py", 
+  "**/*_test.py",
   "**/test_*.py",
   "src/tests/*"
 ]
+
+[tool.ruff.lint]
+# ruff 0.16 widened its default rule set; pin the pre-0.16 defaults so lint
+# results don't drift with unpinned ruff releases in CI.
+select = ["E4", "E7", "E9", "F"]
 
 [tool.setuptools_scm]
 
