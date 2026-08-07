@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Inputs are validated before the request: `create`/`update`/`apply` require a mapping body (clear `DuploError` when `-f` is omitted rather than an `AttributeError`), and `ticket set_status --status closed` requires `--disposition`.
 - **Workspace resource scope** — `@Resource(name, scope="workspace")` mirrors the tenant scope: workspace-scoped resources get lazy `workspace`/`workspace_id` properties resolved through the `workspace` resource. The `ticket` resource uses it; `workspace` and `agent` are portal-scoped.
 - **Global `--workspace`/`-W` and `--workspace-id` flags** with `DUPLO_WORKSPACE`/`DUPLO_WORKSPACE_ID` environment variables select the AI HelpDesk workspace for a whole invocation (like `-T`/`DUPLO_TENANT` for tenants); `ticket` commands no longer take per-command workspace flags.
-- **Dedicated AI HelpDesk client** (`clients.duplocloud.net` entry point `helpdesk`, following the argo client pattern) owns the `v1/aiservicedesk` URL prefix, auth headers, GET caching, and error mapping for the `workspace`, `agent`, and `ticket` resources.
+- **Dedicated AI HelpDesk client** (`clients.duplocloud.net` entry point `helpdesk`, following the argo client pattern) owns the `v1/aiservicedesk` URL prefix, auth headers, GET caching, and error mapping for the `workspace`, `agent`, and `ticket` resources. Admin list routes are paginated (`get_items` walks the server's 100-item pages), so `workspace list`/`agent list` and name lookups see every record instead of the first page.
 
 ### Removed
 

@@ -4,7 +4,7 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
-from duplo_resource.helpdesk_client import unwrap_data, unwrap_items
+from duplo_resource.helpdesk_client import unwrap_data
 import duplocloud.args as args
 
 
@@ -33,8 +33,7 @@ class DuploWorkspace(DuploResource):
     Returns:
       list: A list of workspace objects.
     """
-    response = self.client.get("admin/data/workspaces").json()
-    return unwrap_items(response)
+    return self.client.get_items("admin/data/workspaces")
 
   @Command()
   def find(self,
@@ -75,10 +74,10 @@ class DuploWorkspace(DuploResource):
           "A workspace is required: pass -W/--workspace, --workspace-id, "
           "or set DUPLO_WORKSPACE")
 
-    response = self.client.get(
-        f"admin/data/workspaces?filters[name]={quote_plus(name)}").json()
+    items = self.client.get_items(
+        f"admin/data/workspaces?filters[name]={quote_plus(name)}")
     target = name.lower()
-    match = next((w for w in unwrap_items(response)
+    match = next((w for w in items
                   if (w.get("name") or "").lower() == target), None)
     if not match:
       raise DuploNotFound(name, self.kind)
@@ -208,7 +207,10 @@ class DuploWorkspace(DuploResource):
     """Update an AI HelpDesk workspace.
 
     The target is resolved by ``--id``, ``name``, or the body's ``name``
-    field, in that order.
+    field, in that order. The update is a full replace — fields omitted
+    from the body are cleared — and the name is immutable, so a body
+    whose ``name`` differs from the stored record is rejected by the
+    backend.
 
     Usage: CLI Usage
       ```sh
@@ -231,10 +233,6 @@ class DuploWorkspace(DuploResource):
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
     wid = self.find(name=name or body.get("name"), id=id)["id"]
-    # The backend's name-uniqueness check excludes the record being updated
-    # only when the body carries its id; without it the PUT is rejected as a
-    # name collision with itself.
-    body = {**body, "id": wid}
     response = self.client.put(
         f"admin/data/workspaces/{quote_plus(wid)}", body).json()
     return unwrap_data(response)
