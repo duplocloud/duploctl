@@ -4,7 +4,7 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 from duplo_resource.helpdesk import HelpdeskResource
-from duplo_resource.helpdesk_client import unwrap_data, unwrap_items
+from duplo_resource.helpdesk_client import unwrap_data
 import duplocloud.args as args
 
 
@@ -56,7 +56,7 @@ class DuploResourceGroup(HelpdeskResource):
       list: The resource groups in the workspace (optionally scoped to an
         environment).
     """
-    items = unwrap_items(self.client.get(self._base()).json())
+    items = self.client.get_items(self._base())
     if environment or environment_id:
       eid = self._resolve_environment_id(environment, environment_id)
       items = [rg for rg in items if self._environment_of(rg) == eid]
@@ -140,7 +140,8 @@ class DuploResourceGroup(HelpdeskResource):
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
     eid = self._resolve_environment_id(environment, environment_id)
-    response = self.client.post(self._nested_base(eid), body).json()
+    response = self.client.post(
+        self._nested_base(eid), self._strip_scope_ids(body)).json()
     return unwrap_data(response)
 
   @Command()
@@ -176,16 +177,16 @@ class DuploResourceGroup(HelpdeskResource):
       raise DuploError("A request body (-f) is required")
     rg = self.find(name=name or body.get("name"), id=id)
     rgid = self._id_of(rg)
-    # The backend rejects the PUT as a self name-collision unless the body
-    # carries its own id, matching the workspace/agent update contract.
-    body = {**body, "id": rgid}
-    # The workspace-scoped update route (unlike the nested create) carries no
-    # environment in the URL, so the backend reads a missing spec placement as
-    # an attempt to null out the immutable environmentId/clusterId and rejects
-    # it. Carry those forward from the existing record when the body omits them.
+    body = dict(body)
+    # The spec's placement fields are immutable server-side. Omitted ones are
+    # restored from the stored record by the backend, except cloud: it is a
+    # non-nullable enum that deserializes to its default when omitted, so a
+    # body with a spec but no cloud reads as an attempt to change it and is
+    # rejected for any non-default cloud. Carry the immutable fields forward
+    # from the existing record so a partial spec always round-trips.
     existing_spec = rg.get("spec") or rg.get("Spec") or {}
     spec = dict(body.get("spec") or {})
-    for field in ("environmentId", "clusterId", "awsResourceName"):
+    for field in ("environmentId", "clusterId", "awsResourceName", "cloud"):
       pascal = field[0].upper() + field[1:]
       value = existing_spec.get(field) or existing_spec.get(pascal)
       if value and not (spec.get(field) or spec.get(pascal)):
@@ -240,8 +241,10 @@ class DuploResourceGroup(HelpdeskResource):
              id: args.ID = None) -> dict:
     """Delete an AI HelpDesk resource group by name or id.
 
-    Removes the resource group record directly. Use ``deprovision`` for
-    the orchestrated cascade teardown that also removes child resources.
+    Removes the resource group record directly. The backend only allows
+    this for groups that are already deprovisioned (or were imported), so
+    run ``deprovision`` first for a live group — that is the orchestrated
+    cascade teardown that also removes child resources.
 
     Usage: CLI Usage
       ```sh

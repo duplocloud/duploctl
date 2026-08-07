@@ -1,4 +1,5 @@
 import pytest
+from duplo_resource.helpdesk_client import unwrap_items
 from duplocloud.errors import DuploError, DuploNotFound
 from duplo_resource.hd_lambda import DuploHelpdeskLambda
 
@@ -44,6 +45,10 @@ def _make_client(mocker, svc, get_responses):
     for m, payload in zip(get_mocks, get_responses):
         m.json.return_value = payload
     mock_client.get.side_effect = get_mocks
+    # get_items delegates to the ordered get mocks like the real client
+    # (which pages through get), so wired responses serve both.
+    mock_client.get_items.side_effect = (
+        lambda p: unwrap_items(mock_client.get(p).json()))
     mocker.patch.object(svc, "client", mock_client)
     return mock_client
 
@@ -138,20 +143,34 @@ def test_create_posts_to_nested_endpoint(mocker):
 
 
 @pytest.mark.unit
-def test_update_puts_to_nested_endpoint_with_id(mocker):
+def test_update_puts_to_nested_endpoint(mocker):
     svc = _make_lambda(mocker)
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
     client.put.return_value.json.return_value = _DETAIL_RESPONSE
 
-    result = svc.update(body={"name": _LAMBDA_NAME, "spec": {"x": 1}})
+    body = {"name": _LAMBDA_NAME, "spec": {"x": 1}}
+    result = svc.update(body=body)
 
     client.put.assert_called_once()
-    url, body = client.put.call_args[0]
+    url, sent = client.put.call_args[0]
     assert url.endswith(
         f"/environments/{_ENV_ID}/resource-groups/{_RG_ID}"
         f"/AwsLambdas/{_LAMBDA_ID}")
-    assert body["id"] == _LAMBDA_ID
+    # The backend stamps the record id from the route, so the body is
+    # sent exactly as provided.
+    assert sent == body
     assert result["id"] == _LAMBDA_ID
+
+
+@pytest.mark.unit
+def test_update_requires_name_in_body(mocker):
+    # The nested update route rejects bodies without a non-empty name, so
+    # the client raises up front instead of surfacing a backend 400.
+    svc = _make_lambda(mocker)
+    _make_client(mocker, svc, get_responses=[])
+
+    with pytest.raises(DuploError, match="name"):
+        svc.update(name=_LAMBDA_NAME, body={"spec": {"x": 1}})
 
 
 @pytest.mark.unit

@@ -1,4 +1,5 @@
 import pytest
+from duplo_resource.helpdesk_client import unwrap_items
 from duplocloud.errors import DuploError, DuploNotFound
 from duplo_resource.appservice import DuploAppService
 
@@ -44,6 +45,10 @@ def _make_client(mocker, svc, get_responses):
     for m, payload in zip(get_mocks, get_responses):
         m.json.return_value = payload
     mock_client.get.side_effect = get_mocks
+    # get_items delegates to the ordered get mocks like the real client
+    # (which pages through get), so wired responses serve both.
+    mock_client.get_items.side_effect = (
+        lambda p: unwrap_items(mock_client.get(p).json()))
     mocker.patch.object(svc, "client", mock_client)
     return mock_client
 
@@ -169,21 +174,55 @@ def test_create_requires_body(mocker):
 
 
 @pytest.mark.unit
-def test_update_puts_to_nested_endpoint_with_id(mocker):
+def test_create_strips_scope_ids(mocker):
+    # The backend derives scope ids from the parent RG and rejects any
+    # caller-supplied value, so a record round-tripped from find must have
+    # spec.scopeIds stripped before the POST.
+    svc = _make_appservice(mocker)
+    svc.duplo.load("environment").find.return_value = {"id": _ENV_ID}
+    svc.duplo.load("resource_group").find.return_value = {"id": _RG_ID}
+    client = _make_client(mocker, svc, get_responses=[])
+    client.post.return_value.json.return_value = _DETAIL_RESPONSE
+
+    svc.create(
+        body={"name": _APPSVC_NAME,
+              "spec": {"image": "nginx:1", "scopeIds": ["s-1"]}},
+        environment="dev", resource_group="web")
+
+    body = client.post.call_args[0][1]
+    assert "scopeIds" not in body["spec"]
+    assert body["spec"]["image"] == "nginx:1"
+
+
+@pytest.mark.unit
+def test_update_puts_to_nested_endpoint(mocker):
     svc = _make_appservice(mocker)
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
     client.put.return_value.json.return_value = _DETAIL_RESPONSE
 
-    result = svc.update(body={"name": _APPSVC_NAME, "spec": {"x": 1}})
+    body = {"name": _APPSVC_NAME, "spec": {"x": 1}}
+    result = svc.update(body=body)
 
     client.put.assert_called_once()
-    url, body = client.put.call_args[0]
+    url, sent = client.put.call_args[0]
     assert url.endswith(
         f"/environments/{_ENV_ID}/resource-groups/{_RG_ID}"
         f"/appservices/{_APPSVC_ID}")
-    # id injected so the backend excludes self from name-uniqueness check.
-    assert body["id"] == _APPSVC_ID
+    # The backend stamps the record id from the route, so the body is
+    # sent exactly as provided.
+    assert sent == body
     assert result["id"] == _APPSVC_ID
+
+
+@pytest.mark.unit
+def test_update_requires_name_in_body(mocker):
+    # The nested update route rejects bodies without a non-empty name, so
+    # the client raises up front instead of surfacing a backend 400.
+    svc = _make_appservice(mocker)
+    _make_client(mocker, svc, get_responses=[])
+
+    with pytest.raises(DuploError, match="name"):
+        svc.update(name=_APPSVC_NAME, body={"spec": {"x": 1}})
 
 
 @pytest.mark.unit

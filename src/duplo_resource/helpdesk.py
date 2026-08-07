@@ -3,7 +3,7 @@ from urllib.parse import quote_plus
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.resource import DuploResource
-from duplo_resource.helpdesk_client import unwrap_data, unwrap_items
+from duplo_resource.helpdesk_client import unwrap_data
 
 
 class HelpdeskResource(DuploResource):
@@ -90,6 +90,24 @@ class HelpdeskResource(DuploResource):
     """Build the workspace-scoped endpoint for this resource."""
     raise NotImplementedError
 
+  def _strip_scope_ids(self, body: dict) -> dict:
+    """Return a copy of a create body without ``spec.scopeIds``.
+
+    The backend derives scope ids from the parent resource group and
+    rejects any caller-supplied value on create, so a record round-tripped
+    from ``find`` into ``create``/``apply`` would 400. Stripping them here
+    keeps that round-trip working; other fields are sent as provided.
+    """
+    spec = body.get("spec") or body.get("Spec")
+    if not isinstance(spec, dict):
+      return body
+    if "scopeIds" not in spec and "ScopeIds" not in spec:
+      return body
+    spec = {k: v for k, v in spec.items()
+            if k not in ("scopeIds", "ScopeIds")}
+    key = "spec" if "spec" in body else "Spec"
+    return {**body, key: spec}
+
   def _find_in_workspace(self,
                          name: str,
                          id: str,
@@ -111,10 +129,10 @@ class HelpdeskResource(DuploResource):
     if not name:
       raise DuploError("Either a name or --id is required")
 
-    response = self.client.get(
-        f"{base}?filters[name]={quote_plus(name)}").json()
+    items = self.client.get_items(
+        f"{base}?filters[name]={quote_plus(name)}")
     target = name.lower()
-    match = next((o for o in unwrap_items(response)
+    match = next((o for o in items
                   if (o.get("name") or o.get("Name") or "").lower() == target
                   and (where is None or where(o))),
                  None)

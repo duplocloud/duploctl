@@ -4,7 +4,7 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 from duplo_resource.helpdesk import HelpdeskResource
-from duplo_resource.helpdesk_client import unwrap_data, unwrap_items
+from duplo_resource.helpdesk_client import unwrap_data
 import duplocloud.args as args
 
 
@@ -52,8 +52,7 @@ class DuploAppService(HelpdeskResource):
     Returns:
       list: The appservices in the workspace.
     """
-    response = self.client.get(self._base()).json()
-    return unwrap_items(response)
+    return self.client.get_items(self._base())
 
   @Command()
   def find(self,
@@ -117,7 +116,8 @@ class DuploAppService(HelpdeskResource):
       raise DuploError("A request body (-f) is required")
     eid, rgid = self._resolve_env_rg(
         environment, environment_id, resource_group, resource_group_id)
-    response = self.client.post(self._nested_base(eid, rgid), body).json()
+    response = self.client.post(
+        self._nested_base(eid, rgid), self._strip_scope_ids(body)).json()
     return unwrap_data(response)
 
   @Command()
@@ -146,17 +146,17 @@ class DuploAppService(HelpdeskResource):
       resource: The updated appservice object.
 
     Raises:
-      DuploError: If no body is provided.
+      DuploError: If no body is provided or it has no ``name``.
       DuploNotFound: If the appservice cannot be found.
     """
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
+    if not body.get("name"):
+      # The backend requires a non-empty name in the update body.
+      raise DuploError("The body must include a 'name'")
     appsvc = self._find_in_workspace(name or body.get("name"), id)
     aid = self._id_of(appsvc)
     eid, rgid = self._record_env_rg(appsvc)
-    # The backend rejects the PUT as a self name-collision unless the body
-    # carries its own id, matching the workspace/agent update contract.
-    body = {**body, "id": aid}
     response = self.client.put(
         f"{self._nested_base(eid, rgid)}/{quote_plus(aid)}", body).json()
     return unwrap_data(response)

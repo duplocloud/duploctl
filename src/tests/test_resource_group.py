@@ -1,4 +1,5 @@
 import pytest
+from duplo_resource.helpdesk_client import unwrap_items
 from duplocloud.errors import DuploError, DuploNotFound
 from duplo_resource.resource_group import DuploResourceGroup
 
@@ -36,6 +37,10 @@ def _make_client(mocker, svc, get_responses):
     for m, payload in zip(get_mocks, get_responses):
         m.json.return_value = payload
     mock_client.get.side_effect = get_mocks
+    # get_items delegates to the ordered get mocks like the real client
+    # (which pages through get), so wired responses serve both.
+    mock_client.get_items.side_effect = (
+        lambda p: unwrap_items(mock_client.get(p).json()))
     mocker.patch.object(svc, "client", mock_client)
     return mock_client
 
@@ -155,7 +160,27 @@ def test_create_requires_body(mocker):
 
 
 @pytest.mark.unit
-def test_update_puts_with_injected_id_and_preserved_env(mocker):
+def test_create_strips_scope_ids(mocker):
+    # The backend derives scope ids from the parent RG and rejects any
+    # caller-supplied value, so a record round-tripped from find must have
+    # spec.scopeIds stripped before the POST.
+    svc = _make_resource_group(mocker)
+    svc.duplo.load("environment").find.return_value = {"id": _ENV_ID}
+    client = _make_client(mocker, svc, get_responses=[])
+    client.post.return_value.json.return_value = _DETAIL_RESPONSE
+
+    svc.create(
+        body={"name": _RG_NAME,
+              "spec": {"cloud": "K8S_ONLY", "scopeIds": ["s-1"]}},
+        environment="dev")
+
+    body = client.post.call_args[0][1]
+    assert "scopeIds" not in body["spec"]
+    assert body["spec"]["cloud"] == "K8S_ONLY"
+
+
+@pytest.mark.unit
+def test_update_puts_with_preserved_env(mocker):
     svc = _make_resource_group(mocker)
     client = _make_client(mocker, svc, get_responses=[_LIST_RESPONSE])
     client.put.return_value.json.return_value = _DETAIL_RESPONSE
@@ -165,11 +190,33 @@ def test_update_puts_with_injected_id_and_preserved_env(mocker):
     client.put.assert_called_once()
     url, body = client.put.call_args[0]
     assert url.endswith(f"/resource-groups/{_RG_ID}")
-    assert body["id"] == _RG_ID
     # environmentId is immutable; the update must carry it forward from the
     # existing record so the backend doesn't read the PUT as nulling it out.
     assert body["spec"]["environmentId"] == _ENV_ID
     assert result["id"] == _RG_ID
+
+
+@pytest.mark.unit
+def test_update_carries_cloud_forward(mocker):
+    # spec.cloud is a non-nullable enum server-side: omitted, it deserializes
+    # to the default (Aws) and trips the immutable-Cloud check for any
+    # non-AWS group — so the update must carry it forward from the record.
+    svc = _make_resource_group(mocker)
+    listed = {
+        "success": True,
+        "data": {"items": [
+            {"id": _RG_ID, "name": _RG_NAME,
+             "spec": {"environmentId": _ENV_ID, "cloud": "K8S_ONLY"}},
+        ]},
+    }
+    client = _make_client(mocker, svc, get_responses=[listed])
+    client.put.return_value.json.return_value = _DETAIL_RESPONSE
+
+    svc.update(body={"name": _RG_NAME, "spec": {"description": "x"}})
+
+    body = client.put.call_args[0][1]
+    assert body["spec"]["cloud"] == "K8S_ONLY"
+    assert body["spec"]["environmentId"] == _ENV_ID
 
 
 @pytest.mark.unit

@@ -4,7 +4,7 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 from duplo_resource.helpdesk import HelpdeskResource
-from duplo_resource.helpdesk_client import unwrap_data, unwrap_items
+from duplo_resource.helpdesk_client import unwrap_data
 import duplocloud.args as args
 
 
@@ -39,8 +39,7 @@ class DuploEnvironment(HelpdeskResource):
     Returns:
       list: The environments in the workspace.
     """
-    response = self.client.get(self._base()).json()
-    return unwrap_items(response)
+    return self.client.get_items(self._base())
 
   @Command()
   def find(self,
@@ -128,9 +127,6 @@ class DuploEnvironment(HelpdeskResource):
       raise DuploError("A request body (-f) is required")
     env = self.find(name=name or body.get("name"), id=id)
     eid = self._id_of(env)
-    # The backend rejects the PUT as a self name-collision unless the body
-    # carries its own id, matching the workspace/agent update contract.
-    body = {**body, "id": eid}
     response = self.client.put(
         f"{self._base()}/{quote_plus(eid)}", body).json()
     return unwrap_data(response)
