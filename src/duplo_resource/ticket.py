@@ -43,7 +43,9 @@ class DuploTicket(DuploResource):
 
     Args:
       name: The ticket name/identifier (e.g. ``DEVOPS-42``).
-      id: The ticket id. Used instead of name when provided.
+      id: Alias for the ticket name — the backend resolves tickets by
+        their generated name only, so pass the same ``DEVOPS-42`` style
+        identifier here, not an entity id.
 
     Returns:
       resource: The ticket object.
@@ -154,7 +156,9 @@ class DuploTicket(DuploResource):
 
     Args:
       name: The ticket name/identifier (e.g. ``DEVOPS-42``).
-      id: The ticket id. Used instead of name when provided.
+      id: Alias for the ticket name — the backend resolves tickets by
+        their generated name only, so pass the same ``DEVOPS-42`` style
+        identifier here, not an entity id.
       content: The message text. Pass it inline with ``--content`` or
         read from stdin with ``-f -``.
       streaming: Force the streaming send endpoint.
@@ -358,7 +362,9 @@ class DuploTicket(DuploResource):
 
     Args:
       name: The ticket name/identifier (e.g. ``DEVOPS-42``).
-      id: The ticket id. Used instead of name when provided.
+      id: Alias for the ticket name — the backend resolves tickets by
+        their generated name only, so pass the same ``DEVOPS-42`` style
+        identifier here, not an entity id.
 
     Returns:
       resource: The assigned agent object.
@@ -391,7 +397,9 @@ class DuploTicket(DuploResource):
 
     Args:
       name: The ticket name/identifier (e.g. ``DEVOPS-42``).
-      id: The ticket id. Used instead of name when provided.
+      id: Alias for the ticket name — the backend resolves tickets by
+        their generated name only, so pass the same ``DEVOPS-42`` style
+        identifier here, not an entity id.
       agent_name: The agent name to assign.
       agent_id: The agent id to assign. Skips the agent name lookup.
 
@@ -430,7 +438,9 @@ class DuploTicket(DuploResource):
 
     Args:
       name: The ticket name/identifier (e.g. ``DEVOPS-42``).
-      id: The ticket id. Used instead of name when provided.
+      id: Alias for the ticket name — the backend resolves tickets by
+        their generated name only, so pass the same ``DEVOPS-42`` style
+        identifier here, not an entity id.
       status: The new status (open, inProgress, waitingForUserInput,
         waitingForUserAgent, closed).
       disposition: The disposition (resolved, unResolved); required when
@@ -480,7 +490,9 @@ class DuploTicket(DuploResource):
 
     Args:
       name: The ticket name/identifier (e.g. ``DEVOPS-42``).
-      id: The ticket id. Used instead of name when provided.
+      id: Alias for the ticket name — the backend resolves tickets by
+        their generated name only, so pass the same ``DEVOPS-42`` style
+        identifier here, not an entity id.
       disposition: The disposition (resolved, unResolved). Defaults to
         resolved.
 
@@ -508,7 +520,9 @@ class DuploTicket(DuploResource):
 
     Args:
       name: The ticket name/identifier (e.g. ``DEVOPS-42``).
-      id: The ticket id. Used instead of name when provided.
+      id: Alias for the ticket name — the backend resolves tickets by
+        their generated name only, so pass the same ``DEVOPS-42`` style
+        identifier here, not an entity id.
 
     Returns:
       message: A success message.

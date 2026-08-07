@@ -16,13 +16,19 @@ def _make_agent(mocker):
     return DuploAgent(mock_duplo)
 
 
-def _make_client(mocker, agent, get_responses):
-    """Wire a mock client returning the supplied GET JSON payloads in order."""
+def _make_client(mocker, agent, get_responses, items_responses=None):
+    """Wire a mock client returning the supplied GET JSON payloads in order.
+
+    List routes go through ``get_items`` (which paginates internally), so
+    those are wired as ready-made item lists via ``items_responses``.
+    """
     mock_client = mocker.MagicMock()
     get_mocks = [mocker.MagicMock() for _ in get_responses]
     for m, payload in zip(get_mocks, get_responses):
         m.json.return_value = payload
     mock_client.get.side_effect = get_mocks
+    if items_responses is not None:
+        mock_client.get_items.side_effect = items_responses
     mocker.patch.object(agent, "client", mock_client)
     return mock_client
 
@@ -36,8 +42,6 @@ _AGENT_FULL = {
     "metaData": {"STREAMING_ENABLED": "true"},
 }
 
-_LIST_RESPONSE = {"success": True, "data": {"items": [_AGENT_FULL]}}
-
 _DETAIL_STREAMING = {"success": True, "data": _AGENT_FULL}
 
 _DETAIL_NON_STREAMING = {
@@ -49,13 +53,15 @@ _DETAIL_NON_STREAMING = {
 @pytest.mark.unit
 def test_find_by_name_returns_list_item(mocker):
     agent = _make_agent(mocker)
-    client = _make_client(mocker, agent, get_responses=[_LIST_RESPONSE])
+    client = _make_client(mocker, agent, get_responses=[],
+                          items_responses=[[_AGENT_FULL]])
 
     result = agent.find(name="CICD")
 
-    # Single GET — the list item is the full object, no re-fetch by id.
-    assert client.get.call_count == 1
-    assert "filters[name]=CICD" in client.get.call_args[0][0]
+    # Single list fetch — the list item is the full object, no re-fetch
+    # by id.
+    assert client.get_items.call_count == 1
+    assert "filters[name]=CICD" in client.get_items.call_args[0][0]
     assert result["id"] == _AGENT_ID
     assert result["metaData"]["STREAMING_ENABLED"] == "true"
 
@@ -83,8 +89,7 @@ def test_find_requires_name_or_id(mocker):
 @pytest.mark.unit
 def test_find_by_name_not_found(mocker):
     agent = _make_agent(mocker)
-    empty = {"success": True, "data": {"items": []}}
-    _make_client(mocker, agent, get_responses=[empty])
+    _make_client(mocker, agent, get_responses=[], items_responses=[[]])
 
     with pytest.raises(DuploNotFound):
         agent.find(name="nope")
@@ -101,12 +106,13 @@ def test_supports_streaming_true_from_metadata(mocker):
 @pytest.mark.unit
 def test_supports_streaming_by_name_reads_metadata(mocker):
     # The list item carries metaData, so supports_streaming(name) reads it
-    # from the single list GET without a second by-id fetch.
+    # from the single list fetch without a second by-id fetch.
     agent = _make_agent(mocker)
-    client = _make_client(mocker, agent, get_responses=[_LIST_RESPONSE])
+    client = _make_client(mocker, agent, get_responses=[],
+                          items_responses=[[_AGENT_FULL]])
 
     assert agent.supports_streaming(name="cicd") is True
-    assert client.get.call_count == 1
+    assert client.get_items.call_count == 1
 
 
 @pytest.mark.unit
@@ -146,17 +152,19 @@ def test_create(mocker):
 @pytest.mark.unit
 def test_update_resolves_id_from_body_name(mocker):
     agent = _make_agent(mocker)
-    client = _make_client(mocker, agent, get_responses=[_LIST_RESPONSE])
+    client = _make_client(mocker, agent, get_responses=[],
+                          items_responses=[[_AGENT_FULL]])
     client.put.return_value.json.return_value = _DETAIL_STREAMING
 
-    result = agent.update(body={"name": _AGENT_NAME, "description": "x"})
+    body = {"name": _AGENT_NAME, "description": "x"}
+    result = agent.update(body=body)
 
     client.put.assert_called_once()
-    url, body = client.put.call_args[0]
+    url, sent = client.put.call_args[0]
     assert url.endswith(f"/aiagents/{_AGENT_ID}")
-    # id must be injected into the body so the backend excludes self from the
-    # name-uniqueness check.
-    assert body["id"] == _AGENT_ID
+    # The backend stamps the record id from the route, so the body is
+    # sent exactly as provided.
+    assert sent == body
     assert result["id"] == _AGENT_ID
 
 
@@ -172,8 +180,8 @@ def test_update_requires_body(mocker):
 @pytest.mark.unit
 def test_apply_updates_when_found(mocker):
     agent = _make_agent(mocker)
-    client = _make_client(mocker, agent,
-                          get_responses=[_LIST_RESPONSE, _LIST_RESPONSE])
+    client = _make_client(mocker, agent, get_responses=[],
+                          items_responses=[[_AGENT_FULL], [_AGENT_FULL]])
     client.put.return_value.json.return_value = _DETAIL_STREAMING
 
     result = agent.apply(body={"name": _AGENT_NAME})
@@ -186,8 +194,8 @@ def test_apply_updates_when_found(mocker):
 @pytest.mark.unit
 def test_apply_creates_when_not_found(mocker):
     agent = _make_agent(mocker)
-    empty = {"success": True, "data": {"items": []}}
-    client = _make_client(mocker, agent, get_responses=[empty])
+    client = _make_client(mocker, agent, get_responses=[],
+                          items_responses=[[]])
     client.post.return_value.json.return_value = _DETAIL_STREAMING
 
     result = agent.apply(body={"name": "newagent"})

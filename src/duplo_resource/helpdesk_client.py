@@ -5,6 +5,8 @@ from duplocloud.commander import Client
 from duplocloud.errors import DuploError, DuploNotFound, DuploConnectionError
 
 BASE_PATH = "v1/aiservicedesk"
+PAGE_SIZE = 100
+"""Server-side page cap on admin data-plane list routes."""
 
 
 def unwrap_data(response: dict) -> dict:
@@ -75,6 +77,38 @@ class DuploHelpdeskClient():
       The validated response.
     """
     return self._request("GET", path)
+
+  def get_items(self, path: str) -> list:
+    """Get every item from a paged admin list route.
+
+    Admin data-plane list routes are server-paged and cap ``pageSize``
+    at 100, so a single GET silently truncates larger collections. This
+    walks the pages and accumulates ``data.items`` until ``totalCount``
+    is reached (or a page comes back short/empty).
+
+    Args:
+      path: The list route relative to the base path, optionally already
+        carrying a query string (e.g. ``?filters[name]=x``).
+
+    Returns:
+      Every item across all pages.
+    """
+    items = []
+    page = 1
+    sep = "&" if "?" in path else "?"
+    while True:
+      response = self.get(
+          f"{path}{sep}page={page}&pageSize={PAGE_SIZE}").json()
+      batch = unwrap_items(response)
+      items.extend(batch)
+      data = response.get("data")
+      total = data.get("totalCount") if isinstance(data, dict) else None
+      if len(batch) < PAGE_SIZE:
+        break
+      if isinstance(total, int) and len(items) >= total:
+        break
+      page += 1
+    return items
 
   def post(self, path: str, data: dict={}, headers: dict=None, **kwargs):
     """Post data to an AI HelpDesk resource.
