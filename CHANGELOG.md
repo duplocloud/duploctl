@@ -7,7 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
+- `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod
+
 ### Added
+
+- AI HelpDesk CRUD and lifecycle commands against the existing backend endpoints (workspace/agent resolved by name or `--id` via their `find`):
+  - `workspace create`/`update`/`apply` (body via `-f`; `apply` upserts by the body's `name`), `workspace delete`, and `workspace add_agent`/`remove_agent` (`--agent`/`--agent_id` selects the agent).
+  - `agent create`/`update`/`apply` (body via `-f`), and `agent delete`.
+  - `ticket list` (per workspace), `ticket assignee` (get the assigned agent), `ticket reassign` (`--agent`/`--agent_id`), `ticket set_status` (`--status`), `ticket close` (`--disposition`, default `resolved`), and `ticket delete`.
+  - Inputs are validated before the request: `create`/`update`/`apply` require a mapping body (clear `DuploError` when `-f` is omitted rather than an `AttributeError`), and `ticket set_status --status closed` requires `--disposition`.
+- AI HelpDesk V2 (HDV2) workload resources — the HelpDesk equivalent of the Core Platform `service`/`lambda` resources and their `update-image` action:
+  - `appservice` for HDV2 Kubernetes (EKS) AppServices: `list`/`find`/`update_image` at the workspace scope, and `create`/`update`/`apply`/`delete` on the nested environment/resource-group scope (`--environment`/`--resource-group`, resolved by name or id). `delete` initiates deprovisioning.
+  - `hd_lambda` for HDV2 AWS Lambdas: same command set; `update_image` reads the function's environment/resource-group off its record and passes the new `ImageUri` through to AWS `UpdateFunctionCode`.
+  - `environment` and `resource_group` resolver resources (`list`/`find`) so workloads can be placed and looked up by human-readable names; `resource_group find` accepts `--environment` to disambiguate names shared across environments.
+  - ECS is intentionally not included: the HelpDesk V2 backend has no ECS controller/update-image endpoint yet (tracked in DUPLO-43548).
+  - Requests match the backend contracts: `resource_group update` carries the immutable spec placement (including `cloud`) forward from the existing record, create bodies strip the backend-derived `spec.scopeIds` (so `find` output round-trips into `create`/`apply`), and workload `update` requires a `name` in the body.
+- **Workspace resource scope** — `@Resource(name, scope="workspace")` mirrors the tenant scope: workspace-scoped resources get lazy `workspace`/`workspace_id` properties resolved through the `workspace` resource. The `ticket` and HDV2 (`environment`/`resource_group`/`appservice`/`hd_lambda`) resources use it; `workspace` and `agent` are portal-scoped.
+- **Global `--workspace`/`-W` and `--workspace-id` flags** with `DUPLO_WORKSPACE`/`DUPLO_WORKSPACE_ID` environment variables select the AI HelpDesk workspace for a whole invocation (like `-T`/`DUPLO_TENANT` for tenants); the `ticket` and HDV2 commands no longer take per-command workspace flags.
+- **Dedicated AI HelpDesk client** (`clients.duplocloud.net` entry point `helpdesk`, following the argo client pattern) owns the `v1/aiservicedesk` URL prefix, auth headers, GET caching, and error mapping for the `workspace`, `agent`, `ticket`, and HDV2 resources. Admin list routes are paginated (`get_items` walks the server's 100-item pages), so `list` commands and name lookups see every record instead of the first page.
+
+### Removed
+
+- The per-command `--api-version` flag on the AI HelpDesk commands (introduced within this unreleased cycle): the backend only serves `v1` routes, which the helpdesk client now owns.
 
 - `tenant stop`/`start` now scale ASGs to zero and back (prior sizing snapshotted in the ASG's custom data), and skip ASG-managed hosts in the host sweep so the group handles them. Exclude with `--exclude asg/<name>`.
 - `tenant stop`/`start` now also stop/start ReplicationController services (k8s and native Docker, not ECS); the platform preserves replica counts. Exclude with `--exclude service/<name>`.
