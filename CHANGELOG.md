@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
+- `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod
+
 ### Added
 
 - `tenant stop`/`start` now scale ASGs to zero and back (prior sizing snapshotted in the ASG's custom data), and skip ASG-managed hosts in the host sweep so the group handles them. Exclude with `--exclude asg/<name>`.
