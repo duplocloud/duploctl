@@ -395,19 +395,42 @@ AGENTID = Arg("agent_id", "--agent_id", "--aid",
 WORKSPACE = Arg("workspace", "--workspace", "--wksp", "-W",
                 help="AI HelpDesk workspace name. Resolved to a workspace id "
                      "via the workspaces lookup.",
-                required=False,
-                default=None)
+                env='DUPLO_WORKSPACE')
 
 WORKSPACEID = Arg("workspace_id", "--workspace-id", "--wksp-id",
                   help="AI HelpDesk workspace id. Skips the workspace name "
                        "lookup when provided.",
-                  required=False,
-                  default=None)
+                  env='DUPLO_WORKSPACE_ID')
 
-APIVERSION = Arg("api_version", "--api-version",
-                help="API Version",
-                required=False,
-                default="v1")
+ENVIRONMENT = Arg("environment", "--environment", "--env", "-E",
+                  help="AI HelpDesk environment name. Resolved to an "
+                       "environment id via the environments lookup.")
+
+ENVIRONMENTID = Arg("environment_id", "--environment-id", "--env-id",
+                    help="AI HelpDesk environment id. Skips the environment "
+                         "name lookup when provided.")
+
+RESOURCEGROUP = Arg("resource_group", "--resource-group", "--rg", "-G",
+                    help="AI HelpDesk resource group name. Resolved to a "
+                         "resource group id via the resource groups lookup.")
+
+RESOURCEGROUPID = Arg("resource_group_id", "--resource-group-id", "--rg-id",
+                      help="AI HelpDesk resource group id. Skips the resource "
+                           "group name lookup when provided.")
+
+TICKET_STATUS = Arg("status", "--status",
+                    help="The ticket status to set.",
+                    choices=["open", "inProgress", "waitingForUserInput",
+                             "waitingForUserAgent", "closed"],
+                    required=False,
+                    default=None)
+
+TICKET_DISPOSITION = Arg("disposition", "--disposition",
+                         help="The ticket disposition. Required when closing "
+                              "a ticket.",
+                         choices=["resolved", "unResolved"],
+                         required=False,
+                         default=None)
 
 MESSAGE = Arg("message", "--content", "--msg", "--message", "-f",
               action=StdinTextAction,
