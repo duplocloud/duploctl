@@ -402,6 +402,22 @@ WORKSPACEID = Arg("workspace_id", "--workspace-id", "--wksp-id",
                        "lookup when provided.",
                   env='DUPLO_WORKSPACE_ID')
 
+ENVIRONMENT = Arg("environment", "--environment", "--env", "-E",
+                  help="AI HelpDesk environment name. Resolved to an "
+                       "environment id via the environments lookup.")
+
+ENVIRONMENTID = Arg("environment_id", "--environment-id", "--env-id",
+                    help="AI HelpDesk environment id. Skips the environment "
+                         "name lookup when provided.")
+
+RESOURCEGROUP = Arg("resource_group", "--resource-group", "--rg", "-G",
+                    help="AI HelpDesk resource group name. Resolved to a "
+                         "resource group id via the resource groups lookup.")
+
+RESOURCEGROUPID = Arg("resource_group_id", "--resource-group-id", "--rg-id",
+                      help="AI HelpDesk resource group id. Skips the resource "
+                           "group name lookup when provided.")
+
 TICKET_STATUS = Arg("status", "--status",
                     help="The ticket status to set.",
                     choices=["open", "inProgress", "waitingForUserInput",
