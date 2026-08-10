@@ -48,9 +48,7 @@ test = [
   # hook signature that pytest 9.1 removed, which crashes plugin registration.
   # Pin below 9.1 until pytest-black/pytest-isort are dropped in favor of ruff.
   "pytest<9.1",
-  # ruff 0.16 enabled new rules (I001/PLR0402/RUF015/...) that flag many
-  # pre-existing files. Pin below 0.16 until the tree is cleaned up.
-  "ruff<0.16",
+  "ruff",
   "pip-audit",
   "pytest-cov",
   "pytest-dependency",
@@ -138,6 +136,13 @@ exclude = [
   "**/test_*.py",
   "src/tests/*"
 ]
+
+[tool.ruff.lint]
+# Pin the rule set explicitly. ruff's implicit default expands over time
+# (0.16 turned on B/UP/I/PL/RUF/DTZ/... by default), which silently breaks
+# CI on a version bump. Selecting the historical E/F default keeps linting
+# stable; broaden this deliberately rather than inheriting ruff's defaults.
+select = ["E4", "E7", "E9", "F"]
 
 [tool.setuptools_scm]
 
