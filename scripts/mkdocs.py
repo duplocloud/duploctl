@@ -22,6 +22,8 @@ from project import Project, REPO_URL
 log = logging.getLogger('mkdocs')
 logging.basicConfig(level=logging.INFO)
 doc_dir = './dist/docs'
+# Link corrected copies of the root files, used as snippet sources.
+include_dir = './dist/includes'
 page_meta = None
 version = None
 
@@ -29,7 +31,8 @@ resource_nav = []
 include_pages = [
   "README.md=index.md",
   "CONTRIBUTING.md",
-  "CHANGELOG.md",
+  # staged as Changelog.md to match the url published in pyproject.toml
+  "CHANGELOG.md=Changelog.md",
   "CODE_OF_CONDUCT.md",
   "SECURITY.md",
   "LICENSE=License.md",
@@ -40,8 +43,70 @@ ignored = [
   "mcp"
 ]
 
+# The branch the site is built from, used to link back at repo files.
+repo_branch = "main"
+
+# Repo paths with a better destination than the raw Github blob url.
+link_overrides = {
+  "plugins": "/plugins/aws/",
+  "wiki": f"{REPO_URL}/wiki",
+}
+
+# The target of an inline markdown link, ie ./foo.md in [foo](./foo.md).
+link_re = re.compile(r'(?<=\]\()\s*([^)\s]+)')
+
 def copy_static():
   shutil.copytree('./wiki', doc_dir, dirs_exist_ok=True)
+
+def staged_pages():
+  """Map each root file to the doc page it is staged as."""
+  return {i.split('=')[0]: i.split('=')[-1] for i in include_pages}
+
+def rewrite_link(target: str, pages: dict) -> str:
+  """Rewrite a repo relative link target so it resolves on the site.
+
+  Github resolves these against the repo root, but the site serves the
+  same file at /<Page>/ so the browser resolves them against that page
+  url instead and 404s. Links pointing at another staged page stay
+  relative, everything else points back at the repo on Github.
+
+  Args:
+    target: The raw link target as written in the root file.
+    pages: Map of root file to staged page name.
+
+  Returns:
+    target: The target rewritten for the doc site.
+  """
+  # already portable, ie absolute urls, anchors and site absolute paths
+  if target.startswith(("http://", "https://", "//", "/", "#", "mailto:")):
+    return target
+  path, sep, anchor = target.partition('#')
+  clean = path[2:] if path.startswith('./') else path
+  clean = clean.rstrip('/')
+  if not clean:
+    return target
+  if clean in pages:
+    return pages[clean] + sep + anchor
+  if clean in link_overrides:
+    return link_overrides[clean]
+  if os.path.isdir(clean):
+    return f"{REPO_URL}/tree/{repo_branch}/{clean}/"
+  if os.path.isfile(clean):
+    return f"{REPO_URL}/blob/{repo_branch}/{clean}"
+  # unknown target, leave it alone so the mkdocs warning still fires
+  log.warning(f"unresolved link target '{target}' in staged docs")
+  return target
+
+def stage_include(include):
+  """Stage a link corrected copy of a root file for the snippet include."""
+  file = include.split('=')[0]
+  with open(file, 'r') as f:
+    content = f.read()
+  pages = staged_pages()
+  content = link_re.sub(lambda m: rewrite_link(m.group(1), pages), content)
+  fp = f"{include_dir}/{file}"
+  with open(fp, 'w') as f:
+    f.write(content)
 
 def _own_public_methods(cls):
   """Return names of public methods defined in the source of cls.
@@ -185,11 +250,13 @@ def on_startup(**kwargs):
   project = Project()
   version = str(project.latest_tag)
   os.makedirs('dist/docs', exist_ok=True)
+  os.makedirs('dist/includes', exist_ok=True)
   copy_static()
   for e in ep:
     if e.name not in ignored:
       gen_resource_page(e)
   for f in include_pages:
+    stage_include(f)
     gen_include_page(f)
   FILTERS['page_meta'] = page_meta_filter
   FILTERS['cli_arg'] = cli_arg_filter
