@@ -262,3 +262,32 @@ class DuploWorkspace(DuploResource):
     except DuploNotFound:
       return self.create(body=body)
     return self.update(body=body)
+
+  @Command()
+  def use(self, name: args.NAME = None) -> dict:
+    """Make a workspace the sticky default in the local config.
+
+    Validates the workspace exists in the portal (so this needs
+    connectivity, unlike ``duploctl config set workspace``) and then
+    persists its canonical name to the current config context.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace use my-workspace
+      ```
+
+    Args:
+      name: The workspace name to make the default.
+
+    Returns:
+      message: Which key was set in which context.
+
+    Raises:
+      DuploError: If no name is given.
+      DuploNotFound: If no workspace matches the name.
+    """
+    if not name:
+      raise DuploError("A workspace name is required", 400)
+    ws = self.find(name)
+    config = self.duplo.load("config")
+    return config.set("workspace", ws["name"])

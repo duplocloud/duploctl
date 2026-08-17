@@ -1,14 +1,13 @@
 
 import sys
 import jmespath
-import os
-import yaml
 import jsonpatch
 import logging
 import traceback
 from urllib.parse import urlparse
 from pathlib import Path
 from .commander import load_resource, load_format, load_client
+from .config import DuploConfig
 from .errors import DuploError, DuploInvalidError
 from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
@@ -111,7 +110,7 @@ class DuploCtl():
     self.home_dir = home_dir or f"{user_home}/.duplo"
     self.config_file = config_file or f"{self.home_dir}/config"
     self.cache_dir = cache_dir or f"{self.home_dir}/cache"
-    self._config = None
+    self.config_store = DuploConfig(self.config_file)
     self._context = ctx
     self._host = self._sanitize_host(host)
     self._token = token.strip() if token else token
@@ -210,12 +209,7 @@ class DuploCtl():
     Returns:
       settings: The config as a dict.
     """
-    if self._config is None:
-      if not os.path.exists(self.config_file):
-        raise DuploError("Duplo config not found", 500)
-      with open(self.config_file, "r") as f:
-        self._config = yaml.safe_load(f)
-    return self._config
+    return self.config_store.data
 
   @property
   def context(self) -> dict:
@@ -226,15 +220,7 @@ class DuploCtl():
     Returns:
       The context as a dict.
     """
-    s = self.settings
-    ctx = self._context if self._context else s.get("current-context", None)
-    if ctx is None:
-      raise DuploError(
-        "Duplo context not set, please set 'current-context' to a portals name in your config", 500)
-    try:
-      return [c for c in s["contexts"] if c["name"] == ctx][0]
-    except IndexError:
-      raise DuploError(f"Portal '{ctx}' not found in config", 500)
+    return self.config_store.get_context(self._context)
 
   @property
   def host(self) -> str:
@@ -373,6 +359,8 @@ Available Resources:
     ctx = self.context
 
     # set the context into this config
+    # NOTE: interactive/admin/nocache below hard-default to False, so a
+    # context load clobbers those CLI flags. Known footgun, kept as-is.
     self._host = self._sanitize_host(ctx.get("host", None))
     self._token = ctx.get("token", None)
     self._tenant = ctx.get("tenant", self._tenant)

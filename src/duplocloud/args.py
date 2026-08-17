@@ -179,6 +179,12 @@ S3BUCKET = Arg("bucket",
 S3KEY = Arg("key",
             help='The s3 key to use')
 
+CONFIG_KEY = Arg("key",
+            help='The config context key to operate on')
+
+CONFIG_VALUE = Arg("value",
+            help='The value to set for the config key')
+
 HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
             help='The health check URL')
 
