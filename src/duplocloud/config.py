@@ -31,17 +31,26 @@ def _atomic_write_yaml(path: str, data: dict) -> None:
 
   Concurrent readers never observe a truncated or partially written
   file. The file is created 0o600 up front (not chmodded after the
-  write) because it may hold tokens and the umask must not widen it.
+  write) because it may hold tokens and the umask must not widen it,
+  and exclusively, so a pre-created file or symlink at the temp path
+  fails the write instead of redirecting it. Failed writes leave no
+  temp file behind.
 
   Args:
     path: The destination file path.
     data: The dict to serialize.
   """
   tmp_path = f"{path}.tmp.{os.getpid()}"
-  fd = os.open(tmp_path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
-  with os.fdopen(fd, "w") as f:
-    yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
-  os.replace(tmp_path, path)
+  try:
+    fd = os.open(tmp_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    with os.fdopen(fd, "w") as f:
+      yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+    os.replace(tmp_path, path)
+  finally:
+    try:
+      os.remove(tmp_path)
+    except OSError:
+      pass
 
 
 class DuploConfig():
@@ -67,9 +76,17 @@ class DuploConfig():
       if not os.path.exists(self.path):
         raise DuploError("Duplo config not found", 500)
       with open(self.path, "r") as f:
-        # an empty/whitespace-only file loads as None; treat it as a
-        # fresh scaffold instead of crashing downstream .get() calls
-        self._data = yaml.safe_load(f) or self.scaffold()
+        try:
+          doc = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+          raise DuploError(f"Invalid YAML in duplo config: {e}", 500)
+      # an empty/whitespace-only file loads as None; treat it as a
+      # fresh scaffold instead of crashing downstream .get() calls
+      if doc is None:
+        doc = self.scaffold()
+      if not isinstance(doc, dict):
+        raise DuploError("Duplo config must be a YAML mapping", 500)
+      self._data = doc
     return self._data
 
   def exists(self) -> bool:

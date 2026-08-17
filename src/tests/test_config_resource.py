@@ -232,11 +232,12 @@ class TestDuploConfig:
     with pytest.raises(DuploError, match="context not set"):
       store.get_context()
 
-  def test_tmp_file_created_private(self, tmp_path, monkeypatch):
-    """Test the temp file is 0o600 from creation, not post-chmod.
+  def test_failed_write_leaves_no_temp_file(self, tmp_path,
+                                            monkeypatch):
+    """Test a dump failure cleans up its temp file.
 
-    A dump failure must not orphan a world-readable temp file
-    holding tokens, regardless of the process umask.
+    A failed write must never orphan a temp file holding tokens,
+    regardless of the process umask.
     """
     import duplocloud.config as config_module
     path = str(tmp_path / "config")
@@ -250,10 +251,38 @@ class TestDuploConfig:
         store.save({"current-context": None, "contexts": []})
     finally:
       os.umask(old_umask)
-    leftovers = [e for e in os.listdir(str(tmp_path)) if ".tmp." in e]
-    for name in leftovers:
-      mode = stat.S_IMODE(os.stat(str(tmp_path / name)).st_mode)
-      assert mode == 0o600
+    assert [e for e in os.listdir(str(tmp_path)) if ".tmp." in e] == []
+
+  def test_write_refuses_precreated_temp_path(self, tmp_path):
+    """Test the exclusive create fails on a pre-created temp path.
+
+    A file or symlink squatting on the predictable temp name must
+    fail the write instead of being followed or overwritten.
+    """
+    path = str(tmp_path / "config")
+    store = DuploConfig(path)
+    tmp = f"{path}.tmp.{os.getpid()}"
+    victim = str(tmp_path / "victim")
+    with open(victim, "w") as f:
+      f.write("untouched")
+    os.symlink(victim, tmp)
+    with pytest.raises(FileExistsError):
+      store.save({"current-context": None, "contexts": []})
+    assert open(victim).read() == "untouched"
+    assert not os.path.exists(path)
+
+  def test_non_mapping_config_errors(self, tmp_path):
+    """Test list/scalar roots and malformed YAML raise DuploError."""
+    store = DuploConfig(str(tmp_path / "config"))
+    with open(store.path, "w") as f:
+      f.write("- just\n- a\n- list\n")
+    with pytest.raises(DuploError, match="must be a YAML mapping"):
+      store.data
+    broken = DuploConfig(str(tmp_path / "broken"))
+    with open(broken.path, "w") as f:
+      f.write("contexts: [unclosed\n")
+    with pytest.raises(DuploError, match="Invalid YAML"):
+      broken.data
 
   def test_failed_save_leaves_cache_untouched(self, tmp_path,
                                               monkeypatch):
