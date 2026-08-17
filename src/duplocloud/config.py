@@ -6,6 +6,7 @@ config file (default ``~/.duplo/config``). Consumed by both the
 (read/write path). Concurrent writers are last-writer-wins; the atomic
 replace only guarantees readers never see a torn file.
 """
+import copy
 import os
 import yaml
 from .errors import DuploError
@@ -29,16 +30,17 @@ def _atomic_write_yaml(path: str, data: dict) -> None:
   """Write YAML to a file atomically via a temp file and rename.
 
   Concurrent readers never observe a truncated or partially written
-  file. The file is chmodded 0o600 because it may hold tokens.
+  file. The file is created 0o600 up front (not chmodded after the
+  write) because it may hold tokens and the umask must not widen it.
 
   Args:
     path: The destination file path.
     data: The dict to serialize.
   """
   tmp_path = f"{path}.tmp.{os.getpid()}"
-  with open(tmp_path, "w") as f:
+  fd = os.open(tmp_path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+  with os.fdopen(fd, "w") as f:
     yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
-  os.chmod(tmp_path, 0o600)
   os.replace(tmp_path, path)
 
 
@@ -65,7 +67,9 @@ class DuploConfig():
       if not os.path.exists(self.path):
         raise DuploError("Duplo config not found", 500)
       with open(self.path, "r") as f:
-        self._data = yaml.safe_load(f)
+        # an empty/whitespace-only file loads as None; treat it as a
+        # fresh scaffold instead of crashing downstream .get() calls
+        self._data = yaml.safe_load(f) or self.scaffold()
     return self._data
 
   def exists(self) -> bool:
@@ -89,12 +93,15 @@ class DuploConfig():
     _atomic_write_yaml(self.path, data)
     self._data = data
 
-  def current_context_name(self, override: str = None) -> str:
+  def current_context_name(self, override: str = None,
+                           data: dict = None) -> str:
     """Resolve the name of the context to operate on.
 
     Args:
       override: An explicit context name (the ``--ctx`` flag) which
         wins over the file's ``current-context``.
+      data: The document to resolve against. Defaults to the cached
+        document (which requires the file to exist).
 
     Returns:
       The context name.
@@ -102,7 +109,8 @@ class DuploConfig():
     Raises:
       DuploError: If no context is selected anywhere.
     """
-    ctx = override if override else self.data.get("current-context", None)
+    doc = data if data is not None else self.data
+    ctx = override if override else doc.get("current-context", None)
     if ctx is None:
       raise DuploError(
         "Duplo context not set, please set 'current-context' to a portals name in your config", 500)
@@ -137,8 +145,9 @@ class DuploConfig():
       DuploError: If no such context exists in the config.
     """
     self.get_context(name)
-    self.data["current-context"] = name
-    self.save()
+    data = copy.deepcopy(self.data)
+    data["current-context"] = name
+    self.save(data)
 
   def validate_key(self, key: str) -> str:
     """Validate a context key against the strict allowlist.
@@ -194,13 +203,16 @@ class DuploConfig():
     self.validate_key(key)
     if key in BOOLEAN_CONTEXT_KEYS:
       value = self._coerce_bool(key, value)
+    # mutate a copy, never the cache: save() only advances the cached
+    # document once the atomic write has actually succeeded
     if not self.exists():
       if ctx_name is None:
         raise DuploError(
           "No context selected; pass --ctx <name> to create or target a context", 400)
-      self._data = self.scaffold()
-    data = self.data
-    ctx = self.current_context_name(ctx_name)
+      data = self.scaffold()
+    else:
+      data = copy.deepcopy(self.data)
+    ctx = self.current_context_name(ctx_name, data)
     contexts = data.get("contexts", None) or []
     data["contexts"] = contexts
     target = next((c for c in contexts if c.get("name") == ctx), None)
@@ -226,11 +238,14 @@ class DuploConfig():
       The name of the context that was written.
     """
     self.validate_key(key)
-    target = self.get_context(ctx_name)
-    if key in target:
+    ctx = self.get_context(ctx_name)
+    if key in ctx:
+      data = copy.deepcopy(self.data)
+      target = next(
+        c for c in data["contexts"] if c["name"] == ctx["name"])
       del target[key]
-      self.save()
-    return target["name"]
+      self.save(data)
+    return ctx["name"]
 
   def _coerce_bool(self, key: str, value) -> bool:
     """Coerce a boolean key's value to a bool.

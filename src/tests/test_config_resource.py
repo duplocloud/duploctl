@@ -223,6 +223,55 @@ class TestDuploConfig:
                  if ".tmp." in e]
     assert leftovers == []
 
+  def test_empty_file_loads_as_scaffold(self, tmp_path):
+    """Test an empty config file loads as a scaffold, not None."""
+    store = DuploConfig(str(tmp_path / "config"))
+    with open(store.path, "w") as f:
+      f.write("\n")
+    assert store.data == {"current-context": None, "contexts": []}
+    with pytest.raises(DuploError, match="context not set"):
+      store.get_context()
+
+  def test_tmp_file_created_private(self, tmp_path, monkeypatch):
+    """Test the temp file is 0o600 from creation, not post-chmod.
+
+    A dump failure must not orphan a world-readable temp file
+    holding tokens, regardless of the process umask.
+    """
+    import duplocloud.config as config_module
+    path = str(tmp_path / "config")
+    store = DuploConfig(path)
+    monkeypatch.setattr(
+      config_module.yaml, "safe_dump",
+      MagicMock(side_effect=RuntimeError("boom")))
+    old_umask = os.umask(0o022)
+    try:
+      with pytest.raises(RuntimeError):
+        store.save({"current-context": None, "contexts": []})
+    finally:
+      os.umask(old_umask)
+    leftovers = [e for e in os.listdir(str(tmp_path)) if ".tmp." in e]
+    for name in leftovers:
+      mode = stat.S_IMODE(os.stat(str(tmp_path / name)).st_mode)
+      assert mode == 0o600
+
+  def test_failed_save_leaves_cache_untouched(self, tmp_path,
+                                              monkeypatch):
+    """Test a failed write never leaves phantom values in the cache."""
+    import duplocloud.config as config_module
+    store = DuploConfig(write_fixture(tmp_path))
+    assert store.get_context()["tenant"] == "dev01"
+    monkeypatch.setattr(
+      config_module, "_atomic_write_yaml",
+      MagicMock(side_effect=OSError("disk full")))
+    for call in (lambda: store.set_key("tenant", "phantom"),
+                 lambda: store.unset_key("tenant"),
+                 lambda: store.set_current_context("other")):
+      with pytest.raises(OSError):
+        call()
+    assert store.get_context()["tenant"] == "dev01"
+    assert store.data["current-context"] == "primary"
+
   def test_valid_keys_include_helpdesk(self):
     """Test the allowlist carries the helpdesk context keys."""
     for key in ("environment", "resource_group",
