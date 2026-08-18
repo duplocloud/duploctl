@@ -53,7 +53,12 @@ class DuploPod(DuploResourceV2):
     }
     response = self.client.post(self.endpoint("findContainerLogs"), data)
     o = response.json()
-    lines = o["Data"].split("\n")
+    # A running pod may have no retrievable logs yet, in which case the
+    # backend omits the Data key entirely.
+    logs = o.get("Data")
+    if logs is None:
+      return None
+    lines = logs.split("\n")
     if lines[-1] == "":
       lines.pop()
     last = self.__last_lines.get(id, 0)

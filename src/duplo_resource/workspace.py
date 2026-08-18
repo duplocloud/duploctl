@@ -4,10 +4,11 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
+from duplo_resource.helpdesk_client import unwrap_data
 import duplocloud.args as args
 
 
-@Resource("workspace", scope="tenant")
+@Resource("workspace", scope="portal", client="helpdesk")
 class DuploWorkspace(DuploResource):
   """Manage AI HelpDesk workspaces in DuploCloud.
 
@@ -17,19 +18,11 @@ class DuploWorkspace(DuploResource):
   """
 
   def __init__(self, duplo: DuploCtl):
-    super().__init__(duplo, api_version="v1")
-
-  def _items(self, response: dict) -> list:
-    """Unwrap a list envelope ``{success, data: {items: [...]}}``."""
-    return response.get("data", {}).get("items", [])
-
-  def _data(self, response: dict) -> dict:
-    """Unwrap a single-object envelope ``{success, data: {...}}``."""
-    data = response.get("data")
-    return data if isinstance(data, dict) else response
+    super().__init__(duplo)
+    self.__agent_svc = self.duplo.load("agent")
 
   @Command("ls")
-  def list(self, api_version: args.APIVERSION = "v1") -> list:
+  def list(self) -> list:
     """Retrieve a list of AI HelpDesk workspaces.
 
     Usage: CLI Usage
@@ -37,22 +30,15 @@ class DuploWorkspace(DuploResource):
       duploctl workspace list
       ```
 
-    Args:
-      api_version: Helpdesk API version.
-
     Returns:
       list: A list of workspace objects.
     """
-    api_version = api_version.strip().lower()
-    response = self.client.get(
-        f"{api_version}/aiservicedesk/admin/data/workspaces").json()
-    return self._items(response)
+    return self.client.get_items("admin/data/workspaces")
 
   @Command()
   def find(self,
            name: args.NAME = None,
-           id: args.ID = None,
-           api_version: args.APIVERSION = "v1") -> dict:
+           id: args.ID = None) -> dict:
     """Find an AI HelpDesk workspace by name or id.
 
     With ``--id`` the workspace is fetched directly. Otherwise it is
@@ -67,7 +53,6 @@ class DuploWorkspace(DuploResource):
     Args:
       name: The workspace name as shown in the portal.
       id: The workspace id. Skips the name lookup when provided.
-      api_version: Helpdesk API version.
 
     Returns:
       resource: The matching workspace object.
@@ -76,23 +61,204 @@ class DuploWorkspace(DuploResource):
       DuploError: If neither name nor id is given.
       DuploNotFound: If no workspace matches the name or id.
     """
-    api_version = api_version.strip().lower()
-    base = f"{api_version}/aiservicedesk/admin/data/workspaces"
     if id:
-      response = self.client.get(f"{base}/{quote_plus(id)}").json()
-      workspace = self._data(response)
+      response = self.client.get(
+          f"admin/data/workspaces/{quote_plus(id)}").json()
+      workspace = unwrap_data(response)
       if not workspace.get("id"):
         raise DuploNotFound(id, self.kind)
       return workspace
 
     if not name:
-      raise DuploError("Either a workspace name or --id is required")
+      raise DuploError(
+          "A workspace is required: pass -W/--workspace, --workspace-id, "
+          "or set DUPLO_WORKSPACE")
 
-    response = self.client.get(
-        f"{base}?filters[name]={quote_plus(name)}").json()
+    items = self.client.get_items(
+        f"admin/data/workspaces?filters[name]={quote_plus(name)}")
     target = name.lower()
-    match = next((w for w in self._items(response)
+    match = next((w for w in items
                   if (w.get("name") or "").lower() == target), None)
     if not match:
       raise DuploNotFound(name, self.kind)
     return match
+
+  @Command()
+  def delete(self,
+             name: args.NAME = None,
+             id: args.ID = None) -> dict:
+    """Delete an AI HelpDesk workspace by name or id.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace delete <name>
+      duploctl workspace delete --id <id>
+      ```
+
+    Args:
+      name: The workspace name as shown in the portal.
+      id: The workspace id. Skips the name lookup when provided.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploNotFound: If no workspace matches the name or id.
+    """
+    wid = self.find(name=name, id=id)["id"]
+    self.client.delete(f"admin/data/workspaces/{quote_plus(wid)}")
+    return {"message": f"workspace '{name or id}' deleted"}
+
+  @Command()
+  def add_agent(self,
+                name: args.NAME = None,
+                id: args.ID = None,
+                agent_name: args.AGENTNAME = None,
+                agent_id: args.AGENTID = None) -> dict:
+    """Add an AI agent to a workspace.
+
+    The workspace and agent are each resolved by name or id via their
+    respective `find` commands.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace add_agent <name> --agent <agent name>
+      duploctl workspace add_agent --id <id> --agent_id <agent id>
+      ```
+
+    Args:
+      name: The workspace name.
+      id: The workspace id. Skips the workspace name lookup.
+      agent_name: The agent name to add.
+      agent_id: The agent id to add. Skips the agent name lookup.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploNotFound: If the workspace or agent cannot be found.
+    """
+    wid = self.find(name=name, id=id)["id"]
+    aid = self.__agent_svc.find(name=agent_name, id=agent_id)["id"]
+    self.client.post(
+        f"admin/data/workspaces/{quote_plus(wid)}/agents/{quote_plus(aid)}")
+    return {"message": f"agent '{agent_name or agent_id}' added to "
+                       f"workspace '{name or id}'"}
+
+  @Command()
+  def remove_agent(self,
+                   name: args.NAME = None,
+                   id: args.ID = None,
+                   agent_name: args.AGENTNAME = None,
+                   agent_id: args.AGENTID = None) -> dict:
+    """Remove an AI agent from a workspace.
+
+    The workspace and agent are each resolved by name or id via their
+    respective `find` commands.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace remove_agent <name> --agent <agent name>
+      duploctl workspace remove_agent --id <id> --agent_id <agent id>
+      ```
+
+    Args:
+      name: The workspace name.
+      id: The workspace id. Skips the workspace name lookup.
+      agent_name: The agent name to remove.
+      agent_id: The agent id to remove. Skips the agent name lookup.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploNotFound: If the workspace or agent cannot be found.
+    """
+    wid = self.find(name=name, id=id)["id"]
+    aid = self.__agent_svc.find(name=agent_name, id=agent_id)["id"]
+    self.client.delete(
+        f"admin/data/workspaces/{quote_plus(wid)}/agents/{quote_plus(aid)}")
+    return {"message": f"agent '{agent_name or agent_id}' removed from "
+                       f"workspace '{name or id}'"}
+
+  @Command()
+  def create(self, body: args.BODY) -> dict:
+    """Create an AI HelpDesk workspace.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace create -f workspace.yaml
+      ```
+
+    Args:
+      body: The workspace definition.
+
+    Returns:
+      resource: The created workspace object.
+    """
+    response = self.client.post("admin/data/workspaces", body).json()
+    return unwrap_data(response)
+
+  @Command()
+  def update(self,
+             body: args.BODY = None,
+             name: args.NAME = None,
+             id: args.ID = None) -> dict:
+    """Update an AI HelpDesk workspace.
+
+    The target is resolved by ``--id``, ``name``, or the body's ``name``
+    field, in that order. The update is a full replace — fields omitted
+    from the body are cleared — and the name is immutable, so a body
+    whose ``name`` differs from the stored record is rejected by the
+    backend.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace update <name> -f workspace.yaml
+      duploctl workspace update -f workspace.yaml
+      ```
+
+    Args:
+      body: The workspace definition to apply.
+      name: The workspace name. Defaults to the body's ``name``.
+      id: The workspace id. Skips the name lookup when provided.
+
+    Returns:
+      resource: The updated workspace object.
+
+    Raises:
+      DuploError: If no body is provided.
+      DuploNotFound: If the workspace cannot be found.
+    """
+    if not isinstance(body, dict):
+      raise DuploError("A request body (-f) is required")
+    wid = self.find(name=name or body.get("name"), id=id)["id"]
+    response = self.client.put(
+        f"admin/data/workspaces/{quote_plus(wid)}", body).json()
+    return unwrap_data(response)
+
+  @Command()
+  def apply(self, body: args.BODY) -> dict:
+    """Create or update an AI HelpDesk workspace.
+
+    Looks the workspace up by the body's ``name``: updates it when it
+    exists, creates it otherwise.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace apply -f workspace.yaml
+      ```
+
+    Args:
+      body: The workspace definition to apply.
+
+    Returns:
+      resource: The created or updated workspace object.
+    """
+    if not isinstance(body, dict):
+      raise DuploError("A request body (-f) is required")
+    try:
+      self.find(name=body.get("name"))
+    except DuploNotFound:
+      return self.create(body=body)
+    return self.update(body=body)
