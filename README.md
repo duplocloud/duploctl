@@ -66,6 +66,8 @@ duploctl service list -q '[].Name'
 | `--wait`, `-w` | -- | `false` | Wait for async operations to complete |
 | `--file`, `-f` | -- | -- | YAML/JSON file for resource body input |
 | `--interactive`, `-I` | -- | `false` | Use interactive browser-based login |
+| `--headless`, `--no-browser` | `DUPLO_HEADLESS` | `false` | Interactive login without a browser, for remote hosts and containers |
+| `--headless-port` | `DUPLO_HEADLESS_PORT` | -- | Receive the headless login callback on this (forwarded) port |
 | `--admin`, `--isadmin` | -- | `false` | Request admin JIT credentials (use with `-I`) |
 | `--log-level`, `-L` | `DUPLO_LOG_LEVEL` | `INFO` | Log level |
 | `--config-file` | `DUPLO_CONFIG` | -- | Path to duploctl config file |
@@ -74,6 +76,34 @@ duploctl service list -q '[].Name'
 | `--dry-run` | -- | `false` | Print changes without submitting |
 
 Full argument reference: [cli.duplocloud.com/Args](https://cli.duplocloud.com/Args/)
+
+### Headless Login
+
+On a machine with no browser, like a remote host over ssh or a container, add
+`--headless` to any interactive command. The login url is printed, you open it
+in a browser anywhere, and the browser is then redirected to a
+`http://localhost:56789/?t=...` page that fails to load. Paste that whole
+address back into the terminal and duploctl reads the token out of it. The
+token is cached exactly like a browser login, so later commands need no
+prompt.
+
+```sh
+duploctl jit aws --headless
+```
+
+If you can forward a port, `--headless-port` skips the pasting entirely.
+duploctl listens on that port for the callback, so the redirect reaches it
+through the tunnel.
+
+```sh
+ssh -L 56789:localhost:56789 remotehost
+duploctl jit aws --headless-port 56789
+```
+
+The port mode also works where there is no terminal to paste into, such as an
+AWS `credential_process` or a kubectl exec credential plugin. `--headless` and
+`--headless-port` both imply `--interactive`, and are inherited by the
+commands written by `jit update_aws_config` and `jit update_kubeconfig`.
 
 ## CLI Usage
 
