@@ -182,6 +182,78 @@ class DuploWorkspace(DuploResource):
                        f"workspace '{name or id}'"}
 
   @Command()
+  def add_scope(self,
+                name: args.NAME = None,
+                id: args.ID = None,
+                scope_name: args.SCOPENAME = None,
+                scope_id: args.SCOPEID = None) -> dict:
+    """Attach a scope to a workspace.
+
+    The workspace and scope are each resolved by name or id via their
+    respective `find` commands.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace add_scope <name> --scope <scope name>
+      duploctl workspace add_scope --id <id> --scope_id <scope id>
+      ```
+
+    Args:
+      name: The workspace name.
+      id: The workspace id. Skips the workspace name lookup.
+      scope_name: The scope name to attach.
+      scope_id: The scope id to attach. Skips the scope name lookup.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploNotFound: If the workspace or scope cannot be found.
+    """
+    wid = self.find(name=name, id=id)["id"]
+    sid = self.duplo.load("scope").find(name=scope_name, id=scope_id)["id"]
+    self.client.post(
+        f"admin/data/workspaces/{quote_plus(wid)}/scopes/{quote_plus(sid)}")
+    return {"message": f"scope '{scope_name or scope_id}' added to "
+                       f"workspace '{name or id}'"}
+
+  @Command()
+  def remove_scope(self,
+                   name: args.NAME = None,
+                   id: args.ID = None,
+                   scope_name: args.SCOPENAME = None,
+                   scope_id: args.SCOPEID = None) -> dict:
+    """Detach a scope from a workspace.
+
+    The workspace and scope are each resolved by name or id via their
+    respective `find` commands.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl workspace remove_scope <name> --scope <scope name>
+      duploctl workspace remove_scope --id <id> --scope_id <scope id>
+      ```
+
+    Args:
+      name: The workspace name.
+      id: The workspace id. Skips the workspace name lookup.
+      scope_name: The scope name to detach.
+      scope_id: The scope id to detach. Skips the scope name lookup.
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploNotFound: If the workspace or scope cannot be found.
+    """
+    wid = self.find(name=name, id=id)["id"]
+    sid = self.duplo.load("scope").find(name=scope_name, id=scope_id)["id"]
+    self.client.delete(
+        f"admin/data/workspaces/{quote_plus(wid)}/scopes/{quote_plus(sid)}")
+    return {"message": f"scope '{scope_name or scope_id}' removed from "
+                       f"workspace '{name or id}'"}
+
+  @Command()
   def create(self, body: args.BODY) -> dict:
     """Create an AI HelpDesk workspace.
 
