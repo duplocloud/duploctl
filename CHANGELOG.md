@@ -43,6 +43,10 @@ and implementation detail belong in the PR, not here.
 - `tenant stop`/`start` now also stop/start ReplicationController services (k8s and native Docker, not ECS); the platform preserves replica counts. Exclude with `--exclude service/<name>`.
 - `tenant stop` treats an already-stopped Aurora cluster as benign instead of a failure.
 
+### Changed
+
+- Pinned ruff's lint `select` to the historical `E`/`F` default so ruff version bumps no longer silently change enforced rules; unpinned the ruff version.
+
 ## [0.4.5] - 2026-07-20
 
 ### Fixed
