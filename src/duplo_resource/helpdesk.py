@@ -34,17 +34,19 @@ field to match before the resource counts as ready.
 
 
 class HelpdeskResource(DuploResource):
-  """Shared plumbing for AI HelpDesk (HDV2) resources.
+  """Shared plumbing for AI HelpDesk resources.
 
-  Consolidates the id-casing tolerance and name→id resolution shared by
-  the HDV2 resources (environment, resource group, and the workloads) so
-  the behavior cannot drift between them. Concrete resources are
-  registered with ``scope="workspace"`` and ``client="helpdesk"``, so the
-  workspace is resolved lazily from the global ``-W``/``--workspace-id``
-  flags via the injected ``workspace_id`` property, and requests go
-  through the dedicated helpdesk client. Sibling resources used for
-  resolution are lazy-loaded so instantiating one resource never eagerly
-  instantiates another (or, for ``environment``, itself).
+  Consolidates the id-casing tolerance, name→id resolution, and waiter
+  behavior shared by all helpdesk resources so it cannot drift between
+  them. Two families build on it: the workspace-scoped HDV2 entities
+  (environment, resource group, and the workloads), registered with
+  ``scope="workspace"`` so the workspace resolves lazily from the
+  global ``-W``/``--workspace-id`` flags via the injected
+  ``workspace_id`` property, and the portal-scoped admin data-plane
+  entities via ``HelpdeskAdminResource``. All requests go through the
+  dedicated helpdesk client. Sibling resources used for resolution are
+  lazy-loaded so instantiating one resource never eagerly instantiates
+  another (or, for ``environment``, itself).
   """
 
   waiter = None
@@ -251,7 +253,7 @@ class HelpdeskAdminResource(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl <resource> list
+      duploctl {{command}} list
       ```
 
     Returns:
@@ -270,8 +272,8 @@ class HelpdeskAdminResource(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl <resource> find <name>
-      duploctl <resource> find --id <id>
+      duploctl {{command}} find <name>
+      duploctl {{command}} find --id <id>
       ```
 
     Args:
@@ -293,7 +295,7 @@ class HelpdeskAdminResource(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl <resource> create -f resource.yaml
+      duploctl {{command}} create -f resource.yaml
       ```
 
     Args:
@@ -330,8 +332,8 @@ class HelpdeskAdminResource(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl <resource> update <name> -f resource.yaml
-      duploctl <resource> update -f resource.yaml
+      duploctl {{command}} update <name> -f resource.yaml
+      duploctl {{command}} update -f resource.yaml
       ```
 
     Args:
@@ -367,7 +369,7 @@ class HelpdeskAdminResource(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl <resource> apply -f resource.yaml
+      duploctl {{command}} apply -f resource.yaml
       ```
 
     Args:
@@ -381,11 +383,14 @@ class HelpdeskAdminResource(HelpdeskResource):
     """
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
+    name = body.get("name") or body.get("Name")
+    if not name:
+      raise DuploError("The body must include a 'name' field for apply")
     try:
-      self.find(name=body.get("name") or body.get("Name"))
+      existing = self.find(name=name)
     except DuploNotFound:
       return self.create(body=body)
-    return self.update(body=body)
+    return self.update(body=body, id=self._id_of(existing))
 
   @Command()
   def delete(self,
@@ -395,8 +400,8 @@ class HelpdeskAdminResource(HelpdeskResource):
 
     Usage: CLI Usage
       ```sh
-      duploctl <resource> delete <name>
-      duploctl <resource> delete --id <id>
+      duploctl {{command}} delete <name>
+      duploctl {{command}} delete --id <id>
       ```
 
     Args:

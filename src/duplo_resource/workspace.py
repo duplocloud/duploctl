@@ -20,6 +20,14 @@ class DuploWorkspace(DuploResource):
   def __init__(self, duplo: DuploCtl):
     super().__init__(duplo)
     self.__agent_svc = self.duplo.load("agent")
+    self.__scope_svc = None
+
+  @property
+  def _scope_svc(self):
+    """Lazy-load the scope resource for the scope mapping commands."""
+    if self.__scope_svc is None:
+      self.__scope_svc = self.duplo.load("scope")
+    return self.__scope_svc
 
   @Command("ls")
   def list(self) -> list:
@@ -211,7 +219,7 @@ class DuploWorkspace(DuploResource):
       DuploNotFound: If the workspace or scope cannot be found.
     """
     wid = self.find(name=name, id=id)["id"]
-    sid = self.duplo.load("scope").find(name=scope_name, id=scope_id)["id"]
+    sid = self._scope_svc.find(name=scope_name, id=scope_id)["id"]
     self.client.post(
         f"admin/data/workspaces/{quote_plus(wid)}/scopes/{quote_plus(sid)}")
     return {"message": f"scope '{scope_name or scope_id}' added to "
@@ -247,7 +255,7 @@ class DuploWorkspace(DuploResource):
       DuploNotFound: If the workspace or scope cannot be found.
     """
     wid = self.find(name=name, id=id)["id"]
-    sid = self.duplo.load("scope").find(name=scope_name, id=scope_id)["id"]
+    sid = self._scope_svc.find(name=scope_name, id=scope_id)["id"]
     self.client.delete(
         f"admin/data/workspaces/{quote_plus(wid)}/scopes/{quote_plus(sid)}")
     return {"message": f"scope '{scope_name or scope_id}' removed from "

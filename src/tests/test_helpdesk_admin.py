@@ -182,11 +182,19 @@ class TestAdminResourceCrud:
     def test_apply_updates_when_found(self, mocker):
         resource = _make_resource(mocker)
         client = _make_client(mocker, resource,
-                              items_responses=[[_SCOPE_FULL], [_SCOPE_FULL]],
+                              items_responses=[[_SCOPE_FULL]],
                               put_response=_SCOPE_DETAIL)
         resource.apply({"name": _SCOPE_NAME})
         client.put.assert_called_once()
         client.post.assert_not_called()
+        # the found id is threaded into update, so no second lookup
+        assert client.get_items.call_count == 1
+
+    def test_apply_requires_name_in_body(self, mocker):
+        resource = _make_resource(mocker)
+        _make_client(mocker, resource)
+        with pytest.raises(DuploError, match="'name' field"):
+            resource.apply({"description": "no name"})
 
     def test_delete_by_name(self, mocker):
         resource = _make_resource(mocker)
