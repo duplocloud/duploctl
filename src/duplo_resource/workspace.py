@@ -219,7 +219,8 @@ class DuploWorkspace(DuploResource):
       DuploNotFound: If the workspace or scope cannot be found.
     """
     wid = self.find(name=name, id=id)["id"]
-    sid = self._scope_svc.find(name=scope_name, id=scope_id)["id"]
+    scope = self._scope_svc.find(name=scope_name, id=scope_id)
+    sid = self._scope_svc._id_of(scope)
     self.client.post(
         f"admin/data/workspaces/{quote_plus(wid)}/scopes/{quote_plus(sid)}")
     return {"message": f"scope '{scope_name or scope_id}' added to "
@@ -255,7 +256,8 @@ class DuploWorkspace(DuploResource):
       DuploNotFound: If the workspace or scope cannot be found.
     """
     wid = self.find(name=name, id=id)["id"]
-    sid = self._scope_svc.find(name=scope_name, id=scope_id)["id"]
+    scope = self._scope_svc.find(name=scope_name, id=scope_id)
+    sid = self._scope_svc._id_of(scope)
     self.client.delete(
         f"admin/data/workspaces/{quote_plus(wid)}/scopes/{quote_plus(sid)}")
     return {"message": f"scope '{scope_name or scope_id}' removed from "

@@ -306,6 +306,7 @@ class TestWorkspaceScopeMapping:
         scope_svc = mocker.MagicMock()
         scope_svc.find.return_value = {"id": _SCOPE_ID,
                                        "name": _SCOPE_NAME}
+        scope_svc._id_of.return_value = _SCOPE_ID
         mock_duplo.load.return_value = scope_svc
         return ws, scope_svc
 
