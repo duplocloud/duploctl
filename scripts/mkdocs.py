@@ -43,8 +43,9 @@ ignored = [
   "mcp"
 ]
 
-# The branch the site is built from, used to link back at repo files.
-repo_branch = "main"
+# The ref the site is built from, used to link back at repo files. The
+# docs workflow builds from a tag, so follow that ref when it is set.
+repo_ref = os.environ.get('DOCS_REF') or 'main'
 
 # Repo paths with a better destination than the raw Github blob url.
 link_overrides = {
@@ -86,16 +87,18 @@ def rewrite_link(target: str, pages: dict) -> str:
   if not clean:
     return target
   if clean in pages:
-    return pages[clean] + sep + anchor
-  if clean in link_overrides:
-    return link_overrides[clean]
-  if os.path.isdir(clean):
-    return f"{REPO_URL}/tree/{repo_branch}/{clean}/"
-  if os.path.isfile(clean):
-    return f"{REPO_URL}/blob/{repo_branch}/{clean}"
-  # unknown target, leave it alone so the mkdocs warning still fires
-  log.warning(f"unresolved link target '{target}' in staged docs")
-  return target
+    url = pages[clean]
+  elif clean in link_overrides:
+    url = link_overrides[clean]
+  elif os.path.isdir(clean):
+    url = f"{REPO_URL}/tree/{repo_ref}/{clean}/"
+  elif os.path.isfile(clean):
+    url = f"{REPO_URL}/blob/{repo_ref}/{clean}"
+  else:
+    # unknown target, leave it alone so the mkdocs warning still fires
+    log.warning(f"unresolved link target '{target}' in staged docs")
+    return target
+  return url + sep + anchor
 
 def stage_include(include):
   """Stage a link corrected copy of a root file for the snippet include."""
