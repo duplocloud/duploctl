@@ -50,12 +50,18 @@ class DuploHelpdeskClient():
   """AI HelpDesk API Client
 
   HTTP client for the AI HelpDesk (service desk V2) backend. Owns the
-  ``v1/aiservicedesk`` URL prefix on the portal host, so resources pass
-  paths relative to it, e.g. ``admin/data/workspaces``.
+  ``v1/aiservicedesk`` URL prefix, so resources pass paths relative to
+  it, e.g. ``admin/data/workspaces``.
 
-  Auth reuses the portal bearer token; acquisition is delegated to the
-  duplo client so interactive login keeps working. Only the token is
-  shared — verbs and the GET cache are this client's own, so
+  Supports both deployment modes. Integrated (default): the helpdesk is
+  reached through the portal host and auth reuses the portal bearer
+  token, with acquisition delegated to the duplo client so interactive
+  login keeps working. Standalone: when ``helpdesk_host`` is configured
+  the helpdesk is reached directly and auth requires a
+  ``helpdesk_token`` (a ``dahp_`` API token minted from the helpdesk) —
+  portal credentials are never touched, so no portal host, token, or
+  interactive login is needed. Only the token is shared in integrated
+  mode — verbs and the GET cache are this client's own, so
   ``disable_get_cache`` never clobbers the shared duplo client's cache.
   """
 
@@ -64,6 +70,34 @@ class DuploHelpdeskClient():
     self.base_path = base_path
     self._api = duplo.load_client("duplo")
     self._ttl_cache = TTLCache(maxsize=128, ttl=10)
+
+  @property
+  def host(self) -> str:
+    """The helpdesk base URL: the standalone host, or the portal."""
+    return self.duplo.helpdesk_host or self.duplo.host
+
+  @property
+  def token(self) -> str:
+    """The bearer token for the AI HelpDesk.
+
+    A configured ``helpdesk_token`` always wins. Without one, a
+    standalone helpdesk (``helpdesk_host`` set) fails with guidance —
+    falling through to portal auth would demand portal credentials or
+    pop an interactive portal login that cannot work there. Integrated
+    mode delegates to the duplo client as before.
+
+    Raises:
+      DuploError: If standalone mode has no helpdesk token configured.
+    """
+    if (token := self.duplo.helpdesk_token):
+      return token
+    if self.duplo.helpdesk_host:
+      raise DuploError(
+          "A standalone AI HelpDesk (helpdesk_host) requires a "
+          "helpdesk_token: log into the helpdesk, mint an API token, "
+          "and set helpdesk_token in your config context or the "
+          "DUPLO_HELPDESK_TOKEN env var", 401)
+    return self._api.token
 
   @cachedmethod(lambda self: self._ttl_cache)
   def get(self, path: str):
@@ -157,7 +191,7 @@ class DuploHelpdeskClient():
     try:
       response = requests.request(
         method,
-        url=f"{self.duplo.host}/{self.base_path}/{path}",
+        url=f"{self.host}/{self.base_path}/{path}",
         headers=headers,
         timeout=self.duplo.timeout,
         **kwargs,
@@ -173,7 +207,7 @@ class DuploHelpdeskClient():
   def _headers(self) -> dict:
     return {
       'Content-Type': 'application/json',
-      'Authorization': f"Bearer {self._api.token}"
+      'Authorization': f"Bearer {self.token}"
     }
 
   def _validate_response(self, response: requests.Response) -> requests.Response:
@@ -184,6 +218,13 @@ class DuploHelpdeskClient():
       raise DuploNotFound(response.text)
 
     if response.status_code == 401:
+      # dahp_ tokens are opaque (hash-checked server-side), so expiry
+      # or revocation only surfaces here — translate it into guidance
+      if self.duplo.helpdesk_token:
+        raise DuploError(
+            "The AI HelpDesk rejected the helpdesk token (expired or "
+            "revoked): mint a new API token from the helpdesk and "
+            "update helpdesk_token", response.status_code)
       raise DuploError(response.text, response.status_code)
 
     if response.status_code == 403:

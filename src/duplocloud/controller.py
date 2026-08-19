@@ -49,6 +49,8 @@ class DuploCtl():
                tenant_id: args.TENANT_ID=None,
                workspace: args.WORKSPACE=None,
                workspace_id: args.WORKSPACEID=None,
+               helpdesk_host: args.HELPDESK_HOST=None,
+               helpdesk_token: args.HELPDESK_TOKEN=None,
                home_dir: args.HOME_DIR=None,
                config_file: args.CONFIG=None,
                cache_dir: args.CACHE_DIR=None,
@@ -76,6 +78,8 @@ class DuploCtl():
       tenant_id: The tenant id to use.
       workspace: The AI HelpDesk workspace to use.
       workspace_id: The AI HelpDesk workspace id to use.
+      helpdesk_host: The URL of a standalone AI HelpDesk.
+      helpdesk_token: The bearer token for a standalone AI HelpDesk.
       home_dir: The home directory for the client.
       config_file: The config file for the client.
       cache_dir: The cache directory for the client.
@@ -97,6 +101,8 @@ class DuploCtl():
     if ctx:
       host = None
       token = None
+      helpdesk_host = None
+      helpdesk_token = None
     # ignore the given token with interactive mode
     if token and interactive:
       token = None
@@ -120,6 +126,9 @@ class DuploCtl():
     # workspace names are matched case-insensitively downstream, don't lower
     self._workspace = workspace.strip() if workspace else workspace
     self.workspaceid = workspace_id.strip() if workspace_id else workspace_id
+    self._helpdesk_host = self._sanitize_host(helpdesk_host)
+    self._helpdesk_token = (
+        helpdesk_token.strip() if helpdesk_token else helpdesk_token)
     self.version = version
     self.interactive = interactive
     self.nocache = nocache
@@ -251,6 +260,36 @@ class DuploCtl():
     return self._host
 
   @property
+  def helpdesk_host(self) -> str:
+    """Get Helpdesk Host
+
+    The URL of a standalone AI HelpDesk, from args/env/context. Returns
+    None when unset, in which case the AI HelpDesk is reached through
+    the portal host. The context is only consulted when neither a
+    helpdesk host nor a portal host was given directly, so env-driven
+    setups never require a config file.
+
+    Returns:
+      The standalone helpdesk host, or None for integrated mode.
+    """
+    if not self._helpdesk_host and not self._host:
+      self.use_context()
+    return self._helpdesk_host
+
+  @property
+  def helpdesk_token(self) -> str:
+    """Get Helpdesk Token
+
+    The bearer token for a standalone AI HelpDesk, from
+    args/env/context. May be None; integrated mode uses the portal
+    token instead.
+
+    Returns:
+      The helpdesk token, or None.
+    """
+    return self._helpdesk_token
+
+  @property
   def tenant(self) -> str:
     """Get Tenant
 
@@ -377,6 +416,11 @@ Available Resources:
     self._token = ctx.get("token", None)
     self._tenant = ctx.get("tenant", self._tenant)
     self._workspace = ctx.get("workspace", self._workspace)
+    # helpdesk keys are optional: a context value wins, otherwise any
+    # arg/env value already set is preserved (tenant/workspace pattern)
+    if (hh := ctx.get("helpdesk_host")):
+      self._helpdesk_host = self._sanitize_host(hh)
+    self._helpdesk_token = ctx.get("helpdesk_token", self._helpdesk_token)
     self.interactive = ctx.get("interactive", False)
     self.isadmin = ctx.get("admin", False)
     self.nocache = ctx.get("nocache", False)
