@@ -286,3 +286,12 @@ class TestControllerHelpdeskConfig:
     _, kwargs = request.call_args
     assert kwargs["url"].startswith(f"{_HD_HOST}/v1/aiservicedesk/")
     assert kwargs["headers"]["Authorization"] == f"Bearer {_HD_TOKEN}"
+
+  def test_workspace_property_works_without_portal(self):
+    """Workspace-scoped resources must resolve in standalone mode: the
+    workspace getter used to demand a portal host unconditionally."""
+    from duplocloud.controller import DuploCtl
+    duplo = DuploCtl(helpdesk_host=_HD_HOST, helpdesk_token=_HD_TOKEN)
+    assert duplo.workspace is None
+    duplo.workspace = "platform"
+    assert duplo.workspace == "platform"

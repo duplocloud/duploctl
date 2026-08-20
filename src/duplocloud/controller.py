@@ -324,7 +324,11 @@ class DuploCtl():
     Returns:
       The workspace name as a string.
     """
-    if not self.host:
+    # a standalone helpdesk satisfies the host requirement — demanding
+    # the portal here would break workspace-scoped resources in
+    # standalone mode (evaluate helpdesk_host first: it lazily loads
+    # the config context, which may also populate the workspace)
+    if not self.helpdesk_host and not self.host:
       raise DuploError("Host for Duplo portal is required", 500)
     return self._workspace
 
