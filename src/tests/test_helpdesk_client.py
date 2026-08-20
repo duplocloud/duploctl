@@ -266,3 +266,23 @@ class TestControllerHelpdeskConfig:
         mocker.PropertyMock(return_value={"host": _HOST}))
     duplo.use_context()
     assert duplo.helpdesk_token == _HD_TOKEN
+
+  def test_context_only_standalone_supplies_token_lazily(self, mocker):
+    """A context holding both helpdesk keys must work when nothing was
+    set via args/env: the token check must not run before the lazy
+    context load that helpdesk_host triggers (regression: headers are
+    built before the URL, so the token property fires first)."""
+    from duplocloud.controller import DuploCtl
+    duplo = DuploCtl()
+    mocker.patch.object(
+        type(duplo), "context",
+        mocker.PropertyMock(return_value={
+            "helpdesk_host": _HD_HOST,
+            "helpdesk_token": _HD_TOKEN,
+        }))
+    client = DuploHelpdeskClient(duplo)
+    request, _ = _mock_response(mocker)
+    client.get("admin/data/workspaces")
+    _, kwargs = request.call_args
+    assert kwargs["url"].startswith(f"{_HD_HOST}/v1/aiservicedesk/")
+    assert kwargs["headers"]["Authorization"] == f"Bearer {_HD_TOKEN}"

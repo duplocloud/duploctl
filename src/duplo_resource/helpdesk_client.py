@@ -89,9 +89,13 @@ class DuploHelpdeskClient():
     Raises:
       DuploError: If standalone mode has no helpdesk token configured.
     """
+    # helpdesk_host is evaluated first: it lazily loads the config
+    # context when nothing was set directly, which may also supply the
+    # helpdesk token — checking the token first would miss it
+    standalone = self.duplo.helpdesk_host
     if (token := self.duplo.helpdesk_token):
       return token
-    if self.duplo.helpdesk_host:
+    if standalone:
       raise DuploError(
           "A standalone AI HelpDesk (helpdesk_host) requires a "
           "helpdesk_token: log into the helpdesk, mint an API token, "
