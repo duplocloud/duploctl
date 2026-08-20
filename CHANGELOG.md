@@ -16,8 +16,11 @@ and implementation detail belong in the PR, not here.
 
 - Standalone AI HelpDesk support: `helpdesk_host`/`helpdesk_token` config keys, `DUPLO_HELPDESK_HOST`/`DUPLO_HELPDESK_TOKEN` env vars, and `--helpdesk-host`/`--helpdesk-token` flags route helpdesk requests to a standalone helpdesk with its own `dahp_` API token, falling back to the portal host/token when unset; standalone mode never requires portal credentials or triggers interactive portal login
 
+- AI HelpDesk integration-test scaffolding: `helpdesk` marker, `helpdesk_ready` skip-gate fixture (no infra/tenant lifecycle; works against integrated or standalone targets), a `helpdesk` suite file, and an initial workspace lifecycle + read-only smoke suite
+
 ### Fixed
 
+- `workspace update` no longer fails with a name-collision validation error against itself — the record id is now carried in the PUT body (same backend quirk as the admin resources)
 - Fixed broken links on the docs site
 - `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
 - `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod

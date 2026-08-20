@@ -233,8 +233,12 @@ class DuploWorkspace(DuploResource):
     if not isinstance(body, dict):
       raise DuploError("A request body (-f) is required")
     wid = self.find(name=name or body.get("name"), id=id)["id"]
+    # admin PUTs must carry the record id in the body: the backend
+    # deserializes into an entity whose id self-generates when absent,
+    # making its uniqueness check collide with the record itself
+    payload = {**body, "id": wid}
     response = self.client.put(
-        f"admin/data/workspaces/{quote_plus(wid)}", body).json()
+        f"admin/data/workspaces/{quote_plus(wid)}", payload).json()
     return unwrap_data(response)
 
   @Command()

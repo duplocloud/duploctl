@@ -18,6 +18,8 @@ def _duplo_from_env() -> DuploCtl:
     host=os.getenv("DUPLO_HOST"),
     token=os.getenv("DUPLO_TOKEN"),
     tenant=os.getenv("DUPLO_TENANT"),
+    helpdesk_host=os.getenv("DUPLO_HELPDESK_HOST"),
+    helpdesk_token=os.getenv("DUPLO_HELPDESK_TOKEN"),
   )
 
 
@@ -299,9 +301,15 @@ def session_info(pytestconfig, duplo, infra_name, tenant_name, infra_type, owns_
   owned_flag = " --no-teardown" if no_teardown else (
     " --owned" if pytestconfig.getoption("owned", default=False) else ""
   )
+  # duplo.host would trigger a config-context lookup (and raise) on a
+  # standalone-helpdesk-only session, so read the raw attribute instead
+  host = duplo._host or "(none — standalone helpdesk)"
+  helpdesk = (f"  helpdesk:    {duplo._helpdesk_host}\n"
+              if duplo._helpdesk_host else "")
   print(
     f"\n"
-    f"  host:        {duplo.host}\n"
+    f"  host:        {host}\n"
+    f"{helpdesk}"
     f"  infra:       {infra_name}  (owns={owns_infra})\n"
     f"  tenant:      {tenant_name}  (owns={owns_tenant})\n"
     f"  infra_type:  {infra_type}{owned_flag}\n"
@@ -323,6 +331,28 @@ def cleanup(duplo):
   pytest-dependency — they only run if their corresponding create tests passed.
   """
   yield
+
+@pytest.fixture(scope="session")
+def helpdesk_ready(duplo):
+  """Gate for AI HelpDesk integration tests.
+
+  Probes the workspaces list once per session and skips (rather than
+  fails) when no AI HelpDesk is reachable — a portal without the
+  helpdesk backend, or a session with no helpdesk/portal config at all.
+  Works for both deployment modes: integrated (portal host/token) and
+  standalone (DUPLO_HELPDESK_HOST/DUPLO_HELPDESK_TOKEN). Also disables
+  the helpdesk client's GET cache so mutations read back fresh; the
+  client is a memoized singleton, so this covers every helpdesk
+  resource in the session.
+  """
+  if duplo is None:
+    pytest.skip("AI HelpDesk tests require an integration run")
+  try:
+    duplo.load_client("helpdesk").disable_get_cache()
+    duplo.load("workspace").list()
+  except Exception as e:
+    pytest.skip(f"AI HelpDesk not available on this target: {e}")
+
 
 @pytest.fixture
 def test_data(request) -> tuple[str, dict]:
