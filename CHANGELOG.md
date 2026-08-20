@@ -5,10 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Be terse. One line per change, max.** Docs, CI and chores get one terse
+line. Code changes get one line naming the behavior that changed. Breaking
+changes get one terse line too, what broke and what to do instead. Rationale
+and implementation detail belong in the PR, not here.
+
 ## [Unreleased]
 
 ### Fixed
 
+- Fixed broken links on the docs site
 - `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
 - `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod
 
