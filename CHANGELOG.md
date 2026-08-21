@@ -17,6 +17,7 @@ and implementation detail belong in the PR, not here.
 - Standalone AI HelpDesk support: `helpdesk_host`/`helpdesk_token` config keys, `DUPLO_HELPDESK_HOST`/`DUPLO_HELPDESK_TOKEN` env vars, and `--helpdesk-host`/`--helpdesk-token` flags route helpdesk requests to a standalone helpdesk with its own `dahp_` API token, falling back to the portal host/token when unset; standalone mode never requires portal credentials or triggers interactive portal login
 
 - AI HelpDesk integration-test scaffolding: `helpdesk` marker, `helpdesk_ready` skip-gate fixture (no infra/tenant lifecycle; works against integrated or standalone targets), a `helpdesk` suite file, and an initial workspace lifecycle + read-only smoke suite
+- CI wiring for the `helpdesk` integration suite: suites may declare `lifecycle: false` to skip the infra/tenant lifecycle and teardown jobs; `test_integration.yml` passes `DUPLO_HELPDESK_HOST`/`DUPLO_HELPDESK_TOKEN` from the GHA environment, and publish runs the suite against `e2e_helpdesk_environment` (default `qa-helpdesk`)
 
 ### Fixed
 

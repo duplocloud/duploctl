@@ -1,13 +1,16 @@
 # AI HelpDesk suite. Unlike aws/ecs/k8s this suite needs NO infra/tenant
-# lifecycle — helpdesk tests talk to the AI HelpDesk backend directly and
-# skip themselves (helpdesk_ready fixture) when it is unreachable.
+# lifecycle — `lifecycle: false` makes test_integration.yml skip the
+# lifecycle pytest run and the teardown job, so no infra is created.
 #
-# Not yet wired into test_integration.yml: the workflow's lifecycle job
-# creates an infra/tenant this suite doesn't use, and the target needs
-# either a helpdesk-enabled portal or DUPLO_HELPDESK_HOST/DUPLO_HELPDESK_TOKEN
-# vars in the GHA environment. Wiring is a follow-up; until then run locally:
+# The target GHA environment provides either a helpdesk-enabled portal
+# (DUPLO_HOST/DUPLO_TOKEN) or a standalone helpdesk via the
+# DUPLO_HELPDESK_HOST var and DUPLO_HELPDESK_TOKEN secret. Tests skip
+# themselves (helpdesk_ready fixture) when neither is reachable.
+#
+# Run locally:
 #   pytest src -m "integration and helpdesk" --ignore=src/tests/test_portal.py
 infra_type: duplo
+lifecycle: false
 jobs:
 - name: helpdesk
   markers: "integration and helpdesk"

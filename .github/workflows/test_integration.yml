@@ -15,6 +15,7 @@ on:
         - k8s
         - aws
         - ecs
+        - helpdesk
       infra:
         required: false
         description: Pre-existing infra name. Empty lets conftest generate a random name.
@@ -70,6 +71,9 @@ on:
       GH_APP_KEY:
         description: GitHub App private key for checkout
         required: true
+      DUPLO_HELPDESK_TOKEN:
+        description: Bearer token for a standalone AI HelpDesk (helpdesk suite only)
+        required: false
 
 jobs:
 
@@ -87,6 +91,7 @@ jobs:
       tenant: ${{ steps.names.outputs.tenant }}
       matrix: ${{ steps.suite.outputs.matrix }}
       infra_type: ${{ steps.suite.outputs.infra_type }}
+      lifecycle: ${{ steps.suite.outputs.lifecycle }}
       owned: ${{ steps.owned.outputs.owned }}
     steps:
 
@@ -130,12 +135,15 @@ jobs:
         data = yaml.safe_load(open('src/tests/suites/${{ inputs.suite }}.yaml'))
         matrix = json.dumps(data['jobs'])
         infra_type = data.get('infra_type', 'duplo')
+        # suites like helpdesk need no infra/tenant lifecycle
+        lifecycle = str(data.get('lifecycle', True)).lower()
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             f.write(f"matrix={matrix}\n")
             f.write(f"infra_type={infra_type}\n")
+            f.write(f"lifecycle={lifecycle}\n")
 
     - name: Run lifecycle tests
-      if: steps.gate.outputs.enabled == 'true'
+      if: steps.gate.outputs.enabled == 'true' && steps.suite.outputs.lifecycle == 'true'
       env:
         INFRA: ${{ inputs.infra }}
         TENANT: ${{ inputs.tenant }}
@@ -160,7 +168,7 @@ jobs:
         fi
 
     - name: Surface results
-      if: steps.gate.outputs.enabled == 'true' && always()
+      if: steps.gate.outputs.enabled == 'true' && steps.suite.outputs.lifecycle == 'true' && always()
       uses: pmeier/pytest-results-action@main
       with:
         path: lifecycle-results.xml
@@ -178,6 +186,9 @@ jobs:
     env:
       DUPLO_HOST: ${{ vars.DUPLO_HOST }}
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
+      # standalone AI HelpDesk target (helpdesk suite); empty elsewhere
+      DUPLO_HELPDESK_HOST: ${{ vars.DUPLO_HELPDESK_HOST }}
+      DUPLO_HELPDESK_TOKEN: ${{ secrets.DUPLO_HELPDESK_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -229,9 +240,14 @@ jobs:
       id: gate
       env:
         ENABLED: ${{ needs.lifecycle.outputs.enabled }}
+        LIFECYCLE: ${{ needs.lifecycle.outputs.lifecycle }}
       run: |
         if [ "$ENABLED" != "true" ]; then
           echo "Integration tests disabled — skipping teardown"
+          ENABLED=false
+        elif [ "$LIFECYCLE" != "true" ]; then
+          echo "Suite has no infra/tenant lifecycle — skipping teardown"
+          ENABLED=false
         fi
         echo "enabled=$ENABLED" >> $GITHUB_OUTPUT
 
