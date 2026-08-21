@@ -24,6 +24,9 @@ and implementation detail belong in the PR, not here.
 
 ### Added
 
+- **AI HelpDesk admin control-plane resources** — eleven new entities managed by a shared declarative base (`HelpdeskAdminResource`): `scope`, `provider`, `hd_user` (helpdesk user; `user` is the Core Platform resource), `persona`, `skill`, `mcp_server`, `permission_set`, `quota`, `quota_mapping`, `command_policy`, and `command_policy_mapping`, each with `list`/`find`/`create`/`update`/`apply`/`delete`. Updates are full replaces and always carry the record `id` in the body, avoiding the backend's self-collision on admin PUTs. The collection inventory mirrors the duploai terraform provider.
+- `workspace add_scope`/`remove_scope` (`--scope`/`--scope_id`) attach or detach a scope, mirroring `add_agent`/`remove_agent`.
+- **HelpDesk waiter** in the shared helpdesk base: resources that declare a `waiter` poll status to `Complete` under `--wait`, aborting on `Failed`/`Blocked`/`WaitingForApproval`/`DeprovisionFailed` with the `blockedReason` detail, with optional secondary ready gates — the same semantics as the terraform provider. The admin entities are synchronous and don't use it; it lands here for the workspace-scoped resource families that follow.
 - AI HelpDesk CRUD and lifecycle commands against the existing backend endpoints (workspace/agent resolved by name or `--id` via their `find`):
   - `workspace create`/`update`/`apply` (body via `-f`; `apply` upserts by the body's `name`), `workspace delete`, and `workspace add_agent`/`remove_agent` (`--agent`/`--agent_id` selects the agent).
   - `agent create`/`update`/`apply` (body via `-f`), and `agent delete`.
