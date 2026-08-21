@@ -39,6 +39,10 @@ markdown_extensions:
 - pymdownx.magiclink
 - pymdownx.snippets:
     check_paths: true
+    # link corrected copies of the root files win over the originals
+    base_path:
+    - dist/includes
+    - .
 
 hooks:
 - ./scripts/mkdocs.py
@@ -56,7 +60,7 @@ nav:
 - Plugins:
   - AWS: plugins/aws.md
 - Args: Args.md
-- Changelog: CHANGELOG.md
+- Changelog: Changelog.md
 - Contributing: CONTRIBUTING.md
 - Code of Conduct: CODE_OF_CONDUCT.md
 - Security: SECURITY.md
