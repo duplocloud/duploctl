@@ -71,9 +71,6 @@ on:
       GH_APP_KEY:
         description: GitHub App private key for checkout
         required: true
-      DUPLO_HELPDESK_TOKEN:
-        description: Bearer token for a standalone AI HelpDesk (helpdesk suite only)
-        required: false
 
 jobs:
 
@@ -186,9 +183,6 @@ jobs:
     env:
       DUPLO_HOST: ${{ vars.DUPLO_HOST }}
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
-      # standalone AI HelpDesk target (helpdesk suite); empty elsewhere
-      DUPLO_HELPDESK_HOST: ${{ vars.DUPLO_HELPDESK_HOST }}
-      DUPLO_HELPDESK_TOKEN: ${{ secrets.DUPLO_HELPDESK_TOKEN }}
     strategy:
       fail-fast: false
       matrix:

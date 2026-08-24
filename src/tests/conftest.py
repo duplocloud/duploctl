@@ -6,6 +6,11 @@ import pathlib
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError
 
+# NOTE: tenant/infra existence probes catch ValueError too: a DUPLO_HOST
+# pointing at a non-portal (e.g. a standalone AI HelpDesk) answers portal
+# routes with HTML, which raises JSONDecodeError (a ValueError) instead of
+# DuploError — either way the probe result is "not a portal tenant".
+
 
 def _duplo_from_env() -> DuploCtl:
   """Construct a DuploCtl directly from environment variables.
@@ -18,8 +23,6 @@ def _duplo_from_env() -> DuploCtl:
     host=os.getenv("DUPLO_HOST"),
     token=os.getenv("DUPLO_TOKEN"),
     tenant=os.getenv("DUPLO_TENANT"),
-    helpdesk_host=os.getenv("DUPLO_HELPDESK_HOST"),
-    helpdesk_token=os.getenv("DUPLO_HELPDESK_TOKEN"),
   )
 
 
@@ -115,7 +118,7 @@ def pytest_configure(config):
         f"or choose a --tenant name that does not exist yet.\n",
         returncode=1,
       )
-  except DuploError:
+  except (DuploError, ValueError):
     # Tenant does not exist yet — fine, the create lifecycle handles it.
     pass
 
@@ -148,7 +151,7 @@ def infra_name(pytestconfig) -> str:
       plan_id = existing.get("PlanID", "")
       if plan_id:
         return plan_id  # tenant exists — use its infra
-    except DuploError:
+    except (DuploError, ValueError):
       pass  # tenant doesn't exist yet — fall through
     # Tenant doesn't exist: infra name mirrors the tenant name.
     return tenant_hint
@@ -226,7 +229,7 @@ def owns_infra(pytestconfig, infra_name) -> bool:
     try:
       _duplo_from_env().load("infrastructure").find(explicit_infra)
       return False  # pre-existing — not ours
-    except DuploError:
+    except (DuploError, ValueError):
       return True   # doesn't exist yet — we'll create it
 
   # No --infra flag: was the name resolved from an already-existing tenant?
@@ -236,7 +239,7 @@ def owns_infra(pytestconfig, infra_name) -> bool:
       existing = _duplo_from_env().load("tenant").find(tenant_hint)
       if existing.get("PlanID"):
         return False  # infra resolved from a pre-existing tenant — not ours
-    except DuploError:
+    except (DuploError, ValueError):
       pass
 
   return True  # random or derived name — we own it
@@ -268,7 +271,7 @@ def owns_tenant(pytestconfig, tenant_name, owns_infra) -> bool:
     try:
       _duplo_from_env().load("tenant").find(tenant_name)
       return False  # pre-existing — not ours
-    except DuploError:
+    except (DuploError, ValueError):
       return True   # doesn't exist yet — we'll create it
 
   return True  # name derived from infra we own — we own the tenant too
@@ -301,15 +304,9 @@ def session_info(pytestconfig, duplo, infra_name, tenant_name, infra_type, owns_
   owned_flag = " --no-teardown" if no_teardown else (
     " --owned" if pytestconfig.getoption("owned", default=False) else ""
   )
-  # duplo.host would trigger a config-context lookup (and raise) on a
-  # standalone-helpdesk-only session, so read the raw attribute instead
-  host = duplo._host or "(none — standalone helpdesk)"
-  helpdesk = (f"  helpdesk:    {duplo._helpdesk_host}\n"
-              if duplo._helpdesk_host else "")
   print(
     f"\n"
-    f"  host:        {host}\n"
-    f"{helpdesk}"
+    f"  host:        {duplo.host}\n"
     f"  infra:       {infra_name}  (owns={owns_infra})\n"
     f"  tenant:      {tenant_name}  (owns={owns_tenant})\n"
     f"  infra_type:  {infra_type}{owned_flag}\n"
@@ -338,9 +335,10 @@ def helpdesk_ready(duplo):
 
   Probes the workspaces list once per session and skips (rather than
   fails) when no AI HelpDesk is reachable — a portal without the
-  helpdesk backend, or a session with no helpdesk/portal config at all.
-  Works for both deployment modes: integrated (portal host/token) and
-  standalone (DUPLO_HELPDESK_HOST/DUPLO_HELPDESK_TOKEN). Also disables
+  helpdesk backend, or a session with no reachable config at all.
+  Works for both deployment modes: integrated (DUPLO_HOST at a portal)
+  and standalone (DUPLO_HOST at the helpdesk itself with a dahp_
+  DUPLO_TOKEN). Also disables
   the helpdesk client's GET cache so mutations read back fresh; the
   client is a memoized singleton, so this covers every helpdesk
   resource in the session.

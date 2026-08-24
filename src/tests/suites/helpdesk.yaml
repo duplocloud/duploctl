@@ -2,10 +2,10 @@
 # lifecycle — `lifecycle: false` makes test_integration.yml skip the
 # lifecycle pytest run and the teardown job, so no infra is created.
 #
-# The target GHA environment provides either a helpdesk-enabled portal
-# (DUPLO_HOST/DUPLO_TOKEN) or a standalone helpdesk via the
-# DUPLO_HELPDESK_HOST var and DUPLO_HELPDESK_TOKEN secret. Tests skip
-# themselves (helpdesk_ready fixture) when neither is reachable.
+# The target GHA environment sets DUPLO_HOST/DUPLO_TOKEN to either a
+# helpdesk-enabled portal or a standalone helpdesk (its own URL with a
+# dahp_ API token). Tests skip themselves (helpdesk_ready fixture)
+# when no AI HelpDesk is reachable.
 #
 # Run locally:
 #   pytest src -m "integration and helpdesk" --ignore=src/tests/test_portal.py
