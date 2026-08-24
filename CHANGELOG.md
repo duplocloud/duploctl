@@ -14,7 +14,7 @@ and implementation detail belong in the PR, not here.
 
 ### Added
 
-- Standalone AI HelpDesk support: `helpdesk_host`/`helpdesk_token` config keys, `DUPLO_HELPDESK_HOST`/`DUPLO_HELPDESK_TOKEN` env vars, and `--helpdesk-host`/`--helpdesk-token` flags route helpdesk requests to a standalone helpdesk with its own `dahp_` API token, falling back to the portal host/token when unset; standalone mode never requires portal credentials or triggers interactive portal login
+- Standalone AI HelpDesk support: point `DUPLO_HOST` at the helpdesk's own URL and `DUPLO_TOKEN` at a `dahp_` API token minted from the helpdesk — no new settings; a rejected `dahp_` token now gets re-mint guidance instead of a raw 401
 
 ### Fixed
 

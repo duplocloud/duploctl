@@ -52,16 +52,6 @@ TOKEN = Arg('token', '-t',
             help='The token to authenticate with DuploCloud Portal API.',
             env='DUPLO_TOKEN')
 
-HELPDESK_HOST = Arg('helpdesk_host', '--helpdesk-host',
-                    help='The URL of a standalone AI HelpDesk. When unset, '
-                         'the AI HelpDesk is reached through the portal host.',
-                    env='DUPLO_HELPDESK_HOST')
-
-HELPDESK_TOKEN = Arg('helpdesk_token', '--helpdesk-token',
-                     help='Bearer token for a standalone AI HelpDesk '
-                          '(a dahp_ API token minted from the helpdesk).',
-                     env='DUPLO_HELPDESK_TOKEN')
-
 TENANT = Arg("tenant", "-T",
              help='The tenant name',
              env='DUPLO_TENANT')

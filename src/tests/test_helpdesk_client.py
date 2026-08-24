@@ -12,13 +12,12 @@ _HOST = "https://example.duplocloud.net"
 _TOKEN = "test-token"
 
 
-def _make_client(helpdesk_host=None, helpdesk_token=None):
+def _make_client(token=_TOKEN):
   duplo = MagicMock()
   duplo.host = _HOST
-  duplo.helpdesk_host = helpdesk_host
-  duplo.helpdesk_token = helpdesk_token
+  duplo.token = token
   duplo.timeout = 60
-  duplo.load_client.return_value = MagicMock(token=_TOKEN)
+  duplo.load_client.return_value = MagicMock(token=token)
   return DuploHelpdeskClient(duplo)
 
 
@@ -169,129 +168,34 @@ def test_unwrap_items():
   assert unwrap_items({}) == []
 
 
-_HD_HOST = "https://helpdesk.example.duplocloud.net"
-_HD_TOKEN = "dahp_test123"
+@pytest.mark.unit
+def test_401_with_dahp_token_suggests_remint(mocker):
+  """A standalone dahp_ API token that the backend rejects gets re-mint
+  guidance instead of a raw 401 (dahp_ tokens are opaque, so expiry
+  only surfaces server-side)."""
+  client = _make_client(token="dahp_expired123")
+  _mock_response(mocker, status_code=401, text="Unauthorized")
+  with pytest.raises(DuploError, match="mint a new dahp_ token"):
+    client.get("admin/data/workspaces")
 
 
 @pytest.mark.unit
-class TestStandaloneMode:
-  def test_standalone_uses_helpdesk_host_and_token(self, mocker):
-    client = _make_client(helpdesk_host=_HD_HOST, helpdesk_token=_HD_TOKEN)
-    request, _ = _mock_response(mocker)
+def test_401_with_portal_token_passes_through(mocker):
+  client = _make_client()
+  _mock_response(mocker, status_code=401, text="Unauthorized")
+  with pytest.raises(DuploError, match="Unauthorized"):
     client.get("admin/data/workspaces")
-    _, kwargs = request.call_args
-    assert kwargs["url"].startswith(f"{_HD_HOST}/v1/aiservicedesk/")
-    assert kwargs["headers"]["Authorization"] == f"Bearer {_HD_TOKEN}"
-
-  def test_standalone_never_touches_portal_auth(self, mocker):
-    client = _make_client(helpdesk_host=_HD_HOST, helpdesk_token=_HD_TOKEN)
-    # portal token access would trigger interactive login — forbid it
-    type(client._api).token = mocker.PropertyMock(
-        side_effect=AssertionError("portal token was accessed"))
-    _mock_response(mocker)
-    client.get("admin/data/workspaces")
-
-  def test_standalone_without_token_errors_with_guidance(self, mocker):
-    client = _make_client(helpdesk_host=_HD_HOST)
-    request, _ = _mock_response(mocker)
-    with pytest.raises(DuploError, match="helpdesk_token"):
-      client.get("admin/data/workspaces")
-    request.assert_not_called()
-
-  def test_helpdesk_token_alone_wins_over_portal_token(self, mocker):
-    """A helpdesk token with no helpdesk_host still overrides portal auth
-    (integrated deployments accept dahp_ tokens as bearers too)."""
-    client = _make_client(helpdesk_token=_HD_TOKEN)
-    request, _ = _mock_response(mocker)
-    client.get("admin/data/workspaces")
-    _, kwargs = request.call_args
-    assert kwargs["url"].startswith(f"{_HOST}/v1/aiservicedesk/")
-    assert kwargs["headers"]["Authorization"] == f"Bearer {_HD_TOKEN}"
-
-  def test_integrated_default_unchanged(self, mocker):
-    client = _make_client()
-    request, _ = _mock_response(mocker)
-    client.get("admin/data/workspaces")
-    _, kwargs = request.call_args
-    assert kwargs["url"].startswith(f"{_HOST}/v1/aiservicedesk/")
-    assert kwargs["headers"]["Authorization"] == f"Bearer {_TOKEN}"
-
-  def test_401_with_helpdesk_token_suggests_remint(self, mocker):
-    client = _make_client(helpdesk_host=_HD_HOST, helpdesk_token=_HD_TOKEN)
-    _mock_response(mocker, status_code=401, text="Unauthorized")
-    with pytest.raises(DuploError, match="mint a new API token"):
-      client.get("admin/data/workspaces")
-
-  def test_401_integrated_passes_through(self, mocker):
-    client = _make_client()
-    _mock_response(mocker, status_code=401, text="Unauthorized")
-    with pytest.raises(DuploError, match="Unauthorized"):
-      client.get("admin/data/workspaces")
 
 
 @pytest.mark.unit
-class TestControllerHelpdeskConfig:
-  def _duplo(self, **kwargs):
-    from duplocloud.controller import DuploCtl
-    return DuploCtl(host=_HOST, token="portal-token", **kwargs)
-
-  def test_args_are_sanitized_and_exposed(self):
-    duplo = self._duplo(helpdesk_host=f"{_HD_HOST}/",
-                        helpdesk_token=f" {_HD_TOKEN} ")
-    assert duplo.helpdesk_host == _HD_HOST
-    assert duplo.helpdesk_token == _HD_TOKEN
-
-  def test_defaults_are_none(self):
-    duplo = self._duplo()
-    assert duplo.helpdesk_host is None
-    assert duplo.helpdesk_token is None
-
-  def test_context_maps_helpdesk_keys(self, mocker):
-    duplo = self._duplo()
-    mocker.patch.object(
-        type(duplo), "context",
-        mocker.PropertyMock(return_value={
-            "host": _HOST,
-            "helpdesk_host": _HD_HOST,
-            "helpdesk_token": _HD_TOKEN,
-        }))
-    duplo.use_context()
-    assert duplo.helpdesk_host == _HD_HOST
-    assert duplo.helpdesk_token == _HD_TOKEN
-
-  def test_context_preserves_env_values_when_absent(self, mocker):
-    duplo = self._duplo(helpdesk_token=_HD_TOKEN)
-    mocker.patch.object(
-        type(duplo), "context",
-        mocker.PropertyMock(return_value={"host": _HOST}))
-    duplo.use_context()
-    assert duplo.helpdesk_token == _HD_TOKEN
-
-  def test_context_only_standalone_supplies_token_lazily(self, mocker):
-    """A context holding both helpdesk keys must work when nothing was
-    set via args/env: the token check must not run before the lazy
-    context load that helpdesk_host triggers (regression: headers are
-    built before the URL, so the token property fires first)."""
-    from duplocloud.controller import DuploCtl
-    duplo = DuploCtl()
-    mocker.patch.object(
-        type(duplo), "context",
-        mocker.PropertyMock(return_value={
-            "helpdesk_host": _HD_HOST,
-            "helpdesk_token": _HD_TOKEN,
-        }))
-    client = DuploHelpdeskClient(duplo)
-    request, _ = _mock_response(mocker)
-    client.get("admin/data/workspaces")
-    _, kwargs = request.call_args
-    assert kwargs["url"].startswith(f"{_HD_HOST}/v1/aiservicedesk/")
-    assert kwargs["headers"]["Authorization"] == f"Bearer {_HD_TOKEN}"
-
-  def test_workspace_property_works_without_portal(self):
-    """Workspace-scoped resources must resolve in standalone mode: the
-    workspace getter used to demand a portal host unconditionally."""
-    from duplocloud.controller import DuploCtl
-    duplo = DuploCtl(helpdesk_host=_HD_HOST, helpdesk_token=_HD_TOKEN)
-    assert duplo.workspace is None
-    duplo.workspace = "platform"
-    assert duplo.workspace == "platform"
+def test_standalone_host_and_dahp_token_flow_through(mocker):
+  """Standalone mode is just DUPLO_HOST pointed at the helpdesk with a
+  dahp_ bearer — the client needs no mode awareness."""
+  hd_host = "https://helpdesk.example.duplocloud.net"
+  client = _make_client(token="dahp_test123")
+  client.duplo.host = hd_host
+  request, _ = _mock_response(mocker)
+  client.get("admin/data/workspaces")
+  _, kwargs = request.call_args
+  assert kwargs["url"].startswith(f"{hd_host}/v1/aiservicedesk/")
+  assert kwargs["headers"]["Authorization"] == "Bearer dahp_test123"
