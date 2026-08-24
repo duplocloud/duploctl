@@ -12,6 +12,10 @@ and implementation detail belong in the PR, not here.
 
 ## [Unreleased]
 
+### Added
+
+- Standalone AI HelpDesk support: point `DUPLO_HOST` at the helpdesk's own URL and `DUPLO_TOKEN` at a `dahp_` API token minted from the helpdesk — no new settings; a rejected `dahp_` token now gets re-mint guidance instead of a raw 401
+
 ### Fixed
 
 - Fixed broken links on the docs site

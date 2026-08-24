@@ -50,12 +50,17 @@ class DuploHelpdeskClient():
   """AI HelpDesk API Client
 
   HTTP client for the AI HelpDesk (service desk V2) backend. Owns the
-  ``v1/aiservicedesk`` URL prefix on the portal host, so resources pass
-  paths relative to it, e.g. ``admin/data/workspaces``.
+  ``v1/aiservicedesk`` URL prefix on the configured host, so resources
+  pass paths relative to it, e.g. ``admin/data/workspaces``.
 
-  Auth reuses the portal bearer token; acquisition is delegated to the
-  duplo client so interactive login keeps working. Only the token is
-  shared — verbs and the GET cache are this client's own, so
+  Works against both deployment modes through the same two settings:
+  integrated helpdesks are reached through the portal
+  (``DUPLO_HOST``/``DUPLO_TOKEN`` as usual), and standalone helpdesks
+  are reached by pointing ``DUPLO_HOST`` at the helpdesk's own URL and
+  ``DUPLO_TOKEN`` at a ``dahp_`` API token minted from the helpdesk.
+  Auth reuses that bearer token; acquisition is delegated to the duplo
+  client so interactive login keeps working. Only the token is shared —
+  verbs and the GET cache are this client's own, so
   ``disable_get_cache`` never clobbers the shared duplo client's cache.
   """
 
@@ -184,6 +189,14 @@ class DuploHelpdeskClient():
       raise DuploNotFound(response.text)
 
     if response.status_code == 401:
+      # dahp_ API tokens are opaque (hash-checked server-side), so
+      # expiry or revocation only surfaces here — translate it into
+      # guidance instead of a raw 401
+      if (self.duplo.token or "").startswith("dahp_"):
+        raise DuploError(
+            "The AI HelpDesk rejected the API token (expired or "
+            "revoked): mint a new dahp_ token from the helpdesk and "
+            "update your DUPLO_TOKEN", response.status_code)
       raise DuploError(response.text, response.status_code)
 
     if response.status_code == 403:

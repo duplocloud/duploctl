@@ -12,11 +12,12 @@ _HOST = "https://example.duplocloud.net"
 _TOKEN = "test-token"
 
 
-def _make_client():
+def _make_client(token=_TOKEN):
   duplo = MagicMock()
   duplo.host = _HOST
+  duplo.token = token
   duplo.timeout = 60
-  duplo.load_client.return_value = MagicMock(token=_TOKEN)
+  duplo.load_client.return_value = MagicMock(token=token)
   return DuploHelpdeskClient(duplo)
 
 
@@ -165,3 +166,36 @@ def test_unwrap_items():
   assert unwrap_items(enveloped) == [{"id": "w-1"}]
   assert unwrap_items({"data": {}}) == []
   assert unwrap_items({}) == []
+
+
+@pytest.mark.unit
+def test_401_with_dahp_token_suggests_remint(mocker):
+  """A standalone dahp_ API token that the backend rejects gets re-mint
+  guidance instead of a raw 401 (dahp_ tokens are opaque, so expiry
+  only surfaces server-side)."""
+  client = _make_client(token="dahp_expired123")
+  _mock_response(mocker, status_code=401, text="Unauthorized")
+  with pytest.raises(DuploError, match="mint a new dahp_ token"):
+    client.get("admin/data/workspaces")
+
+
+@pytest.mark.unit
+def test_401_with_portal_token_passes_through(mocker):
+  client = _make_client()
+  _mock_response(mocker, status_code=401, text="Unauthorized")
+  with pytest.raises(DuploError, match="Unauthorized"):
+    client.get("admin/data/workspaces")
+
+
+@pytest.mark.unit
+def test_standalone_host_and_dahp_token_flow_through(mocker):
+  """Standalone mode is just DUPLO_HOST pointed at the helpdesk with a
+  dahp_ bearer — the client needs no mode awareness."""
+  hd_host = "https://helpdesk.example.duplocloud.net"
+  client = _make_client(token="dahp_test123")
+  client.duplo.host = hd_host
+  request, _ = _mock_response(mocker)
+  client.get("admin/data/workspaces")
+  _, kwargs = request.call_args
+  assert kwargs["url"].startswith(f"{hd_host}/v1/aiservicedesk/")
+  assert kwargs["headers"]["Authorization"] == "Bearer dahp_test123"
