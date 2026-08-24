@@ -119,7 +119,8 @@ markers = [
   "cloudfront: mark a test as a cloudfront resource test",
   "awssecret: mark a test as an aws secret resource test",
   "jit: mark a test as a jit resource test",
-  "ecr: mark a test as an ecr resource test"
+  "ecr: mark a test as an ecr resource test",
+  "helpdesk: mark a test as an AI HelpDesk test (no infra/tenant lifecycle; needs a helpdesk-enabled portal or a standalone helpdesk via DUPLO_HELPDESK_HOST/DUPLO_HELPDESK_TOKEN)"
 ]
 
 [tool.coverage.run]
