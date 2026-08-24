@@ -52,16 +52,6 @@ TOKEN = Arg('token', '-t',
             help='The token to authenticate with DuploCloud Portal API.',
             env='DUPLO_TOKEN')
 
-HELPDESK_HOST = Arg('helpdesk_host', '--helpdesk-host',
-                    help='The URL of a standalone AI HelpDesk. When unset, '
-                         'the AI HelpDesk is reached through the portal host.',
-                    env='DUPLO_HELPDESK_HOST')
-
-HELPDESK_TOKEN = Arg('helpdesk_token', '--helpdesk-token',
-                     help='Bearer token for a standalone AI HelpDesk '
-                          '(a dahp_ API token minted from the helpdesk).',
-                     env='DUPLO_HELPDESK_TOKEN')
-
 TENANT = Arg("tenant", "-T",
              help='The tenant name',
              env='DUPLO_TENANT')
@@ -399,6 +389,16 @@ AGENTNAME = Arg("agent_name", "--agent_name", "--agent",
 
 AGENTID = Arg("agent_id", "--agent_id", "--aid",
               help= "AI Agent ID to be used to process the ticket. Skips the agent name lookup when provided.",
+              required=False,
+              default=None)
+
+SCOPENAME = Arg("scope_name", "--scope_name", "--scope",
+                help="AI HelpDesk scope name.",
+                required=False,
+                default=None)
+
+SCOPEID = Arg("scope_id", "--scope_id", "--sid",
+              help="AI HelpDesk scope ID. Skips the scope name lookup when provided.",
               required=False,
               default=None)
 

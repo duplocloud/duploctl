@@ -14,7 +14,7 @@ and implementation detail belong in the PR, not here.
 
 ### Added
 
-- Standalone AI HelpDesk support: `helpdesk_host`/`helpdesk_token` config keys, `DUPLO_HELPDESK_HOST`/`DUPLO_HELPDESK_TOKEN` env vars, and `--helpdesk-host`/`--helpdesk-token` flags route helpdesk requests to a standalone helpdesk with its own `dahp_` API token, falling back to the portal host/token when unset; standalone mode never requires portal credentials or triggers interactive portal login
+- Standalone AI HelpDesk support: point `DUPLO_HOST` at the helpdesk's own URL and `DUPLO_TOKEN` at a `dahp_` API token minted from the helpdesk — no new settings; a rejected `dahp_` token now gets re-mint guidance instead of a raw 401
 
 - AI HelpDesk integration-test scaffolding: `helpdesk` marker, `helpdesk_ready` skip-gate fixture (no infra/tenant lifecycle; works against integrated or standalone targets), a `helpdesk` suite file, and an initial workspace lifecycle + read-only smoke suite
 - CI wiring for the `helpdesk` integration suite: suites may declare `lifecycle: false` to skip the infra/tenant lifecycle and teardown jobs; `test_integration.yml` passes `DUPLO_HELPDESK_HOST`/`DUPLO_HELPDESK_TOKEN` from the GHA environment, and publish runs the suite against `e2e_helpdesk_environment` (default `qa-helpdesk`)
@@ -28,6 +28,9 @@ and implementation detail belong in the PR, not here.
 
 ### Added
 
+- **AI HelpDesk admin control-plane resources** — eleven new entities managed by a shared declarative base (`HelpdeskAdminResource`): `scope`, `provider`, `hd_user` (helpdesk user; `user` is the Core Platform resource), `persona`, `skill`, `mcp_server`, `permission_set`, `quota`, `quota_mapping`, `command_policy`, and `command_policy_mapping`, each with `list`/`find`/`create`/`update`/`apply`/`delete`. Updates are full replaces and always carry the record `id` in the body, avoiding the backend's self-collision on admin PUTs. The collection inventory mirrors the duploai terraform provider.
+- `workspace add_scope`/`remove_scope` (`--scope`/`--scope_id`) attach or detach a scope, mirroring `add_agent`/`remove_agent`.
+- **HelpDesk waiter** in the shared helpdesk base: resources that declare a `waiter` poll status to `Complete` under `--wait`, aborting on `Failed`/`Blocked`/`WaitingForApproval`/`DeprovisionFailed` with the `blockedReason` detail, with optional secondary ready gates — the same semantics as the terraform provider. The admin entities are synchronous and don't use it; it lands here for the workspace-scoped resource families that follow.
 - AI HelpDesk CRUD and lifecycle commands against the existing backend endpoints (workspace/agent resolved by name or `--id` via their `find`):
   - `workspace create`/`update`/`apply` (body via `-f`; `apply` upserts by the body's `name`), `workspace delete`, and `workspace add_agent`/`remove_agent` (`--agent`/`--agent_id` selects the agent).
   - `agent create`/`update`/`apply` (body via `-f`), and `agent delete`.
