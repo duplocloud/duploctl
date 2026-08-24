@@ -7,7 +7,6 @@ import traceback
 from urllib.parse import urlparse
 from pathlib import Path
 from .commander import load_resource, load_format, load_client
-from .config import DuploConfig
 from .errors import DuploError, DuploInvalidError
 from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
@@ -110,7 +109,7 @@ class DuploCtl():
     self.home_dir = home_dir or f"{user_home}/.duplo"
     self.config_file = config_file or f"{self.home_dir}/config"
     self.cache_dir = cache_dir or f"{self.home_dir}/cache"
-    self.config_store = DuploConfig(self.config_file)
+    self._config_svc = None
     self._context = ctx
     self._host = self._sanitize_host(host)
     self._token = token.strip() if token else token
@@ -201,6 +200,23 @@ class DuploCtl():
     self._token = value
 
   @property
+  def config_svc(self):
+    """The config resource, loaded as a service and cached.
+
+    All config-file logic lives in the ``config`` resource; the
+    controller loads it through the entry-point system like any other
+    resource and keeps one instance so its parsed-document cache is
+    shared between the controller's read path and any writer that goes
+    through this handle.
+
+    Returns:
+      The config resource instance.
+    """
+    if self._config_svc is None:
+      self._config_svc = self.load("config")
+    return self._config_svc
+
+  @property
   def settings(self) -> dict:
     """Get Config
 
@@ -209,7 +225,7 @@ class DuploCtl():
     Returns:
       settings: The config as a dict.
     """
-    return self.config_store.data
+    return self.config_svc.data
 
   @property
   def context(self) -> dict:
@@ -220,7 +236,7 @@ class DuploCtl():
     Returns:
       The context as a dict.
     """
-    return self.config_store.get_context(self._context)
+    return self.config_svc.get_context(self._context)
 
   @property
   def host(self) -> str:

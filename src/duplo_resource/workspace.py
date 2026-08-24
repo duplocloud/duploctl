@@ -289,5 +289,4 @@ class DuploWorkspace(DuploResource):
     if not name:
       raise DuploError("A workspace name is required", 400)
     ws = self.find(name)
-    config = self.duplo.load("config")
-    return config.set("workspace", ws["name"])
+    return self.duplo.config_svc.set("workspace", ws["name"])
