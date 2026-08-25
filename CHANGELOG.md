@@ -12,6 +12,10 @@ and implementation detail belong in the PR, not here.
 
 ## [Unreleased]
 
+### Added
+
+- **AI HelpDesk Kubernetes resource family** — twelve workspace-scoped entities on the user data plane via a declarative `HelpdeskWorkspaceResource` base: `hd_configmap`, `hd_secret`, `hd_cronjob`, `hd_job`, `hd_ingress`, `hd_pvc`, `resource_quota`, `hd_storageclass`, `namespace`, `helm_release`, `helm_repository` (CRUD; `hd_` prefix only where the Core Platform owns the plain name), and read-only `k8s_credentials` (JIT cluster credentials via `jitAccess`). Backend-required constants (`spec.k8sResource.apiVersion`/`kind`, `spec.mode`) are injected into create/update bodies when absent; `hd_job` and `namespace` are immutable (update/apply-over-existing fail with guidance); `delete` deprovisions and waits for `DeProvisioned` before removing the record, with `--wait` confirming it is gone. `helm_release --wait` additionally gates on the Flux `Ready` condition and fails fast on `Stalled`. Semantics mirror the duploai terraform provider specs.
+
 ### Fixed
 
 - Fixed broken links on the docs site
