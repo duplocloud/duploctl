@@ -648,6 +648,9 @@ class HelpdeskWorkspaceResource(HelpdeskResource):
     rid = self._id_of(record)
     if self.duplo.wait and self.waiter is not None:
       self._wait_for_ready(rid)
+      # the create response predates provisioning — return the live
+      # record so the caller sees the final status
+      record = self._find_in_workspace(None, rid)
     return record
 
   @Command()
@@ -690,6 +693,9 @@ class HelpdeskWorkspaceResource(HelpdeskResource):
         f"{self._base()}/{quote_plus(rid)}", payload).json())
     if self.duplo.wait and self.waiter is not None:
       self._wait_for_ready(rid)
+      # the update response predates re-provisioning — return the live
+      # record so the caller sees the final status
+      record = self._find_in_workspace(None, rid)
     return record
 
   @Command()

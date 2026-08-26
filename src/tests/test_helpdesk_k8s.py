@@ -167,10 +167,18 @@ class TestK8sCrud:
     def test_create_waits_when_global_wait_set(self, mocker):
         resource = _make_resource(mocker)
         resource.duplo.wait = True
-        _make_client(mocker, resource, post_response=_DETAIL)
+        fresh = {"success": True,
+                 "data": {"id": _RID, "name": _NAME, "status": "Complete"}}
+        client = _make_client(mocker, resource, get_responses=[fresh],
+                              post_response={"success": True,
+                                             "data": {"id": _RID,
+                                                      "status": "New"}})
         waited = mocker.patch.object(resource, "_wait_for_ready")
-        resource.create({"name": _NAME})
+        result = resource.create({"name": _NAME})
         waited.assert_called_once_with(_RID)
+        # the stale create response is replaced by a post-wait re-read
+        assert result["status"] == "Complete"
+        assert client.get.call_args[0][0].endswith(f"/{_RID}")
 
 
 @pytest.mark.unit
