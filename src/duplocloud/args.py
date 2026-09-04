@@ -398,6 +398,16 @@ AGENTID = Arg("agent_id", "--agent_id", "--aid",
               required=False,
               default=None)
 
+SCOPENAME = Arg("scope_name", "--scope_name", "--scope",
+                help="AI HelpDesk scope name.",
+                required=False,
+                default=None)
+
+SCOPEID = Arg("scope_id", "--scope_id", "--sid",
+              help="AI HelpDesk scope ID. Skips the scope name lookup when provided.",
+              required=False,
+              default=None)
+
 WORKSPACE = Arg("workspace", "--workspace", "--wksp", "-W",
                 help="AI HelpDesk workspace name. Resolved to a workspace id "
                      "via the workspaces lookup.",
