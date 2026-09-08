@@ -1,10 +1,16 @@
 import time
-from duplocloud.controller import DuploCtl
-from duplocloud.resource import DuploResourceV2
-from duplocloud.errors import DuploError, DuploFailedResource, DuploNotFound, DuploStillWaiting
-from duplocloud.commander import Command, Resource
 from json import dumps, loads
-import duplocloud.args as args
+
+from duplocloud import args
+from duplocloud.commander import Command, Resource
+from duplocloud.controller import DuploCtl
+from duplocloud.errors import (
+  DuploError,
+  DuploFailedResource,
+  DuploNotFound,
+  DuploStillWaiting,
+)
+from duplocloud.resource import DuploResourceV2
 
 _STATUS_CODES = {
   "1": "Running",
@@ -93,8 +99,7 @@ class DuploService(DuploResourceV2):
     for c in containers:
       if c["Name"] == body["Name"]:
         return c["Image"]
-    else:
-      return body.get("DockerImage", body.get("Image", None))
+    return body.get("DockerImage", body.get("Image", None))
 
   @Command()
   def find(self,
@@ -369,11 +374,36 @@ class DuploService(DuploResourceV2):
     old = None
     if self.duplo.wait:
       old = self.find(name)
-    self.client.put(endpoint, payload)
+    try:
+      self.client.put(endpoint, payload)
+    except DuploNotFound:
+      self.duplo.logger.debug("V3 containerimage endpoint not found, falling back to V2")
+      self._update_image_v2(name, image, container_image, init_container_image, old)
+    else:
+      if self.duplo.wait:
+        self.duplo.logger.debug("Wait enabled, beginning wait process")
+        self._wait(old, {"Name": name, "Image": image or ""})
+    return {"message": f"Successfully updated image for service '{name}'."}
+
+  def _update_image_v2(self, name, image, container_image, init_container_image, old):
+    """Fallback to V2 endpoint for older Duplo backends."""
+    if container_image or init_container_image:
+      raise DuploError(
+        "Sidecar and init container image updates require a newer Duplo backend. "
+        "Please upgrade your Duplo portal or use the main image parameter only."
+      )
+    if not image:
+      raise DuploError("No image provided for V2 fallback.")
+    service = old if old else self.find(name)
+    data = {
+      "Name": name,
+      "Image": image,
+      "AllocationTags": service["Template"].get("AllocationTags", "")
+    }
+    self.client.post(self.endpoint("ReplicationControllerChange"), data)
     if self.duplo.wait:
       self.duplo.logger.debug("Wait enabled, beginning wait process")
-      self._wait(old, {"Name": name, "Image": image or ""})
-    return {"message": f"Successfully updated image for service '{name}'."}
+      self._wait(service, data)
 
   @Command()
   def update_env(self,
@@ -683,6 +713,62 @@ class DuploService(DuploResourceV2):
     """
     return self._perform_action("start", name, all, targets, self.duplo.wait)
 
+  def stop_resources(self, exclude=()):
+    """Stop every service in the tenant (for the tenant sweep).
+
+    Lists all services, skips any excluded by name, and stops each via
+    the native ReplicationController suspend endpoint, which preserves
+    the configured replica count (no snapshot needed). Best-effort:
+    failures are collected and returned rather than aborting the sweep.
+
+    Args:
+      exclude: Service names to leave running.
+
+    Returns:
+      A list of (name, DuploError) for services that failed to stop.
+    """
+    return self._sweep_action("Stop", exclude)
+
+  def start_resources(self, exclude=()):
+    """Start every service in the tenant (for the tenant sweep).
+
+    Mirror of ``stop_resources``; resumes each service to its stored
+    replica count.
+
+    Args:
+      exclude: Service names to leave stopped.
+
+    Returns:
+      A list of (name, DuploError) for services that failed to start.
+    """
+    return self._sweep_action("start", exclude)
+
+  def _sweep_action(self, action, exclude=()):
+    """Run ``action`` ("Stop"/"start") across all services.
+
+    Reuses ``_perform_action`` (per-service endpoint call and optional
+    ``--wait``) and adapts its result into the ``(name, DuploError)``
+    failure list the tenant sweep expects from each service type.
+
+    Args:
+      action: Either "Stop" or "start".
+      exclude: Service names to skip.
+
+    Returns:
+      A list of (name, DuploError) for services that failed.
+    """
+    targets = [s["Name"] for s in self.list() if s["Name"] not in exclude]
+    if not targets:
+      return []
+    # Never health-wait here: the per-service wait faults on any pod
+    # fault, and during a tenant sweep the tenant's own nodes are down,
+    # so its pods are always Unschedulable (an expected condition, not a
+    # failure). Stop is effectively instant server-side, and on start the
+    # scheduler places pods once the ASG nodes return.
+    result = self._perform_action(action, targets=targets, wait=False)
+    return [(e["service"], DuploError(e["error"]))
+            for e in result["details"]["errors"]]
+
   @Command()
   def pods(self,
            name: args.NAME) -> dict:
@@ -958,7 +1044,10 @@ class DuploService(DuploResourceV2):
     def wait_check():
       self.duplo.logger.debug(f"Running wait check for {name}")
       svc = self.find(name)
-      replicas = svc[replica_key]
+      replicas = svc.get(replica_key)
+      if replicas is None:
+        self.duplo.logger.warning(f"Replicas not retrieved, checked for {replica_key}\nin\n{svc}")
+        raise DuploStillWaiting(f"Service {name} waiting for replica status")
 
       # we are still waiting if the changed values do not appear when retrieving the service
       if (image_changed and self.image_from_body(svc) != new_img):

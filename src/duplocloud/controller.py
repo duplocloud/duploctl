@@ -46,6 +46,8 @@ class DuploCtl():
                token: args.TOKEN=None,
                tenant: args.TENANT=None,
                tenant_id: args.TENANT_ID=None,
+               workspace: args.WORKSPACE=None,
+               workspace_id: args.WORKSPACEID=None,
                home_dir: args.HOME_DIR=None,
                config_file: args.CONFIG=None,
                cache_dir: args.CACHE_DIR=None,
@@ -60,7 +62,8 @@ class DuploCtl():
                loglevel: args.LOGLEVEL="WARN",
                wait: args.WAIT=False,
                wait_timeout: args.WAIT_TIMEOUT=None,
-               validate: args.VALIDATE=False):
+               validate: args.VALIDATE=False,
+               auth_cooldown: args.AUTH_COOLDOWN=None):
     """DuploCtl Constructor
 
     Creates an instance of a duplocloud client configured for a certain portal. All of the arguments are optional and can be set in the environment or in the config file. The types of each of the arguments are annotated types that are used by argparse to create the command line arguments.
@@ -70,6 +73,8 @@ class DuploCtl():
       token: The token to use for authentication.
       tenant: The tenant to use.
       tenant_id: The tenant id to use.
+      workspace: The AI HelpDesk workspace to use.
+      workspace_id: The AI HelpDesk workspace id to use.
       home_dir: The home directory for the client.
       config_file: The config file for the client.
       cache_dir: The cache directory for the client.
@@ -82,6 +87,7 @@ class DuploCtl():
       query: The query to use.
       output: The output format for the client.
       loglevel: The log level for the client.
+      auth_cooldown: The auth cooldown setting.
 
     Returns:
       duplo (DuploCtl): An instance of a DuploCtl.
@@ -96,6 +102,9 @@ class DuploCtl():
     # if a tenant id was given, the tenant name must be ignored
     if tenant_id:
       tenant = None
+    # likewise for the workspace id and name
+    if workspace_id:
+      workspace = None
 
     user_home = Path.home()
     self.home_dir = home_dir or f"{user_home}/.duplo"
@@ -107,6 +116,9 @@ class DuploCtl():
     self._token = token.strip() if token else token
     self._tenant = tenant.strip().lower() if tenant else tenant
     self.tenantid = tenant_id.strip() if tenant_id else tenant_id
+    # workspace names are matched case-insensitively downstream, don't lower
+    self._workspace = workspace.strip() if workspace else workspace
+    self.workspaceid = workspace_id.strip() if workspace_id else workspace_id
     self.version = version
     self.interactive = interactive
     self.nocache = nocache
@@ -120,6 +132,7 @@ class DuploCtl():
     self.wait = wait
     self.wait_timeout = wait_timeout
     self.validate = validate
+    self.auth_cooldown = auth_cooldown
     self._clients = {}
 
   @staticmethod
@@ -262,6 +275,31 @@ class DuploCtl():
     self._tenant = value
 
   @property
+  def workspace(self) -> str:
+    """Get Workspace
+
+    Get the AI HelpDesk workspace name from the global --workspace flag,
+    the DUPLO_WORKSPACE environment variable, or the config context.
+
+    Returns:
+      The workspace name as a string.
+    """
+    if not self.host:
+      raise DuploError("Host for Duplo portal is required", 500)
+    return self._workspace
+
+  @workspace.setter
+  def workspace(self, value: str) -> None:
+    """Set Workspace
+
+    Set the AI HelpDesk workspace for this Duplo client.
+
+    Args:
+      value: The workspace name to set.
+    """
+    self._workspace = value
+
+  @property
   def config(self) -> dict:
     return {
       "Host": self.host,
@@ -336,6 +374,7 @@ Available Resources:
     self._host = self._sanitize_host(ctx.get("host", None))
     self._token = ctx.get("token", None)
     self._tenant = ctx.get("tenant", self._tenant)
+    self._workspace = ctx.get("workspace", self._workspace)
     self.interactive = ctx.get("interactive", False)
     self.isadmin = ctx.get("admin", False)
     self.nocache = ctx.get("nocache", False)
@@ -525,6 +564,13 @@ Available Resources:
     elif self.tenant:
       cmd.append("--tenant")
       cmd.append(self.tenant)
+    # workspace name or id or not at all
+    if self.workspaceid:
+      cmd.append("--workspace-id")
+      cmd.append(self.workspaceid)
+    elif self._workspace:
+      cmd.append("--workspace")
+      cmd.append(self._workspace)
     # only when admin
     if self.isadmin:
       cmd.append("--admin")

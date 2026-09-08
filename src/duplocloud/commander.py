@@ -115,6 +115,58 @@ def _inject_tenant_scope(cls):
   
   return cls
 
+def _inject_workspace_scope(cls):
+  """Inject workspace-scoped functionality into a resource class.
+
+  Mirrors _inject_tenant_scope for AI HelpDesk workspaces. Resources get
+  lazy `workspace` and `workspace_id` properties resolved through the
+  `workspace` resource using the global --workspace/--workspace-id flags
+  (DUPLO_WORKSPACE / DUPLO_WORKSPACE_ID).
+
+  Args:
+    cls: The class to inject workspace functionality into.
+
+  Returns:
+    cls: The modified class with workspace functionality.
+  """
+  # Add private attributes initialization
+  original_init = cls.__init__
+
+  def new_init(self, duplo, *args, **kwargs):
+    original_init(self, duplo, *args, **kwargs)
+    self._workspace = None
+    self._workspace_id = None
+    self.workspace_svc = duplo.load('workspace')
+
+  setattr(cls, '__init__', new_init)
+
+  # Add workspace property
+  @property
+  def workspace(self):
+    if not self._workspace:
+      self._workspace = self.workspace_svc.find(
+        name=self.duplo.workspace, id=self.duplo.workspaceid)
+      self._workspace_id = self._workspace["id"]
+    return self._workspace
+
+  setattr(cls, 'workspace', workspace)
+
+  # Add workspace_id property
+  @property
+  def workspace_id(self):
+    if not self._workspace_id:
+      if self._workspace:
+        self._workspace_id = self._workspace["id"]
+      elif self.duplo.workspaceid:
+        self._workspace_id = self.duplo.workspaceid
+      else:
+        self._workspace_id = self.workspace["id"]
+    return self._workspace_id
+
+  setattr(cls, 'workspace_id', workspace_id)
+
+  return cls
+
 def Client(name: str):
   """Client decorator
 
@@ -164,7 +216,7 @@ def Resource(name: str, scope: str = "portal", client: str = "duplo"):
 
   Args:
     name: The name of the resource.
-    scope: The scope of the resource. Valid values are "portal" or "tenant". Defaults to "portal".
+    scope: The scope of the resource. Valid values are "portal", "tenant", or "workspace". Defaults to "portal".
     client: The client to inject. Defaults to "duplo".
 
   Returns:
@@ -173,8 +225,9 @@ def Resource(name: str, scope: str = "portal", client: str = "duplo"):
   Raises:
     ValueError: If an invalid scope is provided.
   """
-  if scope not in ("portal", "tenant"):
-    raise ValueError(f"Invalid scope '{scope}'. Must be 'portal' or 'tenant'.")
+  if scope not in ("portal", "tenant", "workspace"):
+    raise ValueError(
+      f"Invalid scope '{scope}'. Must be 'portal', 'tenant', or 'workspace'.")
 
   def decorator(cls):
     resources[name] = {
@@ -186,9 +239,11 @@ def Resource(name: str, scope: str = "portal", client: str = "duplo"):
     setattr(cls, "scope", scope)
     setattr(cls, "_client_name", client)
 
-    # Inject tenant functionality if tenant-scoped
+    # Inject scope-specific functionality
     if scope == "tenant":
       cls = _inject_tenant_scope(cls)
+    elif scope == "workspace":
+      cls = _inject_workspace_scope(cls)
 
     # Inject client after tenant scope (skip if client=None)
     if client is not None:

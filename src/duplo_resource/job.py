@@ -85,6 +85,13 @@ class DuploJob(DuploResourceV3):
         s = succeeded
         f = failed
         self.duplo.logger.warning(f"Job {name}: active({active}/{completions}), succeeded({succeeded}/{completions}), failed({failed}/{limit})")
+      # Terminal conditions come first: completed pods may already be
+      # gone from the pod listing, so gating these on pod counts can
+      # spin forever on a job that has actually finished.
+      if len(fail) > 0:
+        raise DuploFailedResource(f"Job {name} failed with {fail[0]['reason']}: {fail[0]['message']}")
+      if len(cpl) > 0:
+        return
       # make sure we can get pods and logs first
       pods_exist = (active > 0 or succeeded > 0 or failed > 0)
       pods = self.pods(name)
@@ -100,12 +107,8 @@ class DuploJob(DuploResourceV3):
       pod_count = active + succeeded + failed
       if podct != pod_count:
         raise DuploStillWaiting(f"Expected {pod_count} pods, got {podct}")
-      if len(fail) > 0:
-        raise DuploFailedResource(f"Job {name} failed with {fail[0]['reason']}: {fail[0]['message']}")
-      
-      # if none have completed, keep waiting
-      if not len(cpl) > 0:
-        raise DuploStillWaiting(f"Job '{name}' is waiting for 'Complete' condition")
+      # none have completed yet, keep waiting
+      raise DuploStillWaiting(f"Job '{name}' is waiting for 'Complete' condition")
     super().create(body, wait_check)
     return {
       "message": f"Job {name} ran successfully."

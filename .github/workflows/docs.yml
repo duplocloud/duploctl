@@ -51,6 +51,9 @@ jobs:
 
     - name: Build Docs
       run: mkdocs build
+      env:
+        # link rewritten repo urls at the ref the site is built from
+        DOCS_REF: ${{ inputs.tag }}
 
     - name: Fix permissions
       run: |

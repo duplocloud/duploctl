@@ -2,14 +2,9 @@ import requests
 from cachetools import cachedmethod, TTLCache
 from urllib.parse import unquote, quote
 from duplocloud.commander import Client
+from duplocloud.client import _NullCache
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploConnectionError
-
-
-class _NullCache(dict):
-  """A cache that never stores anything, effectively disabling caching."""
-  def __setitem__(self, key, value):
-    pass  # never store
 
 
 @Client("argo_wf")

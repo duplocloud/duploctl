@@ -5,10 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Be terse. One line per change, max.** Docs, CI and chores get one terse
+line. Code changes get one line naming the behavior that changed. Breaking
+changes get one terse line too, what broke and what to do instead. Rationale
+and implementation detail belong in the PR, not here.
+
 ## [Unreleased]
+
+### Fixed
+
+- Fixed broken links on the docs site
+- `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
+- `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod
+
+### Added
+
+- **AI HelpDesk admin control-plane resources** — eleven new entities managed by a shared declarative base (`HelpdeskAdminResource`): `scope`, `provider`, `hd_user` (helpdesk user; `user` is the Core Platform resource), `persona`, `skill`, `mcp_server`, `permission_set`, `quota`, `quota_mapping`, `command_policy`, and `command_policy_mapping`, each with `list`/`find`/`create`/`update`/`apply`/`delete`. Updates are full replaces and always carry the record `id` in the body, avoiding the backend's self-collision on admin PUTs. The collection inventory mirrors the duploai terraform provider.
+- `workspace add_scope`/`remove_scope` (`--scope`/`--scope_id`) attach or detach a scope, mirroring `add_agent`/`remove_agent`.
+- **HelpDesk waiter** in the shared helpdesk base: resources that declare a `waiter` poll status to `Complete` under `--wait`, aborting on `Failed`/`Blocked`/`WaitingForApproval`/`DeprovisionFailed` with the `blockedReason` detail, with optional secondary ready gates — the same semantics as the terraform provider. The admin entities are synchronous and don't use it; it lands here for the workspace-scoped resource families that follow.
+- AI HelpDesk CRUD and lifecycle commands against the existing backend endpoints (workspace/agent resolved by name or `--id` via their `find`):
+  - `workspace create`/`update`/`apply` (body via `-f`; `apply` upserts by the body's `name`), `workspace delete`, and `workspace add_agent`/`remove_agent` (`--agent`/`--agent_id` selects the agent).
+  - `agent create`/`update`/`apply` (body via `-f`), and `agent delete`.
+  - `ticket list` (per workspace), `ticket assignee` (get the assigned agent), `ticket reassign` (`--agent`/`--agent_id`), `ticket set_status` (`--status`), `ticket close` (`--disposition`, default `resolved`), and `ticket delete`.
+  - Inputs are validated before the request: `create`/`update`/`apply` require a mapping body (clear `DuploError` when `-f` is omitted rather than an `AttributeError`), and `ticket set_status --status closed` requires `--disposition`.
+- AI HelpDesk V2 (HDV2) workload resources — the HelpDesk equivalent of the Core Platform `service`/`lambda` resources and their `update-image` action:
+  - `appservice` for HDV2 Kubernetes (EKS) AppServices: `list`/`find`/`update_image` at the workspace scope, and `create`/`update`/`apply`/`delete` on the nested environment/resource-group scope (`--environment`/`--resource-group`, resolved by name or id). `delete` initiates deprovisioning.
+  - `hd_lambda` for HDV2 AWS Lambdas: same command set; `update_image` reads the function's environment/resource-group off its record and passes the new `ImageUri` through to AWS `UpdateFunctionCode`.
+  - `environment` and `resource_group` resolver resources (`list`/`find`) so workloads can be placed and looked up by human-readable names; `resource_group find` accepts `--environment` to disambiguate names shared across environments.
+  - ECS is intentionally not included: the HelpDesk V2 backend has no ECS controller/update-image endpoint yet (tracked in DUPLO-43548).
+  - Requests match the backend contracts: `resource_group update` carries the immutable spec placement (including `cloud`) forward from the existing record, create bodies strip the backend-derived `spec.scopeIds` (so `find` output round-trips into `create`/`apply`), and workload `update` requires a `name` in the body.
+- **Workspace resource scope** — `@Resource(name, scope="workspace")` mirrors the tenant scope: workspace-scoped resources get lazy `workspace`/`workspace_id` properties resolved through the `workspace` resource. The `ticket` and HDV2 (`environment`/`resource_group`/`appservice`/`hd_lambda`) resources use it; `workspace` and `agent` are portal-scoped.
+- **Global `--workspace`/`-W` and `--workspace-id` flags** with `DUPLO_WORKSPACE`/`DUPLO_WORKSPACE_ID` environment variables select the AI HelpDesk workspace for a whole invocation (like `-T`/`DUPLO_TENANT` for tenants); the `ticket` and HDV2 commands no longer take per-command workspace flags.
+- **Dedicated AI HelpDesk client** (`clients.duplocloud.net` entry point `helpdesk`, following the argo client pattern) owns the `v1/aiservicedesk` URL prefix, auth headers, GET caching, and error mapping for the `workspace`, `agent`, `ticket`, and HDV2 resources. Admin list routes are paginated (`get_items` walks the server's 100-item pages), so `list` commands and name lookups see every record instead of the first page.
+
+### Removed
+
+- The per-command `--api-version` flag on the AI HelpDesk commands (introduced within this unreleased cycle): the backend only serves `v1` routes, which the helpdesk client now owns.
+
+- `tenant stop`/`start` now scale ASGs to zero and back (prior sizing snapshotted in the ASG's custom data), and skip ASG-managed hosts in the host sweep so the group handles them. Exclude with `--exclude asg/<name>`.
+- `tenant stop`/`start` now also stop/start ReplicationController services (k8s and native Docker, not ECS); the platform preserves replica counts. Exclude with `--exclude service/<name>`.
+- `tenant stop` treats an already-stopped Aurora cluster as benign instead of a failure.
 
 ### Changed
 
+- Pinned ruff's lint `select` to the historical `E`/`F` default so ruff version bumps no longer silently change enforced rules; unpinned the ruff version.
+
+## [0.4.5] - 2026-07-20
+
+### Fixed
+
+- `duploctl cache clear` actually clears the cache now — `DuploCache` did not extend `DuploResource`, so the CLI could not dispatch the `clear` command and printed the resource docstring instead of removing cached credentials and cooldown files
+- Auth cooldown (`DUPLO_AUTH_COOLDOWN`) no longer opens duplicate browser tabs when many non-TTY processes authenticate at once: the cooldown file is now published atomically (readers could previously observe it empty and steal the cooldown), the credential cache is written atomically and before the cooldown is released, blocked processes retry instead of failing when the cooldown vanishes mid-check, and only the process that owns the cooldown may clear it.
+
+### Changed
+
+- Integration tests generate tenant names as `dctl{n}` instead of `duploctl{n}` to avoid the portal's shared-prefix conflict with the existing `duploctl` tenant on QA portals
+- Integration test workflow accepts a `region` input (and `publish.yml` an `e2e_region` input) to create test infrastructure in an alternate AWS region, e.g. to avoid per-region VPC quota exhaustion
+- Publish workflow runs integration tests by default (`run_e2e` now defaults to true; uncheck to skip for e.g. hotfixes)
+
+### Fixed
+
+- `rds engine_versions` works against newer portals that removed the combined `engineVersions` endpoint — uses the per-engine `rds/catalog` endpoints and falls back to the old endpoint on older portals
+
+- added ability to pass in kwargs when calling the client as function
+- **Authentication cooldown** via `DUPLO_AUTH_COOLDOWN` — prevents duplicate browser login prompts when multiple processes request tokens concurrently. Thanks to [@scholzie](https://github.com/scholzie) for the original contribution in [duplocloud/duplo-jit#52](https://github.com/duplocloud/duplo-jit/pull/52).
+- **Cache resource** with `duploctl cache clear` command to remove cached credentials and cooldown files
+- **SDK model validation** via `--validate` / `DUPLO_VALIDATE`
+  - `DuploClient.load_model(name)` lazily loads a Pydantic model class from `duplocloud-sdk` by name
+  - `DuploClient.validate_model(model, data)` validates and serializes a body dict, raising `DuploInvalidError` (422) on failure
+  - `DuploResource.command()` gates model loading and validation behind the `validate` flag — no overhead when disabled
+  - `@Command(model="...")` decorator parameter stores the associated model name in the command schema
+  - `duplocloud-sdk` added as a core dependency
 - Split the AI HelpDesk `ai` resource into dedicated `workspace`, `agent`, and `ticket` resources so each endpoint is exposed as a first-class command rather than hidden behind a single resource. The `ai` resource (`ai create_ticket`, `ai send_message`) is removed.
   - `workspace find` resolves an AI HelpDesk workspace by name (case-insensitive) or `--id`; `workspace list` lists workspaces.
   - `agent find` resolves an agent by name or `--id`; `agent supports_streaming` reports the agent's `metaData.STREAMING_ENABLED` flag.
@@ -22,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed occasional keyErrors when replicasActive doesn't exist during --wait operations.
 - Fixed `jit` commands (`aws`, `gcp`, `argo_wf`, `k8s`, `token`) leaking credentials in GitHub Actions logs when output was piped to `$GITHUB_OUTPUT`. When `GITHUB_ACTIONS=true`, secret fields are now registered with `::add-mask::` so the runner redacts them in subsequent step logs.
 - Removed unused `pytest-black` and `pytest-isort` dev dependencies that broke unit-test CI at pytest startup on current pytest; linting is handled by `ruff`
 - Fixed `tenant stop`/`tenant start` (and `rds stop`/`rds start`) failing on Aurora. Aurora and other cluster engines can only be stopped/started at the cluster level, not on member instances — the previous code always called the instance endpoint and the API rejected it (`aurora-postgresql DB instances are not eligible for stopping and starting`). `rds` now classifies each resource by engine and routes Aurora/cluster engines to the cluster stop/start endpoint, regular RDS to the instance endpoint, and skips Aurora Serverless v1 (auto-pauses) and DocumentDB. Multi-node clusters are deduped so the cluster is actioned once. The tenant sweep is best-effort — only "already in target state" errors (e.g. re-running stop on an already-stopped cluster) are treated as benign and skipped; transient errors (gateway 502/503/504 and connection errors) are retried with backoff; and any remaining genuine failures are collected across the whole sweep and raised together at the end so the command exits non-zero rather than falsely reporting success
@@ -50,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `service update_env` and `update_labels` crashing when `OtherDockerConfig` is empty
 - Fixed `tenant config` crashing with help text when `--deletevar` is not provided
 - Fixed `apply` misrouting the body into the `name` parameter for subclasses whose `create` signature starts with `name` (e.g. `ssm_param`, `secret`, `aws_secret`, `configmap`); the V2 and V3 base `apply` now call `self.create(body=body)` by keyword
+- Fixed `service update_image` failing with `'' not found` (exit 148) on older Duplo backends that lack the V3 containerimage endpoint by falling back to the V2 ReplicationControllerChange endpoint
 
 ## [0.4.3] - 2026-03-18
 

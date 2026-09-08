@@ -1,0 +1,123 @@
+import os
+import pytest
+from unittest.mock import MagicMock
+
+
+@pytest.mark.unit
+class TestCacheResource:
+  def test_clear_command(self, tmp_path):
+    """Test the cache resource clear command calls clear_all_caches."""
+    cache_dir = str(tmp_path / "cache")
+    os.makedirs(cache_dir)
+
+    # Create some fake cache files.
+    for name in ["host1-duplo-creds.json", "host2.cooldown", "other.json"]:
+      with open(os.path.join(cache_dir, name), "w") as f:
+        f.write("{}")
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource.clear()
+
+    assert result == {"message": "Cleared 3 cached file(s)"}
+    assert os.listdir(cache_dir) == []
+
+  def test_clear_command_empty(self, tmp_path):
+    """Test the cache resource clear command with zero files."""
+    cache_dir = str(tmp_path / "cache")
+    os.makedirs(cache_dir)
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource.clear()
+
+    assert result == {"message": "Cleared 0 cached file(s)"}
+
+  def test_clear_command_nonexistent_dir(self, tmp_path):
+    """Test clear command with nonexistent dir returns 0."""
+    cache_dir = str(tmp_path / "nonexistent")
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource.clear()
+
+    assert result == {"message": "Cleared 0 cached file(s)"}
+
+  def test_clear_skips_subdirectories(self, tmp_path):
+    """Test clear command only removes files, not subdirectories."""
+    cache_dir = str(tmp_path / "cache")
+    os.makedirs(cache_dir)
+
+    with open(os.path.join(cache_dir, "file.json"), "w") as f:
+      f.write("{}")
+    os.makedirs(os.path.join(cache_dir, "subdir"))
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource.clear()
+
+    assert result == {"message": "Cleared 1 cached file(s)"}
+    assert "subdir" in os.listdir(cache_dir)
+
+  def test_clear_via_cli_dispatch(self, tmp_path):
+    """Test clear runs through resource(cmd) dispatch like the CLI does.
+
+    Regression test for DUPLO-41877: DuploCache did not extend
+    DuploResource, so `duploctl cache clear` raised a TypeError and
+    printed the class docstring instead of clearing anything.
+    """
+    cache_dir = str(tmp_path / "cache")
+    os.makedirs(cache_dir)
+    with open(os.path.join(cache_dir, "host-duplo-creds.json"), "w") as f:
+      f.write("{}")
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+    mock_duplo.validate = False
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    result = resource("clear")
+
+    assert result == {"message": "Cleared 1 cached file(s)"}
+    assert os.listdir(cache_dir) == []
+
+  def test_set_get_roundtrip(self, tmp_path):
+    """Test set writes a readable JSON file and get returns it."""
+    cache_dir = str(tmp_path / "cache")
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    resource.set("mykey", {"DuploToken": "abc"})
+
+    assert resource.get("mykey") == {"DuploToken": "abc"}
+
+  def test_set_leaves_no_temp_file(self, tmp_path):
+    """Test the atomic write leaves no .tmp leftovers (DUPLO-41877)."""
+    cache_dir = str(tmp_path / "cache")
+
+    mock_duplo = MagicMock()
+    mock_duplo.cache_dir = cache_dir
+
+    from duplo_resource.cache import DuploCache
+    resource = DuploCache(mock_duplo)
+    resource.set("mykey", {"DuploToken": "abc"})
+
+    leftovers = [e for e in os.listdir(cache_dir) if ".tmp." in e]
+    assert leftovers == []
+    assert "mykey.json" in os.listdir(cache_dir)

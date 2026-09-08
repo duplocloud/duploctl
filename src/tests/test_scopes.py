@@ -160,6 +160,82 @@ def test_parent_class_with_scope():
   assert hasattr(ChildResource, "tenant_id")
 
 @pytest.mark.unit
+def test_workspace_scoped_resource():
+  """Test that workspace-scoped resources get workspace functionality injected."""
+
+  @Resource("test_workspace_scope", "workspace")
+  class TestWorkspaceResource:
+    def __init__(self, duplo: DuploCtl):
+      self.duplo = duplo
+
+    @Command()
+    def list(self):
+      pass
+
+  # Check the resource is registered with workspace scope
+  assert "test_workspace_scope" in resources
+  assert resources["test_workspace_scope"]["scope"] == "workspace"
+
+  # Verify workspace functionality was injected
+  assert isinstance(getattr(TestWorkspaceResource, "workspace"), property)
+  assert isinstance(getattr(TestWorkspaceResource, "workspace_id"), property)
+
+  # Verify tenant functionality was not injected
+  assert not hasattr(TestWorkspaceResource, "tenant")
+  assert not hasattr(TestWorkspaceResource, "tenant_id")
+  assert not hasattr(TestWorkspaceResource, "prefix")
+
+@pytest.mark.unit
+def test_workspace_scope_id_resolution():
+  """Test lazy workspace resolution through the injected properties."""
+
+  @Resource("test_workspace_props", "workspace")
+  class TestWorkspacePropsResource:
+    def __init__(self, duplo: DuploCtl):
+      self.duplo = duplo
+
+    @Command()
+    def list(self):
+      pass
+
+  def make_duplo(workspace=None, workspace_id=None):
+    duplo = Mock()
+    duplo.workspace = workspace
+    duplo.workspaceid = workspace_id
+    duplo.load.return_value = Mock(
+      find=Mock(return_value={"id": "6a0db3da984d2b398701bca7", "name": "plat"}))
+    return duplo
+
+  # A global --workspace-id short-circuits the lookup entirely
+  duplo = make_duplo(workspace_id="6a0db3da984d2b398701bca7")
+  resource = TestWorkspacePropsResource(duplo)
+  assert resource.workspace_id == "6a0db3da984d2b398701bca7"
+  resource.workspace_svc.find.assert_not_called()
+
+  # A workspace name resolves through workspace.find exactly once
+  duplo = make_duplo(workspace="plat")
+  resource = TestWorkspacePropsResource(duplo)
+  assert resource.workspace["name"] == "plat"
+  assert resource.workspace_id == "6a0db3da984d2b398701bca7"
+  resource.workspace_svc.find.assert_called_once_with(name="plat", id=None)
+
+@pytest.mark.unit
+def test_portal_scope_has_no_workspace_properties():
+  """Test that portal-scoped resources don't get workspace functionality."""
+
+  @Resource("test_portal_no_workspace", "portal")
+  class TestPortalNoWorkspaceResource:
+    def __init__(self, duplo: DuploCtl):
+      self.duplo = duplo
+
+    @Command()
+    def list(self):
+      pass
+
+  assert not hasattr(TestPortalNoWorkspaceResource, "workspace")
+  assert not hasattr(TestPortalNoWorkspaceResource, "workspace_id")
+
+@pytest.mark.unit
 def test_invalid_scope_raises_error():
   """Test that invalid scope values raise an error."""
   
