@@ -32,6 +32,11 @@ on:
         required: false
         default: ""
         type: string
+      e2e_helpdesk_environment:
+        description: GHA environment for AI HelpDesk integration tests
+        required: false
+        default: qa-helpdesk
+        type: environment
 
 jobs:
 
@@ -75,6 +80,15 @@ jobs:
       suite: ecs
       region: ${{ inputs.e2e_region }}
 
+  integration_helpdesk:
+    name: Integration Tests
+    uses: ./.github/workflows/test_integration.yml
+    secrets: inherit
+    with:
+      environment: ${{ inputs.e2e_helpdesk_environment }}
+      enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
+      suite: helpdesk
+
   version:
     name: Version
     uses: ./.github/workflows/version.yml
@@ -85,6 +99,7 @@ jobs:
     - integration_aws
     - integration_k8s
     - integration_ecs
+    - integration_helpdesk
     with:
       action: ${{ inputs.action }}
       push: ${{ inputs.push }}
