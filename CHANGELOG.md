@@ -16,8 +16,12 @@ and implementation detail belong in the PR, not here.
 
 - Standalone AI HelpDesk support: point `DUPLO_HOST` at the helpdesk's own URL and `DUPLO_TOKEN` at a `dahp_` API token minted from the helpdesk — no new settings; a rejected `dahp_` token now gets re-mint guidance instead of a raw 401
 
+- AI HelpDesk integration-test scaffolding: `helpdesk` marker, `helpdesk_ready` skip-gate fixture (no infra/tenant lifecycle; works against integrated or standalone targets), a `helpdesk` suite file, and an initial workspace lifecycle + read-only smoke suite
+- CI wiring for the `helpdesk` integration suite: suites may declare `lifecycle: false` to skip the infra/tenant lifecycle and teardown jobs; the target GHA environment's `DUPLO_HOST`/`DUPLO_TOKEN` point at a helpdesk-enabled portal or a standalone helpdesk, and publish runs the suite against `e2e_helpdesk_environment` (default `qa-helpdesk`)
+
 ### Fixed
 
+- `workspace update` no longer fails with a name-collision validation error against itself — the record id is now carried in the PUT body (same backend quirk as the admin resources)
 - Fixed broken links on the docs site
 - `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
 - `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod

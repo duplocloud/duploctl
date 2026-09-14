@@ -1,0 +1,16 @@
+# AI HelpDesk suite. Unlike aws/ecs/k8s this suite needs NO infra/tenant
+# lifecycle — `lifecycle: false` makes test_integration.yml skip the
+# lifecycle pytest run and the teardown job, so no infra is created.
+#
+# The target GHA environment sets DUPLO_HOST/DUPLO_TOKEN to either a
+# helpdesk-enabled portal or a standalone helpdesk (its own URL with a
+# dahp_ API token). Tests skip themselves (helpdesk_ready fixture)
+# when no AI HelpDesk is reachable.
+#
+# Run locally:
+#   pytest src -m "integration and helpdesk" --ignore=src/tests/test_portal.py
+infra_type: duplo
+lifecycle: false
+jobs:
+- name: helpdesk
+  markers: "integration and helpdesk"
