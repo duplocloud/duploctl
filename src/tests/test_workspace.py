@@ -177,9 +177,11 @@ def test_update_resolves_id_from_body_name(mocker):
     client.put.assert_called_once()
     url, sent = client.put.call_args[0]
     assert url.endswith(f"/workspaces/{_WORKSPACE_ID}")
-    # The backend stamps the record id from the route, so the body is
-    # sent exactly as provided.
-    assert sent == body
+    # The body must carry the record id or the backend's uniqueness
+    # check collides with the record itself (verified live)
+    assert sent == {**body, "id": _WORKSPACE_ID}
+    # the caller's body is not mutated
+    assert "id" not in body
     assert result["id"] == _WORKSPACE_ID
 
 

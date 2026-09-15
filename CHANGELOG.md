@@ -15,9 +15,13 @@ and implementation detail belong in the PR, not here.
 ### Added
 
 - **AI HelpDesk Kubernetes resource family** — twelve workspace-scoped entities on the user data plane via a declarative `HelpdeskWorkspaceResource` base: `hd_configmap`, `hd_secret`, `hd_cronjob`, `hd_job`, `hd_ingress`, `hd_pvc`, `resource_quota`, `hd_storageclass`, `namespace`, `helm_release`, `helm_repository` (CRUD; `hd_` prefix only where the Core Platform owns the plain name), and read-only `k8s_credentials` (JIT cluster credentials via `jitAccess`). Backend-required constants (`spec.k8sResource.apiVersion`/`kind`, `spec.mode`) are injected into create/update bodies when absent; `hd_job` and `namespace` are immutable (update/apply-over-existing fail with guidance); `delete` deprovisions and waits for `DeProvisioned` before removing the record, with `--wait` confirming it is gone. `helm_release --wait` additionally gates on the Flux `Ready` condition and fails fast on `Stalled`. Semantics mirror the duploai terraform provider specs.
+- Standalone AI HelpDesk support: point `DUPLO_HOST` at the helpdesk's own URL and `DUPLO_TOKEN` at a `dahp_` API token minted from the helpdesk — no new settings; a rejected `dahp_` token now gets re-mint guidance instead of a raw 401
+- AI HelpDesk integration-test scaffolding: `helpdesk` marker, `helpdesk_ready` skip-gate fixture (no infra/tenant lifecycle; works against integrated or standalone targets), a `helpdesk` suite file, and an initial workspace lifecycle + read-only smoke suite
+- CI wiring for the `helpdesk` integration suite: suites may declare `lifecycle: false` to skip the infra/tenant lifecycle and teardown jobs; the target GHA environment's `DUPLO_HOST`/`DUPLO_TOKEN` point at a helpdesk-enabled portal or a standalone helpdesk, and publish runs the suite against `e2e_helpdesk_environment` (default `qa-helpdesk`)
 
 ### Fixed
 
+- `workspace update` no longer fails with a name-collision validation error against itself — the record id is now carried in the PUT body (same backend quirk as the admin resources)
 - Fixed broken links on the docs site
 - `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
 - `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod
