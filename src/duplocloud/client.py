@@ -3,7 +3,9 @@ import requests
 from cachetools import cachedmethod, TTLCache
 from duplocloud.commander import Client
 from duplocloud.errors import DuploError, DuploExpiredCache, DuploNotFound, DuploConnectionError
-from duplocloud.server import TokenServer, parse_token, HEADLESS_CALLBACK_PORT
+from duplocloud.server import (
+    TokenServer, parse_token, HEADLESS_CALLBACK_PORT, HEADLESS_CALLBACK_BIND
+)
 from duplocloud.authcooldown import (
     is_auth_cooldown_enabled, is_tty, check_cooldown_before_listen,
     recover_relay_bind_failure, acquire_or_update_cooldown, clear_auth_cooldown,
@@ -198,10 +200,12 @@ class DuploAPI():
     Raises:
       DuploError: If the port is unavailable or no token arrives in time.
     """
+    bind = self.duplo.headless_bind or HEADLESS_CALLBACK_BIND
     try:
-      # all interfaces, same as the browser flow: a published container port
-      # (docker -p) is delivered to the container ip, not to loopback
-      server = TokenServer(self.duplo.host, timeout=HEADLESS_TIMEOUT, port=port)
+      # loopback by default: the port is fixed and documented, so binding it
+      # everywhere lets anything that can reach this machine deliver a token
+      server = TokenServer(self.duplo.host, timeout=HEADLESS_TIMEOUT,
+                           port=port, bind=bind)
     except OSError as e:
       raise DuploError(
         f"Could not listen on port {port} for the headless login callback: {e}",
@@ -210,8 +214,8 @@ class DuploAPI():
       print(
         f"\nOpen this url in a browser to log in to {self.duplo.host}:\n\n"
         f"  {url}\n\n"
-        f"Waiting for the callback on port {port}. Forward it first if the "
-        f"browser is on another machine, e.g.\n"
+        f"Waiting for the callback on {bind}:{port}. Forward it first if "
+        f"the browser is on another machine, e.g.\n"
         f"  ssh -L {port}:localhost:{port} <thishost>\n",
         file=sys.stderr)
       try:

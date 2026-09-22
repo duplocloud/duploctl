@@ -68,6 +68,7 @@ duploctl service list -q '[].Name'
 | `--interactive`, `-I` | -- | `false` | Use interactive browser-based login |
 | `--headless`, `--no-browser` | `DUPLO_HEADLESS` | `false` | Interactive login without a browser, for remote hosts and containers |
 | `--headless-port` | `DUPLO_HEADLESS_PORT` | -- | Receive the headless login callback on this (forwarded) port |
+| `--headless-bind` | `DUPLO_HEADLESS_BIND` | `127.0.0.1` | Interface the headless callback listens on |
 | `--admin`, `--isadmin` | -- | `false` | Request admin JIT credentials (use with `-I`) |
 | `--log-level`, `-L` | `DUPLO_LOG_LEVEL` | `INFO` | Log level |
 | `--config-file` | `DUPLO_CONFIG` | -- | Path to duploctl config file |
@@ -104,6 +105,20 @@ The port mode also works where there is no terminal to paste into, such as an
 AWS `credential_process` or a kubectl exec credential plugin. `--headless` and
 `--headless-port` both imply `--interactive`, and are inherited by the
 commands written by `jit update_aws_config` and `jit update_kubeconfig`.
+
+The callback listens on loopback, which is where an `ssh -L` tunnel delivers.
+The port is fixed and documented, so binding it on every interface would let
+anything that can reach the machine on that port hand duploctl a token during
+the login window. Inside a container a published port arrives on the container
+ip rather than loopback, so that case needs to opt in:
+
+```sh
+docker run -p 56789:56789 duplocloud/duploctl jit aws \
+  --headless-port 56789 --headless-bind 0.0.0.0
+```
+
+All three settings can also live in a config context, e.g.
+`duploctl config set headless true`.
 
 ## CLI Usage
 

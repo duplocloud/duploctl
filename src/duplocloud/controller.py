@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from pathlib import Path
 from .commander import load_resource, load_format, load_client
 from .errors import DuploError, DuploInvalidError
+from .server import HEADLESS_CALLBACK_BIND
 from . import args
 from .commander import Command, get_parser, extract_args, available_resources, VERSION
 from typing import TypeVar
@@ -54,6 +55,7 @@ class DuploCtl():
                interactive: args.INTERACTIVE=False,
                headless: args.HEADLESS=False,
                headless_port: args.HEADLESS_PORT=None,
+               headless_bind: args.HEADLESS_BIND=None,
                ctx: args.CONTEXT=None,
                nocache: args.NOCACHE=False,
                browser: args.BROWSER=None,
@@ -83,6 +85,7 @@ class DuploCtl():
       interactive: The interactive mode for the client.
       headless: Log in without a browser by pasting back the redirect url. Implies interactive.
       headless_port: Listen on this port for the headless callback instead of prompting for a paste. Implies headless.
+      headless_bind: Interface the headless callback listens on. Defaults to loopback.
       ctx: The context to use.
       nocache: The nocache flag for the client.
       browser: The browser to use for interactive login.
@@ -131,13 +134,8 @@ class DuploCtl():
     self.version = version
     self.interactive = interactive
     self.headless = headless
-    # argparse only coerces values it parsed itself, a port from the
-    # environment arrives as a string and must be converted here
-    try:
-      self.headless_port = int(headless_port) if headless_port else None
-    except (TypeError, ValueError) as e:
-      raise DuploInvalidError(
-        f"Invalid headless port '{headless_port}', must be a number") from e
+    self.headless_port = self._headless_port(headless_port)
+    self.headless_bind = headless_bind or HEADLESS_CALLBACK_BIND
     self.nocache = nocache
     self.browser = browser
     self.isadmin = isadmin
@@ -378,6 +376,28 @@ Available Resources:
     d = self.filter(d, query=query)
     return self.format(d)
   
+  def _headless_port(self, value) -> int:
+    """Coerce a headless callback port to an int.
+
+    Ports arrive from three places and only one of them is typed: argparse
+    coerces what it parsed itself, but a port from the environment or from
+    the config file arrives as a string.
+
+    Args:
+      value: The port as given, or None.
+
+    Returns:
+      The port as an int, or None when no port was given.
+
+    Raises:
+      DuploInvalidError: If the value is not a number.
+    """
+    try:
+      return int(value) if value else None
+    except (TypeError, ValueError) as e:
+      raise DuploInvalidError(
+        f"Invalid headless port '{value}', must be a number") from e
+
   def use_context(self, name: str = None) -> None:
     """Use Context
 
@@ -400,7 +420,9 @@ Available Resources:
     self._tenant = ctx.get("tenant", self._tenant)
     self._workspace = ctx.get("workspace", self._workspace)
     self.headless = ctx.get("headless", self.headless)
-    self.headless_port = ctx.get("headless_port", self.headless_port)
+    self.headless_port = self._headless_port(
+      ctx.get("headless_port", self.headless_port))
+    self.headless_bind = ctx.get("headless_bind", self.headless_bind)
     self.interactive = ctx.get("interactive", False) or self.headless
     self.isadmin = ctx.get("admin", False)
     self.nocache = ctx.get("nocache", False)
@@ -610,6 +632,9 @@ Available Resources:
       if self.headless_port:
         cmd.append("--headless-port")
         cmd.append(str(self.headless_port))
+      if self.headless_port and self.headless_bind != HEADLESS_CALLBACK_BIND:
+        cmd.append("--headless-bind")
+        cmd.append(self.headless_bind)
       if self.nocache:
         cmd.append("--nocache")
       if self.browser:

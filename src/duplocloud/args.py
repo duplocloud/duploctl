@@ -130,6 +130,20 @@ points the browser at `http://localhost:<port>`, so with the port forwarded
 the login completes without pasting anything.
 """
 
+HEADLESS_BIND = Arg("headless-bind","--headless-bind",
+              help='Interface the headless callback listens on. Defaults to loopback, which is all an ssh forwarded port needs. Use 0.0.0.0 inside a container whose port is published.',
+              env='DUPLO_HEADLESS_BIND')
+"""Headless Callback Interface
+
+Which interface `--headless-port` binds. It defaults to loopback because the
+callback port is fixed and publicly documented: bound to every interface,
+anything that can reach the machine on that port during the login window can
+hand duploctl a token of its choosing, and the CORS header on the response
+does not prevent that. An `ssh -L` tunnel delivers to loopback, so the default
+covers the common case. A container needs `0.0.0.0`, because a published port
+(`docker -p`) is delivered to the container ip rather than to loopback.
+"""
+
 ISADMIN = Arg("admin","--isadmin",
               help='Request admin access when using interactive login.',
               type=bool,

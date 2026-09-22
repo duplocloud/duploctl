@@ -10,7 +10,10 @@ from unittest.mock import MagicMock
 
 from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploExpiredCache, DuploInvalidError
-from duplocloud.server import parse_token, HEADLESS_CALLBACK_PORT
+from duplocloud.server import (
+  parse_token, HEADLESS_CALLBACK_PORT, HEADLESS_CALLBACK_BIND
+)
+from duplo_resource.config import VALID_CONTEXT_KEYS, BOOLEAN_CONTEXT_KEYS
 
 
 HOST = "https://test.duplocloud.net"
@@ -124,6 +127,26 @@ class TestHeadlessFlags:
     cmd = c.build_command("duploctl", "jit", "aws")
     assert "--headless" not in cmd
 
+  def test_bind_defaults_to_loopback(self):
+    """The fixed callback port must not be exposed off the machine."""
+    c = DuploCtl(host=HOST, headless_port=56789)
+    assert c.headless_bind == HEADLESS_CALLBACK_BIND == "127.0.0.1"
+
+  def test_bind_can_be_widened_for_containers(self):
+    c = DuploCtl(host=HOST, headless_port=56789, headless_bind="0.0.0.0")
+    assert c.headless_bind == "0.0.0.0"
+
+  def test_build_command_omits_default_bind(self):
+    """The default needs no flag, so generated commands stay readable."""
+    c = DuploCtl(host=HOST, tenant="dev", headless_port=56789)
+    assert "--headless-bind" not in c.build_command("duploctl", "jit", "aws")
+
+  def test_build_command_carries_widened_bind(self):
+    c = DuploCtl(host=HOST, tenant="dev", headless_port=56789,
+                 headless_bind="0.0.0.0")
+    cmd = c.build_command("duploctl", "jit", "aws")
+    assert cmd[cmd.index("--headless-bind") + 1] == "0.0.0.0"
+
 
 # ===========================================================================
 # Headless token request
@@ -210,6 +233,21 @@ class TestHeadlessToken:
     assert api._relayed_token("https://portal/login", 4444) == "relayed"
 
     assert ctor.call_args.kwargs["port"] == 4444
+    assert ctor.call_args.kwargs["bind"] == "127.0.0.1"
+
+  def test_relayed_token_honors_widened_bind(self, mocker):
+    """A container publishes its port to the container ip, not loopback."""
+    c = DuploCtl(host=HOST, headless_port=4444, headless_bind="0.0.0.0")
+    api = _get_api(c)
+    mock_server = MagicMock()
+    mock_server.serve_token.return_value = "relayed"
+    mock_server.__enter__ = MagicMock(return_value=mock_server)
+    mock_server.__exit__ = MagicMock(return_value=False)
+    ctor = mocker.patch("duplocloud.client.TokenServer", return_value=mock_server)
+
+    api._relayed_token("https://portal/login", 4444)
+
+    assert ctor.call_args.kwargs["bind"] == "0.0.0.0"
 
   def test_relayed_token_port_in_use(self, mocker):
     c = DuploCtl(host=HOST, headless_port=4444)
@@ -246,3 +284,44 @@ class TestHeadlessToken:
     mocker.patch.object(api.cache, "expiration", return_value="2099-01-01T00:00:00+00:00")
     assert api.interactive_token() == "fresh"
     mock_set.assert_called_once()
+
+
+# ===========================================================================
+# Config file round trip
+# ===========================================================================
+
+
+@pytest.mark.unit
+class TestHeadlessContextKeys:
+  """The headless settings must survive a config context, not just flags."""
+
+  def test_keys_are_settable_via_config(self):
+    """use_context() reads these, so config set must accept them."""
+    for key in ("headless", "headless_port", "headless_bind"):
+      assert key in VALID_CONTEXT_KEYS
+
+  def test_headless_is_a_boolean_key(self):
+    assert "headless" in BOOLEAN_CONTEXT_KEYS
+
+  def test_context_values_are_applied(self, mocker):
+    c = DuploCtl(host=HOST)
+    mocker.patch.object(
+      DuploCtl, "context",
+      new_callable=mocker.PropertyMock,
+      return_value={"host": HOST, "headless": True,
+                    "headless_port": "56789", "headless_bind": "0.0.0.0"})
+    c.use_context("ctx")
+    assert c.headless is True
+    assert c.interactive is True
+    # a port out of the config file is a string and must still land as an int
+    assert c.headless_port == 56789
+    assert c.headless_bind == "0.0.0.0"
+
+  def test_invalid_context_port_raises(self, mocker):
+    c = DuploCtl(host=HOST)
+    mocker.patch.object(
+      DuploCtl, "context",
+      new_callable=mocker.PropertyMock,
+      return_value={"host": HOST, "headless_port": "notaport"})
+    with pytest.raises(DuploInvalidError):
+      c.use_context("ctx")

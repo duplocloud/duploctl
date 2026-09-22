@@ -16,6 +16,17 @@ visible in the address bar for the user to copy. It is a fixed, rarely used
 high port so the redirect is unlikely to reach an unrelated local service.
 """
 
+HEADLESS_CALLBACK_BIND = "127.0.0.1"
+"""Headless Callback Interface
+
+The default interface for the `--headless-port` callback server. Loopback,
+because the callback port is fixed and documented: on every interface, anyone
+who can reach the machine on that port during the login window could hand
+duploctl a token of their choosing. An `ssh -L` tunnel delivers to loopback.
+Override with `--headless-bind 0.0.0.0` in a container, where a published port
+arrives on the container ip.
+"""
+
 
 def parse_token(value: str) -> str:
   """Parse Token
@@ -120,9 +131,10 @@ class TokenServer(ThreadingHTTPServer):
       host: The host to receive the callbcack from.
       timeout: The timeout to wait for a token.
       port: The port to listen on. Defaults to 0 (random).
-      bind: The interface to bind to. Defaults to all interfaces. Pass
-        '127.0.0.1' to only accept callbacks from this machine, which is
-        enough for an ssh forwarded port.
+      bind: The interface to bind to. Defaults to all interfaces, which is
+        what the browser flow wants on its random port. The fixed headless
+        port passes '127.0.0.1' so only this machine, or an ssh tunnel
+        terminating on it, can deliver a token.
 
     """
     self.token = None
