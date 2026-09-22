@@ -76,7 +76,7 @@ jobs:
 
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@fix/fork-pr-ci
+      uses: duplocloud/duploctl/.github/actions/setup@main
       with:
         ref: ${{ inputs.tag }}
         app-id: ${{ vars.GH_APP_ID }}
