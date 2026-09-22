@@ -212,7 +212,8 @@ class DuploAPI():
         500) from e
     with server:
       print(
-        f"\nOpen this url in a browser to log in to {self.duplo.host}:\n\n"
+        f"\nOpen this url in a browser to log in to {self.duplo.host}, then "
+        f"approve the 'Local Access Requested' prompt:\n\n"
         f"  {url}\n\n"
         f"Waiting for the callback on {bind}:{port}. Forward it first if "
         f"the browser is on another machine, e.g.\n"
@@ -246,9 +247,12 @@ class DuploAPI():
     print(
       f"\nOpen this url in a browser to log in to {self.duplo.host}:\n\n"
       f"  {url}\n\n"
-      f"After signing in the browser is redirected to a "
-      f"http://localhost:{port} page that fails to load, which is expected. "
-      f"Copy the whole address from the address bar and paste it here.\n",
+      f"Sign in, then approve the 'Local Access Requested' prompt. The "
+      f"browser is redirected to a http://localhost:{port} page that fails "
+      f"to load, which is expected. Copy the whole address from the address "
+      f"bar and paste it here.\n\n"
+      f"That address carries a long lived token, so clear it from the "
+      f"browser history afterwards.\n",
       file=sys.stderr)
     print("Redirect url: ", end="", file=sys.stderr, flush=True)
     try:

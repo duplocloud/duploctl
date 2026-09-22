@@ -81,12 +81,18 @@ Full argument reference: [cli.duplocloud.com/Args](https://cli.duplocloud.com/Ar
 ### Headless Login
 
 On a machine with no browser, like a remote host over ssh or a container, add
-`--headless` to any interactive command. The login url is printed, you open it
-in a browser anywhere, and the browser is then redirected to a
-`http://localhost:56789/?t=...` page that fails to load. Paste that whole
-address back into the terminal and duploctl reads the token out of it. The
-token is cached exactly like a browser login, so later commands need no
-prompt.
+`--headless` to any interactive command. The login url is printed and you open
+it in a browser anywhere. Sign in, then approve the **Local Access Requested**
+prompt the portal shows — the redirect only fires once you do. The browser is
+then sent to a `http://localhost:56789/?t=...` page that fails to load. Paste
+that whole address back into the terminal and duploctl reads the token out of
+it. The token is cached exactly like a browser login, so later commands need
+no prompt.
+
+That pasted address carries a long lived portal token, and it lands in browser
+history and often in shell history too. Prefer `--headless-port` wherever a
+port can be forwarded, and clear the address out of the browser history when
+you do have to paste.
 
 ```sh
 duploctl jit aws --headless
