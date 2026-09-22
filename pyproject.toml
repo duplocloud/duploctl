@@ -119,7 +119,8 @@ markers = [
   "cloudfront: mark a test as a cloudfront resource test",
   "awssecret: mark a test as an aws secret resource test",
   "jit: mark a test as a jit resource test",
-  "ecr: mark a test as an ecr resource test"
+  "ecr: mark a test as an ecr resource test",
+  "helpdesk: mark a test as an AI HelpDesk test (no infra/tenant lifecycle; needs a helpdesk-enabled portal or a standalone helpdesk via DUPLO_HELPDESK_HOST/DUPLO_HELPDESK_TOKEN)"
 ]
 
 [tool.coverage.run]
@@ -182,6 +183,29 @@ environment = "duplo_resource.environment:DuploEnvironment"
 resource_group = "duplo_resource.resource_group:DuploResourceGroup"
 appservice = "duplo_resource.appservice:DuploAppService"
 hd_lambda = "duplo_resource.hd_lambda:DuploHelpdeskLambda"
+scope = "duplo_resource.helpdesk_admin:DuploHelpdeskScope"
+provider = "duplo_resource.helpdesk_admin:DuploHelpdeskProvider"
+hd_user = "duplo_resource.helpdesk_admin:DuploHelpdeskUser"
+persona = "duplo_resource.helpdesk_admin:DuploHelpdeskPersona"
+skill = "duplo_resource.helpdesk_admin:DuploHelpdeskSkill"
+mcp_server = "duplo_resource.helpdesk_admin:DuploHelpdeskMcpServer"
+permission_set = "duplo_resource.helpdesk_admin:DuploHelpdeskPermissionSet"
+quota = "duplo_resource.helpdesk_admin:DuploHelpdeskQuota"
+quota_mapping = "duplo_resource.helpdesk_admin:DuploHelpdeskQuotaMapping"
+command_policy = "duplo_resource.helpdesk_admin:DuploHelpdeskCommandPolicy"
+command_policy_mapping = "duplo_resource.helpdesk_admin:DuploHelpdeskCommandPolicyMapping"
+hd_configmap = "duplo_resource.helpdesk_k8s:DuploHelpdeskConfigMap"
+hd_secret = "duplo_resource.helpdesk_k8s:DuploHelpdeskSecret"
+hd_cronjob = "duplo_resource.helpdesk_k8s:DuploHelpdeskCronJob"
+hd_job = "duplo_resource.helpdesk_k8s:DuploHelpdeskJob"
+hd_ingress = "duplo_resource.helpdesk_k8s:DuploHelpdeskIngress"
+hd_pvc = "duplo_resource.helpdesk_k8s:DuploHelpdeskPvc"
+resource_quota = "duplo_resource.helpdesk_k8s:DuploHelpdeskResourceQuota"
+hd_storageclass = "duplo_resource.helpdesk_k8s:DuploHelpdeskStorageClass"
+namespace = "duplo_resource.helpdesk_k8s:DuploHelpdeskNamespace"
+helm_release = "duplo_resource.helpdesk_k8s:DuploHelmRelease"
+helm_repository = "duplo_resource.helpdesk_k8s:DuploHelmRepository"
+k8s_credentials = "duplo_resource.helpdesk_k8s:DuploK8sCredentials"
 hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
 rds = "duplo_resource.rds:DuploRDS"
@@ -198,6 +222,7 @@ argo_wf = "duplo_resource.argo_wf:DuploArgoWorkflow"
 argo_wf_template = "duplo_resource.argo_wf:DuploArgoWorkflowTemplate"
 cache = "duplo_resource.cache:DuploCache"
 cloud_resource = "duplo_resource.cloud_resource:DuploCloudResource"
+config = "duplo_resource.config:DuploConfigResource"
 ecr = "duplo_resource.ecr:DuploECR"
 
 [project.entry-points."clients.duplocloud.net"]

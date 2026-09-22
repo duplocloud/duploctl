@@ -206,6 +206,12 @@ S3BUCKET = Arg("bucket",
 S3KEY = Arg("key",
             help='The s3 key to use')
 
+CONFIG_KEY = Arg("key",
+            help='The config context key to operate on')
+
+CONFIG_VALUE = Arg("value",
+            help='The value to set for the config key')
+
 HEALTH_CHECK_URL = Arg("health-check-url", "--health-check-url",
             help='The health check URL')
 
@@ -416,6 +422,16 @@ AGENTNAME = Arg("agent_name", "--agent_name", "--agent",
 
 AGENTID = Arg("agent_id", "--agent_id", "--aid",
               help= "AI Agent ID to be used to process the ticket. Skips the agent name lookup when provided.",
+              required=False,
+              default=None)
+
+SCOPENAME = Arg("scope_name", "--scope_name", "--scope",
+                help="AI HelpDesk scope name.",
+                required=False,
+                default=None)
+
+SCOPEID = Arg("scope_id", "--scope_id", "--sid",
+              help="AI HelpDesk scope ID. Skips the scope name lookup when provided.",
               required=False,
               default=None)
 
