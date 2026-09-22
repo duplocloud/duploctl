@@ -50,7 +50,7 @@ jobs:
 
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: duplocloud/duploctl/.github/actions/setup@fix/fork-pr-ci
       with:
         ref: ${{ inputs.tag }}
         install: "--editable ."

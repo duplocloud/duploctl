@@ -19,7 +19,7 @@ jobs:
 
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: duplocloud/duploctl/.github/actions/setup@fix/fork-pr-ci
       with:
         install: ".[build,test,sdk] plugins/aws/"
         python-version: ${{ matrix.python-version }}

@@ -42,7 +42,7 @@ jobs:
     steps:
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: duplocloud/duploctl/.github/actions/setup@fix/fork-pr-ci
       with:
         ref: ${{ github.ref }}
         fetch-depth: 0

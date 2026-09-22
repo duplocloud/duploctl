@@ -106,7 +106,7 @@ jobs:
 
     - name: Setup
       if: steps.gate.outputs.enabled == 'true'
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: duplocloud/duploctl/.github/actions/setup@fix/fork-pr-ci
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
@@ -190,7 +190,7 @@ jobs:
     steps:
 
     - name: Setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: duplocloud/duploctl/.github/actions/setup@fix/fork-pr-ci
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
@@ -247,7 +247,7 @@ jobs:
 
     - name: Setup
       if: steps.gate.outputs.enabled == 'true'
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: duplocloud/duploctl/.github/actions/setup@fix/fork-pr-ci
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
