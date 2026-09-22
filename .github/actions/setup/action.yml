@@ -18,11 +18,11 @@ inputs:
     required: false
     default: "3.13"
   app-id:
-    description: The GitHub App ID
-    required: true
+    description: The GitHub App ID. Omitted on pull requests from a fork, where secrets are not available.
+    required: false
   private-key:
-    description: The GitHub token to use
-    required: true
+    description: The GitHub token to use. Omitted on pull requests from a fork, where secrets are not available.
+    required: false
   repositories:
     description: The repositories to get tokens for.
     required: false
@@ -33,15 +33,20 @@ inputs:
     default: "false"
 outputs:
   token:
-    description: The GitHub App token
-    value: ${{ steps.app-token.outputs.token }}
+    description: The GitHub App token, or the default job token when the App credentials are unavailable
+    value: ${{ steps.app-token.outputs.token || github.token }}
 runs:
   using: "composite"
   steps:
 
+  # A pull request from a fork gets no secrets, so private-key is empty and
+  # the App token cannot be minted. The repo and its wiki submodule are both
+  # public, so the default job token is enough to check out and build; it is
+  # only short of the cross-repo access the App grants.
   - name: Create GitHub App Token
     uses: actions/create-github-app-token@v2
     id: app-token
+    if: inputs.app-id != '' && inputs.private-key != ''
     with:
       app-id: ${{ inputs.app-id }}
       private-key: ${{ inputs.private-key }}
@@ -53,7 +58,7 @@ runs:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
       fetch-tags: ${{ inputs.fetch-tags }}
-      token: ${{ steps.app-token.outputs.token }}
+      token: ${{ steps.app-token.outputs.token || github.token }}
       submodules: ${{ inputs.submodules }}
 
   - name: Set up Python ${{ inputs.python-version }}
