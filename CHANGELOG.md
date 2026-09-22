@@ -58,6 +58,7 @@ and implementation detail belong in the PR, not here.
 
 ### Changed
 
+- CI runs on pull requests from a fork: the setup action falls back to the job token when the GitHub App secrets are unavailable, instead of every job failing before checkout.
 - Pinned ruff's lint `select` to the historical `E`/`F` default so ruff version bumps no longer silently change enforced rules; unpinned the ruff version.
 
 ## [0.4.5] - 2026-07-20
