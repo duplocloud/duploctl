@@ -1,9 +1,0 @@
-Name: nginx
-DockerImage: nginx:latest
-Replicas: 0
-Cloud: 0
-AgentPlatform: 7
-IsLBSyncedDeployment: false
-IsDaemonset: false
-OtherDockerConfig: '{"Env":null}'
-NetworkId: default
