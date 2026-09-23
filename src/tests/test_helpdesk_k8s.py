@@ -306,6 +306,50 @@ class TestHelmReleaseWaiter:
 
 
 @pytest.mark.unit
+class TestJobCompletionWaiter:
+    def _job(self, mocker, records):
+        resource = _make_resource(mocker, DuploHelpdeskJob)
+        resource.waiter = {**DuploHelpdeskJob.waiter,
+                           "poll": 0.01, "timeout": 1}
+        responses = [{"success": True, "data": r} for r in records]
+        _make_client(mocker, resource, get_responses=responses)
+        return resource
+
+    def _record(self, complete=None, failed=None, message=None):
+        conditions = []
+        if complete is not None:
+            conditions.append({"type": "Complete", "status": complete})
+        if failed is not None:
+            c = {"type": "Failed", "status": failed}
+            if message:
+                c["message"] = message
+            conditions.append(c)
+        return {"id": "job-1", "status": "Complete",
+                "result": {"k8sResource": {"status":
+                                           {"conditions": conditions}}}}
+
+    def test_complete_condition_gates_success(self, mocker):
+        # A provisioned Job that is still running has no Complete
+        # condition yet; the waiter must keep polling until it appears.
+        resource = self._job(mocker, [
+            self._record(),
+            self._record(complete="True"),
+        ])
+        resource._wait_for_ready("job-1")
+        assert resource.client.get.call_count == 2
+
+    def test_failed_condition_is_terminal(self, mocker):
+        resource = self._job(mocker, [
+            self._record(failed="True",
+                         message="BackoffLimitExceeded"),
+        ])
+        with pytest.raises(DuploFailedResource,
+                           match="not be retried further: "
+                               "BackoffLimitExceeded"):
+            resource._wait_for_ready("job-1")
+
+
+@pytest.mark.unit
 class TestK8sCredentials:
     def test_find_by_id_hits_jit_access(self, mocker):
         resource = _make_resource(mocker, DuploK8sCredentials)
