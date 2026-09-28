@@ -522,3 +522,115 @@ def test_wait_on_service(mocker):
     # detects stalled deployment via primary check (apply flow, no target)
     with pytest.raises(DuploError, match=r"deployment stalled"):
         service._wait_on_service("target-service")
+
+
+def _mock_update_container(mocker, task_def, service_family=None):
+    mock_client = mocker.MagicMock()
+    mock_client.wait = False
+    service = DuploEcsService(mock_client)
+    mocker.patch.object(service, 'prefixed_name', return_value="test-service")
+    mocker.patch.object(service, 'find_def', return_value=task_def)
+    mocker.patch.object(service, 'update_taskdef', return_value={"arn": "new-arn"})
+    if service_family is None:
+        mocker.patch.object(service, 'find_service_family', side_effect=DuploError("Service not found"))
+    else:
+        mocker.patch.object(service, 'find_service_family', return_value=service_family)
+    mocker.patch.object(service, 'update_service')
+    return service
+
+
+@pytest.mark.unit
+def test_update_container_image_and_env_single_revision(mocker):
+    task_def = {
+        "ContainerDefinitions": [
+            {"Name": "app", "Image": "old:1", "Environment": [
+                {"Name": "KEEP", "Value": "1"},
+                {"Name": "LOG_LEVEL", "Value": "info"},
+                {"Name": "OLD_FLAG", "Value": "x"},
+            ]}
+        ]
+    }
+    svc_family = {"DuploEcsService": {"TaskDefinition": "old-arn"}}
+    service = _mock_update_container(mocker, task_def, svc_family)
+
+    execute_test(service.update_container, "test-service", image="new:2",
+                 setvar=[("LOG_LEVEL", "debug"), ("NEW_VAR", "hello")],
+                 deletevar=["OLD_FLAG"])
+
+    app = task_def["ContainerDefinitions"][0]
+    assert app["Image"] == "new:2"
+    assert app["Environment"] == [
+        {"Name": "KEEP", "Value": "1"},
+        {"Name": "LOG_LEVEL", "Value": "debug"},
+        {"Name": "NEW_VAR", "Value": "hello"},
+    ]
+    service.update_taskdef.assert_called_once()
+    service.update_service.assert_called_once_with({"TaskDefinition": "new-arn"})
+
+
+@pytest.mark.unit
+def test_update_container_env_only_leaves_image(mocker):
+    task_def = {"ContainerDefinitions": [{"Name": "app", "Image": "old:1"}]}
+    service = _mock_update_container(mocker, task_def)
+
+    result = execute_test(service.update_container, "test-service",
+                          setvar=[("FOO", "bar")])
+
+    app = task_def["ContainerDefinitions"][0]
+    assert app["Image"] == "old:1"
+    assert app["Environment"] == [{"Name": "FOO", "Value": "bar"}]
+    assert_response(result, "No Service Configured, only the definition is updated.")
+
+
+@pytest.mark.unit
+def test_update_container_replace_strategy(mocker):
+    task_def = {"ContainerDefinitions": [{"Name": "app", "Image": "old:1", "Environment": [
+        {"Name": "GONE", "Value": "1"}]}]}
+    service = _mock_update_container(mocker, task_def)
+
+    execute_test(service.update_container, "test-service",
+                 setvar=[("ONLY", "me")], strategy="replace")
+
+    assert task_def["ContainerDefinitions"][0]["Environment"] == [{"Name": "ONLY", "Value": "me"}]
+
+
+@pytest.mark.unit
+def test_update_container_targets_named_container(mocker):
+    task_def = {"ContainerDefinitions": [
+        {"Name": "app", "Image": "app:1", "Environment": [{"Name": "A", "Value": "1"}]},
+        {"Name": "sidecar", "Image": "side:1"},
+    ]}
+    service = _mock_update_container(mocker, task_def)
+
+    execute_test(service.update_container, "test-service", image="side:2",
+                 setvar=[("FOO", "bar")], container="sidecar")
+
+    app, sidecar = task_def["ContainerDefinitions"]
+    assert app == {"Name": "app", "Image": "app:1", "Environment": [{"Name": "A", "Value": "1"}]}
+    assert sidecar["Image"] == "side:2"
+    assert sidecar["Environment"] == [{"Name": "FOO", "Value": "bar"}]
+
+
+@pytest.mark.unit
+def test_update_container_unknown_container_raises(mocker):
+    task_def = {"ContainerDefinitions": [{"Name": "app", "Image": "app:1"}]}
+    service = _mock_update_container(mocker, task_def)
+
+    with pytest.raises(DuploError) as exc_info:
+        service.update_container("test-service", setvar=[("FOO", "bar")], container="typo")
+
+    assert exc_info.value.code == 404
+    service.update_taskdef.assert_not_called()
+    assert "Environment" not in task_def["ContainerDefinitions"][0]
+
+
+@pytest.mark.unit
+def test_update_container_no_changes_raises(mocker):
+    service = _mock_update_container(mocker, {"ContainerDefinitions": [{"Name": "app"}]})
+
+    with pytest.raises(DuploError) as exc_info:
+        service.update_container("test-service")
+
+    assert exc_info.value.code == 400
+    service.find_def.assert_not_called()
+    service.update_taskdef.assert_not_called()

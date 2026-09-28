@@ -329,23 +329,80 @@ class DuploEcsService(DuploResourceV2):
     Raises:
       DuploError: If the ECS task definition family could not be updated.
     """
+    return self.update_container(name,
+                                 image=image,
+                                 container_image=container_image)
+
+  @Command()
+  def update_container(self,
+                       name: args.NAME,
+                       image: args.IMAGE = None,
+                       container_image: args.CONTAINER_IMAGE = None,
+                       setvar: args.SETVAR = None,
+                       deletevar: args.DELETEVAR = None,
+                       strategy: args.STRATEGY = "merge",
+                       container: args.CONTAINER = None) -> dict:
+    """Update Container
+
+    Creates a new task definition version cloning the latest existing version in the family, applying any image and environment variable changes in a single revision.
+
+    If task family is used by an ECS service, method also updates the service to use that newly created definition version, so all changes ship in one rollout.
+
+    Usage: Basic CLI Use
+      ```sh
+        duploctl ecs update_container <task-definition-family-name> [<new-image>] --setvar <key> <value> --deletevar <key>
+      ```
+
+    Example: Update image and environment variables together
+      ```sh
+        duploctl ecs update_container myapp myimage:sha -V FEATURE_X true -V LOG_LEVEL debug --wait
+      ```
+
+    Example: Update environment variables only
+      ```sh
+        duploctl ecs update_container myapp -V LOG_LEVEL info -D OLD_FLAG
+      ```
+
+    Example: Target a specific container
+      ```sh
+        duploctl ecs update_container myapp sidecar:sha --container sidecar -V FOO bar
+      ```
+
+    Args:
+      name: The name of the ECS task definition family to update.
+      image: The new image for the target container.
+      container-image: A list of key-value pairs to set as container image.
+      setvar: A list of key-value pairs to set as environment variables on the target container.
+      deletevar: A list of keys to delete from the target container's environment variables.
+      strategy: The merge strategy for env vars. Valid options are "merge" or "replace". Default is merge.
+      container: The container to apply image and env changes to. Defaults to the first container.
+
+    Returns:
+      dict: A dictionary containing a message about the update status.
+
+    Raises:
+      DuploError: If no changes were requested, a container name is unknown, or the ECS task definition family could not be updated.
+    """
+    if not (image or container_image or setvar or deletevar
+            or strategy == "replace"):
+      raise DuploError(
+        "No changes requested. Provide an image, --container-image, "
+        "--setvar, --deletevar, or --strategy replace.", 400)
     name = self.prefixed_name(name)
     tdf = self.find_def(name)
+    containers = tdf.get("ContainerDefinitions", [])
     if container_image:
       container_updates = dict(container_image)
-      known_names = [c.get("Name") for c in tdf.get("ContainerDefinitions", []) if c.get("Name")]
-      unknown = [n for n in container_updates if n not in known_names]
-      if unknown:
-        raise DuploError(
-          f"Container name(s) not found in task definition '{name}': {unknown}. "
-          f"Available containers: {known_names}",
-          404,
-        )
-      for container_def in tdf["ContainerDefinitions"]:
+      self._assert_containers_exist(name, containers, container_updates)
+      for container_def in containers:
         if container_def["Name"] in container_updates:
           container_def["Image"] = container_updates[container_def["Name"]]
+    target = self._target_container(name, containers, container)
     if image:
-      tdf["ContainerDefinitions"][0]["Image"] = image
+      target["Image"] = image
+    if setvar or deletevar or strategy == "replace":
+      target["Environment"] = self._updated_env(
+        target.get("Environment"), setvar, deletevar, strategy)
     arn = self.update_taskdef(tdf)["arn"]
     msg = "Updating a task definition and its corresponding service."
     svc = None
@@ -364,6 +421,45 @@ class DuploEcsService(DuploResourceV2):
     return {
       "message": msg
     }
+
+  @staticmethod
+  def _assert_containers_exist(family: str,
+                               containers: list,
+                               names) -> None:
+    known_names = [c.get("Name") for c in containers if c.get("Name")]
+    unknown = [n for n in names if n not in known_names]
+    if unknown:
+      raise DuploError(
+        f"Container name(s) not found in task definition '{family}': {unknown}. "
+        f"Available containers: {known_names}",
+        404,
+      )
+
+  def _target_container(self,
+                        family: str,
+                        containers: list,
+                        container: str = None) -> dict:
+    if not containers:
+      raise DuploError(
+        f"Task definition '{family}' has no container definitions", 404)
+    if container is None:
+      return containers[0]
+    self._assert_containers_exist(family, containers, [container])
+    return next(c for c in containers if c.get("Name") == container)
+
+  @staticmethod
+  def _updated_env(current: list,
+                   setvar: list,
+                   deletevar: list,
+                   strategy: str) -> list:
+    # dict preserves existing order and lets set/delete override by name
+    env = {} if strategy == "replace" else {
+      e["Name"]: e.get("Value", "") for e in (current or [])
+    }
+    env.update({k: v for k, v in (setvar or [])})
+    for key in deletevar or []:
+      env.pop(key, None)
+    return [{"Name": k, "Value": v} for k, v in env.items()]
 
   def __ecs_task_def_body(self, task_def):
     def sanitize_container_definition(containerDefinition):
