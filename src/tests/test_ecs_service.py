@@ -522,3 +522,62 @@ def test_wait_on_service(mocker):
     # detects stalled deployment via primary check (apply flow, no target)
     with pytest.raises(DuploError, match=r"deployment stalled"):
         service._wait_on_service("target-service")
+
+
+
+_NEW_ARN = "arn:aws:ecs:us-east-2:1234567890:task-definition/duploservices-dev-myapp:7"
+
+
+def _mock_update_service(mocker, global_wait=False):
+    mock_client = mocker.MagicMock()
+    mock_client.wait = global_wait
+    service = DuploEcsService(mock_client)
+    service.client = mocker.MagicMock()
+    mocker.patch.object(service, 'find_service_family',
+                        return_value={"EcsServiceName": "duploservices-dev-myapp"})
+    mocker.patch.object(service, 'wait', side_effect=lambda check: check())
+    mocker.patch.object(service, '_wait_on_service')
+    return service
+
+
+@pytest.mark.unit
+def test_update_service_without_wait_does_not_wait(mocker):
+    service = _mock_update_service(mocker)
+
+    result = service.update_service({"Name": "myapp", "TaskDefinition": _NEW_ARN})
+
+    assert_response(result, "ECS Service updated")
+    service.client.post.assert_called_once()
+    service.find_service_family.assert_not_called()
+    service._wait_on_service.assert_not_called()
+
+
+@pytest.mark.unit
+def test_update_service_global_wait_targets_revision(mocker):
+    service = _mock_update_service(mocker, global_wait=True)
+
+    service.update_service({"Name": "myapp", "TaskDefinition": _NEW_ARN})
+
+    service.find_service_family.assert_called_once_with("duploservices-dev-myapp")
+    service._wait_on_service.assert_called_once_with("duploservices-dev-myapp", _NEW_ARN)
+
+
+@pytest.mark.unit
+def test_update_service_without_taskdef_waits_on_name(mocker):
+    service = _mock_update_service(mocker)
+
+    service.update_service({"Name": "myapp"}, wait=True)
+
+    service.find_service_family.assert_not_called()
+    service._wait_on_service.assert_called_once_with("myapp", None)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("wait,global_wait", [(True, False), (False, True), (True, True)])
+def test_apply_waits_once_on_revision(mocker, wait, global_wait):
+    service = _mock_update_service(mocker, global_wait=global_wait)
+
+    result = service.apply({"Name": "myapp", "TaskDefinition": _NEW_ARN}, wait=wait)
+
+    assert_response(result, "ECS Service 'myapp' applied")
+    service._wait_on_service.assert_called_once_with("duploservices-dev-myapp", _NEW_ARN)

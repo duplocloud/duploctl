@@ -38,10 +38,8 @@ class DuploEcsService(DuploResourceV2):
     Returns:
       message: A success message.
     """
-    self.update_service(body)
+    self.update_service(body, wait)
     name = body.get("Name", "")
-    if wait:
-      self.wait(lambda: self._wait_on_service(name))
     return {"message": f"ECS Service '{name}' applied"}
   
   
@@ -244,26 +242,64 @@ class DuploEcsService(DuploResourceV2):
 
   @Command(model="AwsAmazonECSRequest")
   def update_service(self,
-             body: args.BODY) -> dict:
+                     body: args.BODY,
+                     wait: args.WAIT = False) -> dict:
     """Update an ECS service.
+
+    With `--wait`, holds until the deployment running the body's `TaskDefinition` revision completes, failing on a rollback or stalled rollout.
 
     Usage: CLI Usage
       ```sh
       duploctl ecs update_service -f 'ecs_service.yaml'
       ```
 
+    Example: Roll out a new task definition revision
+      Register a revision with `update_taskdef`, then point the service at it and wait for that exact revision.
+      ```sh
+      ARN=$(duploctl ecs find_def myapp -o yaml \
+        | yq '.ContainerDefinitions[0].Image = "myimage:sha"' \
+        | duploctl ecs update_taskdef -f - -q arn -o string)
+      duploctl ecs find_service_family myapp -q DuploEcsService -o yaml \
+        | yq ".TaskDefinition = \"$ARN\"" \
+        | duploctl ecs update_service -f - --wait
+      ```
+
     Args:
       body: The updated ECS service object.
+      wait: Wait for the service deployment to complete.
 
     Returns:
       message: A success message.
 
     Raises:
       DuploError: If the ECS service could not be updated.
+      DuploFailedResource: If the deployment fails, stalls or is rolled back while waiting.
     """
     path = self.endpoint("UpdateEcsService")
     self.client.post(path, body)
+    if wait or self.duplo.wait:
+      name, arn = self._service_wait_target(body)
+      self.wait(lambda: self._wait_on_service(name, arn))
     return {"message": "ECS Service updated"}
+
+  def _service_wait_target(self, body: dict) -> tuple:
+    """Resolve the AWS service name and revision ARN to wait on.
+
+    The body's `Name` is the unprefixed Duplo name, while deployments are
+    matched on `EcsServiceName`, so resolve it from the revision's family.
+
+    Args:
+      body: The ECS service object that was updated.
+
+    Returns:
+      The `EcsServiceName` and task definition ARN, or the body name and
+      None when the body has no `TaskDefinition`.
+    """
+    arn = body.get("TaskDefinition")
+    if not arn:
+      return body.get("Name"), None
+    family = arn.split("/")[-1].rsplit(":", 1)[0]
+    return self.find_service_family(family)["EcsServiceName"], arn
 
   @Command(model="AwsRegisterTaskDefinitionRequest")
   def update_taskdef(self,
@@ -359,7 +395,6 @@ class DuploEcsService(DuploResourceV2):
     if svc:
       self.update_service(svc)
       if self.duplo.wait:
-        self.wait(lambda: self._wait_on_service(svcFam.get("EcsServiceName", None), arn))
         msg = "ECS Service and Task Definition updated successfully."
     return {
       "message": msg
