@@ -383,22 +383,15 @@ class DuploEcsService(DuploResourceV2):
     if image:
       tdf["ContainerDefinitions"][0]["Image"] = image
     arn = self.update_taskdef(tdf)["arn"]
-    msg = "Updating a task definition and its corresponding service."
-    svc = None
     try:
-      svcFam = self.find_service_family(name)
-      svc = svcFam["DuploEcsService"]
-      svc["TaskDefinition"] = arn
+      svc = self.find_service_family(name)["DuploEcsService"]
     except DuploError:
-      msg = "No Service Configured, only the definition is updated."
-    # run update here so the errors bubble up correctly
-    if svc:
-      self.update_service(svc)
-      if self.duplo.wait:
-        msg = "ECS Service and Task Definition updated successfully."
-    return {
-      "message": msg
-    }
+      return {"message": "No Service Configured, only the definition is updated."}
+    svc["TaskDefinition"] = arn
+    self.update_service(svc, self.duplo.wait)
+    if self.duplo.wait:
+      return {"message": "ECS Service and Task Definition updated successfully."}
+    return {"message": "Updating a task definition and its corresponding service."}
 
   def __ecs_task_def_body(self, task_def):
     def sanitize_container_definition(containerDefinition):
