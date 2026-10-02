@@ -306,6 +306,70 @@ class TestHelmReleaseWaiter:
 
 
 @pytest.mark.unit
+class TestCronJobUpdateImage:
+    def _detail(self, image="old:1"):
+        pod_spec = {"containers": [{"name": "main", "image": image}]}
+        manifest = {"apiVersion": "batch/v1", "kind": "CronJob",
+                    "metadata": {"name": "nightly",
+                                 "managedFields": [{"manager": "x"}],
+                                 "resourceVersion": "123", "uid": "u-1",
+                                 "creationTimestamp": "2026-01-01",
+                                 "generation": 2,
+                                 "labels": {"keep": "me"}},
+                    "spec": {"schedule": "@daily", "jobTemplate":
+                             {"spec": {"template": {"spec": pod_spec}}}},
+                    "status": {"lastScheduleTime": "2026-01-02"}}
+        return {"id": "cj-1", "name": "nightly", "status": "Complete",
+                "description": "nightly build",
+                "spec": {"mode": "Create", "namespaceName": "ns-1"},
+                "result": {"k8sResource": manifest}}
+
+    def test_patches_manifest_from_result_and_puts(self, mocker):
+        resource = _make_resource(mocker, DuploHelpdeskCronJob)
+        detail = self._detail()
+        client = _make_client(
+            mocker, resource,
+            get_responses=[{"success": True, "data": detail}],
+            items_responses=[[{"id": "cj-1", "name": "nightly"}]],
+            put_response={"success": True, "data": detail})
+        result = resource.update_image("nightly", "new:2")
+        path, body = client.put.call_args[0]
+        assert path.endswith("/K8sCronJobs/cj-1")
+        manifest = body["spec"]["k8sResource"]
+        containers = (manifest["spec"]["jobTemplate"]["spec"]["template"]
+                      ["spec"]["containers"])
+        assert containers[0]["image"] == "new:2"
+        # spec fields from the stored record survive; server-managed
+        # metadata and status are stripped, user labels survive
+        assert body["spec"]["namespaceName"] == "ns-1"
+        assert body["description"] == "nightly build"
+        assert "status" not in manifest
+        for key in ("managedFields", "resourceVersion", "uid",
+                    "creationTimestamp", "generation"):
+            assert key not in manifest["metadata"]
+        assert manifest["metadata"]["labels"] == {"keep": "me"}
+        assert body["id"] == "cj-1"
+        assert "Successfully updated image" in result["message"]
+
+    def test_requires_image(self, mocker):
+        resource = _make_resource(mocker, DuploHelpdeskCronJob)
+        with pytest.raises(DuploError, match="image is required"):
+            resource.update_image("nightly", "  ")
+
+    def test_record_without_containers_errors(self, mocker):
+        resource = _make_resource(mocker, DuploHelpdeskCronJob)
+        detail = {"id": "cj-1", "name": "nightly",
+                  "result": {"k8sResource": {"spec": {}}}}
+        client = _make_client(
+            mocker, resource,
+            get_responses=[{"success": True, "data": detail}],
+            items_responses=[[{"id": "cj-1", "name": "nightly"}]])
+        with pytest.raises(DuploError, match="no container to update"):
+            resource.update_image("nightly", "new:2")
+        client.put.assert_not_called()
+
+
+@pytest.mark.unit
 class TestK8sCredentials:
     def test_find_by_id_hits_jit_access(self, mocker):
         resource = _make_resource(mocker, DuploK8sCredentials)
