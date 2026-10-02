@@ -22,6 +22,7 @@ and implementation detail belong in the PR, not here.
 
 ### Fixed
 
+- `ecs update_service --wait` and `ecs apply --wait` now wait on the body's `TaskDefinition` revision under its AWS service name, so rollbacks and not-yet-started rollouts no longer report success; `apply` also honors the global `--wait`
 - `workspace update` no longer fails with a name-collision validation error against itself — the record id is now carried in the PUT body (same backend quirk as the admin resources)
 - Fixed broken links on the docs site
 - `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
