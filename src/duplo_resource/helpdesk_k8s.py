@@ -52,10 +52,30 @@ class DuploHelpdeskJob(HelpdeskWorkspaceResource):
   """Manage AI HelpDesk Kubernetes Jobs.
 
   Jobs are immutable: to change one, delete and recreate it.
+
+  With ``--wait`` a create waits for the Job to actually run to
+  completion, not just for the manifest to apply: the backend refreshes
+  ``result.k8sResource`` from the cluster on every read, so the waiter
+  gates on the Job's ``Complete`` condition and treats a ``Failed``
+  condition (backoff limit exhausted, deadline exceeded) as terminal —
+  matching the core platform's ``job create --wait`` semantics.
   """
   collection = "K8sJobs"
   request_constants = {"spec.mode": "Create"}
   immutable = True
+  waiter = {
+    "poll": 15,
+    "timeout": 1800,
+    "ready_path": "result.k8sResource.status.conditions[type=Complete].status",
+    "ready_state": "True",
+    "ready_failure_path":
+        "result.k8sResource.status.conditions[type=Failed].status",
+    "ready_failure_states": {
+      "True": "Job failed and will not be retried further",
+    },
+    "failure_detail_path":
+        "result.k8sResource.status.conditions[type=Failed].message",
+  }
 
 
 @Resource("hd_ingress", scope="workspace", client="helpdesk")
