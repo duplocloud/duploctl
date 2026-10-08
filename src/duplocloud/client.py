@@ -1,13 +1,21 @@
+import sys
 import requests
 from cachetools import cachedmethod, TTLCache
 from duplocloud.commander import Client
 from duplocloud.errors import DuploError, DuploExpiredCache, DuploNotFound, DuploConnectionError
-from duplocloud.server import TokenServer
+from duplocloud.server import (
+    TokenServer, parse_token, HEADLESS_CALLBACK_PORT, HEADLESS_CALLBACK_BIND
+)
 from duplocloud.authcooldown import (
     is_auth_cooldown_enabled, is_tty, check_cooldown_before_listen,
     recover_relay_bind_failure, acquire_or_update_cooldown, clear_auth_cooldown,
     get_host_cache_key, CooldownResult
 )
+
+
+HEADLESS_TIMEOUT = 300
+"""How long to wait for a headless callback. Longer than the browser flow
+because the user has to carry the url over to another machine first."""
 
 
 class _NullCache(dict):
@@ -74,6 +82,11 @@ class DuploAPI():
     Returns:
       The token as a string.
     """
+    # a headless login never opens a browser here, so the cooldown that exists
+    # to suppress duplicate browser tabs does not apply
+    if self.duplo.headless:
+      return self.headless_token()
+
     cooldown_duration, cooldown_enabled = is_auth_cooldown_enabled(self.duplo.auth_cooldown)
     use_cooldown = cooldown_enabled and not is_tty()
 
@@ -116,7 +129,12 @@ class DuploAPI():
 
         if open_browser:
           page = f"{path}?localAppName=duploctl&localPort={server.server_port}&isAdmin={isadmin}&redirect=true"
-          server.open_callback(page, self.duplo.browser)
+          if server.open_callback(page, self.duplo.browser) is False:
+            # no browser on this machine, the wait below will just time out
+            self.duplo.logger.warning(
+              "no web browser could be launched, use --headless to log in without one")
+            print(f"Open this url to log in:\n\n  {self.duplo.host}/{page}\n",
+                  file=sys.stderr)
         else:
           self.duplo.logger.info("auth cooldown: relay — listening on port %d for existing browser tab",
                                  server.server_port)
@@ -141,6 +159,107 @@ class DuploAPI():
         raise
       except KeyboardInterrupt:
         server.shutdown()
+
+  def headless_token(self) -> str:
+    """Request Token Without a Browser
+
+    Perform an interactive login from a machine that has no browser, such as a
+    remote host over ssh or a container. The login url is printed and the user
+    opens it in a browser wherever they have one.
+
+    How the token comes back depends on `--headless-port`. Without it, the
+    portal redirects the browser to a `http://localhost` url that fails to
+    load and the user pastes that url back in. With it, duploctl listens on
+    that port so a forwarded port (`ssh -L`) delivers the token directly.
+
+    Returns:
+      The token as a string.
+
+    Raises:
+      DuploError: If no token is received.
+    """
+    isadmin = "true" if self.duplo.isadmin else "false"
+    port = self.duplo.headless_port or HEADLESS_CALLBACK_PORT
+    page = (f"app/user/verify-token?localAppName=duploctl&localPort={port}"
+            f"&isAdmin={isadmin}&redirect=true")
+    url = f"{self.duplo.host}/{page}"
+    if self.duplo.headless_port:
+      return self._relayed_token(url, port)
+    return self._pasted_token(url, port)
+
+  def _relayed_token(self, url: str, port: int) -> str:
+    """Receive a headless token on a forwarded port.
+
+    Args:
+      url: The login url for the user to open in a browser.
+      port: The port to listen on for the callback.
+
+    Returns:
+      The token as a string.
+
+    Raises:
+      DuploError: If the port is unavailable or no token arrives in time.
+    """
+    bind = self.duplo.headless_bind or HEADLESS_CALLBACK_BIND
+    try:
+      # loopback by default: the port is fixed and documented, so binding it
+      # everywhere lets anything that can reach this machine deliver a token
+      server = TokenServer(self.duplo.host, timeout=HEADLESS_TIMEOUT,
+                           port=port, bind=bind)
+    except OSError as e:
+      raise DuploError(
+        f"Could not listen on port {port} for the headless login callback: {e}",
+        500) from e
+    with server:
+      print(
+        f"\nOpen this url in a browser to log in to {self.duplo.host}, then "
+        f"approve the 'Local Access Requested' prompt:\n\n"
+        f"  {url}\n\n"
+        f"Waiting for the callback on {bind}:{port}. Forward it first if "
+        f"the browser is on another machine, e.g.\n"
+        f"  ssh -L {port}:localhost:{port} <thishost>\n",
+        file=sys.stderr)
+      try:
+        return server.serve_token()
+      except KeyboardInterrupt as e:
+        server.shutdown()
+        raise DuploError("Headless login cancelled", 403) from e
+
+  def _pasted_token(self, url: str, port: int) -> str:
+    """Read a headless token from a pasted redirect url.
+
+    Args:
+      url: The login url for the user to open in a browser.
+      port: The port in the redirect the browser is expected to fail on.
+
+    Returns:
+      The token as a string.
+
+    Raises:
+      DuploError: If there is no terminal to read from or nothing is pasted.
+    """
+    if not sys.stdin.isatty():
+      raise DuploError(
+        "Headless login needs a terminal to paste the redirect url into. "
+        "Run an interactive duploctl command first to cache a token, or use "
+        "--headless-port with a forwarded port", 403)
+    # the prompt goes to stderr so it never mixes into piped command output
+    print(
+      f"\nOpen this url in a browser to log in to {self.duplo.host}:\n\n"
+      f"  {url}\n\n"
+      f"Sign in, then approve the 'Local Access Requested' prompt. The "
+      f"browser is redirected to a http://localhost:{port} page that fails "
+      f"to load, which is expected. Copy the whole address from the address "
+      f"bar and paste it here.\n\n"
+      f"That address carries a long lived token, so clear it from the "
+      f"browser history afterwards.\n",
+      file=sys.stderr)
+    print("Redirect url: ", end="", file=sys.stderr, flush=True)
+    try:
+      pasted = input()
+    except (EOFError, KeyboardInterrupt) as e:
+      raise DuploError("Headless login cancelled", 403) from e
+    return parse_token(pasted)
 
   def _token_cache(self, token, otp=False) -> dict:
     return {
