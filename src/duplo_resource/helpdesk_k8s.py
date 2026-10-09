@@ -46,6 +46,68 @@ class DuploHelpdeskCronJob(HelpdeskWorkspaceResource):
   collection = "K8sCronJobs"
   request_constants = {"spec.mode": "Create"}
 
+  @Command()
+  def update_image(self,
+                   name: args.NAME,
+                   image: args.IMAGE) -> dict:
+    """Update the container image of an AI HelpDesk CronJob.
+
+    Updates the image on the first container of the cronjob's job
+    template, mirroring the core platform's ``cronjob update_image``.
+    The backend clears ``spec.k8sResource`` after provisioning and
+    keeps the manifest on ``result.k8sResource`` (refreshed live from
+    the cluster on by-id reads), so the manifest is fetched from
+    there, patched, and sent back as the desired spec through the
+    regular update path (``--wait`` is honored). Server-managed
+    metadata and status are stripped; the backend re-reads the live
+    ``resourceVersion`` itself.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl hd_cronjob update_image <name> <image> -W <workspace>
+      ```
+
+    Args:
+      name: The name of the cronjob to update.
+      image: The new container image (e.g. ``nginx:1.27``).
+
+    Returns:
+      message: A success message.
+
+    Raises:
+      DuploError: If no image is given or the record carries no
+        container to update.
+      DuploNotFound: If the cronjob cannot be found.
+    """
+    if not image or not image.strip():
+      raise DuploError("An image is required")
+    rid = self._id_of(self._find_in_workspace(name, None))
+    record = self._find_in_workspace(None, rid)
+    manifest = (record.get("result") or {}).get("k8sResource") or {}
+    try:
+      containers = (manifest["spec"]["jobTemplate"]["spec"]["template"]
+                    ["spec"]["containers"])
+      containers[0]["image"] = image
+    except (KeyError, IndexError, TypeError):
+      raise DuploError(
+          f"hd_cronjob '{name}' has no container to update at "
+          "result.k8sResource.spec.jobTemplate.spec.template.spec"
+          ".containers")
+    manifest.pop("status", None)
+    metadata = manifest.get("metadata") or {}
+    for key in ("managedFields", "resourceVersion", "uid",
+                "creationTimestamp", "generation"):
+      metadata.pop(key, None)
+    body = {
+      "name": record.get("name") or name,
+      "spec": {**(record.get("spec") or {}), "k8sResource": manifest},
+    }
+    if record.get("description"):
+      body["description"] = record["description"]
+    self.update(body=body, id=rid)
+    return {"message": f"Successfully updated image for hd_cronjob "
+                       f"'{name}'"}
+
 
 @Resource("hd_job", scope="workspace", client="helpdesk")
 class DuploHelpdeskJob(HelpdeskWorkspaceResource):
