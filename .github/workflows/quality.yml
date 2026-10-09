@@ -35,10 +35,10 @@ on:
     secrets:
       PYPI_API_TOKEN:
         description: PyPi token
-        required: true
+        required: false
       GH_APP_KEY:
-        description: GitHub App private key
-        required: true
+        description: GitHub App private key. Absent on pull requests from a fork.
+        required: false
 
 jobs:
   quality:
