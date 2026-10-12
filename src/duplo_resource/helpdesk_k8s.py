@@ -49,7 +49,8 @@ class DuploHelpdeskCronJob(HelpdeskWorkspaceResource):
   @Command()
   def update_image(self,
                    name: args.NAME,
-                   image: args.IMAGE) -> dict:
+                   image: args.IMAGE,
+                   id: args.ID = None) -> dict:
     """Update the container image of an AI HelpDesk CronJob.
 
     Updates the image on the first container of the cronjob's job
@@ -65,11 +66,14 @@ class DuploHelpdeskCronJob(HelpdeskWorkspaceResource):
     Usage: CLI Usage
       ```sh
       duploctl hd_cronjob update_image <name> <image> -W <workspace>
+      duploctl hd_cronjob update_image <name> <image> --id <id>
       ```
 
     Args:
       name: The name of the cronjob to update.
       image: The new container image (e.g. ``nginx:1.27``).
+      id: The cronjob id. Skips the name lookup when provided, which
+        disambiguates cronjobs sharing a name across namespaces.
 
     Returns:
       message: A success message.
@@ -81,7 +85,7 @@ class DuploHelpdeskCronJob(HelpdeskWorkspaceResource):
     """
     if not image or not image.strip():
       raise DuploError("An image is required")
-    rid = self._id_of(self._find_in_workspace(name, None))
+    rid = id or self._id_of(self._find_in_workspace(name, None))
     record = self._find_in_workspace(None, rid)
     manifest = (record.get("result") or {}).get("k8sResource") or {}
     try:

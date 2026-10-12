@@ -351,6 +351,19 @@ class TestCronJobUpdateImage:
         assert body["id"] == "cj-1"
         assert "Successfully updated image" in result["message"]
 
+    def test_id_skips_name_lookup(self, mocker):
+        resource = _make_resource(mocker, DuploHelpdeskCronJob)
+        detail = self._detail()
+        client = _make_client(
+            mocker, resource,
+            get_responses=[{"success": True, "data": detail}],
+            put_response={"success": True, "data": detail})
+        resource.update_image("nightly", "new:2", id="cj-1")
+        client.get_items.assert_not_called()
+        path, body = client.put.call_args[0]
+        assert path.endswith("/K8sCronJobs/cj-1")
+        assert body["id"] == "cj-1"
+
     def test_requires_image(self, mocker):
         resource = _make_resource(mocker, DuploHelpdeskCronJob)
         with pytest.raises(DuploError, match="image is required"):
