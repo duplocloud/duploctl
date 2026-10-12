@@ -355,9 +355,9 @@ class DuploService(DuploResourceV2):
       ```
 
     info:
-      Sidecar and init container images can only be updated on EKS
-      services. Other platforms, such as native Docker, support the main
-      image only.
+      Sidecar and init container images can only be updated on Kubernetes
+      services (EKS, AKS and GKE). Other platforms, such as native Docker,
+      support the main image only.
 
     Args:
       name: The name of the service to update.
