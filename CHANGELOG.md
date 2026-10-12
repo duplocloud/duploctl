@@ -29,6 +29,7 @@ and implementation detail belong in the PR, not here.
 - Fixed broken links on the docs site
 - `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
 - `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod
+- Pinned `pymdown-extensions<12.2` in the docs extras, since 12.2 breaks the mkdocstrings docs build
 
 ### Added
 
