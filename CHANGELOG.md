@@ -24,6 +24,7 @@ and implementation detail belong in the PR, not here.
 
 ### Fixed
 
+- `service update_image` updates the image again on non-Kubernetes services (e.g. native Docker), fails when the backend accepts an update but returns a different image, and rejects sidecar/init updates off Kubernetes
 - `ecs update_service --wait` and `ecs apply --wait` now wait on the body's `TaskDefinition` revision under its AWS service name, so rollbacks and not-yet-started rollouts no longer report success; `apply` also honors the global `--wait`
 - `workspace update` no longer fails with a name-collision validation error against itself — the record id is now carried in the PUT body (same backend quirk as the admin resources)
 - Fixed broken links on the docs site
