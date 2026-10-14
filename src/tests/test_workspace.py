@@ -119,6 +119,39 @@ def test_delete(mocker):
     assert "deleted" in result["message"]
 
 
+_PROTECTED = DuploError(
+    '{"success":false,"message":"Cannot delete entity","errors":"Cannot '
+    "delete Workspace 'platform': delete protection is enabled. Set "
+    "metadata 'delete_protection' to 'false' before deleting.\"}", 400)
+
+
+@pytest.mark.unit
+def test_delete_protected_suggests_force(mocker):
+    wksp = _make_workspace(mocker)
+    client = _make_client(mocker, wksp, get_responses=[_DETAIL_RESPONSE])
+    client.delete.side_effect = _PROTECTED
+
+    with pytest.raises(DuploError, match="pass --force") as exc:
+        wksp.delete(id=_WORKSPACE_ID)
+
+    assert exc.value.code == 400
+    client.post.assert_not_called()
+
+
+@pytest.mark.unit
+def test_delete_force_clears_protection_first(mocker):
+    wksp = _make_workspace(mocker)
+    client = _make_client(mocker, wksp, get_responses=[_DETAIL_RESPONSE])
+
+    wksp.delete(id=_WORKSPACE_ID, force=True)
+
+    calls = [c[0] for c in client.method_calls if c[0] in ("post", "delete")]
+    assert calls == ["post", "delete"]
+    url, body = client.post.call_args[0]
+    assert url.endswith(f"/workspaces/{_WORKSPACE_ID}/metadata")
+    assert body == {"Key": "delete_protection", "Value": "false"}
+
+
 @pytest.mark.unit
 def test_add_agent(mocker):
     wksp = _make_workspace(mocker)

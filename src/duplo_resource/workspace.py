@@ -4,7 +4,8 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.resource import DuploResource
 from duplocloud.commander import Command, Resource
-from duplo_resource.helpdesk_client import unwrap_data
+from duplo_resource.helpdesk_client import (
+    clear_delete_protection, delete_protected_error, unwrap_data)
 import duplocloud.args as args
 
 
@@ -94,27 +95,41 @@ class DuploWorkspace(DuploResource):
   @Command()
   def delete(self,
              name: args.NAME = None,
-             id: args.ID = None) -> dict:
+             id: args.ID = None,
+             force: args.FORCE = False) -> dict:
     """Delete an AI HelpDesk workspace by name or id.
+
+    Newer helpdesk backends create workspaces delete-protected, which
+    rejects the delete until ``--force`` clears the protection.
 
     Usage: CLI Usage
       ```sh
       duploctl workspace delete <name>
       duploctl workspace delete --id <id>
+      duploctl workspace delete <name> --force
       ```
 
     Args:
       name: The workspace name as shown in the portal.
       id: The workspace id. Skips the name lookup when provided.
+      force: Clear delete protection before deleting.
 
     Returns:
       message: A success message.
 
     Raises:
       DuploNotFound: If no workspace matches the name or id.
+      DuploError: If the workspace is delete-protected and ``--force``
+        was not given.
     """
     wid = self.find(name=name, id=id)["id"]
-    self.client.delete(f"admin/data/workspaces/{quote_plus(wid)}")
+    path = f"admin/data/workspaces/{quote_plus(wid)}"
+    if force:
+      clear_delete_protection(self.client, path)
+    try:
+      self.client.delete(path)
+    except DuploError as e:
+      raise delete_protected_error(e, f"workspace '{name or id}'")
     return {"message": f"workspace '{name or id}' deleted"}
 
   @Command()
