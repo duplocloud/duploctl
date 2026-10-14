@@ -45,6 +45,50 @@ def unwrap_items(response: dict) -> list:
   return items if isinstance(items, list) else []
 
 
+DELETE_PROTECTION_KEY = "delete_protection"
+"""Metadata key that blocks deletes and deprovisions when ``"true"``.
+
+The backend stamps it on every new workspace, namespace, and resource
+group unless the create body sets it explicitly.
+"""
+
+
+def clear_delete_protection(client, record_path: str) -> None:
+  """Turn off delete protection on a record.
+
+  Every helpdesk collection inherits the generic ``{id}/metadata``
+  upsert route, so one call works for workspaces, namespaces, resource
+  groups, and the K8s resources alike. Clearing an unprotected record
+  is a harmless no-op upsert.
+
+  Args:
+    client: The helpdesk client.
+    record_path: The record's path, e.g. ``admin/data/workspaces/<id>``.
+  """
+  client.post(f"{record_path}/metadata",
+              {"Key": DELETE_PROTECTION_KEY, "Value": "false"})
+
+
+def delete_protected_error(error: DuploError, label: str) -> DuploError:
+  """Translate a delete-protection rejection into ``--force`` guidance.
+
+  The backend reports protection as a 400 whose raw JSON body names
+  the metadata key; any other error is returned unchanged.
+
+  Args:
+    error: The error raised by the delete or deprovision call.
+    label: How to name the record, e.g. ``workspace 'dev'``.
+
+  Returns:
+    A guidance error for protection rejections, else ``error`` itself.
+  """
+  if "delete protection is enabled" not in str(error).lower():
+    return error
+  return DuploError(
+      f"{label} is delete-protected: pass --force to clear the "
+      "protection and delete it", error.code)
+
+
 @Client("helpdesk")
 class DuploHelpdeskClient():
   """AI HelpDesk API Client

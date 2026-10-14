@@ -264,6 +264,63 @@ def test_delete_plain(mocker):
     assert "deleted" in result["message"]
 
 
+_PROTECTED = DuploError(
+    '{"success":false,"message":"Invalid state","errors":"Cannot '
+    "deprovision ResourceGroup 'web': delete protection is enabled. Set "
+    "metadata 'delete_protection' to 'false' or remove it before "
+    "deprovisioning.\"}", 400)
+
+
+@pytest.mark.unit
+def test_delete_protected_suggests_force(mocker):
+    svc = _make_resource_group(mocker)
+    client = _make_client(mocker, svc, get_responses=[_DETAIL_RESPONSE])
+    client.delete.side_effect = _PROTECTED
+
+    with pytest.raises(DuploError, match="pass --force"):
+        svc.delete(id=_RG_ID)
+
+
+@pytest.mark.unit
+def test_delete_force_clears_protection_first(mocker):
+    svc = _make_resource_group(mocker)
+    client = _make_client(mocker, svc, get_responses=[_DETAIL_RESPONSE])
+
+    svc.delete(id=_RG_ID, force=True)
+
+    calls = [c[0] for c in client.method_calls if c[0] in ("post", "delete")]
+    assert calls == ["post", "delete"]
+    url, body = client.post.call_args[0]
+    assert url.endswith(f"/resource-groups/{_RG_ID}/metadata")
+    assert body == {"Key": "delete_protection", "Value": "false"}
+
+
+@pytest.mark.unit
+def test_deprovision_force_clears_protection_first(mocker):
+    svc = _make_resource_group(mocker)
+    detail = {"success": True, "data": {"id": _RG_ID, "name": _RG_NAME}}
+    preview = {"success": True, "data": [{"id": "child-1"}]}
+    client = _make_client(mocker, svc, get_responses=[detail, preview])
+
+    svc.deprovision(id=_RG_ID, force=True)
+
+    urls = [c[1][0] for c in client.method_calls if c[0] == "post"]
+    assert urls[0].endswith(f"/resource-groups/{_RG_ID}/metadata")
+    assert urls[1].endswith(f"/resource-groups/{_RG_ID}/deprovision")
+
+
+@pytest.mark.unit
+def test_deprovision_protected_suggests_force(mocker):
+    svc = _make_resource_group(mocker)
+    detail = {"success": True, "data": {"id": _RG_ID, "name": _RG_NAME}}
+    preview = {"success": True, "data": []}
+    client = _make_client(mocker, svc, get_responses=[detail, preview])
+    client.post.side_effect = _PROTECTED
+
+    with pytest.raises(DuploError, match="pass --force"):
+        svc.deprovision(id=_RG_ID)
+
+
 @pytest.mark.unit
 def test_deprovision_confirms_all_preview_children(mocker):
     svc = _make_resource_group(mocker)

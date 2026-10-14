@@ -25,6 +25,7 @@ and implementation detail belong in the PR, not here.
 ### Fixed
 
 - `service update_otherdockerconfig` copies `AgentPlatform` and `AllocationTags` to the top level, so Kubernetes services no longer fail with "Requested replicas more than the total hosts available"
+- `workspace delete`, `namespace delete` (and the other helpdesk K8s deletes), and `resource_group delete`/`deprovision` take `--force` to clear the backend's default delete protection; without it a protected record gets `--force` guidance instead of a raw backend error
 - `service update_image` updates the image again on non-Kubernetes services (e.g. native Docker), fails when the backend accepts an update but returns a different image, and rejects sidecar/init updates off Kubernetes
 - `ecs update_service --wait` and `ecs apply --wait` now wait on the body's `TaskDefinition` revision under its AWS service name, so rollbacks and not-yet-started rollouts no longer report success; `apply` also honors the global `--wait`
 - `workspace update` no longer fails with a name-collision validation error against itself — the record id is now carried in the PUT body (same backend quirk as the admin resources)
