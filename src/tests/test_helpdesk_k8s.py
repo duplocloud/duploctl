@@ -256,6 +256,40 @@ class TestK8sDelete:
 
 
 @pytest.mark.unit
+class TestK8sDeleteProtection:
+    _PROTECTED = DuploError(
+        '{"success":false,"message":"Invalid state","errors":"Cannot '
+        "deprovision Namespace 'ns': delete protection is enabled. Set "
+        "metadata 'delete_protection' to 'false' or remove it before "
+        "deprovisioning.\"}", 400)
+
+    def test_protected_deprovision_suggests_force(self, mocker):
+        resource = _make_resource(mocker, DuploHelpdeskNamespace)
+        client = _make_client(mocker, resource, items_responses=[[_FULL]])
+        client.post.side_effect = self._PROTECTED
+        with pytest.raises(DuploError, match="pass --force"):
+            resource.delete(name=_NAME)
+        client.delete.assert_not_called()
+
+    def test_force_clears_protection_before_deprovision(self, mocker):
+        resource = _make_resource(mocker, DuploHelpdeskNamespace)
+        resource.waiter = {"poll": 0.01, "timeout": 1}
+        client = _make_client(
+            mocker, resource,
+            get_responses=[{"success": True,
+                            "data": {"id": _RID,
+                                     "status": "DeProvisioned"}}],
+            items_responses=[[_FULL]])
+        resource.delete(name=_NAME, force=True)
+        posts = client.post.call_args_list
+        assert posts[0][0][0].endswith(f"/Namespaces/{_RID}/metadata")
+        assert posts[0][0][1] == {"Key": "delete_protection",
+                                  "Value": "false"}
+        assert posts[1][0][0].endswith(f"/Namespaces/{_RID}/deprovision")
+        client.delete.assert_called_once()
+
+
+@pytest.mark.unit
 class TestHelmReleaseWaiter:
     def _release(self, mocker, records):
         resource = _make_resource(mocker, DuploHelmRelease)

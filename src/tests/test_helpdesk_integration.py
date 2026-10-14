@@ -92,8 +92,13 @@ class TestHelpdeskWorkspace:
     @pytest.mark.dependency(depends=["hd_workspace_create"], scope="session")
     @pytest.mark.order(309)
     def test_delete_workspace(self, workspace_resource):
-        """Delete the scratch workspace and verify it is gone."""
-        execute_test(workspace_resource.delete, id=self.workspace_id)
+        """Force-delete the scratch workspace and verify it is gone.
+
+        Newer backends create workspaces delete-protected, so the
+        teardown clears the protection with ``force``.
+        """
+        execute_test(workspace_resource.delete, id=self.workspace_id,
+                     force=True)
         with pytest.raises((DuploNotFound, DuploError)):
             workspace_resource.find(self.workspace_name)
 

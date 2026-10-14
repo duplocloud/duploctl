@@ -6,7 +6,8 @@ from duplocloud.commander import Command
 from duplocloud.errors import (
     DuploError, DuploFailedResource, DuploNotFound, DuploStillWaiting)
 from duplocloud.resource import DuploResource
-from duplo_resource.helpdesk_client import unwrap_data
+from duplo_resource.helpdesk_client import (
+    clear_delete_protection, delete_protected_error, unwrap_data)
 import duplocloud.args as args
 
 WAITER_DEFAULTS = {
@@ -739,22 +740,27 @@ class HelpdeskWorkspaceResource(HelpdeskResource):
   @Command()
   def delete(self,
              name: args.NAME = None,
-             id: args.ID = None) -> dict:
+             id: args.ID = None,
+             force: args.FORCE = False) -> dict:
     """Delete a record, deprovisioning its cloud resources first.
 
     Cloud-backed records cannot be deleted while live: this posts the
     deprovision step, waits for the deprovisioned state, then issues
     the delete. ``--wait`` additionally confirms the record is gone.
+    Delete-protected records (namespaces are created protected) are
+    rejected unless ``--force`` clears the protection first.
 
     Usage: CLI Usage
       ```sh
       duploctl {{command}} delete <name>
       duploctl {{command}} delete --id <id> --wait
+      duploctl {{command}} delete <name> --force --wait
       ```
 
     Args:
       name: The record name.
       id: The record id. Skips the name lookup when provided.
+      force: Clear delete protection before deleting.
 
     Returns:
       message: A deletion confirmation.
@@ -762,19 +768,29 @@ class HelpdeskWorkspaceResource(HelpdeskResource):
     Raises:
       DuploNotFound: If the record cannot be found.
       DuploFailedResource: If deprovisioning fails.
+      DuploError: If the record is delete-protected and ``--force`` was
+        not given.
     """
     rid = id or self._id_of(self.find(name=name))
     base = self._base()
+    path = f"{base}/{quote_plus(rid)}"
+    label = f"{self.kind} '{name or rid}'"
+    if force:
+      clear_delete_protection(self.client, path)
     if self.deprovision:
       try:
-        self.client.post(f"{base}/{quote_plus(rid)}/deprovision")
+        self.client.post(f"{path}/deprovision")
       except DuploNotFound:
         pass  # already deprovisioned (or never provisioned) — proceed
+      except DuploError as e:
+        raise delete_protected_error(e, label)
       self._wait_for_deprovisioned(rid)
     try:
-      self.client.delete(f"{base}/{quote_plus(rid)}")
+      self.client.delete(path)
     except DuploNotFound:
       pass  # vanished between the wait and the delete — that's the goal
+    except DuploError as e:
+      raise delete_protected_error(e, label)
     if self.duplo.wait and self.waiter is not None:
       self._wait_until_gone(rid)
     return {"message": f"{self.kind} '{name or rid}' deleted"}
