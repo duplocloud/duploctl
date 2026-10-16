@@ -21,7 +21,7 @@ inputs:
     description: The GitHub App ID. Omitted on pull requests from a fork, where secrets are not available.
     required: false
   private-key:
-    description: The GitHub token to use. Omitted on pull requests from a fork, where secrets are not available.
+    description: The GitHub App private key. Omitted on pull requests from a fork, where secrets are not available.
     required: false
   repositories:
     description: The repositories to get tokens for.
