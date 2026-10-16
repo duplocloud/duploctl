@@ -33,6 +33,7 @@ class DuploInvalidError(DuploError):
 class DuploNotFound(DuploError):
   """Raised when a Duplo resource is not found."""
   def __init__(self, name: str, kind: str = None):
+    self.name = name
     label = f"{kind} '{name}'" if kind else f"'{name}'"
     super().__init__(f"{label} not found", 404)
 

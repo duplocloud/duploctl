@@ -14,6 +14,9 @@ and implementation detail belong in the PR, not here.
 
 ### Added
 
+- `hd_cronjob update_image <name> <image>` — updates the first container image of an AI HelpDesk CronJob's job template, mirroring the core platform's `cronjob update_image`. Implemented as a fetch-patch-update of the record (the backend has no dedicated cronjob update-image endpoint); honors `--wait`. Accepts `--id` to target one of several cronjobs sharing a name across namespaces.
+- `hd_job create --wait` now waits for the Kubernetes Job to run to completion (gating on the Job's `Complete` condition and failing terminally on a `Failed` condition with its message), matching the core platform's `job create --wait` semantics.
+- New `aws_credentials` resource — mints just-in-time AWS credentials from an AI HelpDesk (the helpdesk counterpart to `jit aws`). `list` shows the workspace's AWS cloud scopes; `find` mints STS credentials for a scope by name/id (defaulting to the workspace's only AWS scope) or, with `--rg`, for the IAM role attached to a resource group. Returns the access key, secret, session token, region, expiry, and a federated console URL.
 - **AI HelpDesk Kubernetes resource family** — twelve workspace-scoped entities on the user data plane via a declarative `HelpdeskWorkspaceResource` base: `hd_configmap`, `hd_secret`, `hd_cronjob`, `hd_job`, `hd_ingress`, `hd_pvc`, `resource_quota`, `hd_storageclass`, `namespace`, `helm_release`, `helm_repository` (CRUD; `hd_` prefix only where the Core Platform owns the plain name), and read-only `k8s_credentials` (JIT cluster credentials via `jitAccess`). Backend-required constants (`spec.k8sResource.apiVersion`/`kind`, `spec.mode`) are injected into create/update bodies when absent; `hd_job` and `namespace` are immutable (update/apply-over-existing fail with guidance); `delete` deprovisions and waits for `DeProvisioned` before removing the record, with `--wait` confirming it is gone. `helm_release --wait` additionally gates on the Flux `Ready` condition and fails fast on `Stalled`. Semantics mirror the duploai terraform provider specs.
 - Standalone AI HelpDesk support: point `DUPLO_HOST` at the helpdesk's own URL and `DUPLO_TOKEN` at a `dahp_` API token minted from the helpdesk — no new settings; a rejected `dahp_` token now gets re-mint guidance instead of a raw 401
 - AI HelpDesk integration-test scaffolding: `helpdesk` marker, `helpdesk_ready` skip-gate fixture (no infra/tenant lifecycle; works against integrated or standalone targets), a `helpdesk` suite file, and an initial workspace lifecycle + read-only smoke suite
@@ -21,10 +24,13 @@ and implementation detail belong in the PR, not here.
 
 ### Fixed
 
+- `service update_image` updates the image again on non-Kubernetes services (e.g. native Docker), fails when the backend accepts an update but returns a different image, and rejects sidecar/init updates off Kubernetes
+- `ecs update_service --wait` and `ecs apply --wait` now wait on the body's `TaskDefinition` revision under its AWS service name, so rollbacks and not-yet-started rollouts no longer report success; `apply` also honors the global `--wait`
 - `workspace update` no longer fails with a name-collision validation error against itself — the record id is now carried in the PUT body (same backend quirk as the admin resources)
 - Fixed broken links on the docs site
 - `job create --wait` no longer times out on jobs that completed after their pods left the pod listing — terminal `Complete`/`Failed` conditions are now checked before pod-count consistency
 - `pod logs` no longer crashes with `KeyError: 'Data'` when the backend returns no log data for a running pod
+- Pinned `pymdown-extensions<12.2` in the docs extras, since 12.2 breaks the mkdocstrings docs build
 
 ### Added
 
