@@ -12,6 +12,9 @@ from duplocloud.errors import (
 )
 from duplocloud.resource import DuploResourceV2
 
+# Template.AgentPlatform value for EKS (Platform.EKS_LINUX in the backend).
+EKS_LINUX_PLATFORM = 7
+
 _STATUS_CODES = {
   "1": "Running",
   "3": "Pending",
@@ -351,6 +354,11 @@ class DuploService(DuploResourceV2):
       duploctl service update_image myapp myimage:latest --wait --loglevel INFO
       ```
 
+    info:
+      Sidecar and init container images can only be updated on Kubernetes
+      services (EKS, AKS and GKE). Other platforms, such as native Docker,
+      support the main image only.
+
     Args:
       name: The name of the service to update.
       image: The new image to use for the service.
@@ -363,6 +371,19 @@ class DuploService(DuploResourceV2):
     if not any([image, container_image, init_container_image]):
       raise DuploError("Provide a service image, container images, or init container images.")
     self.duplo.logger.debug("UPDATE IMAGE")
+    old = self.find(name)
+    platform = old.get("Template", {}).get("AgentPlatform", 0)
+    # The V3 containerimage endpoint only applies the request on EKS. On
+    # every other platform it keeps the current image and still records a
+    # deploy, so those services must go through the V2 endpoint.
+    if platform != EKS_LINUX_PLATFORM:
+      if container_image or init_container_image:
+        raise DuploError(
+          "Sidecar and init container image updates are only supported "
+          f"for EKS services. Service '{name}' has AgentPlatform {platform}."
+        )
+      self._update_image_v2(name, image, old)
+      return {"message": f"Successfully updated image for service '{name}'."}
     payload = []
     if image:
       payload.append({"ContainerName": "duplo-main-container", "ImageName": image})
@@ -371,30 +392,56 @@ class DuploService(DuploResourceV2):
     for cname, cimage in (init_container_image or []):
       payload.append({"ContainerName": cname, "ImageName": cimage})
     endpoint = f"v3/subscriptions/{self.tenant_id}/containers/replicationController/{name}/containerimage"
-    old = None
-    if self.duplo.wait:
-      old = self.find(name)
     try:
-      self.client.put(endpoint, payload)
-    except DuploNotFound:
+      response = self.client.put(endpoint, payload)
+    except DuploNotFound as e:
+      # A 404 is either an older backend without the V3 route or a sidecar
+      # or init container name that does not exist on the service. V2 can
+      # only update the main image, so only fall back for that case.
+      if container_image or init_container_image:
+        raise DuploError(
+          f"Failed to update container images for service '{name}': "
+          f"{self._backend_message(e.name)}",
+          404
+        ) from e
       self.duplo.logger.debug("V3 containerimage endpoint not found, falling back to V2")
-      self._update_image_v2(name, image, container_image, init_container_image, old)
+      self._update_image_v2(name, image, old)
     else:
+      if image:
+        self._verify_main_image(name, response, image)
       if self.duplo.wait:
         self.duplo.logger.debug("Wait enabled, beginning wait process")
         self._wait(old, {"Name": name, "Image": image or ""})
     return {"message": f"Successfully updated image for service '{name}'."}
 
-  def _update_image_v2(self, name, image, container_image, init_container_image, old):
-    """Fallback to V2 endpoint for older Duplo backends."""
-    if container_image or init_container_image:
+  def _backend_message(self, text: str) -> str:
+    """Pull the Message field out of a backend error body if present."""
+    try:
+      return loads(text).get("Message") or text
+    except (ValueError, TypeError, AttributeError):
+      return text
+
+  def _verify_main_image(self, name: str, response, image: str) -> None:
+    """Make sure the V3 response carries the requested main image.
+
+    The V3 endpoint returns 2xx even when it leaves the image unchanged,
+    so the returned service is checked instead of trusting the status.
+    """
+    updated = response.json()
+    actual = self.image_from_body(updated) if updated else None
+    if actual != image:
       raise DuploError(
-        "Sidecar and init container image updates require a newer Duplo backend. "
-        "Please upgrade your Duplo portal or use the main image parameter only."
+        f"Image update for service '{name}' was accepted but the main "
+        f"image is '{actual}', not '{image}'."
       )
+
+  def _update_image_v2(self, name: str, image: str, service: dict) -> None:
+    """Update the main image with the V2 endpoint.
+
+    Used for non-EKS services and for older backends without the V3 route.
+    """
     if not image:
       raise DuploError("No image provided for V2 fallback.")
-    service = old if old else self.find(name)
     data = {
       "Name": name,
       "Image": image,

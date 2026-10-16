@@ -39,6 +39,7 @@ class TestEcs:
       35  update_image (service family) — wait enabled; soft-fail on wait errors
       36  run_task (task family)
       37  list_tasks (task family)
+      38  update_taskdef + update_service (service family) — image + env in one revision, wait on it
       995 delete ECS service
       996 (no taskdef delete — deregistration not exposed, families GC'd by AWS)
     """
@@ -148,6 +149,31 @@ class TestEcs:
             print(f"update_image result: {result}")
         finally:
             ecs_resource.duplo.wait = False
+
+    # ── update_taskdef + update_service ───────────────────────────────────────
+
+    @pytest.mark.dependency(depends=["update_ecs_image"], scope="session")
+    @pytest.mark.order(38)
+    def test_update_taskdef_then_service(self, ecs_resource):
+        """Change image and env in one revision, point the service at it and wait on that ARN."""
+        body = ecs_resource.find_def(self.svc_family)
+        container = body["ContainerDefinitions"][0]
+        container["Image"] = _BASE_IMAGE
+        container["Environment"] = [
+            *container.get("Environment", []),
+            {"Name": "DUPLOCTL_ROLLOUT", "Value": "true"},
+        ]
+        arn = execute_test(ecs_resource.update_taskdef, body)["arn"]
+        prefixed = ecs_resource.prefixed_name(self.svc_family)
+        svc = ecs_resource.find_service_family(prefixed)["DuploEcsService"]
+        svc["TaskDefinition"] = arn
+        execute_test(ecs_resource.update_service, svc, wait=True)
+
+        svc = ecs_resource.find_service_family(prefixed)["DuploEcsService"]
+        assert svc["TaskDefinition"] == arn
+        svc_def = ecs_resource.find_def(self.svc_family)
+        assert svc_def["ContainerDefinitions"][0]["Image"] == _BASE_IMAGE
+        assert {"Name": "DUPLOCTL_ROLLOUT", "Value": "true"} in svc_def["ContainerDefinitions"][0]["Environment"]
 
     # ── run_task / list_tasks ─────────────────────────────────────────────────
 
