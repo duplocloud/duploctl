@@ -231,6 +231,12 @@ class DuploService(DuploResourceV2):
     docker_config = self.duplo.jsonpatch(docker_config, patches)
     body["Template"]["OtherDockerConfig"] = dumps(docker_config)
     body["OtherDockerConfig"] = body["Template"]["OtherDockerConfig"]
+    # ChangeAll reads these from the top level; without them the backend
+    # defaults to AgentPlatform 0 and validates replicas against host count.
+    body["AgentPlatform"] = body["Template"].get("AgentPlatform", 0)
+    if ((ttags := body["Template"].get("AllocationTags", None))
+        and not body.get("AllocationTags", None)):
+      body["AllocationTags"] = ttags
     self.client.post(self.endpoint("ReplicationControllerChangeAll"), body)
     return {
       "message": f"Successfully updated OtherDockerConfig for service '{name}'"
