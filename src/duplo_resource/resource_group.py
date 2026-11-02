@@ -267,18 +267,50 @@ class DuploResourceGroup(HelpdeskResource):
 
     Raises:
       DuploNotFound: If no resource group matches the name or id.
-      DuploError: If the resource group is delete-protected and
-        ``--force`` was not given.
+      DuploError: If the resource group is still live (not deprovisioned
+        or imported), or is delete-protected and ``--force`` was not
+        given.
     """
     rg = self.find(name=name, id=id)
+    label = f"resource group '{name or id}'"
+    # The backend checks protection before status, so clearing protection
+    # on a live group would leave it unprotected and still undeletable.
+    # Refuse up front and point at deprovision instead.
+    if self._is_live(rg):
+      raise DuploError(
+          f"{label} must be deprovisioned first: run "
+          "'duploctl resource_group deprovision' to tear it down", 400)
     path = f"{self._base()}/{quote_plus(self._id_of(rg))}"
     if force:
       clear_delete_protection(self.client, path)
     try:
       self.client.delete(path)
     except DuploError as e:
-      raise delete_protected_error(e, f"resource group '{name or id}'")
-    return {"message": f"resource group '{name or id}' deleted"}
+      raise delete_protected_error(e, label)
+    return {"message": f"{label} deleted"}
+
+  def _is_live(self, resource_group: dict) -> bool:
+    """Tell whether the backend would refuse a delete on status alone.
+
+    Mirrors the backend's delete gate: only ``DeProvisioned`` groups may
+    be deleted, except imported ones (``spec.mode == Import``), which
+    skip the status check. A record without a string status (older
+    backends) is not judged here and is left to the backend.
+
+    Args:
+      resource_group: The resource group record.
+
+    Returns:
+      True when the group is still live and must be deprovisioned first.
+    """
+    spec = resource_group.get("spec") or resource_group.get("Spec") or {}
+    mode = spec.get("mode") or spec.get("Mode")
+    if isinstance(mode, str) and mode.lower() == "import":
+      return False
+    status = resource_group.get("status") or resource_group.get("Status")
+    if not isinstance(status, str):
+      return False
+    return status.lower() != "deprovisioned"
 
   @Command()
   def deprovision(self,

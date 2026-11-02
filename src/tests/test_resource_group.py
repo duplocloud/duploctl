@@ -295,6 +295,71 @@ def test_delete_force_clears_protection_first(mocker):
     assert body == {"Key": "delete_protection", "Value": "false"}
 
 
+def _detail(status, mode=None):
+    """Build a resource-group detail envelope with a status and mode."""
+    data = {"id": _RG_ID, "name": _RG_NAME, "status": status}
+    if mode:
+        data["spec"] = {"mode": mode}
+    return {"success": True, "data": data}
+
+
+@pytest.mark.unit
+def test_delete_live_group_refused_before_clearing(mocker):
+    """A live group points at deprovision and protection stays on."""
+    svc = _make_resource_group(mocker)
+    client = _make_client(mocker, svc, get_responses=[_detail("Ready")])
+
+    with pytest.raises(DuploError, match="deprovisioned first"):
+        svc.delete(id=_RG_ID, force=True)
+
+    client.post.assert_not_called()
+    client.delete.assert_not_called()
+
+
+@pytest.mark.unit
+def test_delete_imported_live_group_allowed(mocker):
+    """Imported groups skip the backend's status gate, so delete proceeds."""
+    svc = _make_resource_group(mocker)
+    client = _make_client(
+        mocker, svc, get_responses=[_detail("Ready", mode="Import")])
+
+    svc.delete(id=_RG_ID, force=True)
+
+    client.post.assert_called_once()
+    client.delete.assert_called_once()
+
+
+@pytest.mark.unit
+def test_delete_deprovisioned_group_force(mocker):
+    svc = _make_resource_group(mocker)
+    client = _make_client(
+        mocker, svc, get_responses=[_detail("DeProvisioned")])
+
+    svc.delete(id=_RG_ID, force=True)
+
+    client.post.assert_called_once()
+    client.delete.assert_called_once()
+
+
+@pytest.mark.unit
+def test_delete_other_error_passes_through_unchanged(mocker):
+    """Only protection rejections become --force guidance."""
+    svc = _make_resource_group(mocker)
+    client = _make_client(
+        mocker, svc, get_responses=[_detail("DeProvisioned")])
+    other = DuploError(
+        '{"success":false,"message":"Invalid state","errors":"Cannot '
+        "delete ResourceGroup 'web' while it is in 'Ready' state. The "
+        'resource must be deprovisioned first."}', 400)
+    client.delete.side_effect = other
+
+    with pytest.raises(DuploError) as exc:
+        svc.delete(id=_RG_ID)
+
+    assert exc.value is other
+    assert "--force" not in str(exc.value)
+
+
 @pytest.mark.unit
 def test_deprovision_force_clears_protection_first(mocker):
     svc = _make_resource_group(mocker)
