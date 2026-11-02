@@ -66,6 +66,9 @@ duploctl service list -q '[].Name'
 | `--wait`, `-w` | -- | `false` | Wait for async operations to complete |
 | `--file`, `-f` | -- | -- | YAML/JSON file for resource body input |
 | `--interactive`, `-I` | -- | `false` | Use interactive browser-based login |
+| `--headless`, `--no-browser` | `DUPLO_HEADLESS` | `false` | Interactive login without a browser, for remote hosts and containers |
+| `--headless-port` | `DUPLO_HEADLESS_PORT` | -- | Receive the headless login callback on this (forwarded) port |
+| `--headless-bind` | `DUPLO_HEADLESS_BIND` | `127.0.0.1` | Interface the headless callback listens on |
 | `--admin`, `--isadmin` | -- | `false` | Request admin JIT credentials (use with `-I`) |
 | `--log-level`, `-L` | `DUPLO_LOG_LEVEL` | `INFO` | Log level |
 | `--config-file` | `DUPLO_CONFIG` | -- | Path to duploctl config file |
@@ -74,6 +77,54 @@ duploctl service list -q '[].Name'
 | `--dry-run` | -- | `false` | Print changes without submitting |
 
 Full argument reference: [cli.duplocloud.com/Args](https://cli.duplocloud.com/Args/)
+
+### Headless Login
+
+On a machine with no browser, like a remote host over ssh or a container, add
+`--headless` to any interactive command. The login url is printed and you open
+it in a browser anywhere. Sign in, then approve the **Local Access Requested**
+prompt the portal shows — the redirect only fires once you do. The browser is
+then sent to a `http://localhost:56789/?t=...` page that fails to load. Paste
+that whole address back into the terminal and duploctl reads the token out of
+it. The token is cached exactly like a browser login, so later commands need
+no prompt.
+
+That pasted address carries a long lived portal token, and it lands in browser
+history and often in shell history too. Prefer `--headless-port` wherever a
+port can be forwarded, and clear the address out of the browser history when
+you do have to paste.
+
+```sh
+duploctl jit aws --headless
+```
+
+If you can forward a port, `--headless-port` skips the pasting entirely.
+duploctl listens on that port for the callback, so the redirect reaches it
+through the tunnel.
+
+```sh
+ssh -L 56789:localhost:56789 remotehost
+duploctl jit aws --headless-port 56789
+```
+
+The port mode also works where there is no terminal to paste into, such as an
+AWS `credential_process` or a kubectl exec credential plugin. `--headless` and
+`--headless-port` both imply `--interactive`, and are inherited by the
+commands written by `jit update_aws_config` and `jit update_kubeconfig`.
+
+The callback listens on loopback, which is where an `ssh -L` tunnel delivers.
+The port is fixed and documented, so binding it on every interface would let
+anything that can reach the machine on that port hand duploctl a token during
+the login window. Inside a container a published port arrives on the container
+ip rather than loopback, so that case needs to opt in:
+
+```sh
+docker run -p 56789:56789 duplocloud/duploctl jit aws \
+  --headless-port 56789 --headless-bind 0.0.0.0
+```
+
+All three settings can also live in a config context, e.g.
+`duploctl config set headless true`.
 
 ## CLI Usage
 

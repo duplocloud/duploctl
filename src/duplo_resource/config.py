@@ -19,6 +19,7 @@ import duplocloud.args as args
 VALID_CONTEXT_KEYS = (
   "host", "token", "tenant", "workspace",
   "interactive", "admin", "nocache",
+  "headless", "headless_port", "headless_bind",
   "environment", "resource_group", "helpdesk_host", "helpdesk_token",
 )
 """Context keys the config resource may get/set/unset.
@@ -28,7 +29,7 @@ setting. New keys (e.g. for the AI HelpDesk) must be added here before
 ``duploctl config set`` will accept them.
 """
 
-BOOLEAN_CONTEXT_KEYS = ("interactive", "admin", "nocache")
+BOOLEAN_CONTEXT_KEYS = ("interactive", "admin", "nocache", "headless")
 
 REDACTED_KEYS = ("token", "helpdesk_token")
 
