@@ -4,7 +4,8 @@ from duplocloud.controller import DuploCtl
 from duplocloud.errors import DuploError, DuploNotFound
 from duplocloud.commander import Command, Resource
 from duplo_resource.helpdesk import HelpdeskResource
-from duplo_resource.helpdesk_client import unwrap_data
+from duplo_resource.helpdesk_client import (
+    clear_delete_protection, delete_protected_error, unwrap_data)
 import duplocloud.args as args
 
 
@@ -238,39 +239,84 @@ class DuploResourceGroup(HelpdeskResource):
   @Command()
   def delete(self,
              name: args.NAME = None,
-             id: args.ID = None) -> dict:
+             id: args.ID = None,
+             force: args.FORCE = False) -> dict:
     """Delete an AI HelpDesk resource group by name or id.
 
     Removes the resource group record directly. The backend only allows
     this for groups that are already deprovisioned (or were imported), so
     run ``deprovision`` first for a live group — that is the orchestrated
-    cascade teardown that also removes child resources.
+    cascade teardown that also removes child resources. Newer backends
+    create resource groups delete-protected, which rejects the delete
+    until ``--force`` clears the protection.
 
     Usage: CLI Usage
       ```sh
       duploctl resource_group delete <name> -W <workspace>
       duploctl resource_group delete --id <id> --workspace-id <workspace id>
+      duploctl resource_group delete <name> -W <workspace> --force
       ```
 
     Args:
       name: The resource group name as shown in the portal.
       id: The resource group id. Skips the name lookup when provided.
+      force: Clear delete protection before deleting.
 
     Returns:
       message: A success message.
 
     Raises:
       DuploNotFound: If no resource group matches the name or id.
+      DuploError: If the resource group is still live (not deprovisioned
+        or imported), or is delete-protected and ``--force`` was not
+        given.
     """
     rg = self.find(name=name, id=id)
-    rgid = self._id_of(rg)
-    self.client.delete(f"{self._base()}/{quote_plus(rgid)}")
-    return {"message": f"resource group '{name or id}' deleted"}
+    label = f"resource group '{name or id}'"
+    # The backend checks protection before status, so clearing protection
+    # on a live group would leave it unprotected and still undeletable.
+    # Refuse up front and point at deprovision instead.
+    if self._is_live(rg):
+      raise DuploError(
+          f"{label} must be deprovisioned first: run "
+          "'duploctl resource_group deprovision' to tear it down", 400)
+    path = f"{self._base()}/{quote_plus(self._id_of(rg))}"
+    if force:
+      clear_delete_protection(self.client, path)
+    try:
+      self.client.delete(path)
+    except DuploError as e:
+      raise delete_protected_error(e, label)
+    return {"message": f"{label} deleted"}
+
+  def _is_live(self, resource_group: dict) -> bool:
+    """Tell whether the backend would refuse a delete on status alone.
+
+    Mirrors the backend's delete gate: only ``DeProvisioned`` groups may
+    be deleted, except imported ones (``spec.mode == Import``), which
+    skip the status check. A record without a string status (older
+    backends) is not judged here and is left to the backend.
+
+    Args:
+      resource_group: The resource group record.
+
+    Returns:
+      True when the group is still live and must be deprovisioned first.
+    """
+    spec = resource_group.get("spec") or resource_group.get("Spec") or {}
+    mode = spec.get("mode") or spec.get("Mode")
+    if isinstance(mode, str) and mode.lower() == "import":
+      return False
+    status = resource_group.get("status") or resource_group.get("Status")
+    if not isinstance(status, str):
+      return False
+    return status.lower() != "deprovisioned"
 
   @Command()
   def deprovision(self,
                   name: args.NAME = None,
-                  id: args.ID = None) -> dict:
+                  id: args.ID = None,
+                  force: args.FORCE = False) -> dict:
     """Cascade-deprovision an AI HelpDesk resource group.
 
     Initiates the orchestrated teardown of the resource group and all of
@@ -282,21 +328,29 @@ class DuploResourceGroup(HelpdeskResource):
       ```sh
       duploctl resource_group deprovision <name> -W <workspace>
       duploctl resource_group deprovision --id <id> --workspace-id <workspace id>
+      duploctl resource_group deprovision <name> -W <workspace> --force
       ```
 
     Args:
       name: The resource group name as shown in the portal.
       id: The resource group id. Skips the name lookup when provided.
+      force: Clear the resource group's own delete protection first.
+        Protected children need no flag: the backend clears protection
+        on every child the cascade selects.
 
     Returns:
       message: A success message noting how many children were included.
 
     Raises:
       DuploNotFound: If no resource group matches the name or id.
+      DuploError: If the resource group is delete-protected and
+        ``--force`` was not given.
     """
     rg = self.find(name=name, id=id)
     rgid = self._id_of(rg)
     base = self._base()
+    if force:
+      clear_delete_protection(self.client, f"{base}/{quote_plus(rgid)}")
     # The backend rejects a partial selection, so confirm every direct
     # child returned by the preview. The preview envelope wraps a bare
     # list under ``data`` (not the ``data.items`` page shape).
@@ -306,8 +360,11 @@ class DuploResourceGroup(HelpdeskResource):
     items = items or []
     child_ids = [i.get("id") or i.get("Id") for i in items
                  if (i.get("id") or i.get("Id"))]
-    self.client.post(
-        f"{base}/{quote_plus(rgid)}/deprovision",
-        {"selectedResourceIds": child_ids})
+    try:
+      self.client.post(
+          f"{base}/{quote_plus(rgid)}/deprovision",
+          {"selectedResourceIds": child_ids})
+    except DuploError as e:
+      raise delete_protected_error(e, f"resource group '{name or id}'")
     return {"message": f"resource group '{name or id}' deprovisioning "
                        f"initiated with {len(child_ids)} child resource(s)"}

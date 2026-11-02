@@ -264,6 +264,128 @@ def test_delete_plain(mocker):
     assert "deleted" in result["message"]
 
 
+_PROTECTED = DuploError(
+    '{"success":false,"message":"Invalid state","errors":"Cannot '
+    "deprovision ResourceGroup 'web': delete protection is enabled. Set "
+    "metadata 'delete_protection' to 'false' or remove it before "
+    "deprovisioning.\"}", 400)
+
+
+@pytest.mark.unit
+def test_delete_protected_suggests_force(mocker):
+    svc = _make_resource_group(mocker)
+    client = _make_client(mocker, svc, get_responses=[_DETAIL_RESPONSE])
+    client.delete.side_effect = _PROTECTED
+
+    with pytest.raises(DuploError, match="pass --force"):
+        svc.delete(id=_RG_ID)
+
+
+@pytest.mark.unit
+def test_delete_force_clears_protection_first(mocker):
+    svc = _make_resource_group(mocker)
+    client = _make_client(mocker, svc, get_responses=[_DETAIL_RESPONSE])
+
+    svc.delete(id=_RG_ID, force=True)
+
+    calls = [c[0] for c in client.method_calls if c[0] in ("post", "delete")]
+    assert calls == ["post", "delete"]
+    url, body = client.post.call_args[0]
+    assert url.endswith(f"/resource-groups/{_RG_ID}/metadata")
+    assert body == {"Key": "delete_protection", "Value": "false"}
+
+
+def _detail(status, mode=None):
+    """Build a resource-group detail envelope with a status and mode."""
+    data = {"id": _RG_ID, "name": _RG_NAME, "status": status}
+    if mode:
+        data["spec"] = {"mode": mode}
+    return {"success": True, "data": data}
+
+
+@pytest.mark.unit
+def test_delete_live_group_refused_before_clearing(mocker):
+    """A live group points at deprovision and protection stays on."""
+    svc = _make_resource_group(mocker)
+    client = _make_client(mocker, svc, get_responses=[_detail("Ready")])
+
+    with pytest.raises(DuploError, match="deprovisioned first"):
+        svc.delete(id=_RG_ID, force=True)
+
+    client.post.assert_not_called()
+    client.delete.assert_not_called()
+
+
+@pytest.mark.unit
+def test_delete_imported_live_group_allowed(mocker):
+    """Imported groups skip the backend's status gate, so delete proceeds."""
+    svc = _make_resource_group(mocker)
+    client = _make_client(
+        mocker, svc, get_responses=[_detail("Ready", mode="Import")])
+
+    svc.delete(id=_RG_ID, force=True)
+
+    client.post.assert_called_once()
+    client.delete.assert_called_once()
+
+
+@pytest.mark.unit
+def test_delete_deprovisioned_group_force(mocker):
+    svc = _make_resource_group(mocker)
+    client = _make_client(
+        mocker, svc, get_responses=[_detail("DeProvisioned")])
+
+    svc.delete(id=_RG_ID, force=True)
+
+    client.post.assert_called_once()
+    client.delete.assert_called_once()
+
+
+@pytest.mark.unit
+def test_delete_other_error_passes_through_unchanged(mocker):
+    """Only protection rejections become --force guidance."""
+    svc = _make_resource_group(mocker)
+    client = _make_client(
+        mocker, svc, get_responses=[_detail("DeProvisioned")])
+    other = DuploError(
+        '{"success":false,"message":"Invalid state","errors":"Cannot '
+        "delete ResourceGroup 'web' while it is in 'Ready' state. The "
+        'resource must be deprovisioned first."}', 400)
+    client.delete.side_effect = other
+
+    with pytest.raises(DuploError) as exc:
+        svc.delete(id=_RG_ID)
+
+    assert exc.value is other
+    assert "--force" not in str(exc.value)
+
+
+@pytest.mark.unit
+def test_deprovision_force_clears_protection_first(mocker):
+    svc = _make_resource_group(mocker)
+    detail = {"success": True, "data": {"id": _RG_ID, "name": _RG_NAME}}
+    preview = {"success": True, "data": [{"id": "child-1"}]}
+    client = _make_client(mocker, svc, get_responses=[detail, preview])
+
+    svc.deprovision(id=_RG_ID, force=True)
+
+    urls = [c[1][0] for c in client.method_calls if c[0] == "post"]
+    assert urls[0].endswith(f"/resource-groups/{_RG_ID}/metadata")
+    assert urls[1].endswith(f"/resource-groups/{_RG_ID}/deprovision")
+
+
+@pytest.mark.unit
+def test_deprovision_protected_suggests_force(mocker):
+    svc = _make_resource_group(mocker)
+    detail = {"success": True, "data": {"id": _RG_ID, "name": _RG_NAME}}
+    preview = {"success": True, "data": []}
+    client = _make_client(mocker, svc, get_responses=[detail, preview])
+    client.post.side_effect = _PROTECTED
+
+    with pytest.raises(DuploError, match="pass --force"):
+        svc.deprovision(id=_RG_ID)
+
+
 @pytest.mark.unit
 def test_deprovision_confirms_all_preview_children(mocker):
     svc = _make_resource_group(mocker)
