@@ -184,6 +184,32 @@ def test_update_with_template_wrapped_body(mocker):
 
 
 @pytest.mark.unit
+def test_update_otherdockerconfig_copies_agentplatform(mocker):
+  """update_otherdockerconfig() copies Template fields to the top level."""
+  mock_client = mocker.MagicMock()
+  mock_client.load_client.return_value = mock_client
+  mock_client.jsonpatch.side_effect = lambda doc, patches: {**doc, "Labels": {"app": "x"}}
+  service = DuploService(mock_client)
+  existing_service = {
+    "Name": "test-svc",
+    "Replicas": 2,
+    "Template": {
+      "OtherDockerConfig": '{"Labels":{}}',
+      "AgentPlatform": 7,
+      "AllocationTags": "tagA",
+    }
+  }
+  mocker.patch.object(service, 'find', return_value=existing_service)
+  service.update_otherdockerconfig(
+    "test-svc", patches=[{"op": "replace", "path": "/Labels", "value": {"app": "x"}}]
+  )
+  posted_body = mock_client.post.call_args[0][1]
+  assert posted_body["AgentPlatform"] == 7
+  assert posted_body["AllocationTags"] == "tagA"
+  assert json.loads(posted_body["OtherDockerConfig"]) == {"Labels": {"app": "x"}}
+
+
+@pytest.mark.unit
 def test_update_env_empty_otherdockerconfig(mocker):
   """update_env() handles empty string OtherDockerConfig."""
   mock_client = mocker.MagicMock()

@@ -65,7 +65,10 @@ docs = [
   "mkdocs",
   "mkdocs-material",
   "mkdocstrings[python]<1.0",
-  "mkdocstrings-python<2.0"
+  "mkdocstrings-python<2.0",
+  # mkdocstrings 1.0.7 supports pymdown-extensions 12.2 but needs Python 3.11+.
+  # Drop this pin when the mkdocstrings pin moves to >=1.0.7.
+  "pymdown-extensions<12.2"
 ]
 [build-system]
 requires = [
@@ -206,6 +209,7 @@ namespace = "duplo_resource.helpdesk_k8s:DuploHelpdeskNamespace"
 helm_release = "duplo_resource.helpdesk_k8s:DuploHelmRelease"
 helm_repository = "duplo_resource.helpdesk_k8s:DuploHelmRepository"
 k8s_credentials = "duplo_resource.helpdesk_k8s:DuploK8sCredentials"
+aws_credentials = "duplo_resource.helpdesk_aws:DuploAwsCredentials"
 hosts = "duplo_resource.hosts:DuploHosts"
 ingress = "duplo_resource.ingress:DuploIngress"
 rds = "duplo_resource.rds:DuploRDS"
