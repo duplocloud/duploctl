@@ -38,14 +38,14 @@ on:
         description: GitHub App private key
         required: false
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 permissions:
   contents: read
 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build_image:
     name: Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       image: ${{ steps.build_image.outputs.uri }}
     environment: 
@@ -71,7 +71,7 @@ jobs:
 
     - name: Build and Push Docker Image
       id: build_image
-      uses: duplocloud/actions/build-image@f48f61d9096cf5e49a2420c666c8316f3bbeede4 # v1.0.0
+      uses: duplocloud/actions/build-image@v1.0.0
       env:
         GIT_TAG: ${{ env.GIT_TAG }}
       with:
@@ -82,7 +82,7 @@ jobs:
         docker-password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Docker Hub Description
-      uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
+      uses: peter-evans/dockerhub-description@v5
       if: inputs.push
       with:
         username: ${{ secrets.DOCKER_USERNAME }}

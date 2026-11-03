@@ -4,7 +4,8 @@
 #
 # The cooldown holds back brand-new releases for a few days, which is the
 # window in which hijacked or malicious package and action versions are
-# usually caught and yanked.
+# usually caught and yanked. Minor and patch updates are grouped per
+# ecosystem; majors stay separate for review.
 
 version: 2
 updates:
@@ -21,12 +22,13 @@ updates:
   cooldown:
     default-days: 7
   groups:
-    python:
-      patterns:
-      - "*"
+    pip-minor-patch:
+      update-types:
+      - minor
+      - patch
 
-# Actions are pinned to commit SHAs; Dependabot moves the SHA and the
-# version comment together.
+# Actions are on release tags (see .github/zizmor.yml). A floating major
+# already takes patches, so this mostly moves majors and exact tags.
 - package-ecosystem: github-actions
   directories:
   - /
@@ -36,9 +38,10 @@ updates:
   cooldown:
     default-days: 7
   groups:
-    actions:
-      patterns:
-      - "*"
+    actions-minor-patch:
+      update-types:
+      - minor
+      - patch
 
 - package-ecosystem: devcontainers
   directory: /

@@ -10,17 +10,17 @@ jobs:
 
   prerequisites:
     name: Prerequisites
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: write
     steps:
     - name: Auto Assign
-      uses: kentaro-m/auto-assign-action@0a2c53d3721e4c5cfcce6afd4014aecc337979f6 # v2.0.2
+      uses: kentaro-m/auto-assign-action@v2.0.2
       with:
         configuration-path: .github/assign.yml
     - name: Make sure Changleog is updated
-      uses: tarides/changelog-check-action@8f47e0becbfa549e4c82a3f562aa6f90d2c2ee8c # v4
+      uses: tarides/changelog-check-action@v4
       with:
         changelog: CHANGELOG.md
 
@@ -50,7 +50,7 @@ jobs:
 
   docs_check:
     name: Documentation Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
     - name: Setup
       id: setup

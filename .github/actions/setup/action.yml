@@ -53,7 +53,7 @@ runs:
   # Naming a permission limits the token to it, instead of inheriting every
   # permission the App installation was granted.
   - name: Create GitHub App Token
-    uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+    uses: actions/create-github-app-token@v3
     id: app-token
     if: inputs.app-id != '' && inputs.private-key != ''
     with:
@@ -66,7 +66,7 @@ runs:
   # release scripts use the REST API with an explicit token), and the image
   # build copies .git into a cached build stage.
   - name: Checkout Code
-    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    uses: actions/checkout@v7
     with:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
@@ -76,7 +76,7 @@ runs:
       persist-credentials: false
 
   - name: Set up Python ${{ inputs.python-version }}
-    uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+    uses: actions/setup-python@v7
     if: inputs.install
     with:
       python-version: ${{ inputs.python-version }}

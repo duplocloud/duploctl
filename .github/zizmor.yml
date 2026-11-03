@@ -1,8 +1,19 @@
-# zizmor: static analysis for GitHub Actions, run by the Quality workflow.
-# https://docs.zizmor.sh/configuration/
+# zizmor configuration: the CI supply-chain auditor run by quality.yml.
+#
+# Everything zizmor reports is on by default. This file records where the
+# default disagrees with a deliberate decision in this repo, and why.
+#
+# Docs: https://docs.zizmor.sh/configuration/
 rules:
-  # every action, first-party GitHub ones included, is pinned to a commit SHA
+
+  # zizmor's blanket policy wants every `uses:` pinned to a commit hash. This
+  # repo pins to release tags instead: a floating major (`@v7`) where the
+  # publisher keeps one current, so patches arrive on their own, and an exact
+  # release (`@v1.1.0`) where it does not. Dependabot moves those weekly
+  # (.github/dependabot.yml), and `v7.0.0 → v7.0.1` in its PR says what changed
+  # where a hash bump says nothing. `ref-pin` still requires every `uses:` to
+  # name a ref.
   unpinned-uses:
     config:
       policies:
-        "*": hash-pin
+        "*": ref-pin

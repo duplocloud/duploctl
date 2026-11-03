@@ -47,7 +47,7 @@ permissions:
 jobs:
   quality:
     name: Quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
 
     # the sdk extra and the aws plugin ship inside the installer binary and
@@ -68,7 +68,7 @@ jobs:
       run: pip install .[test]
 
     - name: Pip Audit
-      uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
+      uses: pypa/gh-action-pip-audit@v1.1.0
       with:
         inputs: requirements.txt
 
@@ -77,7 +77,7 @@ jobs:
       run: ruff check ./src ./plugins
 
     - name: Save Lock File
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@v7
       if: inputs.push
       with:
         name: requirements.lock
@@ -85,7 +85,7 @@ jobs:
 
   codeql:
     name: CodeQL (${{ matrix.language }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # if codescan is true or it is the default branch
     if: inputs.codescan || github.ref == 'refs/heads/main'
     permissions:
@@ -105,7 +105,7 @@ jobs:
         ref: ${{ inputs.tag }}
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
         build-mode: none
@@ -113,13 +113,13 @@ jobs:
 
     - name: Perform CodeQL Analysis
       id: analysis
-      uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{ matrix.language }}"
 
     - name: Save Sarif File
       if: inputs.push
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@v7
       with:
         name: sarif-${{ matrix.language }}
         path: ${{ steps.analysis.outputs.sarif-output }}
@@ -130,7 +130,7 @@ jobs:
   # else reports to code scanning.
   workflows:
     name: Workflow Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       security-events: write
@@ -142,7 +142,7 @@ jobs:
         ref: ${{ inputs.tag }}
 
     - name: Run zizmor
-      uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+      uses: zizmorcore/zizmor-action@v0.8.1
       with:
         version: 1.32.0
         config: .github/zizmor.yml
@@ -154,7 +154,7 @@ jobs:
   # proposed. Scheduled and manual runs scan the full history.
   secrets:
     name: Secret Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
 
     - name: Setup
@@ -164,7 +164,7 @@ jobs:
         fetch-depth: 0
 
     - name: Run TruffleHog
-      uses: trufflesecurity/trufflehog@ea68ca03c865c5f324e86e849ced20ed3cf9dbbb # v3.99.8
+      uses: trufflesecurity/trufflehog@v3.99.8
       with:
         version: 3.99.8
         extra_args: --results=verified,unknown
@@ -174,7 +174,7 @@ jobs:
   # that have a fix; the full report goes to code scanning.
   image:
     name: Image Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       security-events: write
@@ -190,7 +190,7 @@ jobs:
 
     - name: Run Grype
       id: grype
-      uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+      uses: anchore/scan-action@v7.4.2
       with:
         image: duploctl:scan
         only-fixed: true
@@ -202,7 +202,7 @@ jobs:
         always() && steps.grype.outputs.sarif != '' &&
         (github.event_name != 'pull_request' ||
         github.event.pull_request.head.repo.full_name == github.repository)
-      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: ${{ steps.grype.outputs.sarif }}
         category: grype-image
@@ -211,11 +211,11 @@ jobs:
   # advisory of moderate severity or higher.
   dependency_review:
     name: Dependency Review
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: github.event_name == 'pull_request'
     steps:
 
     - name: Dependency Review
-      uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      uses: actions/dependency-review-action@v5.0.0
       with:
         fail-on-severity: moderate

@@ -39,7 +39,7 @@ permissions:
 jobs:
   package:
     name: Package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: pypi
       url: https://pypi.org/project/duplocloud-client
@@ -72,7 +72,7 @@ jobs:
 
     - name: Publish Package to PyPI
       if: inputs.push == true
-      uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
 
@@ -83,13 +83,13 @@ jobs:
 
     - name: Publish Plugin aws to PyPI
       if: inputs.push == true
-      uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
         packages-dir: dist/plugins/aws/
 
     - name: Github Artifact
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.check_version.outputs.package }}
         path: |

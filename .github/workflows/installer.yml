@@ -43,7 +43,7 @@ jobs:
           multiarch: false
           arch: amd64
         - name: linux
-          runs-on: ubuntu-latest
+          runs-on: ubuntu-26.04
           multiarch: true
           arch: amd64
         - name: darwin
@@ -98,7 +98,7 @@ jobs:
     - name: Buildx MultiArch Installer
       if: matrix.os.multiarch
       id: installer-multiarch
-      uses: duplocloud/actions/build-image@f48f61d9096cf5e49a2420c666c8316f3bbeede4 # v1.0.0
+      uses: duplocloud/actions/build-image@v1.0.0
       env:
         GIT_TAG: ${{ steps.info.outputs.GIT_TAG }}
       with:
@@ -109,21 +109,21 @@ jobs:
       run: ls dist
 
     - name: Single Artifact
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@v7
       if: matrix.os.multiarch == false && inputs.push
       with:
         name: ${{ steps.info.outputs.NAME }}-${{ matrix.os.arch }}
         path: dist
 
     - name: Amd Artifact
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@v7
       if: matrix.os.multiarch && inputs.push
       with:
         name: ${{ steps.info.outputs.NAME }}-amd64
         path: dist/${{ matrix.os.name }}_amd64
 
     - name: Arm Artifact
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@v7
       if: matrix.os.multiarch && inputs.push
       with:
         name: ${{ steps.info.outputs.NAME }}-arm64

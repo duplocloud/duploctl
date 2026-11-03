@@ -79,7 +79,7 @@ jobs:
 
   lifecycle:
     name: Lifecycle (${{ inputs.suite }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: ${{ inputs.environment }}
     env:
@@ -171,7 +171,7 @@ jobs:
 
     - name: Surface results
       if: steps.gate.outputs.enabled == 'true' && steps.suite.outputs.lifecycle == 'true' && always()
-      uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0
+      uses: pmeier/pytest-results-action@v0.9.0
       with:
         path: lifecycle-results.xml
         summary: true
@@ -182,7 +182,7 @@ jobs:
     name: ${{ matrix.name }} (${{ inputs.suite }})
     needs: lifecycle
     if: needs.lifecycle.outputs.enabled == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: ${{ inputs.environment }}
     env:
@@ -216,7 +216,7 @@ jobs:
 
     - name: Surface results
       if: always()
-      uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0
+      uses: pmeier/pytest-results-action@v0.9.0
       with:
         path: ${{ matrix.name }}-results.xml
         summary: true
@@ -227,7 +227,7 @@ jobs:
     name: Teardown (${{ inputs.suite }})
     needs: [lifecycle, resources]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: ${{ inputs.environment }}
     env:
@@ -274,7 +274,7 @@ jobs:
 
     - name: Surface results
       if: steps.gate.outputs.enabled == 'true' && always()
-      uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0
+      uses: pmeier/pytest-results-action@v0.9.0
       with:
         path: teardown-results.xml
         summary: true

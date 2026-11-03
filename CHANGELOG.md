@@ -68,7 +68,7 @@ and implementation detail belong in the PR, not here.
 ### Changed
 
 - Python 3.14 is supported and tested; every dependency is updated to latest, dropping the `pytest`, `mkdocstrings`, `mkdocstrings-python` and `pymdown-extensions` caps (docs templates ported to mkdocstrings-python 2).
-- CI: actions pinned to commit SHAs, least-privilege token permissions per job and for the GitHub App token, in-repo actions referenced with `$/`, and Dependabot now updates pip and GitHub Actions.
+- CI: actions on current release tags (no more `@main`), jobs on `ubuntu-26.04`, least-privilege token permissions per job and for the GitHub App token, in-repo actions referenced with `$/`, and Dependabot now updates pip and GitHub Actions.
 - CI runs on pull requests from a fork: the setup action falls back to the job token when the GitHub App secrets are unavailable, instead of every job failing before checkout.
 - Pinned ruff's lint `select` to the historical `E`/`F` default so ruff version bumps no longer silently change enforced rules; unpinned the ruff version.
 

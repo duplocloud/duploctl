@@ -14,7 +14,7 @@ permissions:
 jobs:
   unit_test:
     name: Unit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: write
@@ -41,7 +41,7 @@ jobs:
 
     - name: Pytest Summary Report
       if: always() && matrix.python-version == vars.PY_VERSION
-      uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0
+      uses: pmeier/pytest-results-action@v0.9.0
       with:
         path: dist/test-results.xml
         summary: true
@@ -54,7 +54,7 @@ jobs:
     - name: Pytest Coverage Report
       if: always() && matrix.python-version == vars.PY_VERSION
       continue-on-error: true
-      uses: orgoro/coverage@ca0c362dc1a4f100447309405e6dfea47e251495 # v3.3.1
+      uses: orgoro/coverage@v3.3.1
       with:
         coverageFile: dist/coverage.xml
         token: ${{ github.token }}
