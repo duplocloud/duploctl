@@ -1,22 +1,24 @@
 name: Quality
 
-# The scanners: what they find is a code scanning alert, not a step failure.
-# Each uploads to Security → Code scanning, and GitHub posts new findings on
-# the pull request as that tool's own check and as line comments.
+# The scanners and audits. They report and never fail on a finding: results
+# go to Security → Code scanning, annotations and the job summary, so none of
+# these is a required check. New advisories and queries land on code that has
+# not changed, and a merge should not wait on them; the hard failures (tests,
+# builds, lint.yml) are what gate.
 #
 #   CodeQL          Python source and the workflows themselves
 #   Workflow Audit  zizmor over .github: CI supply chain and token hygiene
 #   Image Scan      Grype over the runner image: base OS plus Python packages
+#   Audit           pip-audit, dependency review, TruffleHog secret scan
 #   Scorecard       OpenSSF repo posture (branch protection, review, ...)
 #
 # On its own triggers rather than called by pull_request.yml: code scanning
 # names an analysis by its workflow file and job, so main's and a pull
-# request's must come from this same file to be compared. The pass/fail gates
-# are lint.yml.
+# request's must come from this same file to be compared.
 #
-# A pull request from a fork gets a read-only token and cannot upload SARIF,
-# so there zizmor fails on a finding instead, and the CodeQL and Grype
-# uploads are skipped.
+# A pull request from a fork gets a read-only token and cannot upload SARIF:
+# CodeQL and the Grype upload are skipped there, and zizmor prints its
+# findings as annotations instead.
 
 on:
   pull_request:
@@ -71,6 +73,10 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    env:
+      FORK: >-
+        ${{ github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name != github.repository }}
     steps:
 
     - name: Checkout Code
@@ -78,16 +84,19 @@ jobs:
       with:
         persist-credentials: false
 
+    # Advanced Security mode uploads SARIF and never fails on a finding. A
+    # fork cannot upload, so there it annotates instead, and that mode exits
+    # non-zero on a finding, which continue-on-error absorbs.
     - name: Run zizmor
       uses: zizmorcore/zizmor-action@v0.8.1
+      continue-on-error: ${{ env.FORK == 'true' }}
       with:
         # renovate: datasource=github-releases depName=zizmorcore/zizmor extractVersion=^v(?<version>.+)$
         version: 1.32.0
         config: .github/zizmor.yml
         min-severity: low
-        advanced-security: >-
-          ${{ github.event_name != 'pull_request' ||
-          github.event.pull_request.head.repo.full_name == github.repository }}
+        advanced-security: ${{ env.FORK != 'true' }}
+        annotations: ${{ env.FORK == 'true' }}
 
   image:
     name: Image Scan
@@ -122,6 +131,52 @@ jobs:
       with:
         sarif_file: ${{ steps.grype.outputs.sarif }}
         category: grype-image
+
+  # Known advisories in what ships and what a pull request adds, and leaked
+  # credentials in the pushed or proposed commits (the whole history on a
+  # schedule). Each reports to the job summary and annotations.
+  audit:
+    name: Audit
+    runs-on: ubuntu-26.04
+    steps:
+
+    # full history for TruffleHog's commit range
+    - name: Setup
+      uses: $/.github/actions/setup
+      with:
+        fetch-depth: 0
+        install: "--editable .[sdk] --editable plugins/aws/"
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+
+    # the sdk extra and the aws plugin ship inside the installer binary and
+    # the image, so their dependencies are audited along with the core
+    - name: Freeze Requirements
+      run: pip freeze --exclude-editable > requirements.txt
+
+    - name: Pip Audit
+      uses: pypa/gh-action-pip-audit@v1.1.0
+      with:
+        inputs: requirements.txt
+        summary: true
+        internal-be-careful-allow-failure: true
+
+    - name: Dependency Review
+      if: github.event_name == 'pull_request'
+      uses: actions/dependency-review-action@v5.0.0
+      with:
+        fail-on-severity: moderate
+        warn-only: true
+
+    # verified and unknown (could not be checked) credentials, annotated on
+    # the commit; the action always passes --fail, so continue-on-error
+    - name: Secret Scan
+      uses: trufflesecurity/trufflehog@v3.99.8
+      continue-on-error: true
+      with:
+        # renovate: datasource=github-releases depName=trufflesecurity/trufflehog extractVersion=^v(?<version>.+)$
+        version: 3.99.8
+        extra_args: --results=verified,unknown
 
   # Grades how the repository is run rather than its code. Results are
   # published to the public Scorecard API (the badge), which only accepts runs
