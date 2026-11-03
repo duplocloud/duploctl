@@ -171,7 +171,9 @@ def gen_resource_page(endpoint: str):
   regular_methods = sorted(m for m in own if m not in cmd_map)
 
   member_opts = "    options:\n      heading_level: 3\n      show_root_heading: true\n      show_root_full_path: false"
-  command_opts = member_opts + "\n      is_command: true"
+  # custom template options must nest under `extra`; mkdocstrings-python
+  # drops unknown top-level option keys
+  command_opts = member_opts + "\n      extra:\n        is_command: true"
 
   with open(fp, 'w') as f:
     f.write(f"---\nkind: {kind}\ncommand: {resource_name}\n---\n")
@@ -182,7 +184,7 @@ def gen_resource_page(endpoint: str):
         mref = _method_ref(cls, m)
         if mref:
           model = cmd_map[m].get("model")
-          model_opt = f"\n      command_model: {model}" if model else ""
+          model_opt = f"\n        command_model: {model}" if model else ""
           f.write(f"::: {mref}\n{command_opts}{model_opt}\n\n")
     if regular_methods:
       f.write("## Methods\n\n")
