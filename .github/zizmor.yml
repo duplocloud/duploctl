@@ -1,0 +1,8 @@
+# zizmor: static analysis for GitHub Actions, run by the Quality workflow.
+# https://docs.zizmor.sh/configuration/
+rules:
+  # every action, first-party GitHub ones included, is pinned to a commit SHA
+  unpinned-uses:
+    config:
+      policies:
+        "*": hash-pin

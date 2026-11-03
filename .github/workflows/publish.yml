@@ -38,22 +38,38 @@ on:
         default: qa-helpdesk
         type: environment
 
+# Called workflows are capped at the permissions their calling job grants,
+# so every job below grants exactly what its workflow needs.
+permissions:
+  contents: read
+
 jobs:
 
   quality:
     name: Test
-    uses: ./.github/workflows/quality.yml
-    secrets: inherit
+    uses: $/.github/workflows/quality.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
 
   unit_test:
     name: Test
-    uses: ./.github/workflows/test_unit.yml
-    secrets: inherit
+    uses: $/.github/workflows/test_unit.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
 
+  # The integration, package, and image workflows read secrets scoped to a
+  # deployment environment, which a caller cannot pass explicitly.
   integration_aws:
     name: Integration Tests
-    uses: ./.github/workflows/test_integration.yml
-    secrets: inherit
+    uses: $/.github/workflows/test_integration.yml
+    secrets: inherit # zizmor: ignore[secrets-inherit]
     with:
       environment: ${{ inputs.e2e_environment }}
       enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
@@ -62,8 +78,8 @@ jobs:
 
   integration_k8s:
     name: Integration Tests
-    uses: ./.github/workflows/test_integration.yml
-    secrets: inherit
+    uses: $/.github/workflows/test_integration.yml
+    secrets: inherit # zizmor: ignore[secrets-inherit]
     with:
       environment: ${{ inputs.e2e_environment }}
       enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
@@ -72,8 +88,8 @@ jobs:
 
   integration_ecs:
     name: Integration Tests
-    uses: ./.github/workflows/test_integration.yml
-    secrets: inherit
+    uses: $/.github/workflows/test_integration.yml
+    secrets: inherit # zizmor: ignore[secrets-inherit]
     with:
       environment: ${{ inputs.e2e_environment }}
       enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
@@ -82,8 +98,8 @@ jobs:
 
   integration_helpdesk:
     name: Integration Tests
-    uses: ./.github/workflows/test_integration.yml
-    secrets: inherit
+    uses: $/.github/workflows/test_integration.yml
+    secrets: inherit # zizmor: ignore[secrets-inherit]
     with:
       environment: ${{ inputs.e2e_helpdesk_environment }}
       enabled: ${{ inputs.run_e2e && 'true' || 'false' }}
@@ -91,8 +107,9 @@ jobs:
 
   version:
     name: Version
-    uses: ./.github/workflows/version.yml
-    secrets: inherit
+    uses: $/.github/workflows/version.yml
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
     needs:
     - quality
     - unit_test
@@ -106,8 +123,8 @@ jobs:
 
   package:
     name: Publish
-    uses: ./.github/workflows/package.yml
-    secrets: inherit
+    uses: $/.github/workflows/package.yml
+    secrets: inherit # zizmor: ignore[secrets-inherit]
     needs: 
     - version
     with:
@@ -116,8 +133,8 @@ jobs:
 
   image:
     name: Publish
-    uses: ./.github/workflows/image.yml
-    secrets: inherit
+    uses: $/.github/workflows/image.yml
+    secrets: inherit # zizmor: ignore[secrets-inherit]
     needs: 
     - version
     with:
@@ -126,8 +143,9 @@ jobs:
 
   installer:
     name: Publish
-    uses: ./.github/workflows/installer.yml
-    secrets: inherit
+    uses: $/.github/workflows/installer.yml
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
     needs: 
     - version
     with:
@@ -136,8 +154,13 @@ jobs:
 
   docs:
     name: Docs
-    uses: ./.github/workflows/docs.yml
-    secrets: inherit
+    uses: $/.github/workflows/docs.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
     needs: 
     - version
     with:
@@ -146,8 +169,12 @@ jobs:
   
   release:
     name: Release
-    uses: ./.github/workflows/release.yml
-    secrets: inherit
+    uses: $/.github/workflows/release.yml
+    permissions:
+      contents: write
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     needs: 
     - version
     - package
@@ -160,8 +187,9 @@ jobs:
 
   homebrew:
     name: Release
-    uses: ./.github/workflows/homebrew.yml
-    secrets: inherit
+    uses: $/.github/workflows/homebrew.yml
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
     needs: 
     - version
     - release

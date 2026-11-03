@@ -1,10 +1,14 @@
 name: Quality
 
 on:
-  push: 
+  push:
     branches:
     - main
-  workflow_dispatch: 
+  # New advisories are published against code that has not changed, so the
+  # dependency, workflow, secret, and image scans also run weekly.
+  schedule:
+  - cron: "17 6 * * 1"
+  workflow_dispatch:
     inputs:
       push:
         description: Save the lock file?
@@ -18,7 +22,7 @@ on:
         description: Perform code scan?
         default: true
         type: boolean
-  workflow_call: 
+  workflow_call:
     inputs:
       push:
         description: Save the lock file?
@@ -33,27 +37,27 @@ on:
         default: true
         type: boolean
     secrets:
-      PYPI_API_TOKEN:
-        description: PyPi token
-        required: false
       GH_APP_KEY:
         description: GitHub App private key. Absent on pull requests from a fork.
         required: false
+
+permissions:
+  contents: read
 
 jobs:
   quality:
     name: Quality
     runs-on: ubuntu-latest
-    permissions:
-      security-events: write
     steps:
 
+    # the sdk extra and the aws plugin ship inside the installer binary and
+    # the image, so their dependencies are audited along with the core
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         ref: ${{ inputs.tag }}
-        install: "--editable ."
+        install: "--editable .[sdk] --editable plugins/aws/"
         app-id: ${{ vars.GH_APP_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
@@ -64,44 +68,154 @@ jobs:
       run: pip install .[test]
 
     - name: Pip Audit
-      uses: pypa/gh-action-pip-audit@v1.1.0
+      uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
       with:
         inputs: requirements.txt
-    
-    # do linting
-    # stop the build if there are Python syntax errors or undefined names
-    # ruff --format=github --select=E9,F63,F7,F82 --target-version=py37 .
+
+    # ruff's S rules (flake8-bandit) are the Python security lint
     - name: Lint with ruff
-      run: ruff check ./src
+      run: ruff check ./src ./plugins
 
-    # Now do codequality checks with CodeQL
-    - name: Initialize CodeQL
-      # if codescan is true or it is the default branch
-      if: inputs.codescan || github.ref == 'refs/heads/main'
-      uses: github/codeql-action/init@v4
-      with:
-        languages: python
-        build-mode: none
-        # token: ${{ steps.setup.outputs.token }}
-
-    - name: Perform CodeQL Analysis
-      id: analysis
-      if: inputs.codescan || github.ref == 'refs/heads/main'
-      uses: github/codeql-action/analyze@v4
-      with:
-        category: "/language:python"
-        # token: ${{ steps.setup.outputs.token }}
-    
     - name: Save Lock File
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       if: inputs.push
       with:
         name: requirements.lock
         path: requirements.txt
 
-    - name: Save Sarif File
-      if: inputs.push && (inputs.codescan || github.ref == 'refs/heads/main')
-      uses: actions/upload-artifact@v7
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    # if codescan is true or it is the default branch
+    if: inputs.codescan || github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # actions analyzes the workflows and composite actions themselves
+        language: [python, actions]
+    steps:
+
+    - name: Setup
+      uses: $/.github/actions/setup
       with:
-        name: sarif
+        ref: ${{ inputs.tag }}
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: none
+        queries: security-extended
+
+    - name: Perform CodeQL Analysis
+      id: analysis
+      uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+      with:
+        category: "/language:${{ matrix.language }}"
+
+    - name: Save Sarif File
+      if: inputs.push
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: sarif-${{ matrix.language }}
         path: ${{ steps.analysis.outputs.sarif-output }}
+
+  # Static analysis of the GitHub Actions workflows: template injection,
+  # unpinned actions, excessive permissions, credential leaks. Pull requests
+  # are gated on findings directly (a fork cannot upload SARIF); everything
+  # else reports to code scanning.
+  workflows:
+    name: Workflow Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+
+    - name: Setup
+      uses: $/.github/actions/setup
+      with:
+        ref: ${{ inputs.tag }}
+
+    - name: Run zizmor
+      uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+      with:
+        version: 1.32.0
+        config: .github/zizmor.yml
+        min-severity: low
+        advanced-security: ${{ github.event_name != 'pull_request' }}
+        annotations: ${{ github.event_name == 'pull_request' }}
+
+  # Verified and unverified credentials in the commits being pushed or
+  # proposed. Scheduled and manual runs scan the full history.
+  secrets:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Setup
+      uses: $/.github/actions/setup
+      with:
+        ref: ${{ inputs.tag }}
+        fetch-depth: 0
+
+    - name: Run TruffleHog
+      uses: trufflesecurity/trufflehog@ea68ca03c865c5f324e86e849ced20ed3cf9dbbb # v3.99.8
+      with:
+        version: 3.99.8
+        extra_args: --results=verified,unknown
+
+  # Grype over the published runner image: OS packages from the base image
+  # plus every Python package installed into it. Fails on critical issues
+  # that have a fix; the full report goes to code scanning.
+  image:
+    name: Image Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+
+    - name: Setup
+      uses: $/.github/actions/setup
+      with:
+        ref: ${{ inputs.tag }}
+
+    - name: Build Runner Image
+      run: docker build --target runner --tag duploctl:scan .
+
+    - name: Run Grype
+      id: grype
+      uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+      with:
+        image: duploctl:scan
+        only-fixed: true
+        severity-cutoff: critical
+        output-format: sarif
+
+    - name: Upload Grype Report
+      if: >-
+        always() && steps.grype.outputs.sarif != '' &&
+        (github.event_name != 'pull_request' ||
+        github.event.pull_request.head.repo.full_name == github.repository)
+      uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+      with:
+        sarif_file: ${{ steps.grype.outputs.sarif }}
+        category: grype-image
+
+  # Blocks pull requests that add a dependency or action version with a known
+  # advisory of moderate severity or higher.
+  dependency_review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+
+    - name: Dependency Review
+      uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      with:
+        fail-on-severity: moderate

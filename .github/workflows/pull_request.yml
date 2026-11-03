@@ -5,36 +5,48 @@ on:
     branches:
     - main
 permissions:
-  issues: write
-  pull-requests: write
-  security-events: write
-jobs: 
+  contents: read
+jobs:
 
   prerequisites:
     name: Prerequisites
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-    - name: Auto Assign 
-      uses: kentaro-m/auto-assign-action@v2.0.1
+    - name: Auto Assign
+      uses: kentaro-m/auto-assign-action@0a2c53d3721e4c5cfcce6afd4014aecc337979f6 # v2.0.2
       with:
         configuration-path: .github/assign.yml
     - name: Make sure Changleog is updated
-      uses: tarides/changelog-check-action@v3
+      uses: tarides/changelog-check-action@8f47e0becbfa549e4c82a3f562aa6f90d2c2ee8c # v4
       with:
         changelog: CHANGELOG.md
 
+  # Code scanning results cannot be uploaded from a fork's read-only token,
+  # so CodeQL runs on pull requests from branches of this repository.
   quality:
     name: Test
-    uses: ./.github/workflows/quality.yml
-    secrets: inherit
+    uses: $/.github/workflows/quality.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
     with:
       push: false
-      codescan: false
+      codescan: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
 
   unit_test:
     name: Test
-    uses: ./.github/workflows/test_unit.yml
-    secrets: inherit
+    uses: $/.github/workflows/test_unit.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
 
   docs_check:
     name: Documentation Check
@@ -42,7 +54,7 @@ jobs:
     steps:
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         ref: ${{ github.ref }}
         fetch-depth: 0

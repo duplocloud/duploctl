@@ -27,6 +27,12 @@ inputs:
     description: The repositories to get tokens for.
     required: false
     default: duploctl
+  contents:
+    description: >-
+      The contents permission (read or write) the GitHub App token is minted
+      with. Only the steps that commit or release through the API need write.
+    required: false
+    default: read
   submodules:
     description: Whether to fetch submodules
     required: false
@@ -43,26 +49,34 @@ runs:
   # the App token cannot be minted. The repo and its wiki submodule are both
   # public, so the default job token is enough to check out and build; it is
   # only short of the cross-repo access the App grants.
+  #
+  # Naming a permission limits the token to it, instead of inheriting every
+  # permission the App installation was granted.
   - name: Create GitHub App Token
-    uses: actions/create-github-app-token@v2
+    uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
     id: app-token
     if: inputs.app-id != '' && inputs.private-key != ''
     with:
       app-id: ${{ inputs.app-id }}
       private-key: ${{ inputs.private-key }}
       repositories: ${{ inputs.repositories }}
+      permission-contents: ${{ inputs.contents }}
 
+  # Credentials are not left in .git/config: nothing pushes with git (the
+  # release scripts use the REST API with an explicit token), and the image
+  # build copies .git into a cached build stage.
   - name: Checkout Code
-    uses: actions/checkout@v6
+    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with:
       ref: ${{ inputs.ref }}
       fetch-depth: ${{ inputs.fetch-depth }}
       fetch-tags: ${{ inputs.fetch-tags }}
       token: ${{ steps.app-token.outputs.token || github.token }}
       submodules: ${{ inputs.submodules }}
+      persist-credentials: false
 
   - name: Set up Python ${{ inputs.python-version }}
-    uses: actions/setup-python@v6
+    uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
     if: inputs.install
     with:
       python-version: ${{ inputs.python-version }}
@@ -71,4 +85,9 @@ runs:
   - name: Install Dependencies
     if: inputs.install
     shell: bash
-    run: pip install ${{ inputs.install }}
+    env:
+      INSTALL: ${{ inputs.install }}
+    # split into pip arguments without glob expansion of extras like .[aws]
+    run: |
+      read -ra args <<< "$INSTALL"
+      pip install "${args[@]}"

@@ -8,18 +8,24 @@ on:
         description: GitHub App private key. Absent on pull requests from a fork.
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   unit_test:
     name: Unit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
 
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         install: ".[build,test,sdk] plugins/aws/"
         python-version: ${{ matrix.python-version }}
@@ -35,7 +41,7 @@ jobs:
 
     - name: Pytest Summary Report
       if: always() && matrix.python-version == vars.PY_VERSION
-      uses: pmeier/pytest-results-action@main
+      uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0
       with:
         path: dist/test-results.xml
         summary: true
@@ -43,11 +49,12 @@ jobs:
         fail-on-empty: true
 
     # a pull request from a fork runs with a read-only token, so the comment
-    # this posts is not permitted there and must not fail the test job
+    # this posts is not permitted there and must not fail the test job.
+    # The job token posts it; the App token is minted read-only.
     - name: Pytest Coverage Report
       if: always() && matrix.python-version == vars.PY_VERSION
       continue-on-error: true
-      uses: orgoro/coverage@v3.2
+      uses: orgoro/coverage@ca0c362dc1a4f100447309405e6dfea47e251495 # v3.3.1
       with:
         coverageFile: dist/coverage.xml
-        token: ${{ steps.setup.outputs.token }}
+        token: ${{ github.token }}

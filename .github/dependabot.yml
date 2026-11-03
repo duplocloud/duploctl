@@ -1,12 +1,48 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for more information:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-# https://containers.dev/guide/dependabot
+# Dependabot version updates. Security updates are enabled in the repository
+# settings and are not subject to the cooldown below.
+# https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# The cooldown holds back brand-new releases for a few days, which is the
+# window in which hijacked or malicious package and action versions are
+# usually caught and yanked.
 
 version: 2
 updates:
- - package-ecosystem: "devcontainers"
-   directory: "/"
-   schedule:
-     interval: weekly
+
+# Floors in pyproject.toml are only raised when a release requires it; the
+# ranges are open, so CI and fresh installs already resolve the latest.
+- package-ecosystem: pip
+  directories:
+  - /
+  - /plugins/aws
+  schedule:
+    interval: weekly
+  versioning-strategy: increase-if-necessary
+  cooldown:
+    default-days: 7
+  groups:
+    python:
+      patterns:
+      - "*"
+
+# Actions are pinned to commit SHAs; Dependabot moves the SHA and the
+# version comment together.
+- package-ecosystem: github-actions
+  directories:
+  - /
+  - /.github/actions/*
+  schedule:
+    interval: weekly
+  cooldown:
+    default-days: 7
+  groups:
+    actions:
+      patterns:
+      - "*"
+
+- package-ecosystem: devcontainers
+  directory: /
+  schedule:
+    interval: weekly
+  cooldown:
+    default-days: 7

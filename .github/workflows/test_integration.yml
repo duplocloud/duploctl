@@ -34,10 +34,10 @@ on:
         default: "3.13"
         type: choice
         options:
-        - "3.10"
         - "3.11"
         - "3.12"
         - "3.13"
+        - "3.14"
   workflow_call:
     inputs:
       environment:
@@ -71,6 +71,9 @@ on:
       GH_APP_KEY:
         description: GitHub App private key for checkout
         required: true
+
+permissions:
+  contents: read
 
 jobs:
 
@@ -106,7 +109,7 @@ jobs:
 
     - name: Setup
       if: steps.gate.outputs.enabled == 'true'
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
@@ -127,9 +130,11 @@ jobs:
       if: steps.gate.outputs.enabled == 'true'
       id: suite
       shell: python
+      env:
+        SUITE: ${{ inputs.suite }}
       run: |
         import yaml, json, os
-        data = yaml.safe_load(open('src/tests/suites/${{ inputs.suite }}.yaml'))
+        data = yaml.safe_load(open(f"src/tests/suites/{os.environ['SUITE']}.yaml"))
         matrix = json.dumps(data['jobs'])
         infra_type = data.get('infra_type', 'duplo')
         # suites like helpdesk need no infra/tenant lifecycle
@@ -166,7 +171,7 @@ jobs:
 
     - name: Surface results
       if: steps.gate.outputs.enabled == 'true' && steps.suite.outputs.lifecycle == 'true' && always()
-      uses: pmeier/pytest-results-action@main
+      uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0
       with:
         path: lifecycle-results.xml
         summary: true
@@ -190,7 +195,7 @@ jobs:
     steps:
 
     - name: Setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
@@ -211,7 +216,7 @@ jobs:
 
     - name: Surface results
       if: always()
-      uses: pmeier/pytest-results-action@main
+      uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0
       with:
         path: ${{ matrix.name }}-results.xml
         summary: true
@@ -247,7 +252,7 @@ jobs:
 
     - name: Setup
       if: steps.gate.outputs.enabled == 'true'
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
@@ -269,7 +274,7 @@ jobs:
 
     - name: Surface results
       if: steps.gate.outputs.enabled == 'true' && always()
-      uses: pmeier/pytest-results-action@main
+      uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0
       with:
         path: teardown-results.xml
         summary: true
