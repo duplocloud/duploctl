@@ -9,11 +9,13 @@ rules:
   # zizmor's blanket policy wants every `uses:` pinned to a commit hash. This
   # repo pins to release tags instead: a floating major (`@v7`) where the
   # publisher keeps one current, so patches arrive on their own, and an exact
-  # release (`@v1.1.0`) where it does not. Dependabot moves those weekly
-  # (.github/dependabot.yml), and `v7.0.0 → v7.0.1` in its PR says what changed
-  # where a hash bump says nothing. `ref-pin` still requires every `uses:` to
-  # name a ref.
+  # release (`@v1.1.0`) where it does not. Renovate offers new ones on the
+  # Dependency Dashboard (.github/actions/renovate), and `v7.0.0 → v7.0.1`
+  # says what changed where a hash bump says nothing. `ref-pin` still
+  # requires every `uses:` to name a ref.
   unpinned-uses:
     config:
       policies:
+        # first-party, maintained alongside this repo and used at @main
+        duplocloud/*: ref-pin
         "*": ref-pin

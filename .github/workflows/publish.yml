@@ -45,13 +45,11 @@ permissions:
 
 jobs:
 
-  quality:
+  lint:
     name: Test
-    uses: $/.github/workflows/quality.yml
+    uses: $/.github/workflows/lint.yml
     permissions:
       contents: read
-      actions: read
-      security-events: write
     secrets:
       GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
 
@@ -111,7 +109,7 @@ jobs:
     secrets:
       GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
     needs:
-    - quality
+    - lint
     - unit_test
     - integration_aws
     - integration_k8s

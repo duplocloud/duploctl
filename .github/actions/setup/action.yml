@@ -16,6 +16,7 @@ inputs:
   python-version:
     description: The python version to use
     required: false
+    # renovate: datasource=docker depName=python
     default: "3.13"
   app-id:
     description: The GitHub App ID. Omitted on pull requests from a fork, where secrets are not available.

@@ -1,0 +1,113 @@
+name: Lint
+
+# The gates: each step fails the run on a finding. One runner, one checkout,
+# so a red step names what is wrong without paying for a job per tool.
+#
+#   Pip Audit          known advisories in what ships (core, sdk, aws plugin)
+#   Ruff               style plus the bandit (S) security rules
+#   Dockerfile Lint    hadolint, rule exclusions in .hadolint.yaml
+#   Secret Scan        TruffleHog over the pushed or proposed commits
+#   Dependency Review  pull requests that add a vulnerable dependency
+#
+# pull_request.yml and publish.yml call this. The scanners, whose findings go
+# to code scanning as alerts, are quality.yml.
+
+on:
+  push:
+    branches:
+    - main
+  # new advisories land against code that has not changed
+  schedule:
+  - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Save the lock file?
+        default: false
+        type: boolean
+      tag:
+        description: Tag to lint
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      push:
+        description: Save the lock file?
+        default: true
+        type: boolean
+      tag:
+        description: Tag to lint
+        required: false
+        type: string
+    secrets:
+      GH_APP_KEY:
+        description: GitHub App private key. Absent on pull requests from a fork.
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-26.04
+    steps:
+
+    # full history: TruffleHog walks the commit range, and setuptools_scm
+    # reads the version from tags
+    - name: Setup
+      uses: $/.github/actions/setup
+      with:
+        ref: ${{ inputs.tag }}
+        fetch-depth: 0
+        install: "--editable .[sdk] --editable plugins/aws/"
+        app-id: ${{ vars.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+
+    # the sdk extra and the aws plugin ship inside the installer binary and
+    # the image, so their dependencies are audited along with the core; the
+    # test extra is installed after the freeze, it never reaches a user
+    - name: Freeze Requirements
+      run: pip freeze --exclude-editable > requirements.txt
+
+    - name: Pip Audit
+      uses: pypa/gh-action-pip-audit@v1.1.0
+      with:
+        inputs: requirements.txt
+        summary: true
+
+    - name: Install Test Dependencies
+      run: pip install .[test]
+
+    - name: Ruff
+      run: ruff check ./src ./plugins
+
+    - name: Dockerfile Lint
+      uses: hadolint/hadolint-action@v3.5.0
+      with:
+        dockerfile: Dockerfile
+        # the action passes its own threshold (default info), which overrides
+        # the one in .hadolint.yaml
+        failure-threshold: warning
+
+    # verified and unknown (could not be checked) credentials; a push scans
+    # its commits, a pull request its own, anything else the whole history
+    - name: Secret Scan
+      uses: trufflesecurity/trufflehog@v3.99.8
+      with:
+        # renovate: datasource=github-releases depName=trufflesecurity/trufflehog extractVersion=^v(?<version>.+)$
+        version: 3.99.8
+        extra_args: --results=verified,unknown
+
+    - name: Dependency Review
+      if: github.event_name == 'pull_request'
+      uses: actions/dependency-review-action@v5.0.0
+      with:
+        fail-on-severity: moderate
+
+    - name: Save Lock File
+      uses: actions/upload-artifact@v7
+      if: inputs.push
+      with:
+        name: requirements.lock
+        path: requirements.txt

@@ -24,20 +24,16 @@ jobs:
       with:
         changelog: CHANGELOG.md
 
-  # Code scanning results cannot be uploaded from a fork's read-only token,
-  # so CodeQL runs on pull requests from branches of this repository.
-  quality:
+  # The scanners (quality.yml) run on their own pull_request trigger.
+  lint:
     name: Test
-    uses: $/.github/workflows/quality.yml
+    uses: $/.github/workflows/lint.yml
     permissions:
       contents: read
-      actions: read
-      security-events: write
     secrets:
       GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
     with:
       push: false
-      codescan: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
 
   unit_test:
     name: Test

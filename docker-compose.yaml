@@ -6,6 +6,7 @@ services:
     build:
       target: runner
       args:
+        # renovate: datasource=docker depName=python
         PY_VERSION: ${PY_VERSION:-3.13}
       tags:
       - duplocloud/duploctl:latest
@@ -30,6 +31,7 @@ services:
     build:
       target: bin
       args:
+        # renovate: datasource=docker depName=python
         PY_VERSION: ${PY_VERSION:-3.13}
       x-bake:
         platforms:

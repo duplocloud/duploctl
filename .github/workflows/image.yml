@@ -52,6 +52,7 @@ jobs:
       name: dockerhub
       url: https://hub.docker.com/r/duplocloud/duploctl
     env:
+      # renovate: datasource=docker depName=python
       PY_VERSION: "3.13"
     steps:
 
@@ -71,7 +72,7 @@ jobs:
 
     - name: Build and Push Docker Image
       id: build_image
-      uses: duplocloud/actions/build-image@v1.0.0
+      uses: duplocloud/actions/build-image@main
       env:
         GIT_TAG: ${{ env.GIT_TAG }}
       with:

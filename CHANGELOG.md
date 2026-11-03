@@ -68,7 +68,8 @@ and implementation detail belong in the PR, not here.
 ### Changed
 
 - Python 3.14 is supported and tested; every dependency is updated to latest, dropping the `pytest`, `mkdocstrings`, `mkdocstrings-python` and `pymdown-extensions` caps (docs templates ported to mkdocstrings-python 2).
-- CI: actions on current release tags (no more `@main`), jobs on `ubuntu-26.04`, least-privilege token permissions per job and for the GitHub App token, in-repo actions referenced with `$/`, and Dependabot now updates pip and GitHub Actions.
+- CI: third-party actions on release tags, jobs on `ubuntu-26.04`, least-privilege token permissions per job and for the GitHub App token, and in-repo actions referenced with `$/`.
+- Renovate replaces Dependabot version updates: new versions of Python dependencies, actions, runner images, base images, the devcontainer and tool versions are listed on a Dependency Dashboard issue, with a PR on request (vulnerability fixes open one directly).
 - CI runs on pull requests from a fork: the setup action falls back to the job token when the GitHub App secrets are unavailable, instead of every job failing before checkout.
 - Pinned ruff's lint `select` to the historical `E`/`F` default so ruff version bumps no longer silently change enforced rules; unpinned the ruff version.
 
@@ -76,7 +77,7 @@ and implementation detail belong in the PR, not here.
 
 - Raised dependency floors past known CVEs: `requests>=2.33.0`, `urllib3>=2.8.0`, `certifi>=2026.10.18`, `pyjwt>=2.15.0`, and in the extras `GitPython>=3.2.1`, `mkdocs-material>=9.7.7`, `pymdown-extensions>=12.2`.
 - `-f`/`--cli-input` body files are parsed with `yaml.safe_load`, so YAML Python object tags are rejected instead of constructed.
-- Security scanning: the Quality workflow adds zizmor (workflow audit), CodeQL for GitHub Actions with `security-extended` queries (now also on same-repo pull requests), TruffleHog secret scan, Grype image scan, dependency review, ruff's bandit (`S`) rules, and a weekly schedule; new OpenSSF Scorecard workflow.
+- Security scanning: the Quality workflow now holds the code scanners, on pull requests, main and weekly (CodeQL for Python and GitHub Actions with `security-extended` queries, zizmor, a Grype image scan, and OpenSSF Scorecard on main); a new Lint workflow gates on pip-audit, ruff's bandit (`S`) rules, hadolint, TruffleHog and dependency review.
 - Workflow inputs are no longer interpolated into shell scripts, release notes reach the release by file instead of `GITHUB_ENV`, and checkout no longer persists credentials into `.git`.
 
 ## [0.4.5] - 2026-07-20
