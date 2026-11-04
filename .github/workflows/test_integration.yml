@@ -31,13 +31,14 @@ on:
       python_version:
         required: false
         description: Python version
-        default: "3.13"
+        default: "3.15"
         type: choice
         options:
         - "3.11"
         - "3.12"
         - "3.13"
         - "3.14"
+        - "3.15"
   workflow_call:
     inputs:
       environment:
@@ -63,7 +64,7 @@ on:
       python_version:
         required: false
         type: string
-        default: "3.13"
+        default: "3.15"
     secrets:
       DUPLO_TOKEN:
         description: DuploCloud API token
@@ -113,7 +114,7 @@ jobs:
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Set owned flag
@@ -126,6 +127,7 @@ jobs:
         if [ -z "$INFRA" ] && [ -z "$TENANT" ]; then OWNED=true; else OWNED=false; fi
         echo "owned=$OWNED" >> $GITHUB_OUTPUT
 
+    # a suite may set lifecycle: false (helpdesk needs no infra/tenant lifecycle)
     - name: Load suite matrix
       if: steps.gate.outputs.enabled == 'true'
       id: suite
@@ -137,7 +139,6 @@ jobs:
         data = yaml.safe_load(open(f"src/tests/suites/{os.environ['SUITE']}.yaml"))
         matrix = json.dumps(data['jobs'])
         infra_type = data.get('infra_type', 'duplo')
-        # suites like helpdesk need no infra/tenant lifecycle
         lifecycle = str(data.get('lifecycle', True)).lower()
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             f.write(f"matrix={matrix}\n")
@@ -199,7 +200,7 @@ jobs:
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Run ${{ matrix.name }} tests
@@ -256,7 +257,7 @@ jobs:
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Run teardown

@@ -44,7 +44,7 @@ jobs:
         ref: ${{ inputs.tag }}
         fetch-depth: 0
         install: ".[build,docs,sdk]"
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         submodules: "true"
 

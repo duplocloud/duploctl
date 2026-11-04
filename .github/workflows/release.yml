@@ -40,6 +40,7 @@ permissions:
 
 jobs:
   releaser:
+    name: Releaser
     runs-on: ubuntu-26.04
     permissions:
       # creates the GitHub release and uploads its assets

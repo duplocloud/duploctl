@@ -67,8 +67,8 @@ and implementation detail belong in the PR, not here.
 
 ### Changed
 
-- Python 3.14 is supported and tested; every dependency is updated to latest, dropping the `pytest`, `mkdocstrings`, `mkdocstrings-python` and `pymdown-extensions` caps (docs templates ported to mkdocstrings-python 2).
-- CI: third-party actions on release tags, jobs on `ubuntu-26.04`, least-privilege token permissions per job and for the GitHub App token, and in-repo actions referenced with `$/`.
+- Python 3.14 and 3.15 are supported and tested, and 3.15 is the default for the image and CI; every dependency is updated to latest, dropping the `pytest`, `mkdocstrings`, `mkdocstrings-python` and `pymdown-extensions` caps (docs templates ported to mkdocstrings-python 2).
+- CI: third-party actions on release tags, jobs on `ubuntu-26.04`, least-privilege token permissions per job and for the GitHub App token (now minted from its client ID), and in-repo actions referenced with `$/`; workflow conventions documented in `.github/instructions/github-workflows.instructions.md`.
 - Renovate replaces Dependabot version updates: new versions of Python dependencies, actions, runner images, base images, the devcontainer and tool versions are listed on a Dependency Dashboard issue, with a PR on request (vulnerability fixes open one directly).
 - CI runs on pull requests from a fork: the setup action falls back to the job token when the GitHub App secrets are unavailable, instead of every job failing before checkout.
 - Pinned ruff's lint `select` to the historical `E`/`F` default so ruff version bumps no longer silently change enforced rules; unpinned the ruff version.

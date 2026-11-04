@@ -53,7 +53,7 @@ jobs:
       with:
         ref: ${{ inputs.tag }}
         install: "--editable .[sdk] --editable plugins/aws/"
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     # what ships in the binary and the image, saved with a release

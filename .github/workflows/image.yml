@@ -53,7 +53,7 @@ jobs:
       url: https://hub.docker.com/r/duplocloud/duploctl
     env:
       # renovate: datasource=docker depName=python
-      PY_VERSION: "3.13"
+      PY_VERSION: "3.15"
     steps:
 
     - name: Setup
@@ -61,20 +61,21 @@ jobs:
       uses: $/.github/actions/setup
       with:
         ref: ${{ inputs.tag }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         python-version: ${{ env.PY_VERSION }}
 
     - name: Sanitize tag
-      run: echo "GIT_TAG=${TAG//\//-}" >> $GITHUB_ENV
+      id: sanitize
       env:
         TAG: ${{ inputs.tag }}
+      run: echo "tag=${TAG//\//-}" >> "$GITHUB_OUTPUT"
 
     - name: Build and Push Docker Image
       id: build_image
       uses: duplocloud/actions/build-image@main
       env:
-        GIT_TAG: ${{ env.GIT_TAG }}
+        GIT_TAG: ${{ steps.sanitize.outputs.tag }}
       with:
         type: bake
         target: duploctl

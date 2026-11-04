@@ -55,7 +55,7 @@ jobs:
       with:
         install: ".[build]"
         fetch-depth: 0
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         submodules: "true"
         # the version bump is committed and tagged through the API
@@ -73,12 +73,14 @@ jobs:
         --push "$PUSH"
         --token "$TOKEN"
 
-    - name: Upload Notes
+    - name: Name Notes Artifact
+      id: notes
       env:
         TAG: ${{ steps.bump.outputs.tag }}
-      run: echo "artifact_name=notes-${TAG//\//-}" >> $GITHUB_ENV
+      run: echo "name=notes-${TAG//\//-}" >> "$GITHUB_OUTPUT"
 
-    - uses: actions/upload-artifact@v7
+    - name: Upload Notes
+      uses: actions/upload-artifact@v7
       with:
-        name: ${{ env.artifact_name }}
+        name: ${{ steps.notes.outputs.name }}
         path: dist/notes.md

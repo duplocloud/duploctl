@@ -58,11 +58,18 @@ jobs:
 
     # Both languages are interpreted, so nothing is built. build-mode is left
     # out on purpose: it is only accepted with a single language.
+    # actions/unpinned-tag wants a commit SHA on every third-party action; this
+    # repo pins to release tags on purpose (.github/zizmor.yml), and zizmor's
+    # ref-pin policy already fails anything that floats on a branch
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
         languages: python,actions
         queries: security-extended
+        config: |
+          query-filters:
+          - exclude:
+              id: actions/unpinned-tag
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
@@ -146,7 +153,7 @@ jobs:
       with:
         fetch-depth: 0
         install: "--editable .[sdk] --editable plugins/aws/"
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     # the sdk extra and the aws plugin ship inside the installer binary and

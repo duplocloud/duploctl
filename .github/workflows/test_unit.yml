@@ -20,7 +20,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
     steps:
 
     - name: Setup
@@ -29,7 +29,7 @@ jobs:
       with:
         install: ".[build,test,sdk] plugins/aws/"
         python-version: ${{ matrix.python-version }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
     
     - name: Test with pytest

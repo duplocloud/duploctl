@@ -52,7 +52,7 @@ jobs:
       with:
         ref: ${{ inputs.tag }}
         install: ".[build]"
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Check True Version

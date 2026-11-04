@@ -1,4 +1,4 @@
-ARG PY_VERSION=3.13
+ARG PY_VERSION=3.15
 
 # Stage 1: Install dependencies and build tools
 FROM python:$PY_VERSION AS setup
