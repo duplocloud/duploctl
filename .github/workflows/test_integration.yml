@@ -31,13 +31,14 @@ on:
       python_version:
         required: false
         description: Python version
-        default: "3.13"
+        default: "3.15"
         type: choice
         options:
-        - "3.10"
         - "3.11"
         - "3.12"
         - "3.13"
+        - "3.14"
+        - "3.15"
   workflow_call:
     inputs:
       environment:
@@ -63,7 +64,7 @@ on:
       python_version:
         required: false
         type: string
-        default: "3.13"
+        default: "3.15"
     secrets:
       DUPLO_TOKEN:
         description: DuploCloud API token
@@ -72,11 +73,14 @@ on:
         description: GitHub App private key for checkout
         required: true
 
+permissions:
+  contents: read
+
 jobs:
 
   lifecycle:
     name: Lifecycle (${{ inputs.suite }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: ${{ inputs.environment }}
     env:
@@ -106,11 +110,11 @@ jobs:
 
     - name: Setup
       if: steps.gate.outputs.enabled == 'true'
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Set owned flag
@@ -123,16 +127,18 @@ jobs:
         if [ -z "$INFRA" ] && [ -z "$TENANT" ]; then OWNED=true; else OWNED=false; fi
         echo "owned=$OWNED" >> $GITHUB_OUTPUT
 
+    # a suite may set lifecycle: false (helpdesk needs no infra/tenant lifecycle)
     - name: Load suite matrix
       if: steps.gate.outputs.enabled == 'true'
       id: suite
       shell: python
+      env:
+        SUITE: ${{ inputs.suite }}
       run: |
         import yaml, json, os
-        data = yaml.safe_load(open('src/tests/suites/${{ inputs.suite }}.yaml'))
+        data = yaml.safe_load(open(f"src/tests/suites/{os.environ['SUITE']}.yaml"))
         matrix = json.dumps(data['jobs'])
         infra_type = data.get('infra_type', 'duplo')
-        # suites like helpdesk need no infra/tenant lifecycle
         lifecycle = str(data.get('lifecycle', True)).lower()
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
             f.write(f"matrix={matrix}\n")
@@ -166,7 +172,7 @@ jobs:
 
     - name: Surface results
       if: steps.gate.outputs.enabled == 'true' && steps.suite.outputs.lifecycle == 'true' && always()
-      uses: pmeier/pytest-results-action@main
+      uses: pmeier/pytest-results-action@v0.9.0
       with:
         path: lifecycle-results.xml
         summary: true
@@ -177,7 +183,7 @@ jobs:
     name: ${{ matrix.name }} (${{ inputs.suite }})
     needs: lifecycle
     if: needs.lifecycle.outputs.enabled == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: ${{ inputs.environment }}
     env:
@@ -190,11 +196,11 @@ jobs:
     steps:
 
     - name: Setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Run ${{ matrix.name }} tests
@@ -211,7 +217,7 @@ jobs:
 
     - name: Surface results
       if: always()
-      uses: pmeier/pytest-results-action@main
+      uses: pmeier/pytest-results-action@v0.9.0
       with:
         path: ${{ matrix.name }}-results.xml
         summary: true
@@ -222,7 +228,7 @@ jobs:
     name: Teardown (${{ inputs.suite }})
     needs: [lifecycle, resources]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: ${{ inputs.environment }}
     env:
@@ -247,11 +253,11 @@ jobs:
 
     - name: Setup
       if: steps.gate.outputs.enabled == 'true'
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         install: ".[build,test,aws,sdk]"
         python-version: ${{ inputs.python_version }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Run teardown
@@ -269,7 +275,7 @@ jobs:
 
     - name: Surface results
       if: steps.gate.outputs.enabled == 'true' && always()
-      uses: pmeier/pytest-results-action@main
+      uses: pmeier/pytest-results-action@v0.9.0
       with:
         path: teardown-results.xml
         summary: true

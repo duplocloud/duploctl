@@ -1,4 +1,4 @@
-ARG PY_VERSION=3.13
+ARG PY_VERSION=3.15
 
 # Stage 1: Install dependencies and build tools
 FROM python:$PY_VERSION AS setup
@@ -12,7 +12,7 @@ COPY . .
 # Install build dependencies
 RUN <<EOF
 pip install --no-cache-dir --upgrade pip
-pip install --no-cache-dir .[build,sdk]
+pip install --no-cache-dir ".[build,sdk]"
 EOF
 
 # dev container build

@@ -112,7 +112,9 @@ class YamlAction(argparse.Action):
   def __init__(self, option_strings, dest, nargs=None, **kwargs):
     super().__init__(option_strings, dest, **kwargs)
   def __call__(self, parser, namespace, value, option_string=None):
-    data = yaml.load(value, Loader=yaml.FullLoader)
+    # safe_load: body files often come from repo content in CI, so python
+    # object tags must never be constructed from them
+    data = yaml.safe_load(value)
     setattr(namespace, self.dest, data)
 
 class StdinTextAction(argparse.Action):

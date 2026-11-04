@@ -4,6 +4,7 @@
 @.github/agents/coder.agent.md
 @.github/instructions/py.instructions.md
 @.github/instructions/yaml.instructions.md
+@.github/instructions/github-workflows.instructions.md
 
 ## Claude Code Tool Notes
 

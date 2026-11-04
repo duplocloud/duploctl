@@ -33,10 +33,13 @@ on:
         description: GitHub App private key
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   package:
     name: Package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: pypi
       url: https://pypi.org/project/duplocloud-client
@@ -45,11 +48,11 @@ jobs:
     steps:
 
     - name: Setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         ref: ${{ inputs.tag }}
         install: ".[build]"
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
     - name: Check True Version

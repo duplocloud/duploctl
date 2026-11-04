@@ -1,0 +1,82 @@
+name: Lint
+
+# Hard failures in the code itself: each step fails the run on a finding,
+# and only a change in this repo can turn it red or green again.
+#
+#   Ruff             style plus the bandit (S) security rules
+#   Dockerfile Lint  hadolint, rule exclusions in .hadolint.yaml
+#
+# pull_request.yml and publish.yml call this. The audits and scanners, which
+# report findings without failing (advisories land on code that has not
+# changed), are quality.yml.
+
+on:
+  push:
+    branches:
+    - main
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Save the lock file?
+        default: false
+        type: boolean
+      tag:
+        description: Tag to lint
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      push:
+        description: Save the lock file?
+        default: true
+        type: boolean
+      tag:
+        description: Tag to lint
+        required: false
+        type: string
+    secrets:
+      GH_APP_KEY:
+        description: GitHub App private key. Absent on pull requests from a fork.
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-26.04
+    steps:
+
+    - name: Setup
+      uses: $/.github/actions/setup
+      with:
+        ref: ${{ inputs.tag }}
+        install: "--editable .[sdk] --editable plugins/aws/"
+        client-id: ${{ vars.GH_CLIENT_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+
+    # what ships in the binary and the image, saved with a release
+    - name: Freeze Requirements
+      run: pip freeze --exclude-editable > requirements.txt
+
+    - name: Install Test Dependencies
+      run: pip install .[test]
+
+    - name: Ruff
+      run: ruff check ./src ./plugins
+
+    - name: Dockerfile Lint
+      uses: hadolint/hadolint-action@v3.5.0
+      with:
+        dockerfile: Dockerfile
+        # the action passes its own threshold (default info), which overrides
+        # the one in .hadolint.yaml
+        failure-threshold: warning
+
+    - name: Save Lock File
+      uses: actions/upload-artifact@v7
+      if: inputs.push
+      with:
+        name: requirements.lock
+        path: requirements.txt

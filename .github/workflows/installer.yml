@@ -27,6 +27,9 @@ on:
       GH_APP_KEY:
         description: GitHub App private key
         required: true
+permissions:
+  contents: read
+
 jobs:
   installer:
     name: Pyinstaller
@@ -40,7 +43,7 @@ jobs:
           multiarch: false
           arch: amd64
         - name: linux
-          runs-on: ubuntu-latest
+          runs-on: ubuntu-26.04
           multiarch: true
           arch: amd64
         - name: darwin
@@ -76,10 +79,10 @@ jobs:
 
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         ref: ${{ inputs.tag }}
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         python-version: ${{ env.PY_VERSION }}
         install: ".[build,sdk]"

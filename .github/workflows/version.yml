@@ -37,10 +37,13 @@ on:
         description: GitHub App private key
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   version:
     name: Bump
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       tag: ${{ steps.bump.outputs.tag }}
       version: ${{ steps.bump.outputs.version }}
@@ -48,28 +51,36 @@ jobs:
 
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         install: ".[build]"
         fetch-depth: 0
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         submodules: "true"
-        
+        # the version bump is committed and tagged through the API
+        contents: write
+
     - name: Bump Version
       id: bump
+      env:
+        ACTION: ${{ inputs.action }}
+        PUSH: ${{ inputs.push }}
+        TOKEN: ${{ steps.setup.outputs.token }}
       run: >-
-        ./scripts/version.py 
-        --action ${{ inputs.action }} 
-        --push ${{ inputs.push }} 
-        --token ${{ steps.setup.outputs.token }}
+        ./scripts/version.py
+        --action "$ACTION"
+        --push "$PUSH"
+        --token "$TOKEN"
 
-    - name: Upload Notes
+    - name: Name Notes Artifact
+      id: notes
       env:
         TAG: ${{ steps.bump.outputs.tag }}
-      run: echo "artifact_name=notes-${TAG//\//-}" >> $GITHUB_ENV
+      run: echo "name=notes-${TAG//\//-}" >> "$GITHUB_OUTPUT"
 
-    - uses: actions/upload-artifact@v7
+    - name: Upload Notes
+      uses: actions/upload-artifact@v7
       with:
-        name: ${{ env.artifact_name }}
+        name: ${{ steps.notes.outputs.name }}
         path: dist/notes.md

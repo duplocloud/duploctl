@@ -58,6 +58,7 @@ and implementation detail belong in the PR, not here.
 
 ### Removed
 
+- Python 3.10 support (end-of-life October 2026); duploctl and the aws plugin now require Python 3.11+.
 - The per-command `--api-version` flag on the AI HelpDesk commands (introduced within this unreleased cycle): the backend only serves `v1` routes, which the helpdesk client now owns.
 
 - `tenant stop`/`start` now scale ASGs to zero and back (prior sizing snapshotted in the ASG's custom data), and skip ASG-managed hosts in the host sweep so the group handles them. Exclude with `--exclude asg/<name>`.
@@ -66,8 +67,18 @@ and implementation detail belong in the PR, not here.
 
 ### Changed
 
+- Python 3.14 and 3.15 are supported and tested, and 3.15 is the default for the image and CI; every dependency is updated to latest, dropping the `pytest`, `mkdocstrings`, `mkdocstrings-python` and `pymdown-extensions` caps (docs templates ported to mkdocstrings-python 2).
+- CI: third-party actions on release tags, jobs on `ubuntu-26.04`, least-privilege token permissions per job and for the GitHub App token (now minted from its client ID), and in-repo actions referenced with `$/`; workflow conventions documented in `.github/instructions/github-workflows.instructions.md`.
+- Renovate replaces Dependabot version updates: new versions of Python dependencies, actions, runner images, base images, the devcontainer and tool versions are listed on a Dependency Dashboard issue, with a PR on request (vulnerability fixes open one directly).
 - CI runs on pull requests from a fork: the setup action falls back to the job token when the GitHub App secrets are unavailable, instead of every job failing before checkout.
 - Pinned ruff's lint `select` to the historical `E`/`F` default so ruff version bumps no longer silently change enforced rules; unpinned the ruff version.
+
+### Security
+
+- Raised dependency floors past known CVEs: `requests>=2.33.0`, `urllib3>=2.8.0`, `certifi>=2026.10.18`, `pyjwt>=2.15.0`, and in the extras `GitPython>=3.2.1`, `mkdocs-material>=9.7.7`, `pymdown-extensions>=12.2`.
+- `-f`/`--cli-input` body files are parsed with `yaml.safe_load`, so YAML Python object tags are rejected instead of constructed.
+- Security scanning: the Quality workflow reports without failing, on pull requests, main and weekly (CodeQL for Python and GitHub Actions with `security-extended` queries, zizmor, a Grype image scan, pip-audit, dependency review, TruffleHog, and OpenSSF Scorecard on main); a new Lint workflow fails on ruff, now with the bandit (`S`) rules, and hadolint.
+- Workflow inputs are no longer interpolated into shell scripts, release notes reach the release by file instead of `GITHUB_ENV`, and checkout no longer persists credentials into `.git`.
 
 ## [0.4.5] - 2026-07-20
 

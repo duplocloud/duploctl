@@ -5,49 +5,57 @@ on:
     branches:
     - main
 permissions:
-  issues: write
-  pull-requests: write
-  security-events: write
-jobs: 
+  contents: read
+jobs:
 
   prerequisites:
     name: Prerequisites
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-    - name: Auto Assign 
-      uses: kentaro-m/auto-assign-action@v2.0.1
+    - name: Auto Assign
+      uses: kentaro-m/auto-assign-action@v2.0.2
       with:
         configuration-path: .github/assign.yml
     - name: Make sure Changleog is updated
-      uses: tarides/changelog-check-action@v3
+      uses: tarides/changelog-check-action@v4
       with:
         changelog: CHANGELOG.md
 
-  quality:
+  # The scanners (quality.yml) run on their own pull_request trigger.
+  lint:
     name: Test
-    uses: ./.github/workflows/quality.yml
-    secrets: inherit
+    uses: $/.github/workflows/lint.yml
+    permissions:
+      contents: read
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
     with:
       push: false
-      codescan: false
 
   unit_test:
     name: Test
-    uses: ./.github/workflows/test_unit.yml
-    secrets: inherit
+    uses: $/.github/workflows/test_unit.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      GH_APP_KEY: ${{ secrets.GH_APP_KEY }}
 
   docs_check:
     name: Documentation Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         ref: ${{ github.ref }}
         fetch-depth: 0
         install: ".[build,docs,sdk]"
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         submodules: "true"
 

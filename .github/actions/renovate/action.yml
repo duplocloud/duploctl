@@ -1,0 +1,31 @@
+name: Renovate
+description: >-
+  Runs Renovate with the config beside this file. New versions land on the
+  repo's Dependency Dashboard issue; a PR opens only when its box is ticked
+  there, except vulnerability fixes, which open one straight away.
+inputs:
+  token:
+    description: >-
+      Token that can write contents, workflows, issues and pull requests. The
+      job token cannot: it is never granted workflows, so action bumps would
+      be refused, and the PRs it opens would not start any checks.
+    required: true
+  log-level:
+    description: Renovate's LOG_LEVEL (debug, info, warn).
+    required: false
+    default: info
+runs:
+  using: composite
+  steps:
+
+  # The config is a global (self-hosted) config read from this action's own
+  # directory, so it travels with the workflow's commit and the repo needs no
+  # renovate.json on its default branch.
+  - name: Renovate
+    uses: renovatebot/github-action@v46.3.11
+    with:
+      token: ${{ inputs.token }}
+      configurationFile: ${{ github.action_path }}/config.json
+    env:
+      RENOVATE_REPOSITORIES: ${{ github.repository }}
+      LOG_LEVEL: ${{ inputs.log-level }}

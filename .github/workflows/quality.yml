@@ -1,107 +1,223 @@
 name: Quality
 
+# The scanners and audits. They report and never fail on a finding: results
+# go to Security → Code scanning, annotations and the job summary, so none of
+# these is a required check. New advisories and queries land on code that has
+# not changed, and a merge should not wait on them; the hard failures (tests,
+# builds, lint.yml) are what gate.
+#
+#   CodeQL          Python source and the workflows themselves
+#   Workflow Audit  zizmor over .github: CI supply chain and token hygiene
+#   Image Scan      Grype over the runner image: base OS plus Python packages
+#   Audit           pip-audit, dependency review, TruffleHog secret scan
+#   Scorecard       OpenSSF repo posture (branch protection, review, ...)
+#
+# On its own triggers rather than called by pull_request.yml: code scanning
+# names an analysis by its workflow file and job, so main's and a pull
+# request's must come from this same file to be compared.
+#
+# A pull request from a fork gets a read-only token and cannot upload SARIF:
+# CodeQL and the Grype upload are skipped there, and zizmor prints its
+# findings as annotations instead.
+
 on:
-  push: 
+  pull_request:
     branches:
     - main
-  workflow_dispatch: 
-    inputs:
-      push:
-        description: Save the lock file?
-        default: false
-        type: boolean
-      tag:
-        description: Tag to push
-        required: false
-        type: string
-      codescan:
-        description: Perform code scan?
-        default: true
-        type: boolean
-  workflow_call: 
-    inputs:
-      push:
-        description: Save the lock file?
-        default: true
-        type: boolean
-      tag:
-        description: Tag to push
-        required: false
-        type: string
-      codescan:
-        description: Perform code scan?
-        default: true
-        type: boolean
-    secrets:
-      PYPI_API_TOKEN:
-        description: PyPi token
-        required: false
-      GH_APP_KEY:
-        description: GitHub App private key. Absent on pull requests from a fork.
-        required: false
+  push:
+    branches:
+    - main
+  # new advisories and new queries land against code that has not changed
+  schedule:
+  - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+# Scorecard publishes only from a workflow without write permissions, env or
+# defaults at the top level, so every grant here is per job.
+permissions:
+  contents: read
 
 jobs:
-  quality:
-    name: Quality
-    runs-on: ubuntu-latest
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-26.04
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     permissions:
+      contents: read
+      actions: read
       security-events: write
     steps:
 
-    - name: Setup
-      id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+    - name: Checkout Code
+      uses: actions/checkout@v7
       with:
-        ref: ${{ inputs.tag }}
-        install: "--editable ."
-        app-id: ${{ vars.GH_APP_ID }}
+        persist-credentials: false
+
+    # Both languages are interpreted, so nothing is built. build-mode is left
+    # out on purpose: it is only accepted with a single language.
+    # actions/unpinned-tag wants a commit SHA on every third-party action; this
+    # repo pins to release tags on purpose (.github/zizmor.yml), and zizmor's
+    # ref-pin policy already fails anything that floats on a branch
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: python,actions
+        queries: security-extended
+        config: |
+          query-filters:
+          - exclude:
+              id: actions/unpinned-tag
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+
+  workflows:
+    name: Workflow Audit
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      security-events: write
+    env:
+      FORK: >-
+        ${{ github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name != github.repository }}
+    steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+
+    # Advanced Security mode uploads SARIF and never fails on a finding. A
+    # fork cannot upload, so there it annotates instead, and that mode exits
+    # non-zero on a finding, which continue-on-error absorbs.
+    - name: Run zizmor
+      uses: zizmorcore/zizmor-action@v0.8.1
+      continue-on-error: ${{ env.FORK == 'true' }}
+      with:
+        # renovate: datasource=github-releases depName=zizmorcore/zizmor extractVersion=^v(?<version>.+)$
+        version: 1.32.0
+        config: .github/zizmor.yml
+        min-severity: low
+        advanced-security: ${{ env.FORK != 'true' }}
+        annotations: ${{ env.FORK == 'true' }}
+
+  image:
+    name: Image Scan
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+
+    - name: Build Runner Image
+      run: docker build --target runner --tag duploctl:scan .
+
+    - name: Run Grype
+      id: grype
+      uses: anchore/scan-action@v7.4.2
+      with:
+        image: duploctl:scan
+        only-fixed: true
+        fail-build: false
+        output-format: sarif
+
+    - name: Upload Grype Report
+      if: >-
+        github.event_name != 'pull_request' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ steps.grype.outputs.sarif }}
+        category: grype-image
+
+  # Known advisories in what ships and what a pull request adds, and leaked
+  # credentials in the pushed or proposed commits (the whole history on a
+  # schedule). Each reports to the job summary and annotations.
+  audit:
+    name: Audit
+    runs-on: ubuntu-26.04
+    steps:
+
+    # full history for TruffleHog's commit range
+    - name: Setup
+      uses: $/.github/actions/setup
+      with:
+        fetch-depth: 0
+        install: "--editable .[sdk] --editable plugins/aws/"
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
 
+    # the sdk extra and the aws plugin ship inside the installer binary and
+    # the image, so their dependencies are audited along with the core
     - name: Freeze Requirements
       run: pip freeze --exclude-editable > requirements.txt
-
-    - name: Install Test Dependencies
-      run: pip install .[test]
 
     - name: Pip Audit
       uses: pypa/gh-action-pip-audit@v1.1.0
       with:
         inputs: requirements.txt
-    
-    # do linting
-    # stop the build if there are Python syntax errors or undefined names
-    # ruff --format=github --select=E9,F63,F7,F82 --target-version=py37 .
-    - name: Lint with ruff
-      run: ruff check ./src
+        summary: true
+        internal-be-careful-allow-failure: true
 
-    # Now do codequality checks with CodeQL
-    - name: Initialize CodeQL
-      # if codescan is true or it is the default branch
-      if: inputs.codescan || github.ref == 'refs/heads/main'
-      uses: github/codeql-action/init@v4
+    - name: Dependency Review
+      if: github.event_name == 'pull_request'
+      uses: actions/dependency-review-action@v5.0.0
       with:
-        languages: python
-        build-mode: none
-        # token: ${{ steps.setup.outputs.token }}
+        fail-on-severity: moderate
+        warn-only: true
 
-    - name: Perform CodeQL Analysis
-      id: analysis
-      if: inputs.codescan || github.ref == 'refs/heads/main'
-      uses: github/codeql-action/analyze@v4
+    # verified and unknown (could not be checked) credentials, annotated on
+    # the commit; the action always passes --fail, so continue-on-error
+    - name: Secret Scan
+      uses: trufflesecurity/trufflehog@v3.99.8
+      continue-on-error: true
       with:
-        category: "/language:python"
-        # token: ${{ steps.setup.outputs.token }}
-    
-    - name: Save Lock File
-      uses: actions/upload-artifact@v7
-      if: inputs.push
-      with:
-        name: requirements.lock
-        path: requirements.txt
+        # renovate: datasource=github-releases depName=trufflesecurity/trufflehog extractVersion=^v(?<version>.+)$
+        version: 3.99.8
+        extra_args: --results=verified,unknown
 
-    - name: Save Sarif File
-      if: inputs.push && (inputs.codescan || github.ref == 'refs/heads/main')
-      uses: actions/upload-artifact@v7
+  # Grades how the repository is run rather than its code. Results are
+  # published to the public Scorecard API (the badge), which only accepts runs
+  # from the default branch; this job may use only Scorecard's approved
+  # actions. The Pinned-Dependencies check wants SHAs and will flag the tag
+  # pins, which are deliberate (.github/zizmor.yml).
+  scorecard:
+    name: Scorecard
+    runs-on: ubuntu-26.04
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      contains(fromJSON('["push", "schedule", "workflow_dispatch"]'), github.event_name)
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+      # publish the results to the Scorecard API and badge
+      id-token: write
+    steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v7
       with:
-        name: sarif
-        path: ${{ steps.analysis.outputs.sarif-output }}
+        persist-credentials: false
+
+    - name: Run Scorecard
+      uses: ossf/scorecard-action@v2.5.0
+      with:
+        results_file: scorecard.sarif
+        results_format: sarif
+        publish_results: true
+
+    - name: Upload Scorecard Report
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: scorecard.sarif
+        category: scorecard
