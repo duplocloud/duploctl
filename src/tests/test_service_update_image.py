@@ -351,6 +351,22 @@ def test_update_env_baseline_before_post(mocker):
 
 
 @pytest.mark.unit
+def test_update_pod_label_baseline_before_post(mocker):
+  """update_pod_label reads pods before posting and no longer uses current_replicaset."""
+  svc, mock_client = make_waiting(mocker)
+  svc.find.return_value['Template']['OtherDockerConfig'] = '{"PodLabels": {"a": "1"}}'
+  spy = mocker.patch.object(svc, 'current_replicaset')
+  calls = mocker.Mock()
+  calls.attach_mock(svc.pods, 'pods')
+  calls.attach_mock(mock_client.post, 'post')
+  svc.update_pod_label('widget', setvar=[('b', '2')], strategy='merge', deletevar=None)
+  assert [c[0] for c in calls.mock_calls][:2] == ['pods', 'post']
+  spy.assert_not_called()
+  assert svc._wait.call_args.kwargs['baseline'] == RolloutBaseline(
+    frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
 def test_update_baseline_replaces_current_replicaset(mocker):
   """update takes the baseline instead of reading the current ReplicaSet."""
   svc, mock_client = make_waiting(mocker)

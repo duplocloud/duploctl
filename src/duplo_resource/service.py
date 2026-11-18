@@ -17,6 +17,7 @@ from duplo_resource.service_rollout import (
   RolloutBaseline,
   count_rollout,
   is_new_pod,
+  normalize_image,
   replicasets_of,
   server_time,
   tracks_replicasets,
@@ -1077,9 +1078,8 @@ class DuploService(DuploResourceV2):
       The command is {'a restart' if restart else 'not a restart'}.
       A rollover is {'required' if rollover else 'not required'}.
       """)
-    def normalize_image(image):
-      """Normalize image name by removing Docker registry prefixes."""
-      return image.removeprefix("docker.io/library/").removeprefix("docker.io/").removeprefix("library/")
+    # a rollback mid-rollout reuses a baseline ReplicaSet, found by its image
+    pod_baseline = dataclasses.replace(baseline, image=new_img) if baseline is not None and image_changed else baseline
     def get_pod_image(pod):
       """Get the image of a pod."""
       raw_image=pod["Containers"][0]["Image"]
@@ -1148,7 +1148,7 @@ class DuploService(DuploResourceV2):
         raise DuploStillWaiting(f"Service {name} waiting for image update")
       if (replicas_changed and replicas != new_replicas):
         raise DuploStillWaiting(f"Service {name} waiting for replicas update")
-      if (conf_changed and svc["Template"].get("OtherDockerConfig", None) != new_conf):
+      if (conf_changed and self._conf_differs(svc["Template"].get("OtherDockerConfig", None), new_conf)):
         raise DuploStillWaiting(f"Service {name} waiting for pod to update")
 
       # now let's start checking the pods
@@ -1164,13 +1164,13 @@ class DuploService(DuploResourceV2):
       if rollover and baseline is not None and tracks_replicasets(pods):
         if cloud != 2:
           for p in pods:
-            if is_new_pod(p, baseline):
+            if is_new_pod(p, pod_baseline):
               check_pod_faults(p, faults)
-        counts = count_rollout(pods, baseline)
+        counts = count_rollout(pods, pod_baseline)
         needed = replicas if true_count else svc.get("HPASpecs", {}).get("minReplicas", 1)
         label = "new" if true_count else "minimum new"
-        if counts.new_running < needed or counts.old_running > 0:
-          raise DuploStillWaiting(f"Service {name} rollout: {counts.new_running}/{needed} {label} pods running, {counts.old_running} old pods still running")
+        if counts.new_running < needed or counts.old_remaining > 0:
+          raise DuploStillWaiting(f"Service {name} rollout: {counts.new_running}/{needed} {label} pods running, {counts.old_remaining} old pods still running")
         return
 
       # make sure all the replicas are up if we know the true replica count

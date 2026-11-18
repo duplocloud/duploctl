@@ -78,7 +78,38 @@ def test_old_pod_running_keeps_waiting(check_for):
 
 def test_status3_window_keeps_waiting(check_for):
   pods = [_pod("rs-old", cur=3), _pod("rs-old", cur=3)]
-  with pytest.raises(DuploStillWaiting, match=r"0/2 new pods running, 0 old"):
+  with pytest.raises(DuploStillWaiting, match=r"0/2 new pods running, 2 old"):
+    check_for(pods)()
+
+
+def test_status3_old_pods_block_finish(check_for):
+  pods = [_pod("rs-new"), _pod("rs-new"), _pod("rs-old", cur=3)]
+  with pytest.raises(DuploStillWaiting, match=r"1 old pods still running"):
+    check_for(pods)()
+
+
+def test_terminal_old_pods_do_not_block(check_for):
+  pods = [_pod("rs-new"), _pod("rs-new"), _pod("rs-old", cur=6)]
+  check_for(pods)()
+
+
+def test_rollback_mid_rollout_finishes(check_for):
+  baseline = RolloutBaseline(frozenset({"rs-good", "rs-bad"}), T0)
+  pods = [_pod("rs-good", created="2026-11-18T19:00:00Z")] * 2
+  check_for(pods, baseline=baseline)()
+
+
+def test_rollback_mid_rollout_waits_for_bad_pods(check_for):
+  baseline = RolloutBaseline(frozenset({"rs-good", "rs-bad"}), T0)
+  pods = [_pod("rs-good", created="2026-11-18T19:00:00Z")] * 2 + [
+    _pod("rs-bad", image="nginx:1.28")]
+  with pytest.raises(DuploStillWaiting, match=r"2/2 new pods running, 1 old"):
+    check_for(pods, baseline=baseline)()
+
+
+def test_same_image_in_single_replicaset_baseline_is_old(check_for):
+  pods = [_pod("rs-old"), _pod("rs-old")]
+  with pytest.raises(DuploStillWaiting, match=r"0/2 new pods running, 2 old"):
     check_for(pods)()
 
 
@@ -140,6 +171,16 @@ def test_formatting_only_conf_change_is_not_rollover(check_for):
   check_for(pods, old=old, updates=updates, current=old)()
 
 
+def test_conf_reformatted_by_server_is_not_waiting(check_for):
+  old = _service()
+  old["Template"]["OtherDockerConfig"] = '{"A": 1}'
+  updates = {"Name": "web", "OtherDockerConfig": '{"A": 2}'}
+  current = _service()
+  current["Template"]["OtherDockerConfig"] = '{\n  "A": 2\n}'
+  pods = [_pod("rs-new"), _pod("rs-new")]
+  check_for(pods, old=old, updates=updates, current=current)()
+
+
 def test_pod_fault_raises(check_for):
   faults = [{"Resource": {"Name": "rs-new-x"}, "Description": "CrashLoopBackOff"}]
   pods = [_pod("rs-new"), _pod("rs-new")]
@@ -151,7 +192,8 @@ def test_old_pod_fault_is_ignored(check_for):
   # an old pod crash-looping must not fail a wait that is fixing it
   faults = [{"Resource": {"Name": "rs-old-x"}, "Description": "OOMKilled"}]
   pods = [_pod("rs-new"), _pod("rs-new"), _pod("rs-old", cur=3)]
-  check_for(pods, faults=faults)()
+  with pytest.raises(DuploStillWaiting, match="1 old pods still running"):
+    check_for(pods, faults=faults)()
 
 
 def test_conf_change_is_rollover(check_for):
