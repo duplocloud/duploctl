@@ -147,8 +147,19 @@ def test_pod_fault_raises(check_for):
     check_for(pods, faults=faults)()
 
 
-def test_old_pod_fault_raises(check_for):
+def test_old_pod_fault_is_ignored(check_for):
+  # an old pod crash-looping must not fail a wait that is fixing it
   faults = [{"Resource": {"Name": "rs-old-x"}, "Description": "OOMKilled"}]
-  pods = [_pod("rs-new"), _pod("rs-old")]
-  with pytest.raises(DuploFailedResource, match="OOMKilled"):
-    check_for(pods, faults=faults)()
+  pods = [_pod("rs-new"), _pod("rs-new"), _pod("rs-old", cur=3)]
+  check_for(pods, faults=faults)()
+
+
+def test_conf_change_is_rollover(check_for):
+  old = _service()
+  old["Template"]["OtherDockerConfig"] = '{"A": 1}'
+  updates = {"Name": "web", "OtherDockerConfig": '{"A": 2}'}
+  current = _service()
+  current["Template"]["OtherDockerConfig"] = '{"A": 2}'
+  pods = [_pod("rs-new"), _pod("rs-new"), _pod("rs-old")]
+  with pytest.raises(DuploStillWaiting, match="1 old pods still running"):
+    check_for(pods, old=old, updates=updates, current=current)()

@@ -15,6 +15,7 @@ from duplocloud.resource import DuploResourceV2
 from duplo_resource.service_rollout import (
   RolloutBaseline,
   count_rollout,
+  is_new_pod,
   tracks_replicasets,
 )
 
@@ -1131,7 +1132,8 @@ class DuploService(DuploResourceV2):
       if rollover and baseline is not None and tracks_replicasets(pods):
         if cloud != 2:
           for p in pods:
-            check_pod_faults(p, faults)
+            if is_new_pod(p, baseline):
+              check_pod_faults(p, faults)
         counts = count_rollout(pods, baseline)
         needed = replicas if true_count else svc.get("HPASpecs", {}).get("minReplicas", 1)
         label = "new" if true_count else "minimum new"
