@@ -24,6 +24,9 @@ and implementation detail belong in the PR, not here.
 
 ### Fixed
 
+- `service update_image --wait` finishes when the new tag points at the same image bytes as the old one, instead of timing out with exit 152
+- `service` waits on image, config, env and label updates finish only after the previous ReplicaSet's pods are gone, so a rollout whose pods never become Ready times out instead of reporting success
+- `service restart --wait` waits for the restarted pods instead of returning before the restart starts
 - `service update_otherdockerconfig` copies `AgentPlatform` and `AllocationTags` to the top level, so Kubernetes services no longer fail with "Requested replicas more than the total hosts available"
 - `workspace delete`, `namespace delete` (and the other helpdesk K8s deletes), and `resource_group delete`/`deprovision` take `--force` to clear the backend's default delete protection; without it a protected record gets `--force` guidance instead of a raw backend error. `resource_group delete` on a live group now points at `deprovision` instead of clearing its protection
 - `service update_image` updates the image again on non-Kubernetes services (e.g. native Docker), fails when the backend accepts an update but returns a different image, and rejects sidecar/init updates off Kubernetes
