@@ -99,7 +99,7 @@ def tracks_replicasets(pods: list[dict]) -> bool:
   """
   try:
     return all(_owner(p) and _created(p) for p in pods)
-  except (ValueError, TypeError, AttributeError):
+  except (KeyError, ValueError, TypeError, AttributeError):
     return False
 
 

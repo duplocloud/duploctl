@@ -143,3 +143,7 @@ def test_unparsable_timestamp_is_not_tracked():
 
 def test_server_time_garbage_date():
   assert server_time(SimpleNamespace(headers={"Date": "garbage"})) is None
+
+
+def test_missing_timestamp_key_is_not_tracked():
+  assert not tracks_replicasets([{"ControlledBy": {"NativeId": "rs"}}])
