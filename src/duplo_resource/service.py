@@ -1106,13 +1106,15 @@ class DuploService(DuploResourceV2):
       for f in faults:
         if f["ResourceName"] == name:
           raise DuploFailedResource(f"Service {name} raised a fault.\n{f['Description']}")
+    # the old ReplicaSets come from the baseline, else from the legacy key
+    old_replicasets = baseline.replicasets if baseline is not None else {old.get("Replicaset", None)}
     def running_pod(pod, faults):
       """Check if a pod is running and return 1 if it is, 0 otherwise."""
       # azure doesn't have controlled by, so we skip this check if it's not there
       cb = pod.get("ControlledBy", None)
       # skip if the pod is not controlled by the new replicaset
-      if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
-        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by the old Replicaset: {old.get('Replicaset', None)}")
+      if (cloud != 2 and cb is not None) and (cb["NativeId"] in old_replicasets and rollover):
+        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by an old Replicaset: {sorted(old_replicasets)}")
         return 0
       # ignore this pod if the image is the old image
       if image_changed:

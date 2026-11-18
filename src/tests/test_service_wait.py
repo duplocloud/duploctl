@@ -163,3 +163,13 @@ def test_conf_change_is_rollover(check_for):
   pods = [_pod("rs-new"), _pod("rs-new"), _pod("rs-old")]
   with pytest.raises(DuploStillWaiting, match="1 old pods still running"):
     check_for(pods, old=old, updates=updates, current=current)()
+
+
+def test_legacy_path_skips_baseline_replicaset_pods(check_for):
+  # a pod without CreationTimestamp forces the legacy image path; the old
+  # ReplicaSet's running pod must not count towards the replicas
+  service = _service()
+  pods = [{**_pod("rs-new"), "CreationTimestamp": None}, _pod("rs-old")]
+  with pytest.raises(DuploStillWaiting, match=r"waiting for pods 1/2"):
+    check_for(pods, old=service, updates=service, current=service,
+              restart=True)()
