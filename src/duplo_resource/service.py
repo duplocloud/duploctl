@@ -1,5 +1,6 @@
 import time
-from json import dumps, loads
+from json import JSONDecodeError, dumps, loads
+from typing import Optional
 
 from duplocloud import args
 from duplocloud.commander import Command, Resource
@@ -11,6 +12,11 @@ from duplocloud.errors import (
   DuploStillWaiting,
 )
 from duplocloud.resource import DuploResourceV2
+from duplo_resource.service_rollout import (
+  RolloutBaseline,
+  count_rollout,
+  tracks_replicasets,
+)
 
 # Template.AgentPlatform value for EKS (Platform.EKS_LINUX in the backend).
 EKS_LINUX_PLATFORM = 7
@@ -992,14 +998,16 @@ class DuploService(DuploResourceV2):
     self.client.put(api_endpoint)
     return {"message": f"Successfully rolled back service '{name}'"}
 
-  def _wait(self, old: dict, updates: dict):
+  def _wait(self, old: dict, updates: dict, baseline: Optional[RolloutBaseline] = None, restart: bool = False):
     """Wait for a service to update.
 
-    This will wait for the service to update based on the changes made. It will check the image, replicas, and hpa settings.
+    This will wait for the service to update based on the changes made. It will check the image, replicas, and hpa settings. When a rollover is expected and a baseline is given, the wait finishes once pods of a new ReplicaSet are running and no old pod is.
 
     Args:
       old: The old service definition.
       updates: The updated service definition.
+      baseline: The ReplicaSets and start time captured before the change.
+      restart: Whether the change is a restart, which always replaces pods.
 
     Returns:
       None
@@ -1027,15 +1035,15 @@ class DuploService(DuploResourceV2):
 
     # Is a rollover needed?
     new_conf = updates.get("OtherDockerConfig", None)
-    conf_changed = (old["Template"].get("OtherDockerConfig", None) != new_conf) if new_conf else False
-    rollover = False
-    if image_changed or conf_changed:
-      rollover = True
+    conf_changed = self._conf_differs(old["Template"].get("OtherDockerConfig", None), new_conf) if new_conf else False
+    rollover = image_changed or conf_changed or restart
     self.duplo.logger.debug(f"""Wait for service {name}:
       The image has {'changed' if image_changed else 'not changed'}.
       The replicas have {'changed' if replicas_changed else 'not changed'}.
       The hpa is {'enabled' if hpa_enabled else 'disabled'}.
       The true count is {'known' if true_count else 'unknown'}.
+      The baseline is {baseline}.
+      The command is {'a restart' if restart else 'not a restart'}.
       A rollover is {'required' if rollover else 'not required'}.
       """)
     def normalize_image(image):
@@ -1119,6 +1127,18 @@ class DuploService(DuploResourceV2):
       if cloud == 2:
         check_service_faults(faults)
 
+      # rollover tracked by ReplicaSet: new pods run and no old pod does
+      if rollover and baseline is not None and tracks_replicasets(pods):
+        if cloud != 2:
+          for p in pods:
+            check_pod_faults(p, faults)
+        counts = count_rollout(pods, baseline)
+        needed = replicas if true_count else svc.get("HPASpecs", {}).get("minReplicas", 1)
+        label = "new" if true_count else "minimum new"
+        if counts.new_running < needed or counts.old_running > 0:
+          raise DuploStillWaiting(f"Service {name} rollout: {counts.new_running}/{needed} {label} pods running, {counts.old_running} old pods still running")
+        return
+
       # make sure all the replicas are up if we know the true replica count
       running = sum(running_pod(p, faults) for p in pods)
       self.duplo.logger.debug(f"Detected {running} running pods")
@@ -1136,6 +1156,14 @@ class DuploService(DuploResourceV2):
 
     # send to the base class to do the waiting
     super().wait(wait_check, 3600, 11)
+
+  @staticmethod
+  def _conf_differs(old_conf, new_conf) -> bool:
+    """Compare OtherDockerConfig values, as parsed JSON when both parse."""
+    try:
+      return loads(old_conf) != loads(new_conf)
+    except (TypeError, JSONDecodeError):
+      return old_conf != new_conf
 
   def _validate_args(self, name, all, targets):
     if sum(bool(x) for x in [name, all, targets]) > 1:
