@@ -1,6 +1,6 @@
 import time
 import pytest
-from duplocloud.errors import DuploError, DuploStillWaiting
+from duplocloud.errors import DuploNotFound, DuploStillWaiting
 from .conftest import get_test_data
 
 NAME = "duploctl-rollout"
@@ -11,8 +11,10 @@ REPLICAS = 2
 def service_resource(duplo):
     """Fixture to load the Service resource with waiting enabled."""
     resource = duplo.load("service")
+    prior = resource.duplo.wait
     resource.duplo.wait = True
-    return resource
+    yield resource
+    resource.duplo.wait = prior
 
 
 def running_replicasets(svc, name) -> dict:
@@ -71,12 +73,21 @@ class TestServiceRollout:
         """Create the service with a readiness probe and two replicas."""
         r = service_resource
         try:
-            if r.find(NAME):
-                print(f"Service '{NAME}' exists, deleting before recreate")
-                r.delete(NAME)
-                time.sleep(30)
-        except DuploError:
-            pass
+            existing = r.find(NAME)
+        except DuploNotFound:
+            existing = None
+        if existing:
+            print(f"Service '{NAME}' exists, deleting before recreate")
+            r.delete(NAME)
+            deadline = time.time() + 300
+            while True:
+                try:
+                    r.find(NAME)
+                except DuploNotFound:
+                    break
+                if time.time() >= deadline:
+                    pytest.fail(f"Service '{NAME}' still present 300s after delete")
+                time.sleep(10)
         r.create(body=get_test_data("service-rollout"))
         wait_for_rollout_ready(r, NAME, REPLICAS)
 
@@ -86,6 +97,10 @@ class TestServiceRollout:
         """DUPLO-45146: tag change to the same digest must not hang the wait."""
         r = service_resource
         baseline = running_replicasets(r, NAME)
+        # nginx 1.27 is end-of-life, so the tags nginx:1.27 and nginx:1.27.5 stay on one
+        # digest. If they ever diverge this test still passes but no longer exercises
+        # the same-digest path. Digests are not pinned: that would not reproduce the
+        # tag-versus-digest mismatch the bug depends on.
         r.update_image(NAME, "nginx:1.27.5")
         assert_replaced(r, NAME, baseline, REPLICAS)
 
