@@ -24,6 +24,7 @@ and implementation detail belong in the PR, not here.
 
 ### Fixed
 
+- `service update_pod_label` no longer fails with a TypeError on a service that has no pod labels yet
 - `service update_image --wait` finishes when the new tag points at the same image bytes as the old one, instead of timing out with exit 152
 - `service` waits on image, config, env and label updates finish only after the previous ReplicaSet's pods are gone, so a rollout whose pods never become Ready times out instead of reporting success
 - `service restart --wait` waits for the restarted pods instead of returning before the restart starts

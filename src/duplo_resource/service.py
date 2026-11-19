@@ -615,7 +615,7 @@ class DuploService(DuploResourceV2):
     service = self.find(name)
     raw_config = service["Template"].get("OtherDockerConfig") or "{}"
     currentDockerconfig = loads(raw_config)
-    currentLabels = currentDockerconfig.get("PodLabels", [])
+    currentLabels = currentDockerconfig.get("PodLabels", {})
     newLabels = []
     if setvar is not None:
       newLabels = [{"Name": i[0], "Value": i[1]} for i in setvar]
@@ -629,16 +629,17 @@ class DuploService(DuploResourceV2):
 
     else:
       # replace values of existing label
-      for label, value in currentDockerconfig['PodLabels'].items():
-        for vars in newLabels:
-          if vars["Name"] not in currentDockerconfig['PodLabels']:
-            label_name = vars["Name"]
-            raise DuploError(f"Service {name} does not have Pod label '{label_name}', enter correct label.", 400)
-          if vars["Name"] == label:
-            currentDockerconfig['PodLabels'][label] = vars["Value"]
+      for vars in newLabels:
+        if vars["Name"] not in currentLabels:
+          label_name = vars["Name"]
+          raise DuploError(f"Service {name} does not have Pod label '{label_name}', enter correct label.", 400)
+        currentLabels[vars["Name"]] = vars["Value"]
+      currentDockerconfig['PodLabels'] = currentLabels
 
     if deletevar is not None:
       for key in deletevar:
+        if key not in currentDockerconfig.get('PodLabels', {}):
+          raise DuploError(f"Service {name} does not have Pod label '{key}', cannot delete it.", 400)
         del currentDockerconfig['PodLabels'][key]
 
     payload = {

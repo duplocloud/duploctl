@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 import pytest
@@ -364,6 +365,25 @@ def test_update_pod_label_baseline_before_post(mocker):
   spy.assert_not_called()
   assert svc._wait.call_args.kwargs['baseline'] == RolloutBaseline(
     frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
+def test_update_pod_label_merge_without_existing_labels(mocker):
+  """merge onto a service with no PodLabels creates them instead of raising TypeError."""
+  svc, mock_client = make_waiting(mocker)
+  svc.find.return_value['Template']['OtherDockerConfig'] = '{}'
+  svc.update_pod_label('widget', setvar=[('team', 'qa')], strategy='merge', deletevar=None)
+  payload = mock_client.post.call_args.args[1]
+  assert json.loads(payload['OtherDockerConfig'])['PodLabels'] == {'team': 'qa'}
+
+
+@pytest.mark.unit
+def test_update_pod_label_deletevar_missing_label_raises(mocker):
+  """deleting a label that is not set raises a DuploError naming it."""
+  svc, mock_client = make_waiting(mocker)
+  svc.find.return_value['Template']['OtherDockerConfig'] = '{}'
+  with pytest.raises(DuploError, match='team'):
+    svc.update_pod_label('widget', setvar=None, strategy='merge', deletevar=['team'])
 
 
 @pytest.mark.unit
