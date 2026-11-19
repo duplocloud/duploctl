@@ -279,3 +279,103 @@ class TestHelpdeskAgentTicket:
         execute_test(workspaces.delete, id=self.workspace_id, force=True)
         with pytest.raises((DuploNotFound, DuploError)):
             workspaces.find(self.workspace_name)
+
+
+ADMIN_RECORDS = [
+    pytest.param(
+        "quota",
+        {"type": "Daily", "limitUsd": 1, "bufferPercentage": 10},
+        {"limitUsd": 2},
+        id="quota"),
+    pytest.param(
+        "command_policy",
+        {"allowList": ["echo *"], "blockList": ["rm *"]},
+        {"allowList": ["echo *", "ls *"]},
+        id="command_policy"),
+    pytest.param(
+        "persona",
+        {"description": "duploctl integration test persona", "skillIds": []},
+        {"description": "duploctl integration test persona (updated)"},
+        id="persona"),
+]
+
+
+@pytest.mark.integration
+@pytest.mark.helpdesk
+@pytest.mark.usefixtures("helpdesk_ready")
+class TestHelpdeskAdmin:
+    """AI HelpDesk admin records against a live helpdesk.
+
+    Admin records are global to the helpdesk, so each one gets a
+    run-unique name, is never attached to anything other than this
+    suite's own scratch workspace, and is deleted in a ``finally`` so a
+    failed step cannot leave it behind.
+    """
+
+    suffix = random.randint(1000, 9999)
+
+    @pytest.mark.order(340)
+    @pytest.mark.parametrize("kind,body,change", ADMIN_RECORDS)
+    def test_admin_record_lifecycle(self, duplo, kind, body, change):
+        """Create, find, update, apply in place, delete."""
+        svc = duplo.load(kind)
+        name = f"dctl-hd-{kind.replace('_', '-')}-{self.suffix}"
+        body = {"name": name, **body}
+        created = execute_test(svc.create, body=body)
+        rid = created.get("id")
+        assert rid, f"create returned no id: {created}"
+        try:
+            assert execute_test(svc.find, name.upper())["id"] == rid
+            assert execute_test(svc.find, id=rid)["name"] == name
+
+            execute_test(svc.update, body={**body, **change})
+            found = execute_test(svc.find, id=rid)
+            for key, value in change.items():
+                assert found[key] == value
+
+            applied = execute_test(svc.apply, body=body)
+            assert applied.get("id") == rid
+            matches = [r for r in execute_test(svc.list)
+                       if r.get("name") == name]
+            assert len(matches) == 1
+        finally:
+            svc.delete(id=rid)
+        with pytest.raises((DuploNotFound, DuploError)):
+            svc.find(id=rid)
+
+    @pytest.mark.order(341)
+    def test_command_policy_mapping_on_scratch_workspace(self, duplo):
+        """A policy can be bound to a workspace and unbound again."""
+        workspaces = duplo.load("workspace")
+        policies = duplo.load("command_policy")
+        mappings = duplo.load("command_policy_mapping")
+        name = f"dctl-hd-map-{self.suffix}"
+        workspace_id = policy_id = mapping_id = None
+        try:
+            workspace_id = execute_test(workspaces.create, body={
+                "name": name,
+                "description": "duploctl integration test workspace",
+            })["id"]
+            policy_id = execute_test(policies.create, body={
+                "name": name, "allowList": ["echo *"], "blockList": [],
+            })["id"]
+            mapping = execute_test(mappings.create, body={
+                "name": name,
+                "policyId": policy_id,
+                "level": "Workspace",
+                "targetIds": [workspace_id],
+            })
+            mapping_id = mapping.get("id")
+            assert mapping_id, f"create returned no id: {mapping}"
+            found = execute_test(mappings.find, id=mapping_id)
+            assert found["policyId"] == policy_id
+            assert found["targetIds"] == [workspace_id]
+        finally:
+            if mapping_id:
+                mappings.delete(id=mapping_id)
+            if policy_id:
+                policies.delete(id=policy_id)
+            if workspace_id:
+                workspaces.delete(id=workspace_id, force=True)
+        with pytest.raises((DuploNotFound, DuploError)):
+            mappings.find(id=mapping_id)
