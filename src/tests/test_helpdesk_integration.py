@@ -127,3 +127,155 @@ class TestHelpdeskReadOnly:
         duplo.workspaceid = workspaces[0]["id"]
         tickets = execute_test(duplo.load("ticket").list)
         assert isinstance(tickets, list)
+
+
+@pytest.mark.integration
+@pytest.mark.helpdesk
+@pytest.mark.usefixtures("helpdesk_ready")
+class TestHelpdeskAgentTicket:
+    """AI HelpDesk agent and ticket lifecycle against a live helpdesk.
+
+    Two scratch agents are attached to a scratch workspace and one
+    ticket is moved through reassign, status and close. The ticket is
+    created without a message, so no agent is ever called. The teardown
+    steps depend only on the matching create, so they still run when a
+    step in between fails.
+    """
+
+    suffix = random.randint(1000, 9999)
+    workspace_name = f"dctl-hd-at-{suffix}"
+    agent_names = [f"dctl-hd-at-{suffix}-a", f"dctl-hd-at-{suffix}-b"]
+    workspace_id = None
+    agent_ids = []
+    ticket_name = None
+
+    @staticmethod
+    def _agent_body(name, description="duploctl integration test agent"):
+        return {
+            "name": name,
+            "description": description,
+            "endpoint": "http://dctl-hd-agent.invalid:8000",
+        }
+
+    def _tickets(self, duplo):
+        duplo.workspaceid = self.workspace_id
+        return duplo.load("ticket")
+
+    @pytest.mark.dependency(name="hd_at_workspace", scope="session")
+    @pytest.mark.order(320)
+    def test_create_workspace(self, duplo):
+        created = execute_test(duplo.load("workspace").create, body={
+            "name": self.workspace_name,
+            "description": "duploctl integration test workspace",
+        })
+        assert created.get("id"), f"create returned no id: {created}"
+        type(self).workspace_id = created["id"]
+
+    @pytest.mark.dependency(name="hd_at_agents",
+                            depends=["hd_at_workspace"], scope="session")
+    @pytest.mark.order(321)
+    def test_create_agents(self, duplo):
+        agents = duplo.load("agent")
+        ids = []
+        for name in self.agent_names:
+            created = execute_test(agents.create, body=self._agent_body(name))
+            assert created.get("id"), f"create returned no id: {created}"
+            ids.append(created["id"])
+        type(self).agent_ids = ids
+
+    @pytest.mark.dependency(depends=["hd_at_agents"], scope="session")
+    @pytest.mark.order(322)
+    def test_update_and_apply_agent(self, duplo):
+        """Update and apply both change the record in place."""
+        agents = duplo.load("agent")
+        name = self.agent_names[0]
+        updated = execute_test(
+            agents.update, body=self._agent_body(name, "updated"))
+        assert updated.get("id") == self.agent_ids[0]
+        execute_test(agents.apply, body=self._agent_body(name, "applied"))
+        found = execute_test(agents.find, name)
+        assert found["id"] == self.agent_ids[0]
+        assert found["description"] == "applied"
+
+    @pytest.mark.dependency(name="hd_at_attached",
+                            depends=["hd_at_agents"], scope="session")
+    @pytest.mark.order(323)
+    def test_add_agents_to_workspace(self, duplo):
+        workspaces = duplo.load("workspace")
+        for name in self.agent_names:
+            execute_test(workspaces.add_agent,
+                         id=self.workspace_id, agent_name=name)
+        found = execute_test(workspaces.find, id=self.workspace_id)
+        assert set(self.agent_ids) <= set(found.get("agentIds", []))
+
+    @pytest.mark.dependency(name="hd_at_ticket",
+                            depends=["hd_at_attached"], scope="session")
+    @pytest.mark.order(324)
+    def test_create_ticket(self, duplo):
+        tickets = self._tickets(duplo)
+        created = execute_test(
+            tickets.create_ticket,
+            title=f"{self.workspace_name} integration ticket",
+            agent_id=self.agent_ids[0])
+        assert created.get("ticketname"), f"no ticket name: {created}"
+        type(self).ticket_name = created["ticketname"]
+        names = [t.get("name") for t in execute_test(tickets.list)]
+        assert self.ticket_name in names
+
+    @pytest.mark.dependency(depends=["hd_at_ticket"], scope="session")
+    @pytest.mark.order(325)
+    def test_reassign_ticket(self, duplo):
+        tickets = self._tickets(duplo)
+        before = execute_test(tickets.assignee, self.ticket_name)
+        assert before["id"] == self.agent_ids[0]
+        execute_test(tickets.reassign, self.ticket_name,
+                     agent_name=self.agent_names[1])
+        after = execute_test(tickets.assignee, self.ticket_name)
+        assert after["id"] == self.agent_ids[1]
+
+    @pytest.mark.dependency(depends=["hd_at_ticket"], scope="session")
+    @pytest.mark.order(326)
+    def test_set_status_and_close_ticket(self, duplo):
+        tickets = self._tickets(duplo)
+        execute_test(tickets.set_status, self.ticket_name,
+                     status="inProgress")
+        execute_test(tickets.close, self.ticket_name)
+        found = execute_test(tickets.find, self.ticket_name)
+        statuses = found["history"]["statuses"]
+        assert [s["status"] for s in statuses][-2:] == ["inProgress", "closed"]
+        assert statuses[-1]["disposition"] == "resolved"
+
+    @pytest.mark.dependency(depends=["hd_at_ticket"], scope="session")
+    @pytest.mark.order(330)
+    def test_delete_ticket(self, duplo):
+        tickets = self._tickets(duplo)
+        execute_test(tickets.delete, self.ticket_name)
+        names = [t.get("name") for t in execute_test(tickets.list)]
+        assert self.ticket_name not in names
+
+    @pytest.mark.dependency(depends=["hd_at_attached"], scope="session")
+    @pytest.mark.order(331)
+    def test_remove_agents_from_workspace(self, duplo):
+        workspaces = duplo.load("workspace")
+        for name in self.agent_names:
+            execute_test(workspaces.remove_agent,
+                         id=self.workspace_id, agent_name=name)
+        found = execute_test(workspaces.find, id=self.workspace_id)
+        assert not set(self.agent_ids) & set(found.get("agentIds", []))
+
+    @pytest.mark.dependency(depends=["hd_at_agents"], scope="session")
+    @pytest.mark.order(332)
+    def test_delete_agents(self, duplo):
+        agents = duplo.load("agent")
+        for agent_id in self.agent_ids:
+            execute_test(agents.delete, id=agent_id)
+        left = [a.get("name") for a in execute_test(agents.list)]
+        assert not set(self.agent_names) & set(left)
+
+    @pytest.mark.dependency(depends=["hd_at_workspace"], scope="session")
+    @pytest.mark.order(333)
+    def test_delete_workspace(self, duplo):
+        workspaces = duplo.load("workspace")
+        execute_test(workspaces.delete, id=self.workspace_id, force=True)
+        with pytest.raises((DuploNotFound, DuploError)):
+            workspaces.find(self.workspace_name)
