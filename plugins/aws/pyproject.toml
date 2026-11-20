@@ -3,7 +3,8 @@ name = "duploctl-aws"
 description = "AWS Helper functions for Duploctl"
 readme = "README.md"
 dynamic = ["version"]
-requires-python = ">=3.10.0"
+requires-python = ">=3.11"
+license = "MIT"
 keywords = [
   "duplocloud",
   "duplo",
@@ -13,7 +14,6 @@ keywords = [
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent"
 ]
 authors = [
@@ -27,10 +27,8 @@ dependencies = [
 ]
 [build-system]
 requires = [
-  "setuptools>=42",
-  "setuptools_scm[toml]>=6.2",
-  "wheel",
-  "build"
+  "setuptools>=84.1.0",
+  "setuptools_scm[toml]>=8"
 ]
 build-backend = "setuptools.build_meta"
 

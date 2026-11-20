@@ -75,7 +75,8 @@ def _inject_tenant_scope(cls):
         rp = info.get("ResourceNamePrefix")
         if isinstance(rp, str) and rp:
           resource_prefix = rp
-      except Exception:
+      # best effort: portals without the system info fall back to default
+      except Exception:  # noqa: S110
         pass
       self._prefix = f"{resource_prefix}-{self.tenant['AccountName']}-"
     return self._prefix
