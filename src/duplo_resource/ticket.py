@@ -507,6 +507,58 @@ class DuploTicket(DuploResource):
         disposition=disposition or "resolved")
 
   @Command()
+  def update(self,
+             body: args.BODY = None,
+             name: args.NAME = None,
+             id: args.ID = None) -> dict:
+    """Update an AI HelpDesk ticket.
+
+    Only some fields are applied: ``priority``, ``category``, ``origin``,
+    ``humanOwner``, ``aiAgentId``, ``requestApproval`` and
+    ``ticketContextForAgent``. Everything else in the body is ignored,
+    including the title and the status (use ``set_status`` or ``close``
+    for the status). Fields left out of the body keep their stored value.
+
+    ``ticketContextForAgent`` is replaced as a whole when it is present,
+    so include every scope, skill and persona the ticket should keep.
+
+    Usage: CLI Usage
+      ```sh
+      duploctl ticket update <name> -f ticket.yaml -W <workspace>
+      ```
+
+    Args:
+      body: The ticket fields to change.
+      name: The ticket name/identifier (e.g. ``DEVOPS-42``).
+      id: Alias for the ticket name — the backend resolves tickets by
+        their generated name only, so pass the same ``DEVOPS-42`` style
+        identifier here, not an entity id.
+
+    Returns:
+      resource: The ticket object as stored after the update.
+
+    Raises:
+      DuploError: If no body or no ticket identifier is given.
+    """
+    if not isinstance(body, dict):
+      raise DuploError("A request body (-f) is required")
+    identifier = id or name
+    if not identifier:
+      raise DuploError("Either a ticket name or --id is required")
+    if not body.get("origin"):
+      # The backend resets the origin to its default when the body has
+      # none, so the stored one is sent back.
+      origin = self.find(name=identifier).get("origin")
+      if origin:
+        body = {**body, "origin": origin}
+    self.client.put(
+        f"tickets/{self.workspace_id}/{quote_plus(identifier)}", body)
+    # The update endpoint answers with the ticket as it was before the
+    # change, so the stored record is read back past the GET cache.
+    self.client.disable_get_cache()
+    return self.find(name=identifier)
+
+  @Command()
   def delete(self,
              name: args.NAME = None,
              id: args.ID = None) -> dict:
