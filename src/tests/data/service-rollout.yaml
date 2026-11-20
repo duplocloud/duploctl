@@ -1,0 +1,10 @@
+Name: duploctl-rollout
+DockerImage: nginx:1.27
+Replicas: 2
+Cloud: 0
+AgentPlatform: 7
+IsLBSyncedDeployment: true
+NetworkId: default
+OtherDockerConfig: >-
+  {"DeploymentStrategy":{"RollingUpdate":{"MaxSurge":"100%","MaxUnavailable":0}},
+  "ReadinessProbe":{"HttpGet":{"Path":"/","Port":80},"InitialDelaySeconds":20,"PeriodSeconds":5}}

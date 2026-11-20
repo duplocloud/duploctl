@@ -1,6 +1,10 @@
+import json
+from datetime import datetime, timezone
+
 import pytest
 
 from duplo_resource.service import DuploService
+from duplo_resource.service_rollout import RolloutBaseline
 from duplocloud.errors import DuploError, DuploNotFound
 
 
@@ -240,3 +244,164 @@ def test_eks_404_sidecar_raises_without_v2(mocker):
     "Failed to update container images for service 'widget': "
     "One or more Init / Additional Containers could not be found")
   mock_client.post.assert_not_called()
+
+
+T0 = datetime(2026, 11, 18, 20, 0, 0, tzinfo=timezone.utc)
+DATE = {"Date": "Wed, 18 Nov 2026 20:00:00 GMT"}
+
+
+def pod(rs):
+  return {
+    "Name": "widget",
+    "ControlledBy": {
+      "NativeId": rs, "QualifiedType": "kubernetes:apps/v1/ReplicaSet"},
+  }
+
+
+def make_waiting(mocker, platform=7, rs=("rs-old",)):
+  """A service with wait on, pods() and _wait mocked."""
+  svc, mock_client = make_service(mocker, platform=platform)
+  mock_client.wait = True
+  mocker.patch.object(svc, 'pods', return_value=[pod(r) for r in rs])
+  mocker.patch.object(svc, '_wait')
+  mock_client.put.return_value.json.return_value = service_body(
+    'widget', 'widget:v1', platform)
+  mock_client.put.return_value.headers = DATE
+  mock_client.post.return_value.headers = DATE
+  return svc, mock_client
+
+
+@pytest.mark.unit
+def test_update_image_baseline_taken_before_put(mocker):
+  """The ReplicaSets are read before the request and the time comes from its response."""
+  svc, mock_client = make_waiting(mocker)
+  calls = mocker.Mock()
+  calls.attach_mock(svc.pods, 'pods')
+  calls.attach_mock(mock_client.put, 'put')
+  svc.update_image('widget', 'widget:v1')
+  assert [c[0] for c in calls.mock_calls][:2] == ['pods', 'put']
+  baseline = svc._wait.call_args.kwargs['baseline']
+  assert baseline == RolloutBaseline(frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
+def test_update_image_v2_takes_baseline(mocker):
+  """The non-EKS V2 path takes a baseline before its post."""
+  svc, mock_client = make_waiting(mocker, platform=0)
+  calls = mocker.Mock()
+  calls.attach_mock(svc.pods, 'pods')
+  calls.attach_mock(mock_client.post, 'post')
+  svc.update_image('widget', 'widget:v1')
+  assert [c[0] for c in calls.mock_calls][:2] == ['pods', 'post']
+  assert svc._wait.call_args.kwargs['baseline'] == RolloutBaseline(
+    frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
+def test_update_image_v2_fallback_takes_baseline(mocker):
+  """A 404 from V3 falls back to V2, which takes its own baseline."""
+  svc, mock_client = make_waiting(mocker)
+  mock_client.put.side_effect = DuploNotFound('containerimage')
+  svc.update_image('widget', 'widget:v1')
+  assert svc._wait.call_args.kwargs['baseline'] == RolloutBaseline(
+    frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
+def test_bulk_update_image_baseline_per_service(mocker):
+  """Each service gets its own ReplicaSets and the shared bulk response time."""
+  svc, mock_client = make_waiting(mocker)
+  mocker.patch.object(
+    svc, 'pods', side_effect=[[pod('rs-a')], [pod('rs-b')]])
+  svc.bulk_update_image([('a', 'a:1'), ('b', 'b:1')])
+  baselines = [c.kwargs['baseline'] for c in svc._wait.call_args_list]
+  assert baselines == [
+    RolloutBaseline(frozenset({'rs-a'}), T0),
+    RolloutBaseline(frozenset({'rs-b'}), T0),
+  ]
+
+
+@pytest.mark.unit
+def test_restart_waits_for_rollover(mocker):
+  """Restart expects a rollover and carries the baseline."""
+  svc, mock_client = make_waiting(mocker)
+  calls = mocker.Mock()
+  calls.attach_mock(svc.pods, 'pods')
+  calls.attach_mock(mock_client.post, 'post')
+  svc.restart('widget')
+  assert [c[0] for c in calls.mock_calls][:2] == ['pods', 'post']
+  assert svc._wait.call_args.kwargs['restart'] is True
+  assert svc._wait.call_args.kwargs['baseline'] == RolloutBaseline(
+    frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
+def test_update_env_baseline_before_post(mocker):
+  """update_env reads pods before posting and no longer uses current_replicaset."""
+  svc, mock_client = make_waiting(mocker)
+  svc.find.return_value['Template']['OtherDockerConfig'] = '{"Env": []}'
+  spy = mocker.patch.object(svc, 'current_replicaset')
+  calls = mocker.Mock()
+  calls.attach_mock(svc.pods, 'pods')
+  calls.attach_mock(mock_client.post, 'post')
+  svc.update_env('widget', setvar=[('A', 'b')], strategy='merge', deletevar=None)
+  assert [c[0] for c in calls.mock_calls][:2] == ['pods', 'post']
+  spy.assert_not_called()
+  assert svc._wait.call_args.kwargs['baseline'] == RolloutBaseline(
+    frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
+def test_update_pod_label_baseline_before_post(mocker):
+  """update_pod_label reads pods before posting and no longer uses current_replicaset."""
+  svc, mock_client = make_waiting(mocker)
+  svc.find.return_value['Template']['OtherDockerConfig'] = '{"PodLabels": {"a": "1"}}'
+  spy = mocker.patch.object(svc, 'current_replicaset')
+  calls = mocker.Mock()
+  calls.attach_mock(svc.pods, 'pods')
+  calls.attach_mock(mock_client.post, 'post')
+  svc.update_pod_label('widget', setvar=[('b', '2')], strategy='merge', deletevar=None)
+  assert [c[0] for c in calls.mock_calls][:2] == ['pods', 'post']
+  spy.assert_not_called()
+  assert svc._wait.call_args.kwargs['baseline'] == RolloutBaseline(
+    frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
+def test_update_pod_label_merge_without_existing_labels(mocker):
+  """merge onto a service with no PodLabels creates them instead of raising TypeError."""
+  svc, mock_client = make_waiting(mocker)
+  svc.find.return_value['Template']['OtherDockerConfig'] = '{}'
+  svc.update_pod_label('widget', setvar=[('team', 'qa')], strategy='merge', deletevar=None)
+  payload = mock_client.post.call_args.args[1]
+  assert json.loads(payload['OtherDockerConfig'])['PodLabels'] == {'team': 'qa'}
+
+
+@pytest.mark.unit
+def test_update_pod_label_deletevar_missing_label_raises(mocker):
+  """deleting a label that is not set raises a DuploError naming it."""
+  svc, mock_client = make_waiting(mocker)
+  svc.find.return_value['Template']['OtherDockerConfig'] = '{}'
+  with pytest.raises(DuploError, match='team'):
+    svc.update_pod_label('widget', setvar=None, strategy='merge', deletevar=['team'])
+
+
+@pytest.mark.unit
+def test_update_baseline_replaces_current_replicaset(mocker):
+  """update takes the baseline instead of reading the current ReplicaSet."""
+  svc, mock_client = make_waiting(mocker)
+  spy = mocker.patch.object(svc, 'current_replicaset')
+  svc.update('widget', body={'Name': 'widget', 'Template': {}})
+  spy.assert_not_called()
+  assert svc._wait.call_args.kwargs['baseline'] == RolloutBaseline(
+    frozenset({'rs-old'}), T0)
+
+
+@pytest.mark.unit
+def test_no_baseline_without_wait(mocker):
+  """Without --wait no pods are read."""
+  svc, mock_client = make_waiting(mocker)
+  mock_client.wait = False
+  svc.update_image('widget', 'widget:v1')
+  svc.pods.assert_not_called()
+  svc._wait.assert_not_called()
