@@ -15,6 +15,7 @@ and implementation detail belong in the PR, not here.
 ### Added
 
 - AI HelpDesk integration suite covers the agent and ticket lifecycle and the admin records (quota, command policy, persona, command policy mapping)
+- AI HelpDesk integration suite covers the ConfigMap and Secret lifecycle inside a long-lived namespace named by `DUPLO_HD_K8S_WORKSPACE` and `DUPLO_HD_K8S_NAMESPACE`; the tests skip when the two are unset
 - `hd_cronjob update_image <name> <image>` — updates the first container image of an AI HelpDesk CronJob's job template, mirroring the core platform's `cronjob update_image`. Implemented as a fetch-patch-update of the record (the backend has no dedicated cronjob update-image endpoint); honors `--wait`. Accepts `--id` to target one of several cronjobs sharing a name across namespaces.
 - `hd_job create --wait` now waits for the Kubernetes Job to run to completion (gating on the Job's `Complete` condition and failing terminally on a `Failed` condition with its message), matching the core platform's `job create --wait` semantics.
 - New `aws_credentials` resource — mints just-in-time AWS credentials from an AI HelpDesk (the helpdesk counterpart to `jit aws`). `list` shows the workspace's AWS cloud scopes; `find` mints STS credentials for a scope by name/id (defaulting to the workspace's only AWS scope) or, with `--rg`, for the IAM role attached to a resource group. Returns the access key, secret, session token, region, expiry, and a federated console URL.

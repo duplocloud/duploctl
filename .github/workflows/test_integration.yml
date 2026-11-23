@@ -183,6 +183,8 @@ jobs:
     env:
       DUPLO_HOST: ${{ vars.DUPLO_HOST }}
       DUPLO_TOKEN: ${{ secrets.DUPLO_TOKEN }}
+      DUPLO_HD_K8S_WORKSPACE: ${{ vars.DUPLO_HD_K8S_WORKSPACE }}
+      DUPLO_HD_K8S_NAMESPACE: ${{ vars.DUPLO_HD_K8S_NAMESPACE }}
     strategy:
       fail-fast: false
       matrix:

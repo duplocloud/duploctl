@@ -1,3 +1,4 @@
+import os
 import random
 import pytest
 from duplocloud.errors import DuploError, DuploNotFound
@@ -379,3 +380,131 @@ class TestHelpdeskAdmin:
                 workspaces.delete(id=workspace_id, force=True)
         with pytest.raises((DuploNotFound, DuploError)):
             mappings.find(id=mapping_id)
+
+
+K8S_WORKSPACE_ENV = "DUPLO_HD_K8S_WORKSPACE"
+K8S_NAMESPACE_ENV = "DUPLO_HD_K8S_NAMESPACE"
+
+K8S_RECORDS = [
+    pytest.param(
+        "hd_configmap", "cm",
+        {"data": {"greeting": "hello"}},
+        {"data": {"greeting": "hello", "farewell": "bye"}},
+        id="configmap"),
+    pytest.param(
+        "hd_secret", "secret",
+        {"type": "Opaque", "stringData": {"greeting": "hello"}},
+        {"type": "Opaque",
+         "stringData": {"greeting": "hello", "farewell": "bye"}},
+        id="secret"),
+]
+
+
+@pytest.fixture(scope="class")
+def k8s_target(duplo, helpdesk_ready):
+    """The long-lived namespace the Kubernetes records are created in.
+
+    The workspace, environment, resource group and namespace are
+    provisioned once by hand and named through the environment. The
+    class skips when they are not named or the namespace is not ready.
+    """
+    workspace = os.getenv(K8S_WORKSPACE_ENV)
+    namespace = os.getenv(K8S_NAMESPACE_ENV)
+    if not (workspace and namespace):
+        pytest.skip(f"{K8S_WORKSPACE_ENV} and {K8S_NAMESPACE_ENV} "
+                    "are not set")
+    try:
+        workspace_id = duplo.load("workspace").find(workspace)["id"]
+        duplo.workspaceid = workspace_id
+        record = duplo.load("namespace").find(namespace)
+    except DuploError as e:
+        pytest.skip(f"Namespace '{namespace}' in workspace "
+                    f"'{workspace}' is not available: {e}")
+    if record.get("status") != "Complete":
+        pytest.skip(f"Namespace '{namespace}' has status "
+                    f"'{record.get('status')}'")
+    spec = record["spec"]
+    return {
+        "workspace_id": workspace_id,
+        "namespace": namespace,
+        "spec": {
+            "namespaceName": namespace,
+            "resourceGroupId": spec["resourceGroupId"],
+            "environmentId": spec["environmentId"],
+            "scopeIds": spec.get("scopeIds", []),
+            "mode": "Create",
+            "provisioner": {"type": "Cli"},
+        },
+    }
+
+
+@pytest.mark.integration
+@pytest.mark.helpdesk
+@pytest.mark.usefixtures("helpdesk_ready")
+class TestHelpdeskK8s:
+    """AI HelpDesk Kubernetes records against a live cluster.
+
+    Every record is created inside one long-lived namespace that this
+    suite never changes or deletes. Each record gets a run-unique name
+    and is deleted in a ``finally``, which also deprovisions it from
+    the cluster.
+    """
+
+    suffix = random.randint(1000, 9999)
+
+    @pytest.fixture(autouse=True)
+    def _in_namespace(self, duplo, k8s_target):
+        """Select the namespace's workspace and wait on provisioning."""
+        wait = duplo.wait
+        duplo.workspaceid = k8s_target["workspace_id"]
+        duplo.wait = True
+        yield
+        duplo.wait = wait
+
+    @staticmethod
+    def _body(target, name, manifest):
+        return {
+            "name": name,
+            "spec": {
+                **target["spec"],
+                "k8sResource": {
+                    "metadata": {"name": name,
+                                 "namespace": target["namespace"]},
+                    **manifest,
+                },
+            },
+        }
+
+    @pytest.mark.order(360)
+    @pytest.mark.parametrize("kind,short,manifest,change", K8S_RECORDS)
+    def test_k8s_record_lifecycle(self, duplo, k8s_target, kind, short,
+                                  manifest, change):
+        """Create, find, update, apply in place, delete."""
+        svc = duplo.load(kind)
+        name = f"dctl-hd-{short}-{self.suffix}"
+        body = self._body(k8s_target, name, manifest)
+        changed = self._body(k8s_target, name, change)
+        created = execute_test(svc.create, body=body)
+        rid = created.get("id")
+        assert rid, f"create returned no id: {created}"
+        try:
+            found = execute_test(svc.find, name.upper())
+            assert found["id"] == rid
+            assert found["status"] == "Complete"
+            live = execute_test(svc.find, id=rid)["result"]["k8sResource"]
+            assert live["metadata"]["namespace"] == k8s_target["namespace"]
+            assert set(live["data"]) == {"greeting"}
+
+            execute_test(svc.update, body=changed)
+            live = execute_test(svc.find, id=rid)["result"]["k8sResource"]
+            assert set(live["data"]) == {"greeting", "farewell"}
+
+            applied = execute_test(svc.apply, body=changed)
+            assert applied.get("id") == rid
+            matches = [r for r in execute_test(svc.list)
+                       if r.get("name") == name]
+            assert len(matches) == 1
+        finally:
+            svc.delete(id=rid)
+        with pytest.raises((DuploNotFound, DuploError)):
+            svc.find(id=rid)

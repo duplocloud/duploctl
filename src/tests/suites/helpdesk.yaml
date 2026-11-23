@@ -7,6 +7,11 @@
 # dahp_ API token). Tests skip themselves (helpdesk_ready fixture)
 # when no AI HelpDesk is reachable.
 #
+# The Kubernetes record tests create ConfigMaps and Secrets inside a
+# long-lived namespace that is provisioned once by hand. They run only
+# when the environment names it through the DUPLO_HD_K8S_WORKSPACE and
+# DUPLO_HD_K8S_NAMESPACE variables, and skip otherwise.
+#
 # Run locally:
 #   pytest src -m "integration and helpdesk" --ignore=src/tests/test_portal.py
 infra_type: duplo
