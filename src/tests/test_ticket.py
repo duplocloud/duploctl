@@ -379,6 +379,69 @@ def test_close_defaults_to_resolved(mocker):
 
 
 @pytest.mark.unit
+def test_update_puts_body_and_returns_stored_ticket(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    before = {"name": _TICKET_NAME, "origin": "duploctl"}
+    after = {"name": _TICKET_NAME, "origin": "duploctl", "priority": "high"}
+    client = _make_client(mocker, ticket, get_responses=[before, after])
+    put_mock = mocker.MagicMock()
+    put_mock.json.return_value = before
+    client.put.return_value = put_mock
+
+    result = ticket.update(name=_TICKET_NAME, body={"priority": "high"})
+
+    url, body = client.put.call_args[0]
+    assert url.endswith(f"tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
+    assert body == {"priority": "high", "origin": "duploctl"}
+    client.disable_get_cache.assert_called_once()
+    assert result == after
+
+
+@pytest.mark.unit
+def test_update_keeps_origin_from_body(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket, get_responses=[{}])
+
+    ticket.update(name=_TICKET_NAME, body={"origin": "slack"})
+
+    assert client.put.call_args[0][1] == {"origin": "slack"}
+    client.get.assert_called_once()
+
+
+@pytest.mark.unit
+def test_update_accepts_id(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket, get_responses=[{}, {}])
+
+    ticket.update(id=_TICKET_NAME, body={"category": "infra"})
+
+    assert client.put.call_args[0][0].endswith(
+        f"tickets/{_WORKSPACE_ID}/{_TICKET_NAME}")
+
+
+@pytest.mark.unit
+def test_update_requires_body(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+
+    with pytest.raises(DuploError, match="body"):
+        ticket.update(name=_TICKET_NAME)
+
+    client.put.assert_not_called()
+
+
+@pytest.mark.unit
+def test_update_requires_identifier(mocker):
+    ticket, _, _ = _make_ticket(mocker)
+    client = _make_client(mocker, ticket)
+
+    with pytest.raises(DuploError, match="name or --id"):
+        ticket.update(body={"priority": "high"})
+
+    client.put.assert_not_called()
+
+
+@pytest.mark.unit
 def test_delete(mocker):
     ticket, wksp_svc, _ = _make_ticket(mocker)
     client = _make_client(mocker, ticket)
