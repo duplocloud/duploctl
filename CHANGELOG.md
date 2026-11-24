@@ -15,6 +15,7 @@ and implementation detail belong in the PR, not here.
 ### Added
 
 - AI HelpDesk integration suite covers the agent and ticket lifecycle and the admin records (quota, command policy, persona, command policy mapping)
+- AI HelpDesk integration suite covers the ConfigMap and Secret lifecycle inside a long-lived namespace named by `DUPLO_HD_K8S_WORKSPACE` and `DUPLO_HD_K8S_NAMESPACE`; the tests skip when the two are unset
 - `ticket update <name> -f ticket.yaml` — changes an AI HelpDesk ticket's priority, category, origin, human owner, agent, approval setting or agent context.
 - `hd_cronjob update_image <name> <image>` — updates the first container image of an AI HelpDesk CronJob's job template, mirroring the core platform's `cronjob update_image`. Implemented as a fetch-patch-update of the record (the backend has no dedicated cronjob update-image endpoint); honors `--wait`. Accepts `--id` to target one of several cronjobs sharing a name across namespaces.
 - `hd_job create --wait` now waits for the Kubernetes Job to run to completion (gating on the Job's `Complete` condition and failing terminally on a `Failed` condition with its message), matching the core platform's `job create --wait` semantics.
