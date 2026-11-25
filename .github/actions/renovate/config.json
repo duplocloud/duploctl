@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-global-schema.json",
+  "globalExtends": [
+    "config:recommended"
+  ],
+  "onboarding": false,
+  "requireConfig": "optional",
+  "platformCommit": "enabled",
+  "dependencyDashboardApproval": true,
+  "dependencyDashboardLabels": [
+    "dependency-dashboard"
+  ],
+  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "dependencyDashboardApproval": false,
+    "minimumReleaseAge": null
+  },
+  "minimumReleaseAge": "3 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "abandonmentThreshold": "1 year",
+  "prHourlyLimit": 0,
+  "labels": [
+    "dependencies",
+    "no changelog"
+  ],
+  "customManagers": [
+    {
+      "description": "A version on the line below a `# renovate: datasource=... depName=...` comment: tool versions passed to actions, and the default Python version where no built-in manager sees it (the dockerfile manager already follows ARG PY_VERSION)",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)\\.github/.+\\.ya?ml$/",
+        "/(^|/)docker-compose\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "#\\s*renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\s*\\n[^\\n]*?(?:[:=]\\s*[\"']?|:-)(?<currentValue>\\d[^\\s\"'}]*)"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "TruffleHog's action and the binary version it is told to run move together",
+      "matchPackageNames": [
+        "trufflesecurity/trufflehog"
+      ],
+      "groupName": "trufflehog"
+    },
+    {
+      "description": "The default Python version is set in several places; move them as one",
+      "matchManagers": [
+        "custom.regex",
+        "dockerfile"
+      ],
+      "matchPackageNames": [
+        "python"
+      ],
+      "groupName": "default python version"
+    }
+  ]
+}

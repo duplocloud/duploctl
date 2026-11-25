@@ -28,22 +28,27 @@ on:
         description: GitHub App private key
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   update_tap:
     name: Homebrew
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
 
     - name: Setup
       id: setup
-      uses: duplocloud/duploctl/.github/actions/setup@main
+      uses: $/.github/actions/setup
       with:
         ref: ${{ inputs.tag }}
         install: "--editable ."
-        app-id: ${{ vars.GH_APP_ID }}
+        client-id: ${{ vars.GH_CLIENT_ID }}
         private-key: ${{ secrets.GH_APP_KEY }}
         repositories: homebrew-tap
-    
+        # the formula is committed to the tap through the API
+        contents: write
+
     - name: Freeze Requirements
       run: pip freeze --exclude-editable > requirements.txt
 
@@ -51,9 +56,12 @@ jobs:
       run: pip install .[build]
 
     - name: Gen Formula
+      env:
+        TAG: ${{ inputs.tag }}
+        PUSH: ${{ inputs.push }}
+        TOKEN: ${{ steps.setup.outputs.token }}
       run: >-
-        ./scripts/formula.py 
-        --tag ${{ inputs.tag }}
-        --push ${{ inputs.push }} 
-        --token ${{ steps.setup.outputs.token }}
-      
+        ./scripts/formula.py
+        --tag "$TAG"
+        --push "$PUSH"
+        --token "$TOKEN"

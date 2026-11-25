@@ -1,0 +1,57 @@
+name: Renovate
+
+# New versions of everything this repo pins (pyproject, actions, runner
+# images, the Dockerfile, the devcontainer, and the versions marked with a
+# `# renovate:` comment) on the Dependency Dashboard issue. Ticking a box
+# there opens its PR. Config: .github/actions/renovate/config.json.
+
+on:
+  # a box ticked on the dashboard
+  issues:
+    types:
+    - edited
+  push:
+    branches:
+    - main
+  schedule:
+  - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    name: Renovate
+    # Only the dashboard, and only a person's edit: Renovate rewrites the
+    # issue at the end of every run as the App, which would start the next.
+    if: >-
+      github.event_name != 'issues' ||
+      (contains(github.event.issue.labels.*.name, 'dependency-dashboard') &&
+      github.event.sender.type != 'Bot')
+    runs-on: ubuntu-26.04
+    # On the job, not the workflow: a skipped bot-edit run would otherwise
+    # take the one pending slot and cancel the real run queued behind it.
+    concurrency:
+      group: renovate
+      cancel-in-progress: false
+    steps:
+
+    # The same App the release workflows use, minted with what Renovate needs:
+    # workflows to bump actions, and an App (not the job token) so its PRs
+    # start the pull request checks.
+    - name: Create GitHub App Token
+      id: app-token
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ vars.GH_CLIENT_ID }}
+        private-key: ${{ secrets.GH_APP_KEY }}
+        permission-contents: write
+        permission-workflows: write
+        permission-issues: write
+        permission-pull-requests: write
+
+    - name: Renovate
+      uses: $/.github/actions/renovate
+      with:
+        token: ${{ steps.app-token.outputs.token }}

@@ -1,0 +1,11 @@
+# hadolint configuration: the Dockerfile linter run by lint.yml.
+# Docs: https://github.com/hadolint/hadolint#configure
+
+# info and style findings are advice; warning and above fail the lint (also
+# set on the action in lint.yml, whose own default would override this)
+failure-threshold: warning
+
+ignored:
+# Wants every `pip install` pinned. These install pip itself and this repo's
+# own package, whose dependency floors are set in pyproject.toml.
+- DL3013
