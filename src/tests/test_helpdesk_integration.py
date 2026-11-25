@@ -100,7 +100,7 @@ class TestHelpdeskWorkspace:
         """
         execute_test(workspace_resource.delete, id=self.workspace_id,
                      force=True)
-        with pytest.raises((DuploNotFound, DuploError)):
+        with pytest.raises(DuploNotFound):
             workspace_resource.find(self.workspace_name)
 
 
@@ -278,7 +278,7 @@ class TestHelpdeskAgentTicket:
     def test_delete_workspace(self, duplo):
         workspaces = duplo.load("workspace")
         execute_test(workspaces.delete, id=self.workspace_id, force=True)
-        with pytest.raises((DuploNotFound, DuploError)):
+        with pytest.raises(DuploNotFound):
             workspaces.find(self.workspace_name)
 
 
@@ -341,7 +341,7 @@ class TestHelpdeskAdmin:
             assert len(matches) == 1
         finally:
             svc.delete(id=rid)
-        with pytest.raises((DuploNotFound, DuploError)):
+        with pytest.raises(DuploNotFound):
             svc.find(id=rid)
 
     @pytest.mark.order(341)
@@ -372,13 +372,21 @@ class TestHelpdeskAdmin:
             assert found["policyId"] == policy_id
             assert found["targetIds"] == [workspace_id]
         finally:
-            if mapping_id:
-                mappings.delete(id=mapping_id)
-            if policy_id:
-                policies.delete(id=policy_id)
-            if workspace_id:
-                workspaces.delete(id=workspace_id, force=True)
-        with pytest.raises((DuploNotFound, DuploError)):
+            # Each delete runs on its own, so one failure cannot leave
+            # the later records behind on the helpdesk.
+            failed = []
+            for svc, rid, opts in (
+                    (mappings, mapping_id, {}),
+                    (policies, policy_id, {}),
+                    (workspaces, workspace_id, {"force": True})):
+                if not rid:
+                    continue
+                try:
+                    svc.delete(id=rid, **opts)
+                except DuploError as e:
+                    failed.append(f"{svc.kind} {rid}: {e}")
+        assert not failed, f"teardown left records behind: {failed}"
+        with pytest.raises(DuploNotFound):
             mappings.find(id=mapping_id)
 
 
@@ -431,7 +439,6 @@ def k8s_target(duplo, helpdesk_ready):
             "namespaceName": namespace,
             "resourceGroupId": spec["resourceGroupId"],
             "environmentId": spec["environmentId"],
-            "scopeIds": spec.get("scopeIds", []),
             "mode": "Create",
             "provisioner": {"type": "Cli"},
         },
@@ -506,5 +513,5 @@ class TestHelpdeskK8s:
             assert len(matches) == 1
         finally:
             svc.delete(id=rid)
-        with pytest.raises((DuploNotFound, DuploError)):
+        with pytest.raises(DuploNotFound):
             svc.find(id=rid)
