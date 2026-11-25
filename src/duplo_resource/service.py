@@ -1,5 +1,7 @@
+import dataclasses
 import time
-from json import dumps, loads
+from json import JSONDecodeError, dumps, loads
+from typing import Optional
 
 from duplocloud import args
 from duplocloud.commander import Command, Resource
@@ -11,6 +13,15 @@ from duplocloud.errors import (
   DuploStillWaiting,
 )
 from duplocloud.resource import DuploResourceV2
+from duplo_resource.service_rollout import (
+  RolloutBaseline,
+  count_rollout,
+  is_new_pod,
+  normalize_image,
+  replicasets_of,
+  server_time,
+  tracks_replicasets,
+)
 
 # Template.AgentPlatform value for EKS (Platform.EKS_LINUX in the backend).
 EKS_LINUX_PLATFORM = 7
@@ -84,6 +95,20 @@ class DuploService(DuploResourceV2):
     if cb is None:
       return None
     return cb.get("NativeId", None)
+
+  def _baseline(self, name: str) -> RolloutBaseline:
+    """Capture the ReplicaSets that own the service's pods.
+
+    Taken before a change is sent so the wait can tell old pods from new ones.
+    The start time is added from the change's response.
+
+    Args:
+      name: The name of the service.
+
+    Returns:
+      The baseline without a start time.
+    """
+    return RolloutBaseline(replicasets_of(self.pods(name)))
 
   def image_from_body(self, body: dict) -> str:
     """Get the image from a service body.
@@ -164,9 +189,10 @@ class DuploService(DuploResourceV2):
       body = self.find(name)
     # before patching, save the original body if we need to wait
     old = None
+    baseline = None
     if self.duplo.wait:
       old = self.find(name) # should use the cache
-      old["Replicaset"] = self.current_replicaset(name)
+      baseline = self._baseline(name)
     if patches:
       body = self.duplo.jsonpatch(body, patches)
     template = body.get("Template", body)
@@ -183,9 +209,10 @@ class DuploService(DuploResourceV2):
       body["OtherDockerConfig"] = existing.get("OtherDockerConfig") or "{}"
     if "AgentPlatform" not in body:
       body["AgentPlatform"] = existing.get("AgentPlatform", 0)
-    self.client.post(self.endpoint("ReplicationControllerChangeAll"), body)
+    response = self.client.post(self.endpoint("ReplicationControllerChangeAll"), body)
     if self.duplo.wait:
-      self._wait(old, body)
+      baseline = dataclasses.replace(baseline, started_at=server_time(response))
+      self._wait(old, body, baseline=baseline)
     return {
       "message": f"Successfully updated service '{body['Name']}'"
     }
@@ -355,7 +382,7 @@ class DuploService(DuploResourceV2):
       ```
 
     Example: Update Image and Wait
-      Waits till the desired count of pods all reach the running state with the new image.
+      Waits until pods of the new ReplicaSet run and no pod of the previous one is left.
       ```sh
       duploctl service update_image myapp myimage:latest --wait --loglevel INFO
       ```
@@ -398,6 +425,7 @@ class DuploService(DuploResourceV2):
     for cname, cimage in (init_container_image or []):
       payload.append({"ContainerName": cname, "ImageName": cimage})
     endpoint = f"v3/subscriptions/{self.tenant_id}/containers/replicationController/{name}/containerimage"
+    baseline = self._baseline(name) if self.duplo.wait else None
     try:
       response = self.client.put(endpoint, payload)
     except DuploNotFound as e:
@@ -417,7 +445,8 @@ class DuploService(DuploResourceV2):
         self._verify_main_image(name, response, image)
       if self.duplo.wait:
         self.duplo.logger.debug("Wait enabled, beginning wait process")
-        self._wait(old, {"Name": name, "Image": image or ""})
+        baseline = dataclasses.replace(baseline, started_at=server_time(response))
+        self._wait(old, {"Name": name, "Image": image or ""}, baseline=baseline)
     return {"message": f"Successfully updated image for service '{name}'."}
 
   def _backend_message(self, text: str) -> str:
@@ -453,10 +482,12 @@ class DuploService(DuploResourceV2):
       "Image": image,
       "AllocationTags": service["Template"].get("AllocationTags", "")
     }
-    self.client.post(self.endpoint("ReplicationControllerChange"), data)
+    baseline = self._baseline(name) if self.duplo.wait else None
+    response = self.client.post(self.endpoint("ReplicationControllerChange"), data)
     if self.duplo.wait:
       self.duplo.logger.debug("Wait enabled, beginning wait process")
-      self._wait(service, data)
+      baseline = dataclasses.replace(baseline, started_at=server_time(response))
+      self._wait(service, data, baseline=baseline)
 
   @Command()
   def update_env(self,
@@ -548,10 +579,11 @@ class DuploService(DuploResourceV2):
       "OtherDockerConfig": dumps(currentDockerconfig),
       "allocationTags": service["Template"].get("AllocationTags", "")
     }
-    self.client.post(self.endpoint("ReplicationControllerChange"), payload)
+    baseline = self._baseline(name) if self.duplo.wait else None
+    response = self.client.post(self.endpoint("ReplicationControllerChange"), payload)
     if self.duplo.wait:
-      service["Replicaset"] = self.current_replicaset(name)
-      self._wait(service, payload)
+      baseline = dataclasses.replace(baseline, started_at=server_time(response))
+      self._wait(service, payload, baseline=baseline)
     return {"message": f"Successfully updated environment variables for service '{name}'"}
 
   @Command()
@@ -583,7 +615,7 @@ class DuploService(DuploResourceV2):
     service = self.find(name)
     raw_config = service["Template"].get("OtherDockerConfig") or "{}"
     currentDockerconfig = loads(raw_config)
-    currentLabels = currentDockerconfig.get("PodLabels", [])
+    currentLabels = currentDockerconfig.get("PodLabels", {})
     newLabels = []
     if setvar is not None:
       newLabels = [{"Name": i[0], "Value": i[1]} for i in setvar]
@@ -597,16 +629,17 @@ class DuploService(DuploResourceV2):
 
     else:
       # replace values of existing label
-      for label, value in currentDockerconfig['PodLabels'].items():
-        for vars in newLabels:
-          if vars["Name"] not in currentDockerconfig['PodLabels']:
-            label_name = vars["Name"]
-            raise DuploError(f"Service {name} does not have Pod label '{label_name}', enter correct label.", 400)
-          if vars["Name"] == label:
-            currentDockerconfig['PodLabels'][label] = vars["Value"]
+      for vars in newLabels:
+        if vars["Name"] not in currentLabels:
+          label_name = vars["Name"]
+          raise DuploError(f"Service {name} does not have Pod label '{label_name}', enter correct label.", 400)
+        currentLabels[vars["Name"]] = vars["Value"]
+      currentDockerconfig['PodLabels'] = currentLabels
 
     if deletevar is not None:
       for key in deletevar:
+        if key not in currentDockerconfig.get('PodLabels', {}):
+          raise DuploError(f"Service {name} does not have Pod label '{key}', cannot delete it.", 400)
         del currentDockerconfig['PodLabels'][key]
 
     payload = {
@@ -614,10 +647,11 @@ class DuploService(DuploResourceV2):
       "OtherDockerConfig": dumps(currentDockerconfig),
       "allocationTags": service["Template"].get("AllocationTags", "")
     }
-    self.client.post(self.endpoint("ReplicationControllerChange"), payload)
+    baseline = self._baseline(name) if self.duplo.wait else None
+    response = self.client.post(self.endpoint("ReplicationControllerChange"), payload)
     if self.duplo.wait:
-      service["Replicaset"] = self.current_replicaset(name)
-      self._wait(service, payload)
+      baseline = dataclasses.replace(baseline, started_at=server_time(response))
+      self._wait(service, payload, baseline=baseline)
     return {"message": f"Successfully updated pod labels for service '{name}'"}
 
   @Command()
@@ -652,13 +686,16 @@ class DuploService(DuploResourceV2):
       if self.duplo.wait:
         wait_list.append({
           "old": service,
-          "updates": payload_item
+          "updates": payload_item,
+          "baseline": self._baseline(name)
         })
 
-    self.client.post(self.endpoint("ReplicationControllerBulkChangeAll"), payload)
+    response = self.client.post(self.endpoint("ReplicationControllerBulkChangeAll"), payload)
 
     if self.duplo.wait:
+      started_at = server_time(response)
       for update_info in wait_list:
+        update_info["baseline"] = dataclasses.replace(update_info["baseline"], started_at=started_at)
         self._wait(**update_info)
 
     return {"message": "Successfully updated images for services"}
@@ -676,7 +713,7 @@ class DuploService(DuploResourceV2):
       ```
 
     Example: Wait for Restart
-      This command supports the global --wait. Waits for the desired count of pods to become ready.
+      This command supports the global --wait. Waits until the restarted pods replace the old ones.
       ```sh
       duploctl service restart myapp --wait --loglevel INFO
       ```
@@ -690,10 +727,12 @@ class DuploService(DuploResourceV2):
     Raises:
       DuploError: If the service could not be restarted.
     """
-    self.client.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
+    baseline = self._baseline(name) if self.duplo.wait else None
+    response = self.client.post(self.endpoint(f"ReplicationControllerReboot/{name}"))
     if self.duplo.wait:
       service = self.find(name)
-      self._wait(service, service)
+      baseline = dataclasses.replace(baseline, started_at=server_time(response))
+      self._wait(service, service, baseline=baseline, restart=True)
     return {"message": f"Successfully restarted service '{name}'"}
 
   @Command()
@@ -992,14 +1031,16 @@ class DuploService(DuploResourceV2):
     self.client.put(api_endpoint)
     return {"message": f"Successfully rolled back service '{name}'"}
 
-  def _wait(self, old: dict, updates: dict):
+  def _wait(self, old: dict, updates: dict, baseline: Optional[RolloutBaseline] = None, restart: bool = False):
     """Wait for a service to update.
 
-    This will wait for the service to update based on the changes made. It will check the image, replicas, and hpa settings.
+    This will wait for the service to update based on the changes made. It will check the image, replicas, and hpa settings. When a rollover is expected and a baseline is given, the wait finishes once pods of a new ReplicaSet are running and no old pod is.
 
     Args:
       old: The old service definition.
       updates: The updated service definition.
+      baseline: The ReplicaSets and start time captured before the change.
+      restart: Whether the change is a restart, which always replaces pods.
 
     Returns:
       None
@@ -1027,20 +1068,19 @@ class DuploService(DuploResourceV2):
 
     # Is a rollover needed?
     new_conf = updates.get("OtherDockerConfig", None)
-    conf_changed = (old["Template"].get("OtherDockerConfig", None) != new_conf) if new_conf else False
-    rollover = False
-    if image_changed or conf_changed:
-      rollover = True
+    conf_changed = self._conf_differs(old["Template"].get("OtherDockerConfig", None), new_conf) if new_conf else False
+    rollover = image_changed or conf_changed or restart
     self.duplo.logger.debug(f"""Wait for service {name}:
       The image has {'changed' if image_changed else 'not changed'}.
       The replicas have {'changed' if replicas_changed else 'not changed'}.
       The hpa is {'enabled' if hpa_enabled else 'disabled'}.
       The true count is {'known' if true_count else 'unknown'}.
+      The baseline is {baseline}.
+      The command is {'a restart' if restart else 'not a restart'}.
       A rollover is {'required' if rollover else 'not required'}.
       """)
-    def normalize_image(image):
-      """Normalize image name by removing Docker registry prefixes."""
-      return image.removeprefix("docker.io/library/").removeprefix("docker.io/").removeprefix("library/")
+    # a rollback mid-rollout reuses a baseline ReplicaSet, found by its image
+    pod_baseline = dataclasses.replace(baseline, image=new_img) if baseline is not None and image_changed else baseline
     def get_pod_image(pod):
       """Get the image of a pod."""
       raw_image=pod["Containers"][0]["Image"]
@@ -1067,13 +1107,15 @@ class DuploService(DuploResourceV2):
       for f in faults:
         if f["ResourceName"] == name:
           raise DuploFailedResource(f"Service {name} raised a fault.\n{f['Description']}")
+    # the old ReplicaSets come from the baseline, else from the legacy key
+    old_replicasets = baseline.replicasets if baseline is not None else {old.get("Replicaset", None)}
     def running_pod(pod, faults):
       """Check if a pod is running and return 1 if it is, 0 otherwise."""
       # azure doesn't have controlled by, so we skip this check if it's not there
       cb = pod.get("ControlledBy", None)
       # skip if the pod is not controlled by the new replicaset
-      if (cloud != 2 and cb is not None) and (cb["NativeId"] == old.get("Replicaset", None) and rollover):
-        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by the old Replicaset: {old.get('Replicaset', None)}")
+      if (cloud != 2 and cb is not None) and (cb["NativeId"] in old_replicasets and rollover):
+        self.duplo.logger.debug(f"pod {pod['InstanceId']} is controlled by {cb['NativeId']}. Ignoring status because it's controlled by an old Replicaset: {sorted(old_replicasets)}")
         return 0
       # ignore this pod if the image is the old image
       if image_changed:
@@ -1107,7 +1149,7 @@ class DuploService(DuploResourceV2):
         raise DuploStillWaiting(f"Service {name} waiting for image update")
       if (replicas_changed and replicas != new_replicas):
         raise DuploStillWaiting(f"Service {name} waiting for replicas update")
-      if (conf_changed and svc["Template"].get("OtherDockerConfig", None) != new_conf):
+      if (conf_changed and self._conf_differs(svc["Template"].get("OtherDockerConfig", None), new_conf)):
         raise DuploStillWaiting(f"Service {name} waiting for pod to update")
 
       # now let's start checking the pods
@@ -1118,6 +1160,19 @@ class DuploService(DuploResourceV2):
       # check for azure faults on service
       if cloud == 2:
         check_service_faults(faults)
+
+      # rollover tracked by ReplicaSet: new pods run and no old pod does
+      if rollover and baseline is not None and tracks_replicasets(pods):
+        if cloud != 2:
+          for p in pods:
+            if is_new_pod(p, pod_baseline):
+              check_pod_faults(p, faults)
+        counts = count_rollout(pods, pod_baseline)
+        needed = replicas if true_count else svc.get("HPASpecs", {}).get("minReplicas", 1)
+        label = "new" if true_count else "minimum new"
+        if counts.new_running < needed or counts.old_remaining > 0:
+          raise DuploStillWaiting(f"Service {name} rollout: {counts.new_running}/{needed} {label} pods running, {counts.old_remaining} old pods still running")
+        return
 
       # make sure all the replicas are up if we know the true replica count
       running = sum(running_pod(p, faults) for p in pods)
@@ -1136,6 +1191,14 @@ class DuploService(DuploResourceV2):
 
     # send to the base class to do the waiting
     super().wait(wait_check, 3600, 11)
+
+  @staticmethod
+  def _conf_differs(old_conf, new_conf) -> bool:
+    """Compare OtherDockerConfig values, as parsed JSON when both parse."""
+    try:
+      return loads(old_conf) != loads(new_conf)
+    except (TypeError, JSONDecodeError):
+      return old_conf != new_conf
 
   def _validate_args(self, name, all, targets):
     if sum(bool(x) for x in [name, all, targets]) > 1:
