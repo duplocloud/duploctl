@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from urllib.request import urlopen, Request
 from urllib.error import URLError
+from webbrowser import Error as BrowserError
 
 from duplocloud.server import TokenServer, TokenCallbackHandler
 from duplocloud.errors import DuploError
@@ -238,6 +239,38 @@ class TestOpenCallback:
         "https://portal.example.com/some/page",
         new=0, autoraise=True
       )
+
+  @patch("duplocloud.server.webbrowser")
+  def test_open_callback_returns_launch_result(self, mock_wb):
+    """open_callback reports whether a browser was actually launched."""
+    mock_wb.open.return_value = False
+    with start_server(host="https://portal.example.com") as server:
+      assert server.open_callback("some/page") is False
+
+  @patch("duplocloud.server.webbrowser")
+  def test_open_callback_missing_browser_raises(self, mock_wb):
+    """An unavailable browser fails fast pointing at headless login."""
+    mock_wb.get.side_effect = BrowserError("not found")
+    with start_server(host="https://portal.example.com") as server:
+      with pytest.raises(DuploError) as exc_info:
+        server.open_callback("some/page", browser="firefox")
+      assert "--headless" in str(exc_info.value)
+
+
+# --- Tests for the bind interface ---
+
+@pytest.mark.unit
+class TestBind:
+  def test_binds_all_interfaces_by_default(self):
+    with start_server() as server:
+      assert server.server_address[0] == "0.0.0.0"
+
+  def test_binds_loopback_when_requested(self):
+    """Headless relay mode only accepts callbacks from this machine."""
+    server = TokenServer("https://portal.example.com", timeout=1,
+                         bind="127.0.0.1")
+    with server:
+      assert server.server_address[0] == "127.0.0.1"
 
 
 # --- Tests for log suppression ---
